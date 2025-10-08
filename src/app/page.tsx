@@ -1,102 +1,470 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+
+export default function LandingPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.push('/dashboard');
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5EAD3' }}>
+        <div className="text-5xl animate-pulse">🏠</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen" style={{ backgroundColor: '#F5EAD3' }}>
+      {/* Sticky Header */}
+      <header 
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          isScrolled ? 'shadow-lg' : ''
+        }`}
+        style={{ backgroundColor: isScrolled ? '#0F172A' : 'transparent' }}
+      >
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🏠</span>
+              <span className="text-xl font-bold text-white">Real Estate AI</span>
+            </div>
+            
+            <Link
+              href="/login"
+              className="px-6 py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform"
+              style={{ backgroundColor: '#2563EB' }}
+            >
+              Empezar Gratis
+            </Link>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      </header>
+
+      {/* Hero Section */}
+      <section className="relative pt-24 pb-16 px-4 overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div 
+            className="absolute top-20 left-10 w-72 h-72 rounded-full opacity-20 blur-3xl animate-pulse"
+            style={{ backgroundColor: '#2563EB' }}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+          <div 
+            className="absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
+            style={{ backgroundColor: '#2563EB', animationDelay: '1s' }}
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        </div>
+
+        <div className="relative max-w-4xl mx-auto text-center">
+          {/* Badge */}
+          <div 
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 shadow-lg"
+            style={{ backgroundColor: '#FFFFFF' }}
+          >
+            <span className="text-xl">✨</span>
+            <span className="font-semibold" style={{ color: '#0F172A' }}>
+              Impulsado por IA
+            </span>
+          </div>
+
+          {/* Main Headline */}
+          <h1 
+            className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight"
+            style={{ color: '#0F172A' }}
+          >
+            Crea Listings Profesionales en{' '}
+            <span 
+              className="relative inline-block"
+              style={{ color: '#2563EB' }}
+            >
+              60 Segundos
+              <svg 
+                className="absolute -bottom-2 left-0 w-full" 
+                viewBox="0 0 200 12" 
+                fill="none"
+              >
+                <path 
+                  d="M2 10C50 2 150 2 198 10" 
+                  stroke="#2563EB" 
+                  strokeWidth="3" 
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
+          </h1>
+
+          <p 
+            className="text-lg sm:text-xl mb-8 max-w-2xl mx-auto opacity-80"
+            style={{ color: '#0F172A' }}
+          >
+            Sube fotos, describe por voz, y nuestra IA genera descripciones profesionales automáticamente.
+            <span className="font-semibold"> Sin escribir, sin perder tiempo.</span>
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <Link
+              href="/login"
+              className="px-8 py-4 rounded-xl font-bold text-white shadow-xl text-lg active:scale-95 transition-transform"
+              style={{ backgroundColor: '#2563EB' }}
+            >
+              🚀 Empezar Gratis
+            </Link>
+            <button
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+              className="px-8 py-4 rounded-xl font-bold border-2 text-lg active:scale-95 transition-transform"
+              style={{ 
+                borderColor: '#0F172A',
+                color: '#0F172A',
+                backgroundColor: '#FFFFFF'
+              }}
+            >
+              Ver Cómo Funciona
+            </button>
+          </div>
+
+          {/* Social Proof */}
+          <div className="flex flex-wrap items-center justify-center gap-6 opacity-70">
+            <div className="text-center">
+              <div className="text-2xl font-bold" style={{ color: '#0F172A' }}>500+</div>
+              <div className="text-sm" style={{ color: '#0F172A' }}>Agentes</div>
+            </div>
+            <div className="w-px h-8" style={{ backgroundColor: '#0F172A' }} />
+            <div className="text-center">
+              <div className="text-2xl font-bold" style={{ color: '#0F172A' }}>2,400+</div>
+              <div className="text-sm" style={{ color: '#0F172A' }}>Propiedades</div>
+            </div>
+            <div className="w-px h-8" style={{ backgroundColor: '#0F172A' }} />
+            <div className="text-center">
+              <div className="text-2xl font-bold" style={{ color: '#0F172A' }}>98%</div>
+              <div className="text-sm" style={{ color: '#0F172A' }}>Satisfacción</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section id="how-it-works" className="py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
+              3 Pasos Simples
+            </h2>
+            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>
+              Tan fácil que tu abuela podría hacerlo
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                step: '1',
+                emoji: '📸',
+                title: 'Sube Fotos',
+                description: 'Toma fotos con tu móvil o selecciónalas de tu galería. Mínimo 2, máximo 20.'
+              },
+              {
+                step: '2',
+                emoji: '🎤',
+                title: 'Describe por Voz',
+                description: 'Graba 30-120 segundos describiendo la propiedad. Sin escribir nada.'
+              },
+              {
+                step: '3',
+                emoji: '✨',
+                title: 'IA Genera Todo',
+                description: 'Nuestra IA crea título, descripción profesional y extrae todos los detalles.'
+              }
+            ].map((item, index) => (
+              <div
+                key={index}
+                className="relative rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow"
+                style={{ backgroundColor: '#FFFFFF' }}
+              >
+                <div 
+                  className="absolute -top-4 -left-4 w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-xl shadow-lg"
+                  style={{ backgroundColor: '#2563EB' }}
+                >
+                  {item.step}
+                </div>
+                <div className="text-5xl mb-4 text-center">{item.emoji}</div>
+                <h3 className="text-xl font-bold mb-2 text-center" style={{ color: '#0F172A' }}>
+                  {item.title}
+                </h3>
+                <p className="text-center opacity-80" style={{ color: '#0F172A' }}>
+                  {item.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
+              Todo lo que Necesitas
+            </h2>
+            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>
+              Herramientas profesionales a precio accesible
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { emoji: '🤖', title: 'IA Avanzada', desc: 'GPT-4 y Whisper para resultados perfectos' },
+              { emoji: '📱', title: 'App Móvil', desc: 'PWA nativa para iOS y Android' },
+              { emoji: '⚡', title: 'Super Rápido', desc: 'Crea listings en menos de 60 segundos' },
+              { emoji: '🔒', title: 'Seguro', desc: 'Tus datos protegidos con encriptación' },
+              { emoji: '🌐', title: 'Links Públicos', desc: 'Comparte con un solo click' },
+              { emoji: '📊', title: 'Analytics', desc: 'Ve cuántas personas ven tus propiedades' }
+            ].map((feature, index) => (
+              <div
+                key={index}
+                className="rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all active:scale-95"
+                style={{ backgroundColor: '#FFFFFF' }}
+              >
+                <div className="text-4xl mb-3">{feature.emoji}</div>
+                <h3 className="text-lg font-bold mb-2" style={{ color: '#0F172A' }}>
+                  {feature.title}
+                </h3>
+                <p className="text-sm opacity-80" style={{ color: '#0F172A' }}>
+                  {feature.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
+              Agentes Felices 😊
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                name: 'María González',
+                role: 'Century 21',
+                text: 'Antes tardaba 30 minutos por listing. Ahora son 60 segundos. ¡Increíble!',
+                rating: 5
+              },
+              {
+                name: 'Carlos Rodríguez',
+                role: 'RE/MAX',
+                text: 'La IA escribe mejor que yo. Mis clientes están impresionados.',
+                rating: 5
+              },
+              {
+                name: 'Ana Martínez',
+                role: 'Independiente',
+                text: 'Perfecto para agentes ocupados. Lo uso todos los días.',
+                rating: 5
+              }
+            ].map((testimonial, index) => (
+              <div
+                key={index}
+                className="rounded-2xl p-6 shadow-lg"
+                style={{ backgroundColor: '#FFFFFF' }}
+              >
+                <div className="flex gap-1 mb-3">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <span key={i} className="text-yellow-500">★</span>
+                  ))}
+                </div>
+                <p className="mb-4 italic" style={{ color: '#0F172A' }}>
+                  "{testimonial.text}"
+                </p>
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white"
+                    style={{ backgroundColor: '#2563EB' }}
+                  >
+                    {testimonial.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="font-bold" style={{ color: '#0F172A' }}>
+                      {testimonial.name}
+                    </div>
+                    <div className="text-sm opacity-70" style={{ color: '#0F172A' }}>
+                      {testimonial.role}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
+              Precios Simples
+            </h2>
+            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>
+              Sin suscripciones. Solo pagas por lo que usas.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {[
+              {
+                name: 'Starter',
+                price: '$19',
+                credits: '10 Propiedades',
+                perListing: '$1.90',
+                features: ['✓ Fotos ilimitadas', '✓ Descripción con IA', '✓ Links públicos', '✓ Soporte email']
+              },
+              {
+                name: 'Pro',
+                price: '$79',
+                credits: '50 Propiedades',
+                perListing: '$1.58',
+                features: ['✓ Todo en Starter', '✓ Portfolio público', '✓ Analytics básico', '✓ Soporte prioritario'],
+                popular: true
+              },
+              {
+                name: 'Agency',
+                price: '$139',
+                credits: '100 Propiedades',
+                perListing: '$1.39',
+                features: ['✓ Todo en Pro', '✓ Logo personalizado', '✓ API access', '✓ Soporte 24/7']
+              }
+            ].map((plan, index) => (
+              <div
+                key={index}
+                className={`relative rounded-2xl p-6 shadow-lg ${
+                  plan.popular ? 'border-4 scale-105' : 'border-2'
+                }`}
+                style={{ 
+                  backgroundColor: '#FFFFFF',
+                  borderColor: plan.popular ? '#2563EB' : '#E5E7EB'
+                }}
+              >
+                {plan.popular && (
+                  <div 
+                    className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-white text-sm font-bold shadow-lg"
+                    style={{ backgroundColor: '#2563EB' }}
+                  >
+                    MÁS POPULAR
+                  </div>
+                )}
+                <div className="text-center mb-4">
+                  <h3 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
+                    {plan.name}
+                  </h3>
+                  <div className="text-4xl font-bold mb-1" style={{ color: '#2563EB' }}>
+                    {plan.price}
+                  </div>
+                  <div className="text-sm opacity-70" style={{ color: '#0F172A' }}>
+                    {plan.credits}
+                  </div>
+                  <div className="text-xs mt-1 opacity-50" style={{ color: '#0F172A' }}>
+                    {plan.perListing} por listing
+                  </div>
+                </div>
+                <ul className="space-y-2 mb-6">
+                  {plan.features.map((feature, i) => (
+                    <li key={i} className="text-sm" style={{ color: '#0F172A' }}>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/login"
+                  className="block w-full py-3 rounded-xl font-bold text-center shadow-lg active:scale-95 transition-transform"
+                  style={{ 
+                    backgroundColor: plan.popular ? '#2563EB' : '#FFFFFF',
+                    color: plan.popular ? '#FFFFFF' : '#2563EB',
+                    border: plan.popular ? 'none' : '2px solid #2563EB'
+                  }}
+                >
+                  Empezar Ahora
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-center mt-8 text-sm opacity-70" style={{ color: '#0F172A' }}>
+            🎁 <strong>3 propiedades gratis</strong> al registrarte • Los créditos nunca expiran
+          </p>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-16 px-4">
+        <div 
+          className="max-w-4xl mx-auto rounded-3xl p-12 text-center shadow-2xl"
+          style={{ backgroundColor: '#0F172A' }}
         >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white">
+            ¿Listo para Acelerar tu Negocio?
+          </h2>
+          <p className="text-lg mb-8 text-white opacity-80">
+            Únete a cientos de agentes que ya confían en Real Estate AI
+          </p>
+          <Link
+            href="/login"
+            className="inline-block px-10 py-4 rounded-xl font-bold text-lg shadow-xl active:scale-95 transition-transform"
+            style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}
+          >
+            🚀 Comenzar Gratis Ahora
+          </Link>
+          <p className="mt-4 text-sm text-white opacity-60">
+            No requiere tarjeta de crédito
+          </p>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-8 px-4 border-t" style={{ borderColor: '#E5E7EB' }}>
+        <div className="max-w-6xl mx-auto text-center">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <span className="text-2xl">🏠</span>
+            <span className="text-xl font-bold" style={{ color: '#0F172A' }}>
+              Real Estate AI
+            </span>
+          </div>
+          <p className="text-sm opacity-60 mb-4" style={{ color: '#0F172A' }}>
+            Creando el futuro de los listings inmobiliarios
+          </p>
+          <div className="flex justify-center gap-6 text-sm" style={{ color: '#0F172A' }}>
+            <a href="#" className="hover:opacity-60">Términos</a>
+            <a href="#" className="hover:opacity-60">Privacidad</a>
+            <a href="#" className="hover:opacity-60">Contacto</a>
+          </div>
+          <p className="text-xs mt-4 opacity-40" style={{ color: '#0F172A' }}>
+            © 2025 Real Estate AI. Todos los derechos reservados.
+          </p>
+        </div>
       </footer>
     </div>
   );

@@ -106,13 +106,13 @@ export async function POST(req: NextRequest) {
       count: uploadedUrls.length,
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error al subir fotos:', error);
     
     return NextResponse.json(
       { 
         error: 'Error al subir las fotos',
-        details: error.message 
+        details: error 
       },
       { status: 500 }
     );

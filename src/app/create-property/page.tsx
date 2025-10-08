@@ -29,6 +29,7 @@ export default function CreatePropertyPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [propertyData, setPropertyData] = useState<PropertyData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tempPhotoUrls, setTempPhotoUrls] = useState<string[]>([]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -89,10 +90,10 @@ export default function CreatePropertyPage() {
       // 4. Actualizar estado con datos generados
       setPropertyData({
         ...generatedData,
-      } as any); // Temporal fix para TypeScript
+      }); // Temporal fix para TypeScript
 
       // Las fotos ya están en photoUrls, las agregaremos al guardar
-      (window as any).__propertyPhotos = photoUrls;
+      setTempPhotoUrls(photoUrls);
 
     } catch (err) {
       console.error('Error al procesar:', err);
@@ -165,7 +166,7 @@ export default function CreatePropertyPage() {
 
     try {
       // Recuperar las URLs de fotos que guardamos antes
-      const photoUrls = (window as any).__propertyPhotos || [];
+      const photoUrls = tempPhotoUrls || [];
       
       const response = await fetch('/api/property/create', {
         method: 'POST',
@@ -183,7 +184,7 @@ export default function CreatePropertyPage() {
       const { propertyId } = await response.json();
       
       // Limpiar fotos temporales
-      delete (window as any).__propertyPhotos;
+      setTempPhotoUrls([]);
       
       router.push(`/p/${propertyId}`);
     } catch (err) {

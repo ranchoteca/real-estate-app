@@ -69,8 +69,8 @@ export default function ProfilePage() {
       
       // Recargar sesión
       window.location.reload();
-    } catch (error: any) {
-      alert(error.message);
+    } catch (error) {
+      alert(error);
     } finally {
       setSaving(false);
     }

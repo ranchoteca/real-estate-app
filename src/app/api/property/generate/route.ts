@@ -136,13 +136,13 @@ export async function POST(req: NextRequest) {
       tokensUsed: completion.usage?.total_tokens || 0,
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error al generar descripción:', error);
     
     return NextResponse.json(
       { 
         error: 'Error al generar la descripción',
-        details: error.message 
+        details: error
       },
       { status: 500 }
     );

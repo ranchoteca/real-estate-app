@@ -21,4 +21,4 @@ export const supabaseAdmin =
           }
         }
       )
-    : (null as any); // Placeholder para el cliente
+    : null; // Placeholder para el cliente

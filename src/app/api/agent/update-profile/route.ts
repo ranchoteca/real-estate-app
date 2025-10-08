@@ -64,13 +64,13 @@ export async function POST(req: NextRequest) {
       message: 'Perfil actualizado exitosamente',
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error al actualizar perfil:', error);
     
     return NextResponse.json(
       { 
         error: 'Error al actualizar el perfil',
-        details: error.message 
+        details: error 
       },
       { status: 500 }
     );

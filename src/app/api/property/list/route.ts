@@ -47,13 +47,13 @@ export async function GET(req: NextRequest) {
       properties: properties || [],
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error al listar propiedades:', error);
     
     return NextResponse.json(
       { 
         error: 'Error al cargar propiedades',
-        details: error.message 
+        details: error 
       },
       { status: 500 }
     );

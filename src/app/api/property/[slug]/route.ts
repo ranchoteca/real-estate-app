@@ -67,13 +67,13 @@ export async function GET(
       property: formattedProperty,
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error al obtener propiedad:', error);
     
     return NextResponse.json(
       { 
         error: 'Error al cargar la propiedad',
-        details: error.message 
+        details: error
       },
       { status: 500 }
     );

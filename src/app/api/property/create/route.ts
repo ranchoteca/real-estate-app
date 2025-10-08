@@ -125,13 +125,13 @@ export async function POST(req: NextRequest) {
       creditsRemaining: agent.credits - 1,
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error al crear propiedad:', error);
     
     return NextResponse.json(
       { 
         error: 'Error al crear la propiedad',
-        details: error.message 
+        details: error
       },
       { status: 500 }
     );

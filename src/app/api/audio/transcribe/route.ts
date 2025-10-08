@@ -55,13 +55,13 @@ export async function POST(req: NextRequest) {
       transcription,
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error en transcripción:', error);
     
     return NextResponse.json(
       { 
         error: 'Error al transcribir el audio',
-        details: error.message 
+        details: error
       },
       { status: 500 }
     );

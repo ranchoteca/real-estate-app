@@ -63,7 +63,7 @@ export async function PUT(
     console.log('✅ Propiedad actualizada:', id);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: error }, { status: 500 });
   }
 }

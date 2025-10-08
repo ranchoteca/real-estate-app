@@ -92,13 +92,13 @@ export async function DELETE(
       message: 'Propiedad eliminada exitosamente',
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error al eliminar propiedad:', error);
     
     return NextResponse.json(
       { 
         error: 'Error al eliminar la propiedad',
-        details: error.message 
+        details: error
       },
       { status: 500 }
     );

@@ -298,7 +298,7 @@ export default function LandingPage() {
                   ))}
                 </div>
                 <p className="mb-4 italic" style={{ color: '#0F172A' }}>
-                  "{testimonial.text}"
+                  &ldquo;{testimonial.text}&rdquo;
                 </p>
                 <div className="flex items-center gap-3">
                   <div 

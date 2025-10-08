@@ -27,7 +27,7 @@ export default function Camera({ onCapture, onCancel }: CameraProps) {
         videoRef.current.srcObject = mediaStream;
         setStream(mediaStream);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error accessing camera:', err);
       setError('No se pudo acceder a la cámara. Por favor, permite el acceso.');
     }

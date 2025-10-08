@@ -56,9 +56,9 @@ export default function EditPropertyPage() {
       
       const data = await response.json();
       setProperty(data.property);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading property:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Error al cargar la propiedad');
     } finally {
       setLoading(false);
     }
@@ -84,8 +84,8 @@ export default function EditPropertyPage() {
 
       alert('✅ Propiedad actualizada');
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al guardar la propiedad');
     } finally {
       setSaving(false);
     }

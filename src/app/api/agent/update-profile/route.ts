@@ -2,19 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseAdmin } from '@/lib/supabase';
 
-// Definimos el tipo de la tabla agents
-type Agent = {
-  id: string;
-  email: string;
-  username: string | null;
-  full_name: string | null;
-  phone: string | null;
-  brokerage: string | null;
-  credits: number;
-};
-
 export async function POST(req: NextRequest) {
   try {
+    // Verificar que supabaseAdmin esté disponible
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: 'Servicio no disponible' },
+        { status: 500 }
+      );
+    }
+
     const session = await getServerSession();
     if (!session?.user?.email) {
       return NextResponse.json(
@@ -35,13 +32,29 @@ export async function POST(req: NextRequest) {
       }
 
       // Verificar si el username ya existe (excepto el del usuario actual)
-      const { data: existingUser } = await supabaseAdmin!
-        .from<Agent>('agents')
+      const { data: existingUser, error: checkError } = await supabaseAdmin
+        .from('agents')
         .select('id, email')
         .eq('username', username)
         .single();
 
-      if (existingUser && existingUser.email !== session.user.email) {
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('Error al verificar username:', checkError);
+        return NextResponse.json(
+          { error: 'Error al verificar disponibilidad del username' },
+          { status: 500 }
+        );
+      }
+
+      // Tipar la respuesta manualmente
+      type AgentCheck = {
+        id: string;
+        email: string;
+      } | null;
+
+      const existingAgent = existingUser as AgentCheck;
+
+      if (existingAgent && existingAgent.email !== session.user.email) {
         return NextResponse.json(
           { error: 'Este username ya está en uso' },
           { status: 400 }
@@ -49,15 +62,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Actualizar perfil
-    const { error } = await supabaseAdmin!
-      .from<Agent>('agents')
-      .update({
-        username: username || null,
-        full_name: fullName || null,
-        phone: phone || null,
-        brokerage: brokerage || null,
-      })
+    // WORKAROUND: Usar any temporalmente para evitar problemas de tipado de Supabase
+    const updateData = {
+      username: username || null,
+      full_name: fullName || null,
+      phone: phone || null,
+      brokerage: brokerage || null,
+    };
+
+    // Usar any temporalmente para el update
+    const { error } = await (supabaseAdmin as any)
+      .from('agents')
+      .update(updateData)
       .eq('email', session.user.email);
 
     if (error) {
@@ -81,7 +97,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Error al actualizar el perfil',
-        details: error 
+        details: error instanceof Error ? error.message : 'Error desconocido'
       },
       { status: 500 }
     );

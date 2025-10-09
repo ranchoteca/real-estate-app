@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseAdmin } from '@/lib/supabase';
 
+// Definimos el tipo de la tabla agents
+type Agent = {
+  id: string;
+  email: string;
+  username: string | null;
+  full_name: string | null;
+  phone: string | null;
+  brokerage: string | null;
+  credits: number;
+};
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession();
@@ -24,8 +35,8 @@ export async function POST(req: NextRequest) {
       }
 
       // Verificar si el username ya existe (excepto el del usuario actual)
-      const { data: existingUser } = await supabaseAdmin
-        .from('agents')
+      const { data: existingUser } = await supabaseAdmin!
+        .from<Agent>('agents')
         .select('id, email')
         .eq('username', username)
         .single();
@@ -39,8 +50,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Actualizar perfil
-    const { error } = await supabaseAdmin
-      .from('agents')
+    const { error } = await supabaseAdmin!
+      .from<Agent>('agents')
       .update({
         username: username || null,
         full_name: fullName || null,
@@ -66,7 +77,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('❌ Error al actualizar perfil:', error);
-    
+
     return NextResponse.json(
       { 
         error: 'Error al actualizar el perfil',

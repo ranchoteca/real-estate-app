@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState<string | null>(null);
+  const [planInfo, setPlanInfo] = useState<{ plan: string; properties_this_month: number } | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {

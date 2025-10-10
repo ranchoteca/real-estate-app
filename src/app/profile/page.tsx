@@ -69,8 +69,8 @@ export default function ProfilePage() {
       
       // Recargar sesión
       window.location.reload();
-    } catch (error) {
-      alert(error);
+    } catch (error: any) {
+      alert(error.message);
     } finally {
       setSaving(false);
     }
@@ -248,6 +248,34 @@ export default function ProfilePage() {
               <span>🔗</span> Ver Mi Portfolio
             </button>
           )}
+
+          <button
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/agent/export-csv');
+                if (!response.ok) throw new Error('Error al exportar');
+                
+                // Descargar archivo
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `mis-propiedades-${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                alert('✅ Propiedades exportadas exitosamente');
+              } catch (error) {
+                alert('Error al exportar. Intenta nuevamente.');
+              }
+            }}
+            className="w-full py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+            style={{ backgroundColor: '#FFFFFF', color: '#0F172A' }}
+          >
+            <span>📥</span> Exportar Mis Propiedades (CSV)
+          </button>
         </div>
 
         {/* Logout Button */}

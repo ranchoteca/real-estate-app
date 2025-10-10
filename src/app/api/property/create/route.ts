@@ -53,12 +53,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Verificar créditos
-    if (agent.credits < 1) {
-      return NextResponse.json(
-        { error: 'No tienes créditos suficientes' },
-        { status: 403 }
-      );
+    // 2. Verificar límites según plan
+    if (agent.plan === 'free') {
+      // Free: máximo 3 propiedades TOTALES
+      const { count } = await supabaseAdmin
+        .from('properties')
+        .select('*', { count: 'exact', head: true })
+        .eq('agent_id', agent.id);
+
+      if (count && count >= 3) {
+        return NextResponse.json(
+          { error: 'Has alcanzado el límite de 3 propiedades. Actualiza a Pro para crear más.' },
+          { status: 403 }
+        );
+      }
+    } else if (agent.plan === 'pro') {
+      // Pro: máximo 30 propiedades NUEVAS este mes
+      if (agent.properties_this_month >= 30) {
+        return NextResponse.json(
+          { error: 'Has alcanzado el límite de 30 propiedades este mes. Espera hasta el próximo mes o elimina propiedades antiguas.' },
+          { status: 403 }
+        );
+      }
     }
 
     // 3. Generar slug único
@@ -125,13 +141,13 @@ export async function POST(req: NextRequest) {
       creditsRemaining: agent.credits - 1,
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error al crear propiedad:', error);
     
     return NextResponse.json(
       { 
         error: 'Error al crear la propiedad',
-        details: error
+        details: error.message 
       },
       { status: 500 }
     );

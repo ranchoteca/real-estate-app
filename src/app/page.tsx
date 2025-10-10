@@ -323,54 +323,63 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section className="py-16 px-4">
+       <section className="py-16 px-4" id="pricing">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
-              Precios Simples
+              Planes y Precios
             </h2>
             <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>
-              Sin suscripciones. Solo pagas por lo que usas.
+              Elige el plan ideal para hacer crecer tu negocio
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {[
               {
-                name: 'Starter',
-                price: '$19',
-                credits: '10 Propiedades',
-                perListing: '$1.90',
-                features: ['✓ Fotos ilimitadas', '✓ Descripción con IA', '✓ Links públicos', '✓ Soporte email']
+                id: 'free',
+                name: 'Free',
+                price: 0,
+                properties: 3,
+                period: 'total',
+                features: [
+                  '3 propiedades totales',
+                  'Portfolio público',
+                  'Descripción con IA',
+                  'Fotos ilimitadas',
+                  'Export CSV'
+                ],
+                highlight: false
               },
               {
+                id: 'pro',
                 name: 'Pro',
-                price: '$79',
-                credits: '50 Propiedades',
-                perListing: '$1.58',
-                features: ['✓ Todo en Starter', '✓ Portfolio público', '✓ Analytics básico', '✓ Soporte prioritario'],
-                popular: true
-              },
-              {
-                name: 'Agency',
-                price: '$139',
-                credits: '100 Propiedades',
-                perListing: '$1.39',
-                features: ['✓ Todo en Pro', '✓ Logo personalizado', '✓ API access', '✓ Soporte 24/7']
+                price: 19,
+                properties: 30,
+                period: 'mes',
+                features: [
+                  '30 propiedades nuevas/mes',
+                  'Todo en Free +',
+                  'Sin marca de agua',
+                  'Portfolio personalizado',
+                  'Soporte prioritario',
+                  'Analytics básico'
+                ],
+                highlight: true
               }
-            ].map((plan, index) => (
+            ].map((plan) => (
               <div
-                key={index}
+                key={plan.id}
                 className={`relative rounded-2xl p-6 shadow-lg ${
-                  plan.popular ? 'border-4 scale-105' : 'border-2'
+                  plan.highlight ? 'border-4 scale-105' : 'border-2'
                 }`}
-                style={{ 
+                style={{
                   backgroundColor: '#FFFFFF',
-                  borderColor: plan.popular ? '#2563EB' : '#E5E7EB'
+                  borderColor: plan.highlight ? '#2563EB' : '#E5E7EB'
                 }}
               >
-                {plan.popular && (
-                  <div 
+                {plan.highlight && (
+                  <div
                     className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-white text-sm font-bold shadow-lg"
                     style={{ backgroundColor: '#2563EB' }}
                   >
@@ -382,29 +391,32 @@ export default function LandingPage() {
                     {plan.name}
                   </h3>
                   <div className="text-4xl font-bold mb-1" style={{ color: '#2563EB' }}>
-                    {plan.price}
+                    ${plan.price}
                   </div>
-                  <div className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                    {plan.credits}
-                  </div>
-                  <div className="text-xs mt-1 opacity-50" style={{ color: '#0F172A' }}>
-                    {plan.perListing} por listing
+                  {plan.price > 0 && (
+                    <div className="text-sm opacity-70" style={{ color: '#0F172A' }}>
+                      /{plan.period}
+                    </div>
+                  )}
+                  <div className="text-sm mt-1 opacity-70" style={{ color: '#0F172A' }}>
+                    {plan.properties} propiedades {plan.period === 'mes' ? 'por mes' : 'en total'}
                   </div>
                 </div>
                 <ul className="space-y-2 mb-6">
                   {plan.features.map((feature, i) => (
-                    <li key={i} className="text-sm" style={{ color: '#0F172A' }}>
-                      {feature}
+                    <li key={i} className="text-sm flex gap-2 items-start" style={{ color: '#0F172A' }}>
+                      <span style={{ color: '#2563EB' }}>✓</span>
+                      <span>{feature}</span>
                     </li>
                   ))}
                 </ul>
                 <Link
                   href="/login"
                   className="block w-full py-3 rounded-xl font-bold text-center shadow-lg active:scale-95 transition-transform"
-                  style={{ 
-                    backgroundColor: plan.popular ? '#2563EB' : '#FFFFFF',
-                    color: plan.popular ? '#FFFFFF' : '#2563EB',
-                    border: plan.popular ? 'none' : '2px solid #2563EB'
+                  style={{
+                    backgroundColor: plan.highlight ? '#2563EB' : '#FFFFFF',
+                    color: plan.highlight ? '#FFFFFF' : '#2563EB',
+                    border: plan.highlight ? 'none' : '2px solid #2563EB'
                   }}
                 >
                   Empezar Ahora
@@ -414,7 +426,7 @@ export default function LandingPage() {
           </div>
 
           <p className="text-center mt-8 text-sm opacity-70" style={{ color: '#0F172A' }}>
-            🎁 <strong>3 propiedades gratis</strong> al registrarte • Los créditos nunca expiran
+            🎁 <strong>3 propiedades gratis</strong> al registrarte • Cancela cuando quieras
           </p>
         </div>
       </section>

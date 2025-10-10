@@ -57,12 +57,22 @@ export default function MobileLayout({
             {/* Right Side */}
             <div className="flex items-center gap-3">
               {session && (
-                <div 
-                  className="px-3 py-1.5 rounded-full text-sm font-semibold text-white"
-                  style={{ backgroundColor: '#2563EB' }}
-                >
-                  {session.user.credits}
-                </div>
+                <>
+                  <div 
+                    className="px-3 py-1.5 rounded-full text-sm font-semibold text-white"
+                    style={{ backgroundColor: '#2563EB' }}
+                  >
+                    {session.user.plan === 'pro' ? 'Pro' : 'Free'}
+                  </div>
+                  {session.user.plan === 'free' && (
+                    <button
+                      onClick={() => router.push('/pricing')}
+                      className="text-white text-sm font-semibold hover:opacity-80 transition-opacity"
+                    >
+                      Upgrade
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>

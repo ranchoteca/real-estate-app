@@ -2,8 +2,7 @@ import NextAuth, { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { supabaseAdmin } from '@/lib/supabase';
 
-// Definimos authOptions solo internamente
-const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -16,21 +15,25 @@ const authOptions: NextAuthOptions = {
         if (account?.provider === 'google') {
           console.log('🔍 Checking agent:', user.email);
 
+          // Verificar si agente existe
           const { data: existingAgent, error: fetchError } = await supabaseAdmin
             .from('agents')
             .select('*')
             .eq('email', user.email!)
             .maybeSingle();
 
-          if (fetchError) console.error('❌ Error fetching agent:', fetchError);
+          if (fetchError) {
+            console.error('❌ Error fetching agent:', fetchError);
+          }
 
           if (!existingAgent) {
             console.log('✨ Creating new agent for:', user.email);
-
+            
+            // Generar username único basado en email
             const baseUsername = user.email!.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
             const randomSuffix = Math.random().toString(36).substring(2, 6);
             const username = `${baseUsername}${randomSuffix}`;
-
+            
             const { data: newAgent, error: insertError } = await supabaseAdmin
               .from('agents')
               .insert({
@@ -38,7 +41,7 @@ const authOptions: NextAuthOptions = {
                 name: user.name || '',
                 google_id: account.providerAccountId,
                 username: username,
-                credits: 3,
+                credits: 3, // 3 créditos gratis para nuevos agentes
               })
               .select()
               .single();
@@ -57,25 +60,27 @@ const authOptions: NextAuthOptions = {
         return true;
       } catch (error) {
         console.error('❌ SignIn callback error:', error);
-        return true;
+        return true; // Permitir login aunque falle Supabase
       }
     },
-    async session({ session }) {
+    async session({ session, token }) {
       try {
         if (session?.user?.email) {
           const { data: dbAgent, error } = await supabaseAdmin
             .from('agents')
-            .select('id, credits, username, full_name, phone, brokerage')
+            .select('id, plan, properties_this_month, username, full_name, phone, brokerage')
             .eq('email', session.user.email)
             .single();
-
+          
           if (error) {
             console.error('❌ Error fetching session agent:', error);
             session.user.id = 'temp-id';
-            session.user.credits = 0;
+            session.user.plan = 'free';
+            session.user.properties_this_month = 0;
           } else if (dbAgent) {
             session.user.id = dbAgent.id;
-            session.user.credits = dbAgent.credits;
+            session.user.plan = dbAgent.plan || 'free';
+            session.user.properties_this_month = dbAgent.properties_this_month || 0;
             session.user.username = dbAgent.username;
             session.user.fullName = dbAgent.full_name;
             session.user.phone = dbAgent.phone;
@@ -95,6 +100,5 @@ const authOptions: NextAuthOptions = {
   debug: true,
 };
 
-// Exportamos **solo los métodos HTTP** que Next.js App Router espera
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };

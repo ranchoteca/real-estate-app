@@ -231,13 +231,15 @@ export default function ProfilePage() {
 
         {/* Actions */}
         <div className="space-y-3">
-          <button
-            onClick={() => router.push('/credits')}
-            className="w-full py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
-            style={{ backgroundColor: '#FFFFFF', color: '#0F172A' }}
-          >
-            <span>💳</span> Comprar Créditos
-          </button>
+          {session.user.plan === 'free' && (
+            <button
+              onClick={() => router.push('/pricing')}
+              className="w-full py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 text-white"
+              style={{ backgroundColor: '#2563EB' }}
+            >
+              <span>⭐</span> Actualizar a Pro
+            </button>
+          )}
 
           {username && (
             <button
@@ -255,7 +257,6 @@ export default function ProfilePage() {
                 const response = await fetch('/api/agent/export-csv');
                 if (!response.ok) throw new Error('Error al exportar');
                 
-                // Descargar archivo
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');

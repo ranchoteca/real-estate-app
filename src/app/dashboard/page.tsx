@@ -38,8 +38,19 @@ export default function DashboardPage() {
   useEffect(() => {
     if (session?.user?.id) {
       loadProperties();
+      loadPlanInfo();
     }
   }, [session]);
+
+  const loadPlanInfo = async () => {
+    try {
+      const response = await fetch('/api/agent/current-plan');
+      const data = await response.json();
+      setPlanInfo(data);
+    } catch (error) {
+      console.error('Error loading plan:', error);
+    }
+  };
 
   const loadProperties = async () => {
     try {
@@ -125,13 +136,31 @@ export default function DashboardPage() {
             </div>
             <div className="text-right">
               <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                Créditos
+                {planInfo?.plan === 'free' ? 'Límite' : 'Este mes'}
               </p>
               <p className="text-3xl font-bold mt-1" style={{ color: '#2563EB' }}>
-                {session.user.credits}
+                {planInfo?.plan === 'free' 
+                  ? `${properties.length} / 3`
+                  : `${planInfo?.properties_this_month || 0} / 30`
+                }
               </p>
             </div>
           </div>
+          
+          {planInfo?.plan === 'free' && properties.length >= 3 && (
+            <div className="mt-4 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>
+              <p className="text-sm mb-3" style={{ color: '#DC2626' }}>
+                ⚠️ Has alcanzado el límite. Elimina una propiedad o actualiza a Pro.
+              </p>
+              <button
+                onClick={() => router.push('/pricing')}
+                className="w-full py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform"
+                style={{ backgroundColor: '#2563EB' }}
+              >
+                Actualizar a Pro
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

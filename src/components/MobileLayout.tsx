@@ -117,8 +117,8 @@ export default function MobileLayout({
             {/* Create Tab - Center with FAB style */}
             <button
               onClick={() => router.push('/create-property')}
-              disabled={!session.user || (session.user.plan === 'free')}
-              className="flex-1 flex flex-col items-center justify-center -mt-8 transition-all active:scale-95 disabled:opacity-50"
+              disabled={!session.user}
+              className="flex-1 flex flex-col items-center justify-center transition-all active:scale-95 disabled:opacity-50"
             >
               <div 
                 className="w-14 h-14 rounded-full shadow-2xl flex items-center justify-center mb-1"

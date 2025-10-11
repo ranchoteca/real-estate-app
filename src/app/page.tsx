@@ -42,15 +42,15 @@ export default function LandingPage() {
         style={{ backgroundColor: isScrolled ? '#0F172A' : 'transparent' }}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🏠</span>
-              <span className="text-xl font-bold text-white">Real Estate AI</span>
+          <div className="flex items-center justify-between h-16 gap-4">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xl sm:text-2xl">🏠</span>
+              <span className="text-base sm:text-xl font-bold text-white truncate">Real Estate AI</span>
             </div>
             
             <Link
               href="/login"
-              className="px-6 py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform"
+              className="px-4 sm:px-6 py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform text-sm sm:text-base flex-shrink-0"
               style={{ backgroundColor: '#2563EB' }}
             >
               Empezar Gratis

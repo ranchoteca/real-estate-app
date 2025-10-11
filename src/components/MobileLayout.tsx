@@ -81,7 +81,7 @@ export default function MobileLayout({
 
       {/* Main Content - Scrollable */}
       <main className="flex-1 overflow-y-auto overscroll-contain">
-        <div className="pb-24">
+        <div className="pb-28">
           {children}
         </div>
       </main>
@@ -117,11 +117,11 @@ export default function MobileLayout({
             {/* Create Tab - Center with FAB style */}
             <button
               onClick={() => router.push('/create-property')}
-              disabled={!session.user.credits || session.user.credits < 1}
+              disabled={!session.user || (session.user.plan === 'free')}
               className="flex-1 flex flex-col items-center justify-center -mt-8 transition-all active:scale-95 disabled:opacity-50"
             >
               <div 
-                className="w-14 h-14 rounded-full shadow-xl flex items-center justify-center mb-1"
+                className="w-14 h-14 rounded-full shadow-2xl flex items-center justify-center mb-1"
                 style={{ backgroundColor: '#2563EB' }}
               >
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

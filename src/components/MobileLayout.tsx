@@ -81,7 +81,7 @@ export default function MobileLayout({
 
       {/* Main Content - Scrollable */}
       <main className="flex-1 overflow-y-auto overscroll-contain">
-        <div className="pb-20">
+        <div className="pb-24">
           {children}
         </div>
       </main>
@@ -89,7 +89,7 @@ export default function MobileLayout({
       {/* Bottom Tab Bar - Only on main screens */}
       {showTabs && session && (
         <nav 
-          className="flex-shrink-0 border-t safe-bottom shadow-2xl"
+          className="fixed bottom-0 left-0 right-0 border-t safe-bottom shadow-2xl z-50"
           style={{ 
             backgroundColor: '#FFFFFF',
             borderTopColor: '#E5E7EB'

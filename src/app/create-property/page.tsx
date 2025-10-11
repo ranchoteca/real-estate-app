@@ -68,12 +68,6 @@ export default function CreatePropertyPage() {
       return;
     }
 
-    if (!session.user.credits || session.user.credits < 1) {
-      setError('No tienes créditos suficientes');
-      router.push('/credits');
-      return;
-    }
-
     setIsProcessing(true);
     setError(null);
 
@@ -209,9 +203,6 @@ export default function CreatePropertyPage() {
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="px-4 py-2 rounded-full font-semibold text-white" style={{ backgroundColor: '#2563EB' }}>
-                {session.user.credits} créditos
-              </div>
               <button
                 onClick={() => router.push('/dashboard')}
                 className="text-white hover:opacity-80 font-semibold transition-opacity"

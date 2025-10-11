@@ -8,6 +8,7 @@ declare module 'next-auth' {
       name?: string | null;
       image?: string | null;
       plan: string; // 'free' o 'pro'
+      totalProperties: number;
       properties_this_month: number;
       username?: string | null;
       fullName?: string | null;

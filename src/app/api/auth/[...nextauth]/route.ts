@@ -85,6 +85,13 @@ export const authOptions: NextAuthOptions = {
             session.user.fullName = dbAgent.full_name;
             session.user.phone = dbAgent.phone;
             session.user.brokerage = dbAgent.brokerage;
+
+            const { count } = await supabaseAdmin
+              .from('properties')
+              .select('*', { count: 'exact', head: true })
+              .eq('agent_id', dbAgent.id);
+
+            session.user.totalProperties = count || 0;
           }
         }
         return session;

@@ -147,6 +147,29 @@ export default function AgentPortfolioPage() {
         </div>
       </header>
 
+      {/* Share Button */}
+      <div className="px-4 pt-4">
+        <button
+          onClick={() => {
+            const url = window.location.href;
+            if (navigator.share) {
+              navigator.share({
+                title: `Portfolio de ${agent.full_name || agent.name}`,
+                text: `Mira mis propiedades en venta`,
+                url: url,
+              });
+            } else {
+              navigator.clipboard.writeText(url);
+              alert('¡Link copiado!');
+            }
+          }}
+          className="w-full py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+          style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}
+        >
+          <span>📤</span> Compartir Mi Portfolio
+        </button>
+      </div>
+
       {/* Agent Info Section */}
       <section className="py-12 px-4">
         <div className="max-w-4xl mx-auto">

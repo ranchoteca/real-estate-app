@@ -145,6 +145,16 @@ export default function EditPropertyPage() {
               </div>
             ))}
           </div>
+          <div className="flex gap-2 mt-3">
+            <button
+              type="button"
+              onClick={() => {/* abrir selector de nuevas fotos */}}
+              className="flex-1 py-2 rounded-xl font-bold text-white"
+              style={{ backgroundColor: '#2563EB' }}
+            >
+              ➕ Agregar Fotos
+            </button>
+          </div>
           <p className="text-xs mt-2 opacity-70" style={{ color: '#0F172A' }}>
             💡 Las fotos no se pueden editar por ahora
           </p>

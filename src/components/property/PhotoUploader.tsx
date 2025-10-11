@@ -164,6 +164,7 @@ export default function PhotoUploader({
                     alt={`Preview ${index + 1}`}
                     fill
                     className="object-cover"
+                    unoptimized
                   />
                   
                   {/* Badge de foto principal */}

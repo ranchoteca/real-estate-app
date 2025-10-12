@@ -37,6 +37,24 @@ export async function PUT(
       return NextResponse.json({ error: 'No tienes permiso' }, { status: 403 });
     }
 
+    // Eliminar fotos del storage si hay en photosToDelete
+    if (updates.photosToDelete && updates.photosToDelete.length > 0) {
+      for (const photoUrl of updates.photosToDelete) {
+        try {
+          const urlParts = photoUrl.split('/property-photos/');
+          if (urlParts.length > 1) {
+            const filePath = urlParts[1];
+            await supabaseAdmin.storage
+              .from('property-photos')
+              .remove([filePath]);
+            console.log('🗑️ Foto eliminada del storage:', filePath);
+          }
+        } catch (err) {
+          console.error('Error eliminando foto:', err);
+        }
+      }
+    }
+
     // Actualizar
     const { error } = await supabaseAdmin
       .from('properties')
@@ -53,6 +71,7 @@ export async function PUT(
         sqft: updates.sqft,
         property_type: updates.property_type,
         status: updates.status,
+        photos: updates.photos,
       })
       .eq('id', id);
 
@@ -63,7 +82,7 @@ export async function PUT(
     console.log('✅ Propiedad actualizada:', id);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: error }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

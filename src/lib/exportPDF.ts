@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 export async function exportPropertyToPDF(property: any) {
   const pdf = new jsPDF('p', 'mm', 'a4');
@@ -7,22 +6,7 @@ export async function exportPropertyToPDF(property: any) {
   
   let yPos = 20;
 
-  // Título
-  pdf.setFontSize(20);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text(property.title, pageWidth / 2, yPos, { align: 'center' });
-  yPos += 15;
-
-  // Precio
-  pdf.setFontSize(16);
-  pdf.setTextColor(37, 99, 235);
-  const price = property.price 
-    ? `$${property.price.toLocaleString()}`
-    : 'Precio a consultar';
-  pdf.text(price, pageWidth / 2, yPos, { align: 'center' });
-  yPos += 15;
-
-  // Fotos (2-3 primeras)
+  // Fotos primero (2-3 primeras)
   const photosToShow = property.photos?.slice(0, 3) || [];
   for (const photoUrl of photosToShow) {
     try {
@@ -42,44 +26,109 @@ export async function exportPropertyToPDF(property: any) {
     }
   }
 
+  // Título en MAYÚSCULAS
+  pdf.setFontSize(24);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(0, 0, 0);
+  const title = property.title.toUpperCase();
+  const splitTitle = pdf.splitTextToSize(title, pageWidth - 40);
+  splitTitle.forEach((line: string) => {
+    if (yPos > 270) {
+      pdf.addPage();
+      yPos = 20;
+    }
+    pdf.text(line, 20, yPos);
+    yPos += 10;
+  });
+  yPos += 5;
+
+  // Precio en azul
+  pdf.setFontSize(20);
+  pdf.setTextColor(37, 99, 235);
+  const price = property.price 
+    ? `$${property.price.toLocaleString()}`
+    : 'Precio a consultar';
+  pdf.text(price, 20, yPos);
+  yPos += 15;
+
   // Detalles
-  pdf.setFontSize(12);
+  pdf.setFontSize(16);
   pdf.setTextColor(0, 0, 0);
   pdf.setFont('helvetica', 'bold');
-  pdf.text('Detalles:', 20, yPos);
-  yPos += 7;
+  pdf.text('Detalles de la Propiedad', 20, yPos);
+  yPos += 10;
 
+  pdf.setFontSize(14);
   pdf.setFont('helvetica', 'normal');
+  
+  // Traducir tipo de propiedad
+  const propertyTypes: { [key: string]: string } = {
+    'house': 'Casa',
+    'condo': 'Condominio',
+    'apartment': 'Apartamento',
+    'land': 'Terreno',
+    'commercial': 'Comercial'
+  };
+
   const details = [
-    property.bedrooms && `🛏️ ${property.bedrooms} habitaciones`,
-    property.bathrooms && `🚿 ${property.bathrooms} baños`,
-    property.sqft && `📏 ${property.sqft.toLocaleString()} ft²`,
-    property.property_type && `🏡 ${property.property_type}`,
+    property.bedrooms && `${property.bedrooms} habitación${property.bedrooms > 1 ? 'es' : ''}`,
+    property.bathrooms && `${property.bathrooms} baño${property.bathrooms > 1 ? 's' : ''}`,
+    property.sqft && `${property.sqft.toLocaleString()} ft²`,
+    property.property_type && propertyTypes[property.property_type] || property.property_type,
   ].filter(Boolean);
 
   details.forEach(detail => {
-    pdf.text(detail as string, 20, yPos);
-    yPos += 7;
+    // Checkmark verde
+    pdf.setTextColor(34, 197, 94); // green-500
+    pdf.text('✓', 20, yPos);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text(detail as string, 28, yPos);
+    yPos += 8;
   });
 
-  yPos += 5;
+  yPos += 10;
 
   // Ubicación
-  if (property.address) {
+  const locationParts = [
+    property.address,
+    property.city,
+    property.state,
+    property.zip_code
+  ].filter(Boolean);
+
+  if (locationParts.length > 0) {
+    pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('Ubicación:', 20, yPos);
-    yPos += 7;
+    pdf.text('Ubicación', 20, yPos);
+    yPos += 10;
+
+    pdf.setFontSize(14);
     pdf.setFont('helvetica', 'normal');
-    pdf.text(`${property.address}`, 20, yPos);
-    yPos += 7;
-    pdf.text(`${property.city}, ${property.state} ${property.zip_code}`, 20, yPos);
+    const location = locationParts.join(', ');
+    const splitLocation = pdf.splitTextToSize(location, pageWidth - 40);
+    splitLocation.forEach((line: string) => {
+      if (yPos > 270) {
+        pdf.addPage();
+        yPos = 20;
+      }
+      pdf.text(line, 20, yPos);
+      yPos += 8;
+    });
     yPos += 10;
   }
 
   // Descripción
+  if (yPos > 240) {
+    pdf.addPage();
+    yPos = 20;
+  }
+
+  pdf.setFontSize(16);
   pdf.setFont('helvetica', 'bold');
-  pdf.text('Descripción:', 20, yPos);
-  yPos += 7;
+  pdf.text('Descripción de la Propiedad', 20, yPos);
+  yPos += 10;
+
+  pdf.setFontSize(13);
   pdf.setFont('helvetica', 'normal');
   
   const splitDescription = pdf.splitTextToSize(property.description, pageWidth - 40);
@@ -88,9 +137,35 @@ export async function exportPropertyToPDF(property: any) {
       pdf.addPage();
       yPos = 20;
     }
-    pdf.text(line, 20, yPos);
+    pdf.text(line, 20, yPos, { align: 'justify', maxWidth: pageWidth - 40 });
     yPos += 7;
   });
+
+  // QR Code al final
+  yPos += 15;
+  if (yPos > 230) {
+    pdf.addPage();
+    yPos = 20;
+  }
+
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Escanea para ver más:', 20, yPos);
+  yPos += 10;
+
+  // Generar QR con URL de la propiedad
+  const propertyUrl = `${window.location.origin}/p/${property.slug}`;
+  const qrSize = 50;
+  
+  try {
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(propertyUrl)}`;
+    const qrImg = await loadImage(qrCodeUrl);
+    pdf.addImage(qrImg, 'PNG', 20, yPos, qrSize, qrSize);
+  } catch (err) {
+    console.error('Error generando QR:', err);
+    pdf.setFontSize(10);
+    pdf.text(propertyUrl, 20, yPos);
+  }
 
   // Guardar
   pdf.save(`${property.title.replace(/[^a-z0-9]/gi, '_')}.pdf`);

@@ -298,6 +298,24 @@ export default function PropertyPage() {
           </div>
         </div>
 
+        {/* Export PDF Button */}
+        <div className="px-4 pb-6">
+          <button
+            onClick={async () => {
+              const { exportPropertyToPDF } = await import('@/lib/exportPDF');
+              await exportPropertyToPDF(property);
+            }}
+            className="w-full py-3 rounded-xl font-bold border-2 shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+            style={{ 
+              borderColor: '#2563EB',
+              color: '#2563EB',
+              backgroundColor: '#FFFFFF'
+            }}
+          >
+            <span>📄</span> Descargar como PDF
+          </button>
+        </div>
+
         {/* Agent Card */}
         <div 
           className="rounded-2xl p-5 shadow-lg"

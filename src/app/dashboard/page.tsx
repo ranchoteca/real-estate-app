@@ -296,6 +296,18 @@ export default function DashboardPage() {
                     >
                       <span>🗑️</span> Eliminar
                     </button>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        setShowMenu(null);
+                        const { exportPropertyToPDF } = await import('@/lib/exportPDF');
+                        await exportPropertyToPDF(property);
+                      }}
+                      className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
+                      style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
+                    >
+                      <span>📄</span> Exportar PDF
+                    </button>
                   </div>
                 )}
               </div>

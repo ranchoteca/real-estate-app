@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
         bathrooms: propertyData.bathrooms,
         sqft: propertyData.sqft,
         property_type: propertyData.property_type || 'house',
+        listing_type: propertyData.listing_type || 'sale',
         photos: propertyData.photos || [],
         audio_url: propertyData.audio_url || null,
         status: 'active',

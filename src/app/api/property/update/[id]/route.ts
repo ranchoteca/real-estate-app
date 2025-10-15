@@ -70,6 +70,7 @@ export async function PUT(
         bathrooms: updates.bathrooms,
         sqft: updates.sqft,
         property_type: updates.property_type,
+        listing_type: updates.listing_type,
         status: updates.status,
         photos: updates.photos,
       })

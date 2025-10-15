@@ -79,6 +79,7 @@ export type Database = {
           slug: string
           created_at: string
           updated_at: string
+          listing_type: string | null
         }
         Insert: {
           id?: string
@@ -102,6 +103,7 @@ export type Database = {
           slug: string
           created_at?: string
           updated_at?: string
+          listing_type: string | null
         }
         Update: {
           id?: string
@@ -125,6 +127,7 @@ export type Database = {
           slug?: string
           created_at?: string
           updated_at?: string
+          listing_type: string | null
         }
       }
       purchases: {

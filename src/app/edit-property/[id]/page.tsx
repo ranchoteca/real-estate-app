@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import MobileLayout from '@/components/MobileLayout';
 import Image from 'next/image';
+import imageCompression from 'browser-image-compression';
 
 interface PropertyData {
   title: string;
@@ -32,6 +33,12 @@ export default function EditPropertyPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Estados para editar fotos
+  const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
+  const [newPhotos, setNewPhotos] = useState<File[]>([]);
+  const [newPhotosPreviews, setNewPhotosPreviews] = useState<string[]>([]);
+  const [photosToDelete, setPhotosToDelete] = useState<string[]>([]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -56,25 +63,104 @@ export default function EditPropertyPage() {
       
       const data = await response.json();
       setProperty(data.property);
-    } catch (err) {
+      setExistingPhotos(data.property.photos || []);
+    } catch (err: any) {
       console.error('Error loading property:', err);
-      setError(err instanceof Error ? err.message : 'Error al cargar la propiedad');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const compressImage = async (file: File): Promise<File> => {
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1920,
+      useWebWorker: true,
+      fileType: 'image/jpeg',
+    };
+
+    try {
+      const compressedFile = await imageCompression(file, options);
+      return compressedFile;
+    } catch (error) {
+      console.error('Error comprimiendo imagen:', error);
+      return file;
+    }
+  };
+
+  const handleAddPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const totalPhotos = existingPhotos.length + newPhotos.length + files.length - photosToDelete.length;
+    
+    if (totalPhotos > 20) {
+      alert('Máximo 20 fotos por propiedad');
+      return;
+    }
+
+    // Comprimir fotos
+    const compressedFiles = await Promise.all(files.map(f => compressImage(f)));
+    
+    // Crear previews
+    const previews = compressedFiles.map(file => URL.createObjectURL(file));
+    
+    setNewPhotos([...newPhotos, ...compressedFiles]);
+    setNewPhotosPreviews([...newPhotosPreviews, ...previews]);
+  };
+
+  const handleDeleteExistingPhoto = (url: string) => {
+    setExistingPhotos(existingPhotos.filter(p => p !== url));
+    setPhotosToDelete([...photosToDelete, url]);
+  };
+
+  const handleDeleteNewPhoto = (index: number) => {
+    URL.revokeObjectURL(newPhotosPreviews[index]);
+    setNewPhotos(newPhotos.filter((_, i) => i !== index));
+    setNewPhotosPreviews(newPhotosPreviews.filter((_, i) => i !== index));
+  };
+
   const handleSave = async () => {
     if (!property) return;
+
+    const totalPhotos = existingPhotos.length + newPhotos.length;
+    if (totalPhotos < 2) {
+      setError('Mínimo 2 fotos requeridas');
+      return;
+    }
 
     setSaving(true);
     setError(null);
 
     try {
+      // 1. Subir fotos nuevas si hay
+      let uploadedUrls: string[] = [];
+      if (newPhotos.length > 0) {
+        const formData = new FormData();
+        newPhotos.forEach(file => formData.append('photos', file));
+
+        const uploadResponse = await fetch('/api/property/upload-photos', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) throw new Error('Error al subir fotos');
+        
+        const uploadData = await uploadResponse.json();
+        uploadedUrls = uploadData.urls;
+      }
+
+      // 2. Combinar fotos existentes + nuevas
+      const allPhotos = [...existingPhotos, ...uploadedUrls];
+
+      // 3. Actualizar propiedad
       const response = await fetch(`/api/property/update/${propertyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(property),
+        body: JSON.stringify({
+          ...property,
+          photos: allPhotos,
+          photosToDelete, // Para eliminar del storage
+        }),
       });
 
       if (!response.ok) {
@@ -84,8 +170,8 @@ export default function EditPropertyPage() {
 
       alert('✅ Propiedad actualizada');
       router.push('/dashboard');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al guardar la propiedad');
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setSaving(false);
     }
@@ -108,6 +194,8 @@ export default function EditPropertyPage() {
     return null;
   }
 
+  const totalPhotos = existingPhotos.length + newPhotos.length;
+
   return (
     <MobileLayout title="Editar Propiedad" showBack={true} showTabs={false}>
       <div className="px-4 pt-4 pb-24 space-y-4">
@@ -125,39 +213,101 @@ export default function EditPropertyPage() {
           </div>
         )}
 
-        {/* Photos Preview */}
+        {/* Photos Editor */}
         <div 
           className="rounded-2xl p-4 shadow-lg"
           style={{ backgroundColor: '#FFFFFF' }}
         >
-          <h3 className="font-bold mb-3" style={{ color: '#0F172A' }}>
-            Fotos ({property.photos.length})
-          </h3>
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {property.photos.map((photo, index) => (
-              <div key={index} className="relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden">
-                <Image
-                  src={photo}
-                  alt={`Photo ${index + 1}`}
-                  fill
-                  className="object-cover"
-                />
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold" style={{ color: '#0F172A' }}>
+              Fotos ({totalPhotos}/20)
+            </h3>
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleAddPhotos}
+                className="hidden"
+                disabled={totalPhotos >= 20}
+              />
+              <span 
+                className="px-4 py-2 rounded-xl font-semibold text-white shadow-lg active:scale-95 transition-transform inline-block"
+                style={{ backgroundColor: totalPhotos >= 20 ? '#9CA3AF' : '#2563EB' }}
+              >
+                ➕ Agregar
+              </span>
+            </label>
+          </div>
+
+          {/* Existing Photos */}
+          {existingPhotos.length > 0 && (
+            <div>
+              <p className="text-xs mb-2 opacity-70" style={{ color: '#0F172A' }}>
+                Fotos actuales:
+              </p>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {existingPhotos.map((photo, index) => (
+                  <div key={photo} className="relative aspect-square rounded-xl overflow-hidden">
+                    <Image
+                      src={photo}
+                      alt={`Photo ${index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                    <button
+                      onClick={() => handleDeleteExistingPhoto(photo)}
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
+                    >
+                      ✕
+                    </button>
+                    {index === 0 && (
+                      <div className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-xs font-bold text-white" style={{ backgroundColor: '#2563EB' }}>
+                        Principal
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="flex gap-2 mt-3">
-            <button
-              type="button"
-              onClick={() => {/* abrir selector de nuevas fotos */}}
-              className="flex-1 py-2 rounded-xl font-bold text-white"
-              style={{ backgroundColor: '#2563EB' }}
-            >
-              ➕ Agregar Fotos
-            </button>
-          </div>
-          <p className="text-xs mt-2 opacity-70" style={{ color: '#0F172A' }}>
-            💡 Las fotos no se pueden editar por ahora
-          </p>
+            </div>
+          )}
+
+          {/* New Photos */}
+          {newPhotos.length > 0 && (
+            <div>
+              <p className="text-xs mb-2 opacity-70" style={{ color: '#0F172A' }}>
+                Fotos nuevas:
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {newPhotosPreviews.map((preview, index) => (
+                  <div key={index} className="relative aspect-square rounded-xl overflow-hidden">
+                    <Image
+                      src={preview}
+                      alt={`New ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                    <button
+                      onClick={() => handleDeleteNewPhoto(index)}
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
+                    >
+                      ✕
+                    </button>
+                    <div className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-xs font-bold text-white bg-green-500">
+                      Nueva
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {totalPhotos < 2 && (
+            <p className="text-xs mt-2" style={{ color: '#DC2626' }}>
+              ⚠️ Mínimo 2 fotos requeridas
+            </p>
+          )}
         </div>
 
         {/* Title */}
@@ -248,6 +398,25 @@ export default function EditPropertyPage() {
                 <option value="apartment">Apartamento</option>
                 <option value="land">Terreno</option>
                 <option value="commercial">Comercial</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+                Tipo de Listing
+              </label>
+              <select
+                value={property.listing_type || 'sale'}
+                onChange={(e) => setProperty({ ...property, listing_type: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none appearance-none"
+                style={{ 
+                  borderColor: '#E5E7EB',
+                  backgroundColor: '#F9FAFB',
+                  color: '#0F172A'
+                }}
+              >
+                <option value="sale">Venta</option>
+                <option value="rent">Alquiler</option>
               </select>
             </div>
 
@@ -424,7 +593,7 @@ export default function EditPropertyPage() {
           </button>
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || totalPhotos < 2}
             className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
             style={{ backgroundColor: '#2563EB' }}
           >

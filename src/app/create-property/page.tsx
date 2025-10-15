@@ -388,6 +388,19 @@ export default function CreatePropertyPage() {
                       <option value="commercial">Comercial</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tipo de Listing
+                    </label>
+                    <select
+                      value={propertyData.listing_type || 'sale'}
+                      onChange={(e) => setPropertyData({ ...propertyData, listing_type: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="sale">Venta</option>
+                      <option value="rent">Alquiler</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Location */}

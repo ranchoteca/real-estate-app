@@ -40,7 +40,7 @@ export default function AgentPortfolioPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'active' | 'sold'>('active');
+  const [filter, setFilter] = useState<'all' | 'active' | 'sold' | 'rented'>('active');
 
   useEffect(() => {
     if (username) {
@@ -86,6 +86,7 @@ export default function AgentPortfolioPage() {
     if (filter === 'all') return true;
     if (filter === 'active') return p.status === 'active';
     if (filter === 'sold') return p.status === 'sold';
+    if (filter === 'rented') return p.status === 'rented';
     return true;
   });
 
@@ -93,6 +94,7 @@ export default function AgentPortfolioPage() {
     total: properties.length,
     active: properties.filter(p => p.status === 'active').length,
     sold: properties.filter(p => p.status === 'sold').length,
+    rented: properties.filter(p => p.status === 'rented').length,
     totalViews: properties.reduce((sum, p) => sum + p.views, 0),
   };
 
@@ -297,6 +299,7 @@ export default function AgentPortfolioPage() {
               { key: 'active', label: '🟢 Disponibles', count: stats.active },
               { key: 'all', label: '📋 Todas', count: stats.total },
               { key: 'sold', label: '✅ Vendidas', count: stats.sold },
+              { key: 'rented', label: '🔑 Alquiladas', count: stats.rented },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -322,7 +325,7 @@ export default function AgentPortfolioPage() {
             >
               <div className="text-5xl mb-4">🏘️</div>
               <p className="text-lg" style={{ color: '#0F172A' }}>
-                No hay propiedades {filter === 'active' ? 'disponibles' : filter === 'sold' ? 'vendidas' : ''} aún
+                No hay propiedades {filter === 'active' ? 'disponibles' : filter === 'sold' ? 'vendidas' : filter === 'rented' ? 'alquiladas' : ''} aún
               </p>
             </div>
           ) : (

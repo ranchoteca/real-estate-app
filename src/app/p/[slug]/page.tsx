@@ -250,7 +250,7 @@ export default function PropertyPage() {
             {formatPrice(property.price)}
           </div>
 
-          <div className="text-sm font-semibold px-3 py-1 rounded-full inline-block" style={{ 
+          <div className="text-sm font-semibold px-3 py-1 rounded-full inline-block mb-4" style={{ 
             backgroundColor: property.listing_type === 'rent' ? '#F59E0B' : '#10B981',
             color: '#FFFFFF'
           }}>

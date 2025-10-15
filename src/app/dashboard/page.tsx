@@ -333,12 +333,12 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Property Details */}
-                {(property.bedrooms || property.bathrooms) && (
+                {(property.bedrooms > 0 || property.bathrooms > 0) && (
                   <div className="flex gap-4 text-sm mb-3" style={{ color: '#0F172A' }}>
-                    {property.bedrooms && (
+                    {property.bedrooms > 0 && (
                       <span className="opacity-70">🛏️ {property.bedrooms} hab</span>
                     )}
-                    {property.bathrooms && (
+                    {property.bathrooms > 0 && (
                       <span className="opacity-70">🚿 {property.bathrooms} baños</span>
                     )}
                   </div>

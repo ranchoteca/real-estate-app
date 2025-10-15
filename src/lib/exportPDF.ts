@@ -53,6 +53,10 @@ export async function exportPropertyToPDF(property: any) {
 
   // NUEVO: Tipo de Propiedad
   if (property.property_type) {
+    if (yPos > 250) {
+      pdf.addPage();
+      yPos = 20;
+    }
     pdf.setFontSize(16);
     pdf.setTextColor(0, 0, 0);
     pdf.setFont('helvetica', 'bold');
@@ -77,6 +81,10 @@ export async function exportPropertyToPDF(property: any) {
   }
 
   // Detalles (ahora solo características)
+  if (yPos > 250) {
+    pdf.addPage();
+    yPos = 20;
+  }
   pdf.setFontSize(16);
   pdf.setTextColor(0, 0, 0);
   pdf.setFont('helvetica', 'bold');
@@ -117,6 +125,10 @@ export async function exportPropertyToPDF(property: any) {
   ].filter(Boolean);
 
   if (locationParts.length > 0) {
+    if (yPos > 250) {
+      pdf.addPage();
+      yPos = 20;
+    }
     pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
     pdf.text('Ubicación', 20, yPos);
@@ -152,13 +164,36 @@ export async function exportPropertyToPDF(property: any) {
   pdf.setFont('helvetica', 'normal');
   
   const splitDescription = pdf.splitTextToSize(property.description, pageWidth - 40);
-  splitDescription.forEach((line: string) => {
+  splitDescription.forEach((line: string, index: number) => {
     if (yPos > 270) {
       pdf.addPage();
       yPos = 20;
     }
-    // ALINEACIÓN JUSTIFICADA aplicada
-    pdf.text(line, 20, yPos, { align: 'justify', maxWidth: pageWidth - 40 });
+    
+    // Simular justificación: todas las líneas alineadas a la izquierda
+    // excepto la última que queda sin justificar
+    const isLastLine = index === splitDescription.length - 1;
+    
+    if (!isLastLine && line.length > 20) {
+      // Para líneas intermedias, agregar espacios entre palabras
+      const words = line.trim().split(' ');
+      if (words.length > 1) {
+        const textWidth = pdf.getTextWidth(line);
+        const maxWidth = pageWidth - 40;
+        const gap = (maxWidth - textWidth) / (words.length - 1);
+        
+        let xPos = 20;
+        words.forEach((word, i) => {
+          pdf.text(word, xPos, yPos);
+          xPos += pdf.getTextWidth(word) + pdf.getTextWidth(' ') + gap;
+        });
+      } else {
+        pdf.text(line, 20, yPos);
+      }
+    } else {
+      pdf.text(line, 20, yPos);
+    }
+    
     yPos += 7;
   });
 

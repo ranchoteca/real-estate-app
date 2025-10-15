@@ -575,6 +575,7 @@ export default function EditPropertyPage() {
             <option value="active">Activa</option>
             <option value="pending">Pendiente</option>
             <option value="sold">Vendida</option>
+            <option value="rented">Alquilada</option>
           </select>
         </div>
 

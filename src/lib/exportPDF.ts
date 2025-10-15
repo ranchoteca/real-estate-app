@@ -51,44 +51,64 @@ export async function exportPropertyToPDF(property: any) {
   pdf.text(price, 20, yPos);
   yPos += 15;
 
-  // Detalles
+  // NUEVO: Tipo de Propiedad
+  if (property.property_type) {
+    pdf.setFontSize(16);
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Tipo de Propiedad', 20, yPos);
+    yPos += 10;
+
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'normal');
+    
+    // Traducir tipo de propiedad
+    const propertyTypes: { [key: string]: string } = {
+      'house': 'Casa',
+      'condo': 'Condominio',
+      'apartment': 'Apartamento',
+      'land': 'Terreno',
+      'commercial': 'Comercial'
+    };
+
+    const propertyTypeText = propertyTypes[property.property_type] || property.property_type;
+    pdf.text(propertyTypeText, 20, yPos);
+    yPos += 15;
+  }
+
+  // Detalles (ahora solo características)
   pdf.setFontSize(16);
   pdf.setTextColor(0, 0, 0);
   pdf.setFont('helvetica', 'bold');
-  pdf.text('Detalles de la Propiedad', 20, yPos);
+  pdf.text('Características', 20, yPos);
   yPos += 10;
 
   pdf.setFontSize(14);
   pdf.setFont('helvetica', 'normal');
   
-  // Traducir tipo de propiedad
-  const propertyTypes: { [key: string]: string } = {
-    'house': 'Casa',
-    'condo': 'Condominio',
-    'apartment': 'Apartamento',
-    'land': 'Terreno',
-    'commercial': 'Comercial'
-  };
-
   const details = [
     property.bedrooms > 0 && `${property.bedrooms} habitación${property.bedrooms > 1 ? 'es' : ''}`,
     property.bathrooms > 0 && `${property.bathrooms} baño${property.bathrooms > 1 ? 's' : ''}`,
     property.sqft > 0 && `${property.sqft.toLocaleString()} ft²`,
-    property.property_type && propertyTypes[property.property_type] || property.property_type,
   ].filter(Boolean);
 
-  details.forEach(detail => {
-    // Checkmark verde
-    pdf.setTextColor(34, 197, 94); // green-500
-    pdf.text('✓', 20, yPos);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text(detail as string, 28, yPos);
+  if (details.length === 0) {
+    pdf.text('No se especificaron características', 20, yPos);
     yPos += 8;
-  });
+  } else {
+    details.forEach(detail => {
+      // Checkmark verde
+      pdf.setTextColor(34, 197, 94); // green-500
+      pdf.text('✓', 20, yPos);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(detail as string, 28, yPos);
+      yPos += 8;
+    });
+  }
 
   yPos += 10;
 
-  // Ubicación
+  // Ubicación (MEJORADO con subtítulo)
   const locationParts = [
     property.address,
     property.city,
@@ -117,7 +137,7 @@ export async function exportPropertyToPDF(property: any) {
     yPos += 10;
   }
 
-  // Descripción
+  // Descripción (MEJORADO con alineación justificada)
   if (yPos > 240) {
     pdf.addPage();
     yPos = 20;
@@ -137,6 +157,7 @@ export async function exportPropertyToPDF(property: any) {
       pdf.addPage();
       yPos = 20;
     }
+    // ALINEACIÓN JUSTIFICADA aplicada
     pdf.text(line, 20, yPos, { align: 'justify', maxWidth: pageWidth - 40 });
     yPos += 7;
   });

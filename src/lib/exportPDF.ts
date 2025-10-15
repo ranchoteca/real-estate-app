@@ -51,6 +51,29 @@ export async function exportPropertyToPDF(property: any) {
   pdf.text(price, 20, yPos);
   yPos += 15;
 
+  // Estado de la propiedad (Venta/Alquiler)
+  if (property.listing_type) {
+    if (yPos > 250) {
+      pdf.addPage();
+      yPos = 20;
+    }
+
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    
+    // Color y texto según el tipo
+    if (property.listing_type === 'sale') {
+      pdf.setTextColor(34, 197, 94);
+      pdf.text('EN VENTA', 20, yPos);
+    } else if (property.listing_type === 'rent') {
+      pdf.setTextColor(59, 130, 246);
+      pdf.text('EN ALQUILER', 20, yPos);
+    }
+    
+    pdf.setTextColor(0, 0, 0); // Resetear a negro
+    yPos += 15;
+  }
+
   // NUEVO: Tipo de Propiedad
   if (property.property_type) {
     if (yPos > 250) {

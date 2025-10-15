@@ -37,7 +37,7 @@ export async function GET(
       .from('properties')
       .select('*')
       .eq('agent_id', agent.id)
-      .in('status', ['active', 'sold']) // Solo activas y vendidas (no pending)
+      .in('status', ['active', 'sold', 'rented']) // Solo activas y vendidas (no pending)
       .order('created_at', { ascending: false });
 
     if (propertiesError) {

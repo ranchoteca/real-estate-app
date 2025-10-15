@@ -249,36 +249,42 @@ export default function PropertyPage() {
             {formatPrice(property.price)}
           </div>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-4 gap-3">
-            {property.bedrooms && (
-              <div className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
-                <div className="text-2xl mb-1">🛏️</div>
-                <div className="text-lg font-bold" style={{ color: '#0F172A' }}>{property.bedrooms}</div>
-                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Hab</div>
-              </div>
-            )}
-            {property.bathrooms && (
-              <div className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
-                <div className="text-2xl mb-1">🚿</div>
-                <div className="text-lg font-bold" style={{ color: '#0F172A' }}>{property.bathrooms}</div>
-                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Baños</div>
-              </div>
-            )}
-            {property.sqft && (
-              <div className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
-                <div className="text-2xl mb-1">📏</div>
-                <div className="text-lg font-bold" style={{ color: '#0F172A' }}>{property.sqft.toLocaleString()}</div>
-                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>ft²</div>
-              </div>
-            )}
-            {property.property_type && (
-              <div className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
-                <div className="text-2xl mb-1">🏡</div>
-                <div className="text-xs font-bold capitalize" style={{ color: '#0F172A' }}>{property.property_type}</div>
-              </div>
-            )}
+          <div className="text-sm font-semibold px-3 py-1 rounded-full inline-block" style={{ 
+            backgroundColor: property.listing_type === 'rent' ? '#F59E0B' : '#10B981',
+            color: '#FFFFFF'
+          }}>
+            {property.listing_type === 'rent' ? '🏠 Para Alquiler' : '💰 En Venta'}
           </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {property.bedrooms > 0 && (
+            <div className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
+              <div className="text-2xl mb-1">🛏️</div>
+              <div className="text-lg font-bold" style={{ color: '#0F172A' }}>{property.bedrooms}</div>
+              <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Hab</div>
+            </div>
+          )}
+          {property.bathrooms > 0 && (
+            <div className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
+              <div className="text-2xl mb-1">🚿</div>
+              <div className="text-lg font-bold" style={{ color: '#0F172A' }}>{property.bathrooms}</div>
+              <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Baños</div>
+            </div>
+          )}
+          {property.sqft > 0 && (
+            <div className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
+              <div className="text-2xl mb-1">📏</div>
+              <div className="text-lg font-bold" style={{ color: '#0F172A' }}>{property.sqft.toLocaleString()}</div>
+              <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>ft²</div>
+            </div>
+          )}
+          {property.property_type && (
+            <div className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
+              <div className="text-2xl mb-1">🏡</div>
+              <div className="text-xs font-bold capitalize" style={{ color: '#0F172A' }}>{property.property_type}</div>
+            </div>
+          )}
         </div>
 
         {/* Description */}

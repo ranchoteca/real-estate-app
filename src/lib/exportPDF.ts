@@ -6,8 +6,8 @@ export async function exportPropertyToPDF(property: any) {
   
   let yPos = 20;
 
-  // Fotos primero (2-3 primeras)
-  const photosToShow = property.photos?.slice(0, 3) || [];
+  // Fotos primero (3-5 primeras)
+  const photosToShow = property.photos?.slice(0, 5) || [];
   for (const photoUrl of photosToShow) {
     try {
       const img = await loadImage(photoUrl);
@@ -71,9 +71,9 @@ export async function exportPropertyToPDF(property: any) {
   };
 
   const details = [
-    property.bedrooms && `${property.bedrooms} habitación${property.bedrooms > 1 ? 'es' : ''}`,
-    property.bathrooms && `${property.bathrooms} baño${property.bathrooms > 1 ? 's' : ''}`,
-    property.sqft && `${property.sqft.toLocaleString()} ft²`,
+    property.bedrooms > 0 && `${property.bedrooms} habitación${property.bedrooms > 1 ? 'es' : ''}`,
+    property.bathrooms > 0 && `${property.bathrooms} baño${property.bathrooms > 1 ? 's' : ''}`,
+    property.sqft > 0 && `${property.sqft.toLocaleString()} ft²`,
     property.property_type && propertyTypes[property.property_type] || property.property_type,
   ].filter(Boolean);
 

@@ -111,35 +111,45 @@ export default function ProfilePage() {
           className="rounded-2xl p-5 shadow-lg"
           style={{ backgroundColor: '#FFFFFF' }}
         >
-          <div className="flex justify-around text-center">
-            <h3 className="font-bold mb-4" style={{ color: '#0F172A' }}>
-              Tu Plan
-            </h3>
-            <div className="text-center py-4">
-              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl mb-3" style={{ backgroundColor: session.user.plan === 'pro' ? '#2563EB' : '#F5EAD3' }}>
-                <span className="text-3xl">{session.user.plan === 'pro' ? '⭐' : '🆓'}</span>
+          <div className="grid grid-cols-3 gap-4 items-center">
+            {/* Tu Plan Section */}
+            <div className="text-center">
+              <p className="text-xs font-semibold mb-3 opacity-70" style={{ color: '#0F172A' }}>
+                Tu Plan
+              </p>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl" style={{ backgroundColor: session.user.plan === 'pro' ? '#2563EB' : '#F5EAD3' }}>
+                <span className="text-2xl">{session.user.plan === 'pro' ? '⭐' : '🆓'}</span>
                 <div className="text-left">
-                  <p className="text-2xl font-bold" style={{ color: session.user.plan === 'pro' ? '#FFFFFF' : '#0F172A' }}>
+                  <p className="text-lg font-bold" style={{ color: session.user.plan === 'pro' ? '#FFFFFF' : '#0F172A' }}>
                     {session.user.plan === 'pro' ? 'Pro' : 'Free'}
                   </p>
-                  <p className="text-sm opacity-80" style={{ color: session.user.plan === 'pro' ? '#FFFFFF' : '#0F172A' }}>
-                    {session.user.plan === 'pro' ? '30 props/mes' : '3 props totales'}
+                  <p className="text-xs opacity-80" style={{ color: session.user.plan === 'pro' ? '#FFFFFF' : '#0F172A' }}>
+                    {session.user.plan === 'pro' ? '30/mes' : '3 total'}
                   </p>
                 </div>
               </div>
               {session.user.plan === 'pro' && (
-                <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                  Has usado {session.user.properties_this_month} de 30 este mes
+                <p className="text-xs mt-2 opacity-70" style={{ color: '#0F172A' }}>
+                  {session.user.properties_this_month}/30 este mes
                 </p>
               )}
             </div>
-            <div className="border-l" style={{ borderColor: '#E5E7EB' }} />
-            <div>
-              <p className="text-2xl font-bold" style={{ color: '#2563EB' }}>
+
+            {/* Divider */}
+            <div className="flex justify-center">
+              <div className="w-px h-16" style={{ backgroundColor: '#E5E7EB' }} />
+            </div>
+
+            {/* Username Section */}
+            <div className="text-center">
+              <p className="text-xs font-semibold mb-3 opacity-70" style={{ color: '#0F172A' }}>
+                Username
+              </p>
+              <p className="text-4xl font-bold mb-2" style={{ color: '#2563EB' }}>
                 {username ? '✓' : '○'}
               </p>
-              <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                Username
+              <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                {username ? 'Configurado' : 'No configurado'}
               </p>
             </div>
           </div>
@@ -157,7 +167,7 @@ export default function ProfilePage() {
           <div className="space-y-4">
             {/* Username */}
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+              <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
                 Username único
               </label>
               <input
@@ -178,7 +188,7 @@ export default function ProfilePage() {
 
             {/* Full Name */}
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+              <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
                 Nombre completo
               </label>
               <input
@@ -196,7 +206,7 @@ export default function ProfilePage() {
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+              <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
                 Teléfono
               </label>
               <input
@@ -214,7 +224,7 @@ export default function ProfilePage() {
 
             {/* Brokerage */}
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+              <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
                 Inmobiliaria
               </label>
               <input

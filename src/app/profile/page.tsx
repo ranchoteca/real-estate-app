@@ -178,7 +178,8 @@ export default function ProfilePage() {
                 className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
                 style={{ 
                   borderColor: '#E5E7EB',
-                  backgroundColor: '#F9FAFB'
+                  backgroundColor: '#F9FAFB',
+                  color: '#0F172A'
                 }}
               />
               <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
@@ -199,7 +200,8 @@ export default function ProfilePage() {
                 className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
                 style={{ 
                   borderColor: '#E5E7EB',
-                  backgroundColor: '#F9FAFB'
+                  backgroundColor: '#F9FAFB',
+                  color: '#0F172A'
                 }}
               />
             </div>
@@ -217,7 +219,8 @@ export default function ProfilePage() {
                 className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
                 style={{ 
                   borderColor: '#E5E7EB',
-                  backgroundColor: '#F9FAFB'
+                  backgroundColor: '#F9FAFB',
+                  color: '#0F172A'
                 }}
               />
             </div>
@@ -235,7 +238,8 @@ export default function ProfilePage() {
                 className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
                 style={{ 
                   borderColor: '#E5E7EB',
-                  backgroundColor: '#F9FAFB'
+                  backgroundColor: '#F9FAFB',
+                  color: '#0F172A'
                 }}
               />
             </div>

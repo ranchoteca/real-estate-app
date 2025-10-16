@@ -249,9 +249,9 @@ export default function DashboardPage() {
                 {/* Status Badge */}
                 <div className="absolute top-3 left-3">
                   <span className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg ${
-                    property.status === 'active' ? 'bg-green-500' : 'bg-gray-500'
-                  }`}>
-                    {property.status === 'active' ? '● Activa' : '● Vendida'}
+                      property.status === 'active' ? 'bg-green-500' : property.status === 'rented' ? 'bg-blue-500' : 'bg-gray-500'
+                    }`}>
+                    {property.status === 'active' ? '● Disponible' : property.status === 'rented' ? '● Alquilada' : '● Vendida'}
                   </span>
                 </div>
 

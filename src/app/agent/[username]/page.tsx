@@ -278,6 +278,14 @@ export default function AgentPortfolioPage() {
                 </div>
               </div>
               <div className="text-center">
+                <div className="text-3xl font-bold mb-1" style={{ color: '#6B7280' }}>
+                  {stats.rented}
+                </div>
+                <div className="text-sm opacity-70" style={{ color: '#0F172A' }}>
+                  Alquiladas
+                </div>
+              </div>
+              <div className="text-center">
                 <div className="text-3xl font-bold mb-1" style={{ color: '#F59E0B' }}>
                   {stats.totalViews}
                 </div>

@@ -132,7 +132,7 @@ export default function PhotoUploader({
             Click para subir fotos ({files.length}/{maxPhotos})
           </p>
           <p className="text-xs text-gray-400">
-            Mínimo {minPhotos} fotos • Máximo 5MB cada una
+            Mínimo {minPhotos} fotos • Máximo 1MB cada una (se comprimen automáticamente)
           </p>
         </div>
       </button>

@@ -45,7 +45,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-between h-16 gap-4">
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-xl sm:text-2xl">🏠</span>
-              <span className="text-base sm:text-xl font-bold text-white truncate">Real Estate AI</span>
+              <span className="text-base sm:text-xl font-bold text-white truncate">RealFlow</span>
             </div>
             
             <Link

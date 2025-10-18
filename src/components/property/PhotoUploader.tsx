@@ -159,12 +159,10 @@ export default function PhotoUploader({
               <div key={index} className="relative group">
                 {/* Image */}
                 <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
-                  <Image
+                  <img
                     src={preview}
                     alt={`Preview ${index + 1}`}
-                    fill
-                    className="object-cover"
-                    unoptimized
+                    className="w-full h-full object-cover"
                   />
                   
                   {/* Badge de foto principal */}

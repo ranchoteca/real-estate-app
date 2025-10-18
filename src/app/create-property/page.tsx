@@ -211,7 +211,7 @@ export default function CreatePropertyPage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
               <span className="text-2xl">🏠</span>
-              <span className="text-xl font-bold text-white">Real Estate AI</span>
+              <span className="text-xl font-bold text-white">RealFlow</span>
             </div>
             
             <div className="flex items-center gap-4">

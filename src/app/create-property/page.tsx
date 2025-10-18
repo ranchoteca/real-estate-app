@@ -218,7 +218,7 @@ export default function CreatePropertyPage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Crear Nueva Propiedad
+            Crear nueva propiedad
           </h1>
           <p className="text-gray-600">
             Sube fotos y describe la propiedad por voz. La IA generará el listing completo.
@@ -242,7 +242,7 @@ export default function CreatePropertyPage() {
             <PhotoUploader 
               onPhotosChange={handlePhotosChange}
               minPhotos={2}
-              maxPhotos={20}
+              maxPhotos={10}
             />
           </div>
 

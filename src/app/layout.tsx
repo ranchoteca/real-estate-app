@@ -3,8 +3,8 @@ import { Providers } from '@/components/Providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'LunchSplit - Split Bills with AI',
-  description: 'Split restaurant bills in 60 seconds using AI',
+  title: 'RealFlow - Publica propiedades con IA',
+  description: 'Crea y publica anuncios de bienes raíces desde tu celular en segundos usando inteligencia artificial',
 };
 
 export default function RootLayout({

@@ -140,7 +140,7 @@ export default function DashboardPage() {
               </p>
               <p className="text-3xl font-bold mt-1" style={{ color: '#2563EB' }}>
                 {planInfo?.plan === 'free' 
-                  ? `${properties.length} / 3`
+                  ? `${properties.length} / 20`
                   : `${planInfo?.properties_this_month || 0} / 30`
                 }
               </p>

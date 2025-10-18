@@ -22,7 +22,7 @@ export default function PhotoUploader({
 
   const compressImage = async (file: File): Promise<File> => {
     const options = {
-      maxSizeMB: 1, // Máximo 1MB por foto
+      maxSizeMB: 0.8, // Máximo 0.8MB por foto
       maxWidthOrHeight: 1920, // Max dimensión 1920px
       useWebWorker: true,
       fileType: 'image/jpeg', // Convertir todo a JPEG

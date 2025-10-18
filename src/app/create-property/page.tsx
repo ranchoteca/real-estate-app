@@ -98,26 +98,38 @@ export default function CreatePropertyPage() {
   };
 
   const uploadPhotos = async (files: File[]): Promise<string[]> => {
-    console.log('📤 Subiendo fotos a Supabase Storage...');
-    
-    const formData = new FormData();
-    files.forEach(file => {
-      formData.append('photos', file);
-    });
+    const batchSize = 5; // Subir 5 fotos por lote
+    const allUrls: string[] = [];
 
-    const response = await fetch('/api/property/upload-photos', {
-      method: 'POST',
-      body: formData,
-    });
+    for (let i = 0; i < files.length; i += batchSize) {
+      const batch = files.slice(i, i + batchSize);
+      const formData = new FormData();
+      
+      batch.forEach(file => {
+        formData.append('photos', file);
+      });
 
-    if (!response.ok) {
+      const batchNumber = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(files.length / batchSize);
+      console.log(`📤 Subiendo lote ${batchNumber}/${totalBatches} (${batch.length} fotos)...`);
+
+      const response = await fetch('/api/property/upload-photos', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Error al subir fotos en lote ' + batchNumber);
+      }
+
       const data = await response.json();
-      throw new Error(data.error || 'Error al subir fotos');
+      allUrls.push(...data.urls);
+      console.log(`✅ Lote ${batchNumber} completado (${data.count} fotos)`);
     }
 
-    const data = await response.json();
-    console.log(`✅ ${data.count} fotos subidas`);
-    return data.urls;
+    console.log(`✅ ${allUrls.length} fotos subidas en total`);
+    return allUrls;
   };
 
   const transcribeAudio = async (blob: Blob): Promise<string> => {

@@ -147,7 +147,7 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          {planInfo?.plan === 'free' && properties.length >= 3 && (
+          {planInfo?.plan === 'free' && properties.length >= 20 && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>
               <p className="text-sm mb-3" style={{ color: '#DC2626' }}>
                 ⚠️ Has alcanzado el límite. Elimina una propiedad o actualiza a Pro.

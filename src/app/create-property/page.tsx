@@ -20,7 +20,6 @@ interface PropertyData {
   sqft: number | null;
   property_type: string;
   listing_type: string;
-  // 🗺️ NUEVOS CAMPOS
   latitude: number | null;
   longitude: number | null;
   show_map: boolean;
@@ -78,16 +77,9 @@ export default function CreatePropertyPage() {
     setError(null);
 
     try {
-      // 1. Subir fotos
       const photoUrls = await uploadPhotos(photos);
-
-      // 2. Transcribir audio
       const transcription = await transcribeAudio(audioBlob);
-
-      // 3. Generar descripción con GPT-4
       const generatedData = await generateDescription(transcription);
-
-      // 4. Actualizar estado con datos generados (🗺️ CON CAMPOS DE MAPA)
       setPropertyData({
         ...generatedData,
         latitude: null, // Se calculará después
@@ -316,7 +308,7 @@ export default function CreatePropertyPage() {
               <div className="space-y-4">
                 {/* Title */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
                     Título
                   </label>
                   <input
@@ -329,7 +321,7 @@ export default function CreatePropertyPage() {
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-bold text-gray-700 mb-1">
                     Descripción
                   </label>
                   <textarea
@@ -350,7 +342,7 @@ export default function CreatePropertyPage() {
                       type="number"
                       value={propertyData.price || ''}
                       onChange={(e) => setPropertyData({ ...propertyData, price: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border font-bold border-gray-300 rounded-lg"
                     />
                   </div>
 
@@ -362,7 +354,7 @@ export default function CreatePropertyPage() {
                       type="number"
                       value={propertyData.bedrooms || ''}
                       onChange={(e) => setPropertyData({ ...propertyData, bedrooms: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border font-bold border-gray-300 rounded-lg"
                     />
                   </div>
 
@@ -375,7 +367,7 @@ export default function CreatePropertyPage() {
                       step="0.5"
                       value={propertyData.bathrooms || ''}
                       onChange={(e) => setPropertyData({ ...propertyData, bathrooms: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border font-bold border-gray-300 rounded-lg"
                     />
                   </div>
 
@@ -387,7 +379,7 @@ export default function CreatePropertyPage() {
                       type="number"
                       value={propertyData.sqft || ''}
                       onChange={(e) => setPropertyData({ ...propertyData, sqft: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border font-bold border-gray-300 rounded-lg"
                     />
                   </div>
 
@@ -398,7 +390,7 @@ export default function CreatePropertyPage() {
                     <select
                       value={propertyData.property_type}
                       onChange={(e) => setPropertyData({ ...propertyData, property_type: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border font-bold border-gray-300 rounded-lg"
                     >
                       <option value="house">Casa</option>
                       <option value="condo">Condominio</option>
@@ -415,7 +407,7 @@ export default function CreatePropertyPage() {
                     <select
                       value={propertyData.listing_type || 'sale'}
                       onChange={(e) => setPropertyData({ ...propertyData, listing_type: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border font-bold border-gray-300 rounded-lg"
                     >
                       <option value="sale">Venta</option>
                       <option value="rent">Alquiler</option>
@@ -433,7 +425,7 @@ export default function CreatePropertyPage() {
                       type="text"
                       value={propertyData.address}
                       onChange={(e) => setPropertyData({ ...propertyData, address: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border font-bold border-gray-300 rounded-lg"
                     />
                   </div>
 
@@ -445,7 +437,7 @@ export default function CreatePropertyPage() {
                       type="text"
                       value={propertyData.city}
                       onChange={(e) => setPropertyData({ ...propertyData, city: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border font-bold border-gray-300 rounded-lg"
                     />
                   </div>
 
@@ -457,7 +449,7 @@ export default function CreatePropertyPage() {
                       type="text"
                       value={propertyData.state}
                       onChange={(e) => setPropertyData({ ...propertyData, state: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border font-bold border-gray-300 rounded-lg"
                     />
                   </div>
 
@@ -469,7 +461,7 @@ export default function CreatePropertyPage() {
                       type="text"
                       value={propertyData.zip_code}
                       onChange={(e) => setPropertyData({ ...propertyData, zip_code: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border font-bold border-gray-300 rounded-lg"
                     />
                   </div>
                 </div>

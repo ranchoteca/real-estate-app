@@ -441,7 +441,7 @@ export default function LandingPage() {
             ¿Listo para Acelerar tu Negocio?
           </h2>
           <p className="text-lg mb-8 text-white opacity-80">
-            Únete a cientos de agentes que ya confían en Real Estate AI
+            Únete a cientos de agentes que ya confían en RealFlow AI
           </p>
           <Link
             href="/login"
@@ -462,7 +462,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-center gap-2 mb-4">
             <span className="text-2xl">🏠</span>
             <span className="text-xl font-bold" style={{ color: '#0F172A' }}>
-              Real Estate AI
+              RealFlow AI
             </span>
           </div>
           <p className="text-sm opacity-60 mb-4" style={{ color: '#0F172A' }}>
@@ -474,7 +474,7 @@ export default function LandingPage() {
             <a href="#" className="hover:opacity-60">Contacto</a>
           </div>
           <p className="text-xs mt-4 opacity-40" style={{ color: '#0F172A' }}>
-            © 2025 Real Estate AI. Todos los derechos reservados.
+            © 2025 RealFlow AI. Todos los derechos reservados.
           </p>
         </div>
       </footer>

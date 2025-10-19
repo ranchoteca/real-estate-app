@@ -1,17 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-// 🔧 FIX: Configurar iconos de Leaflet manualmente para Next.js
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
 
 // Importar Leaflet dinámicamente (solo client-side)
 const MapContainer = dynamic(
@@ -326,7 +317,7 @@ export default function MapEditor({
                 value={manualLat}
                 onChange={(e) => setManualLat(e.target.value)}
                 placeholder="9.748917"
-                className="w-full px-3 py-2 border font-bold border-gray-300 rounded-lg text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               />
             </div>
             <div>
@@ -338,7 +329,7 @@ export default function MapEditor({
                 value={manualLng}
                 onChange={(e) => setManualLng(e.target.value)}
                 placeholder="-83.753428"
-                className="w-full px-3 py-2 border font-bold border-gray-300 rounded-lg text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               />
             </div>
           </div>

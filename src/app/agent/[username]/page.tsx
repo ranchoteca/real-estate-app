@@ -418,11 +418,11 @@ export default function AgentPortfolioPage() {
           <div className="flex items-center justify-center gap-2 mb-3">
             <span className="text-2xl">🏠</span>
             <span className="text-lg font-bold" style={{ color: '#0F172A' }}>
-              Real Estate AI
+              RealFlow
             </span>
           </div>
           <p className="text-sm opacity-60 mb-3" style={{ color: '#0F172A' }}>
-            Portfolio creado con Real Estate AI
+            Portfolio creado con RealFlow AI
           </p>
           <a
             href="/"

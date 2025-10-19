@@ -6,8 +6,8 @@ export async function exportPropertyToPDF(property: any) {
   
   let yPos = 20;
 
-  // Fotos primero (3-5 primeras)
-  const photosToShow = property.photos?.slice(0, 5) || [];
+  // Fotos primero (3-7 primeras)
+  const photosToShow = property.photos?.slice(0, 7) || [];
   for (const photoUrl of photosToShow) {
     try {
       const img = await loadImage(photoUrl);

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import PhotoUploader from '@/components/property/PhotoUploader';
 import VoiceRecorder from '@/components/property/VoiceRecorder';
+import MapEditor from '@/components/property/MapEditor';
 
 interface PropertyData {
   title: string;
@@ -18,6 +19,11 @@ interface PropertyData {
   bathrooms: number | null;
   sqft: number | null;
   property_type: string;
+  listing_type: string;
+  // 🗺️ NUEVOS CAMPOS
+  latitude: number | null;
+  longitude: number | null;
+  show_map: boolean;
 }
 
 export default function CreatePropertyPage() {
@@ -72,21 +78,23 @@ export default function CreatePropertyPage() {
     setError(null);
 
     try {
-      // 1. Subir fotos a Supabase Storage
+      // 1. Subir fotos
       const photoUrls = await uploadPhotos(photos);
 
-      // 2. Transcribir audio con OpenAI
+      // 2. Transcribir audio
       const transcription = await transcribeAudio(audioBlob);
 
       // 3. Generar descripción con GPT-4
       const generatedData = await generateDescription(transcription);
 
-      // 4. Actualizar estado con datos generados
+      // 4. Actualizar estado con datos generados (🗺️ CON CAMPOS DE MAPA)
       setPropertyData({
         ...generatedData,
-      }); // Temporal fix para TypeScript
+        latitude: null, // Se calculará después
+        longitude: null,
+        show_map: true, // Default: sí mostrar
+      });
 
-      // Las fotos ya están en photoUrls, las agregaremos al guardar
       setTempPhotoUrls(photoUrls);
 
     } catch (err) {
@@ -98,7 +106,7 @@ export default function CreatePropertyPage() {
   };
 
   const uploadPhotos = async (files: File[]): Promise<string[]> => {
-    const batchSize = 5; // Subir 5 fotos por lote
+    const batchSize = 5;
     const allUrls: string[] = [];
 
     for (let i = 0; i < files.length; i += batchSize) {
@@ -109,10 +117,6 @@ export default function CreatePropertyPage() {
         formData.append('photos', file);
       });
 
-      const batchNumber = Math.floor(i / batchSize) + 1;
-      const totalBatches = Math.ceil(files.length / batchSize);
-      console.log(`📤 Subiendo lote ${batchNumber}/${totalBatches} (${batch.length} fotos)...`);
-
       const response = await fetch('/api/property/upload-photos', {
         method: 'POST',
         body: formData,
@@ -120,15 +124,13 @@ export default function CreatePropertyPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Error al subir fotos en lote ' + batchNumber);
+        throw new Error(data.error || 'Error al subir fotos');
       }
 
       const data = await response.json();
       allUrls.push(...data.urls);
-      console.log(`✅ Lote ${batchNumber} completado (${data.count} fotos)`);
     }
 
-    console.log(`✅ ${allUrls.length} fotos subidas en total`);
     return allUrls;
   };
 
@@ -167,11 +169,16 @@ export default function CreatePropertyPage() {
   const handlePublish = async () => {
     if (!propertyData) return;
 
+    // Validar que tenga coordenadas si show_map está activo
+    if (propertyData.show_map && (!propertyData.latitude || !propertyData.longitude)) {
+      setError('Debes configurar la ubicación en el mapa');
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
     try {
-      // Recuperar las URLs de fotos que guardamos antes
       const photoUrls = tempPhotoUrls || [];
       
       const response = await fetch('/api/property/create', {
@@ -184,12 +191,12 @@ export default function CreatePropertyPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Error al publicar la propiedad');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al publicar la propiedad');
       }
 
       const { propertyId } = await response.json();
       
-      // Limpiar fotos temporales
       setTempPhotoUrls([]);
       
       router.push(`/p/${propertyId}`);
@@ -299,7 +306,7 @@ export default function CreatePropertyPage() {
             </div>
           )}
 
-          {/* Section 3: Generated Preview (solo si ya se generó) */}
+          {/* Section 3: Generated Preview */}
           {propertyData && (
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -400,6 +407,7 @@ export default function CreatePropertyPage() {
                       <option value="commercial">Comercial</option>
                     </select>
                   </div>
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Tipo de Listing
@@ -464,6 +472,44 @@ export default function CreatePropertyPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
+                </div>
+
+                {/* 🗺️ MAP SECTION */}
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={propertyData.show_map}
+                        onChange={(e) => setPropertyData({ 
+                          ...propertyData, 
+                          show_map: e.target.checked 
+                        })}
+                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        🗺️ Mostrar ubicación en mapa
+                      </span>
+                    </label>
+                  </div>
+
+                  {propertyData.show_map && (
+                    <MapEditor
+                      address={propertyData.address}
+                      city={propertyData.city}
+                      state={propertyData.state}
+                      initialLat={propertyData.latitude}
+                      initialLng={propertyData.longitude}
+                      onLocationChange={(lat, lng) => {
+                        setPropertyData({ 
+                          ...propertyData, 
+                          latitude: lat, 
+                          longitude: lng 
+                        });
+                      }}
+                      editable={true}
+                    />
+                  )}
                 </div>
 
                 {/* Publish Button */}

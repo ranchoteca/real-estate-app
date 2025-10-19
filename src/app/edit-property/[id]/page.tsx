@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import MobileLayout from '@/components/MobileLayout';
 import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
+import MapEditor from '@/components/property/MapEditor';
 
 interface PropertyData {
   title: string;
@@ -21,6 +22,11 @@ interface PropertyData {
   property_type: string;
   photos: string[];
   status: string;
+  listing_type: string;
+  // 🗺️ NUEVOS CAMPOS
+  latitude: number | null;
+  longitude: number | null;
+  show_map: boolean;
 }
 
 export default function EditPropertyPage() {
@@ -93,15 +99,12 @@ export default function EditPropertyPage() {
     const files = Array.from(e.target.files || []);
     const totalPhotos = existingPhotos.length + newPhotos.length + files.length - photosToDelete.length;
     
-    if (totalPhotos > 20) {
-      alert('Máximo 20 fotos por propiedad');
+    if (totalPhotos > 10) {
+      alert('Máximo 10 fotos por propiedad');
       return;
     }
 
-    // Comprimir fotos
     const compressedFiles = await Promise.all(files.map(f => compressImage(f)));
-    
-    // Crear previews
     const previews = compressedFiles.map(file => URL.createObjectURL(file));
     
     setNewPhotos([...newPhotos, ...compressedFiles]);
@@ -125,6 +128,12 @@ export default function EditPropertyPage() {
     const totalPhotos = existingPhotos.length + newPhotos.length;
     if (totalPhotos < 2) {
       setError('Mínimo 2 fotos requeridas');
+      return;
+    }
+
+    // Validar coordenadas si show_map está activo
+    if (property.show_map && (!property.latitude || !property.longitude)) {
+      setError('Debes configurar la ubicación en el mapa');
       return;
     }
 
@@ -152,14 +161,14 @@ export default function EditPropertyPage() {
       // 2. Combinar fotos existentes + nuevas
       const allPhotos = [...existingPhotos, ...uploadedUrls];
 
-      // 3. Actualizar propiedad
+      // 3. Actualizar propiedad (🗺️ CON CAMPOS DE UBICACIÓN)
       const response = await fetch(`/api/property/update/${propertyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...property,
           photos: allPhotos,
-          photosToDelete, // Para eliminar del storage
+          photosToDelete,
         }),
       });
 
@@ -220,7 +229,7 @@ export default function EditPropertyPage() {
         >
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-bold" style={{ color: '#0F172A' }}>
-              Fotos ({totalPhotos}/20)
+              Fotos ({totalPhotos}/10)
             </h3>
             <label className="cursor-pointer">
               <input
@@ -229,11 +238,11 @@ export default function EditPropertyPage() {
                 accept="image/*"
                 onChange={handleAddPhotos}
                 className="hidden"
-                disabled={totalPhotos >= 20}
+                disabled={totalPhotos >= 10}
               />
               <span 
                 className="px-4 py-2 rounded-xl font-semibold text-white shadow-lg active:scale-95 transition-transform inline-block"
-                style={{ backgroundColor: totalPhotos >= 20 ? '#9CA3AF' : '#2563EB' }}
+                style={{ backgroundColor: totalPhotos >= 10 ? '#9CA3AF' : '#2563EB' }}
               >
                 ➕ Agregar
               </span>
@@ -551,6 +560,42 @@ export default function EditPropertyPage() {
                 }}
               />
             </div>
+          </div>
+
+          {/* 🗺️ MAP SECTION */}
+          <div className="pt-4 border-t" style={{ borderTopColor: '#E5E7EB' }}>
+            <label className="flex items-center gap-2 cursor-pointer mb-3">
+              <input
+                type="checkbox"
+                checked={property.show_map}
+                onChange={(e) => setProperty({ 
+                  ...property, 
+                  show_map: e.target.checked 
+                })}
+                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm font-semibold" style={{ color: '#0F172A' }}>
+                🗺️ Mostrar ubicación en mapa
+              </span>
+            </label>
+
+            {property.show_map && (
+              <MapEditor
+                address={property.address}
+                city={property.city}
+                state={property.state}
+                initialLat={property.latitude}
+                initialLng={property.longitude}
+                onLocationChange={(lat, lng) => {
+                  setProperty({ 
+                    ...property, 
+                    latitude: lat, 
+                    longitude: lng 
+                  });
+                }}
+                editable={true}
+              />
+            )}
           </div>
         </div>
 

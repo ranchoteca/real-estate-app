@@ -80,6 +80,9 @@ export type Database = {
           created_at: string
           updated_at: string
           listing_type: string | null
+          latitude: number | null
+          longitude: number | null
+          show_map: boolean
         }
         Insert: {
           id?: string
@@ -103,7 +106,10 @@ export type Database = {
           slug: string
           created_at?: string
           updated_at?: string
-          listing_type: string | null
+          listing_type?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          show_map?: boolean
         }
         Update: {
           id?: string
@@ -127,7 +133,10 @@ export type Database = {
           slug?: string
           created_at?: string
           updated_at?: string
-          listing_type: string | null
+          listing_type?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          show_map?: boolean
         }
       }
       purchases: {

@@ -73,6 +73,9 @@ export async function PUT(
         listing_type: updates.listing_type,
         status: updates.status,
         photos: updates.photos,
+        latitude: updates.latitude,
+        longitude: updates.longitude,
+        show_map: updates.show_map,
       })
       .eq('id', id);
 

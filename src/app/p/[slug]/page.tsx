@@ -4,6 +4,17 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import MobileLayout from '@/components/MobileLayout';
+import dynamic from 'next/dynamic';
+
+// Importar MapEditor dinámicamente
+const MapEditor = dynamic(() => import('@/components/property/MapEditor'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-64 bg-gray-100 rounded-xl flex items-center justify-center">
+      <div className="text-sm text-gray-600">Cargando mapa...</div>
+    </div>
+  ),
+});
 
 interface Property {
   id: string;
@@ -22,7 +33,11 @@ interface Property {
   status: string;
   views: number;
   created_at: string;
-  listing_type: 'rent' | 'sale'; 
+  listing_type: 'rent' | 'sale';
+  // 🗺️ NUEVOS CAMPOS
+  latitude: number | null;
+  longitude: number | null;
+  show_map: boolean;
   agent: {
     name: string | null;
     full_name: string | null;
@@ -258,22 +273,22 @@ export default function PropertyPage() {
           </div>
 
           {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {property.bedrooms > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {property.bedrooms && property.bedrooms > 0 && (
               <div className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
                 <div className="text-2xl mb-1">🛏️</div>
                 <div className="text-lg font-bold" style={{ color: '#0F172A' }}>{property.bedrooms}</div>
                 <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Hab</div>
               </div>
             )}
-            {property.bathrooms > 0 && (
+            {property.bathrooms && property.bathrooms > 0 && (
               <div className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
                 <div className="text-2xl mb-1">🚿</div>
                 <div className="text-lg font-bold" style={{ color: '#0F172A' }}>{property.bathrooms}</div>
                 <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Baños</div>
               </div>
             )}
-            {property.sqft > 0 && (
+            {property.sqft && property.sqft > 0 && (
               <div className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
                 <div className="text-2xl mb-1">📏</div>
                 <div className="text-lg font-bold" style={{ color: '#0F172A' }}>{property.sqft.toLocaleString()}</div>
@@ -305,6 +320,31 @@ export default function PropertyPage() {
             👁️ {property.views} personas vieron esta propiedad
           </div>
         </div>
+
+        {/* 🗺️ MAP SECTION (NUEVO) */}
+        {property.show_map && property.latitude && property.longitude && (
+          <div 
+            className="rounded-2xl p-5 shadow-lg"
+            style={{ backgroundColor: '#FFFFFF' }}
+          >
+            <h2 className="text-lg font-bold mb-3" style={{ color: '#0F172A' }}>
+              📍 Ubicación
+            </h2>
+            <MapEditor
+              address={property.address || ''}
+              city={property.city || ''}
+              state={property.state || ''}
+              initialLat={property.latitude}
+              initialLng={property.longitude}
+              onLocationChange={() => {}} // No editable en vista pública
+              editable={false}
+            />
+            <p className="text-xs mt-3 opacity-60" style={{ color: '#0F172A' }}>
+              {property.address}
+              {property.city && property.state && `, ${property.city}, ${property.state}`}
+            </p>
+          </div>
+        )}
 
         {/* Export PDF Button */}
         <div className="px-4 pb-6">

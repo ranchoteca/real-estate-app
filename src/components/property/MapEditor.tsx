@@ -42,6 +42,22 @@ function LocationMarker({
   setPosition: (pos: [number, number]) => void;
   editable: boolean;
 }) {
+  const [L, setL] = useState<any>(null);
+
+  useEffect(() => {
+    // 🔧 Importar Leaflet solo en el cliente
+    import('leaflet').then((leaflet) => {
+      // Fix iconos
+      delete (leaflet.Icon.Default.prototype as any)._getIconUrl;
+      leaflet.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      });
+      setL(leaflet);
+    });
+  }, []);
+
   const map = useMapEvents({
     click(e) {
       if (editable) {
@@ -50,7 +66,7 @@ function LocationMarker({
     },
   });
 
-  return position ? (
+  return position && L ? (
     <Marker 
       position={position} 
       draggable={editable}
@@ -82,6 +98,22 @@ export default function MapEditor({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gpsUsed, setGpsUsed] = useState(false);
+  const [leafletReady, setLeafletReady] = useState(false);
+
+  // 🔧 Configurar iconos de Leaflet una sola vez
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      import('leaflet').then((L) => {
+        delete (L.Icon.Default.prototype as any)._getIconUrl;
+        L.Icon.Default.mergeOptions({
+          iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+          iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+          shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        });
+        setLeafletReady(true);
+      });
+    }
+  }, []);
 
   // Intentar GPS primero, luego geocoding
   useEffect(() => {
@@ -317,7 +349,7 @@ export default function MapEditor({
                 value={manualLat}
                 onChange={(e) => setManualLat(e.target.value)}
                 placeholder="9.748917"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 font-semibold"
               />
             </div>
             <div>
@@ -329,7 +361,7 @@ export default function MapEditor({
                 value={manualLng}
                 onChange={(e) => setManualLng(e.target.value)}
                 placeholder="-83.753428"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 font-semibold"
               />
             </div>
           </div>

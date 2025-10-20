@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseAdmin } from '@/lib/supabase';
 
+// ⏱️ Aumentar tiempo de ejecución para Vercel
+export const maxDuration = 60; // 60 segundos
+
 export async function POST(req: NextRequest) {
   try {
     // Verificar autenticación
@@ -38,9 +41,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (files.length > 20) {
+    if (files.length > 10) {
       return NextResponse.json(
-        { error: 'Máximo 20 fotos permitidas' },
+        { error: 'Máximo 10 fotos permitidas por lote' },
         { status: 400 }
       );
     }
@@ -54,9 +57,9 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       
-      // Validar tamaño (5MB)
+      // Validar tamaño (5MB max)
       if (file.size > 5 * 1024 * 1024) {
-        console.warn(`⚠️ Foto ${i + 1} muy grande, saltando...`);
+        console.warn(`⚠️ Foto ${i + 1} muy grande (${(file.size / 1024 / 1024).toFixed(2)}MB), saltando...`);
         continue;
       }
 
@@ -88,7 +91,7 @@ export async function POST(req: NextRequest) {
         .getPublicUrl(fileName);
 
       uploadedUrls.push(publicUrlData.publicUrl);
-      console.log(`✅ Foto ${i + 1} subida`);
+      console.log(`✅ Foto ${i + 1}/${files.length} subida`);
     }
 
     if (uploadedUrls.length === 0) {
@@ -106,24 +109,15 @@ export async function POST(req: NextRequest) {
       count: uploadedUrls.length,
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error al subir fotos:', error);
     
     return NextResponse.json(
       { 
         error: 'Error al subir las fotos',
-        details: error 
+        details: error.message || 'Error desconocido'
       },
       { status: 500 }
     );
   }
 }
-
-// Aumentar el límite de tamaño del body para permitir múltiples fotos
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '50mb',
-    },
-  },
-};

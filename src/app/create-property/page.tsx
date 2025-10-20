@@ -106,7 +106,7 @@ export default function CreatePropertyPage() {
   };
 
   const uploadPhotos = async (files: File[]): Promise<string[]> => {
-    const batchSize = 5;
+    const batchSize = 5; // Mantener batches de 5 como antes
     const allUrls: string[] = [];
 
     for (let i = 0; i < files.length; i += batchSize) {
@@ -117,20 +117,31 @@ export default function CreatePropertyPage() {
         formData.append('photos', file);
       });
 
-      const response = await fetch('/api/property/upload-photos', {
-        method: 'POST',
-        body: formData,
-      });
+      const batchNumber = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(files.length / batchSize);
+      console.log(`📤 Subiendo lote ${batchNumber}/${totalBatches} (${batch.length} fotos)...`);
 
-      if (!response.ok) {
+      try {
+        const response = await fetch('/api/property/upload-photos', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || `Error al subir fotos en lote ${batchNumber}`);
+        }
+
         const data = await response.json();
-        throw new Error(data.error || 'Error al subir fotos');
+        allUrls.push(...data.urls);
+        console.log(`✅ Lote ${batchNumber} completado (${data.count} fotos)`);
+      } catch (error) {
+        console.error('Error subiendo fotos:', error);
+        throw error;
       }
-
-      const data = await response.json();
-      allUrls.push(...data.urls);
     }
 
+    console.log(`✅ Total: ${allUrls.length} fotos subidas`);
     return allUrls;
   };
 
@@ -323,8 +334,7 @@ export default function CreatePropertyPage() {
                     type="text"
                     value={propertyData.title}
                     onChange={(e) => setPropertyData({ ...propertyData, title: e.target.value })}
-                    placeholder="Título"
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-semibold"
                   />
                 </div>
 
@@ -337,8 +347,7 @@ export default function CreatePropertyPage() {
                     value={propertyData.description}
                     onChange={(e) => setPropertyData({ ...propertyData, description: e.target.value })}
                     rows={6}
-                    placeholder="Descripción"
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                   />
                 </div>
 
@@ -352,8 +361,7 @@ export default function CreatePropertyPage() {
                       type="number"
                       value={propertyData.price || ''}
                       onChange={(e) => setPropertyData({ ...propertyData, price: Number(e.target.value) })}
-                      placeholder="0"
-                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
 
@@ -365,8 +373,7 @@ export default function CreatePropertyPage() {
                       type="number"
                       value={propertyData.bedrooms || ''}
                       onChange={(e) => setPropertyData({ ...propertyData, bedrooms: Number(e.target.value) })}
-                      placeholder="0"
-                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
 
@@ -379,21 +386,19 @@ export default function CreatePropertyPage() {
                       step="0.5"
                       value={propertyData.bathrooms || ''}
                       onChange={(e) => setPropertyData({ ...propertyData, bathrooms: Number(e.target.value) })}
-                      placeholder="0"
-                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Metros cuadrados
+                      Pies cuadrados
                     </label>
                     <input
                       type="number"
                       value={propertyData.sqft || ''}
                       onChange={(e) => setPropertyData({ ...propertyData, sqft: Number(e.target.value) })}
-                      placeholder="0"
-                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
 
@@ -404,7 +409,7 @@ export default function CreatePropertyPage() {
                     <select
                       value={propertyData.property_type}
                       onChange={(e) => setPropertyData({ ...propertyData, property_type: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     >
                       <option value="house">Casa</option>
                       <option value="condo">Condominio</option>
@@ -416,12 +421,12 @@ export default function CreatePropertyPage() {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Esta propiedad se encuentra en
+                      Tipo de Listing
                     </label>
                     <select
                       value={propertyData.listing_type || 'sale'}
                       onChange={(e) => setPropertyData({ ...propertyData, listing_type: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     >
                       <option value="sale">Venta</option>
                       <option value="rent">Alquiler</option>
@@ -439,8 +444,7 @@ export default function CreatePropertyPage() {
                       type="text"
                       value={propertyData.address}
                       onChange={(e) => setPropertyData({ ...propertyData, address: e.target.value })}
-                      placeholder="Dirección"
-                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
 
@@ -452,8 +456,7 @@ export default function CreatePropertyPage() {
                       type="text"
                       value={propertyData.city}
                       onChange={(e) => setPropertyData({ ...propertyData, city: e.target.value })}
-                      placeholder="Ciudad"
-                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
 
@@ -465,8 +468,7 @@ export default function CreatePropertyPage() {
                       type="text"
                       value={propertyData.state}
                       onChange={(e) => setPropertyData({ ...propertyData, state: e.target.value })}
-                      placeholder="Estado/Provincia"
-                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
 
@@ -478,8 +480,7 @@ export default function CreatePropertyPage() {
                       type="text"
                       value={propertyData.zip_code}
                       onChange={(e) => setPropertyData({ ...propertyData, zip_code: e.target.value })}
-                      placeholder="Código postal"
-                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
                 </div>

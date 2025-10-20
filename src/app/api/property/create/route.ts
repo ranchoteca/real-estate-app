@@ -56,9 +56,9 @@ export async function POST(req: NextRequest) {
         .select('*', { count: 'exact', head: true })
         .eq('agent_id', agent.id);
 
-      if (count && count >= 3) {
+      if (count && count >= 20) {
         return NextResponse.json(
-          { error: 'Has alcanzado el límite de 3 propiedades. Actualiza a Pro para crear más.' },
+          { error: 'Has alcanzado el límite de 20 propiedades. Actualiza a Pro para crear más.' },
           { status: 403 }
         );
       }

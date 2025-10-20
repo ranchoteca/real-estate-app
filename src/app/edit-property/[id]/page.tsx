@@ -587,6 +587,7 @@ export default function EditPropertyPage() {
                 initialLat={property.latitude}
                 initialLng={property.longitude}
                 onLocationChange={(lat, lng) => {
+                  console.log('📍 Nueva ubicación:', lat, lng);
                   setProperty({ 
                     ...property, 
                     latitude: lat, 

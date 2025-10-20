@@ -42,22 +42,6 @@ function LocationMarker({
   setPosition: (pos: [number, number]) => void;
   editable: boolean;
 }) {
-  const [L, setL] = useState<any>(null);
-
-  useEffect(() => {
-    // 🔧 Importar Leaflet solo en el cliente
-    import('leaflet').then((leaflet) => {
-      // Fix iconos
-      delete (leaflet.Icon.Default.prototype as any)._getIconUrl;
-      leaflet.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      });
-      setL(leaflet);
-    });
-  }, []);
-
   const map = useMapEvents({
     click(e) {
       if (editable) {
@@ -66,7 +50,7 @@ function LocationMarker({
     },
   });
 
-  return position && L ? (
+  return position ? (
     <Marker 
       position={position} 
       draggable={editable}
@@ -99,6 +83,7 @@ export default function MapEditor({
   const [error, setError] = useState<string | null>(null);
   const [gpsUsed, setGpsUsed] = useState(false);
   const [leafletReady, setLeafletReady] = useState(false);
+  const [mapKey, setMapKey] = useState(0); // Para forzar re-render del mapa
 
   // 🔧 Configurar iconos de Leaflet una sola vez
   useEffect(() => {
@@ -288,7 +273,7 @@ export default function MapEditor({
     );
   }
 
-  if (!position) {
+  if (!position || !leafletReady) {
     return (
       <div className="w-full h-64 bg-red-50 rounded-xl flex items-center justify-center">
         <div className="text-center px-4">

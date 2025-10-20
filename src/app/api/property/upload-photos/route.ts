@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseAdmin } from '@/lib/supabase';
 
-// ⏱️ Aumentar tiempo de ejecución para Vercel
-export const maxDuration = 60; // 60 segundos
-
 export async function POST(req: NextRequest) {
   try {
     // Verificar autenticación
@@ -41,9 +38,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (files.length > 10) {
+    if (files.length > 20) {
       return NextResponse.json(
-        { error: 'Máximo 10 fotos permitidas por lote' },
+        { error: 'Máximo 20 fotos permitidas' },
         { status: 400 }
       );
     }
@@ -57,9 +54,9 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       
-      // Validar tamaño (5MB max)
+      // Validar tamaño (5MB)
       if (file.size > 5 * 1024 * 1024) {
-        console.warn(`⚠️ Foto ${i + 1} muy grande (${(file.size / 1024 / 1024).toFixed(2)}MB), saltando...`);
+        console.warn(`⚠️ Foto ${i + 1} muy grande, saltando...`);
         continue;
       }
 
@@ -91,7 +88,7 @@ export async function POST(req: NextRequest) {
         .getPublicUrl(fileName);
 
       uploadedUrls.push(publicUrlData.publicUrl);
-      console.log(`✅ Foto ${i + 1}/${files.length} subida`);
+      console.log(`✅ Foto ${i + 1} subida`);
     }
 
     if (uploadedUrls.length === 0) {
@@ -109,15 +106,24 @@ export async function POST(req: NextRequest) {
       count: uploadedUrls.length,
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error al subir fotos:', error);
     
     return NextResponse.json(
       { 
         error: 'Error al subir las fotos',
-        details: error.message || 'Error desconocido'
+        details: error 
       },
       { status: 500 }
     );
   }
 }
+
+// Aumentar el límite de tamaño del body para permitir múltiples fotos
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '50mb',
+    },
+  },
+};

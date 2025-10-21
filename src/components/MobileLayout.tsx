@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
 
@@ -25,7 +25,7 @@ export default function MobileLayout({
 
   return (
     <div className="flex flex-col h-screen" style={{ backgroundColor: '#F5EAD3' }}>
-      {/* Top Header - Mobile Native Style */}
+      {/* Top Header */}
       <header 
         className="flex-shrink-0 shadow-lg relative z-50"
         style={{ backgroundColor: '#0F172A' }}
@@ -79,14 +79,14 @@ export default function MobileLayout({
         </div>
       </header>
 
-      {/* Main Content - Scrollable */}
+      {/* Main Content */}
       <main className="flex-1 overflow-y-auto overscroll-contain">
         <div className="pb-28">
           {children}
         </div>
       </main>
 
-      {/* Bottom Tab Bar - Only on main screens */}
+      {/* Bottom Tab Bar */}
       {showTabs && session && (
         <nav 
           className="fixed bottom-0 left-0 right-0 border-t safe-bottom shadow-2xl z-50"
@@ -114,7 +114,7 @@ export default function MobileLayout({
               </span>
             </button>
 
-            {/* Create Tab - Center with FAB style */}
+            {/* Create Tab - Center FAB */}
             <button
               onClick={() => router.push('/create-property')}
               disabled={!session.user || (session.user.plan === 'free' && session.user.totalProperties >= 20)}
@@ -133,28 +133,27 @@ export default function MobileLayout({
               </span>
             </button>
 
-            {/* Profile Tab */}
+            {/* Settings Tab - NUEVO */}
             <button
-              onClick={() => router.push('/profile')}
+              onClick={() => router.push('/settings')}
               className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all active:scale-95 ${
-                isActive('/profile') ? 'opacity-100' : 'opacity-50'
+                isActive('/settings') ? 'opacity-100' : 'opacity-50'
               }`}
             >
-              <svg className="w-6 h-6" fill={isActive('/profile') ? '#2563EB' : '#0F172A'} viewBox="0 0 24 24">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              <svg className="w-6 h-6" fill={isActive('/settings') ? '#2563EB' : '#0F172A'} viewBox="0 0 24 24">
+                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
               </svg>
               <span 
                 className="text-xs font-semibold"
-                style={{ color: isActive('/profile') ? '#2563EB' : '#0F172A' }}
+                style={{ color: isActive('/settings') ? '#2563EB' : '#0F172A' }}
               >
-                Perfil
+                Ajustes
               </span>
             </button>
           </div>
         </nav>
       )}
 
-      {/* Safe area styles */}
       <style jsx global>{`
         .safe-top {
           padding-top: env(safe-area-inset-top);
@@ -162,18 +161,12 @@ export default function MobileLayout({
         .safe-bottom {
           padding-bottom: env(safe-area-inset-bottom);
         }
-        
-        /* Smooth scrolling */
         .overscroll-contain {
           overscroll-behavior: contain;
         }
-        
-        /* Disable bounce on iOS */
         body {
           overscroll-behavior-y: none;
         }
-
-        /* Hide scrollbar but keep functionality */
         .overflow-y-auto::-webkit-scrollbar {
           display: none;
         }

@@ -15,33 +15,85 @@ interface PropertyData {
   city: string;
   state: string;
   zip_code: string;
-  bedrooms: number | null;
-  bathrooms: number | null;
-  sqft: number | null;
   property_type: string;
   listing_type: string;
-  // 🗺️ NUEVOS CAMPOS
   latitude: number | null;
   longitude: number | null;
   show_map: boolean;
+  custom_fields_data: Record<string, string>;
+}
+
+interface CustomField {
+  id: string;
+  property_type: string;
+  listing_type: string;
+  field_name: string;
+  field_type: 'text' | 'number';
+  placeholder: string;
+  icon: string;
 }
 
 export default function CreatePropertyPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  // Step 1: Photos
   const [photos, setPhotos] = useState<File[]>([]);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [propertyData, setPropertyData] = useState<PropertyData | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [tempPhotoUrls, setTempPhotoUrls] = useState<string[]>([]);
+
+  // Step 2: Property Configuration
+  const [propertyType, setPropertyType] = useState<string>('house');
+  const [listingType, setListingType] = useState<string>('sale');
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [loadingCustomFields, setLoadingCustomFields] = useState(false);
+
+  // Step 3: Voice Recording
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+
+  // Step 4: Generated Data
+  const [propertyData, setPropertyData] = useState<PropertyData | null>(null);
+  const [customFieldsValues, setCustomFieldsValues] = useState<Record<string, string>>({});
+
+  // UI States
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
     }
   }, [status, router]);
+
+  // Cargar campos personalizados cuando se selecciona tipo de propiedad + listing
+  useEffect(() => {
+    if (propertyType && listingType) {
+      loadCustomFields(propertyType, listingType);
+    }
+  }, [propertyType, listingType]);
+
+  const loadCustomFields = async (propType: string, listType: string) => {
+    try {
+      setLoadingCustomFields(true);
+      const response = await fetch(
+        `/api/custom-fields/list?property_type=${propType}&listing_type=${listType}`
+      );
+      
+      if (!response.ok) {
+        console.error('Error al cargar campos personalizados');
+        setCustomFields([]);
+        return;
+      }
+      
+      const data = await response.json();
+      setCustomFields(data.fields || []);
+      console.log(`📋 Campos cargados para ${propType} > ${listType}:`, data.fields?.length || 0);
+    } catch (err) {
+      console.error('Error loading custom fields:', err);
+      setCustomFields([]);
+    } finally {
+      setLoadingCustomFields(false);
+    }
+  };
 
   if (status === 'loading') {
     return (
@@ -84,17 +136,26 @@ export default function CreatePropertyPage() {
       // 2. Transcribir audio
       const transcription = await transcribeAudio(audioBlob);
 
-      // 3. Generar descripción con GPT-4
-      const generatedData = await generateDescription(transcription);
+      // 3. Generar descripción con GPT-4 (incluyendo campos personalizados)
+      const generatedData = await generateDescription(
+        transcription, 
+        propertyType, 
+        listingType,
+        customFields
+      );
 
-      // 4. Actualizar estado con datos generados (🗺️ CON CAMPOS DE MAPA)
+      // 4. Actualizar estado con datos generados
       setPropertyData({
         ...generatedData,
-        latitude: null, // Se calculará después
+        property_type: propertyType, // Forzar el tipo seleccionado
+        listing_type: listingType,   // Forzar el listing type seleccionado
+        latitude: null,
         longitude: null,
-        show_map: true, // Default: sí mostrar
+        show_map: true,
+        custom_fields_data: generatedData.custom_fields_data || {},
       });
 
+      setCustomFieldsValues(generatedData.custom_fields_data || {});
       setTempPhotoUrls(photoUrls);
 
     } catch (err) {
@@ -106,7 +167,7 @@ export default function CreatePropertyPage() {
   };
 
   const uploadPhotos = async (files: File[]): Promise<string[]> => {
-    const batchSize = 5; // Mantener batches de 5 como antes
+    const batchSize = 5;
     const allUrls: string[] = [];
 
     for (let i = 0; i < files.length; i += batchSize) {
@@ -162,11 +223,21 @@ export default function CreatePropertyPage() {
     return data.transcription;
   };
 
-  const generateDescription = async (transcription: string): Promise<PropertyData> => {
+  const generateDescription = async (
+    transcription: string,
+    propType: string,
+    listType: string,
+    fields: CustomField[]
+  ): Promise<PropertyData> => {
     const response = await fetch('/api/property/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transcription }),
+      body: JSON.stringify({ 
+        transcription,
+        property_type: propType,
+        listing_type: listType,
+        custom_fields: fields,
+      }),
     });
 
     if (!response.ok) {
@@ -180,7 +251,7 @@ export default function CreatePropertyPage() {
   const handlePublish = async () => {
     if (!propertyData) return;
 
-    // Validar que tenga coordenadas si show_map está activo
+    // Validar coordenadas si show_map está activo
     if (propertyData.show_map && (!propertyData.latitude || !propertyData.longitude)) {
       setError('Debes configurar la ubicación en el mapa');
       return;
@@ -198,6 +269,7 @@ export default function CreatePropertyPage() {
         body: JSON.stringify({
           ...propertyData,
           photos: photoUrls,
+          custom_fields_data: customFieldsValues,
         }),
       });
 
@@ -219,7 +291,26 @@ export default function CreatePropertyPage() {
     }
   };
 
+  const handleCustomFieldChange = (fieldName: string, value: string) => {
+    const key = fieldName.toLowerCase().replace(/ /g, '_');
+    setCustomFieldsValues(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const getCustomFieldValue = (fieldName: string): string => {
+    const key = fieldName.toLowerCase().replace(/ /g, '_');
+    return customFieldsValues[key] || '';
+  };
+
   const canGenerate = photos.length >= 2 && audioBlob !== null;
+
+  // Validar campos personalizados vacíos
+  const emptyCustomFields = customFields.filter(field => {
+    const key = field.field_name.toLowerCase().replace(/ /g, '_');
+    return !customFieldsValues[key] || customFieldsValues[key].trim() === '';
+  });
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5EAD3' }}>
@@ -251,7 +342,7 @@ export default function CreatePropertyPage() {
             Crear nueva propiedad
           </h1>
           <p className="text-gray-600">
-            Sube fotos y describe la propiedad por voz. La IA generará el listing completo.
+            Sube fotos, configura el tipo de propiedad y describe por voz. La IA generará el listing completo.
           </p>
         </div>
 
@@ -276,13 +367,101 @@ export default function CreatePropertyPage() {
             />
           </div>
 
-          {/* Section 2: Voice Recording */}
+          {/* Section 2: Property Configuration */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <span>🎤</span> Paso 2: Descripción por Voz
+              <span>🏷️</span> Paso 2: Configuración de Propiedad
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tipo de propiedad
+                </label>
+                <select
+                  value={propertyType}
+                  onChange={(e) => setPropertyType(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-semibold"
+                >
+                  <option value="house">Casa</option>
+                  <option value="condo">Condominio</option>
+                  <option value="apartment">Apartamento</option>
+                  <option value="land">Terreno</option>
+                  <option value="commercial">Comercial</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tipo de Listing
+                </label>
+                <select
+                  value={listingType}
+                  onChange={(e) => setListingType(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-semibold"
+                >
+                  <option value="sale">Venta</option>
+                  <option value="rent">Alquiler</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Hint de Campos Personalizados */}
+            {loadingCustomFields ? (
+              <div className="bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 text-center">
+                <div className="text-2xl mb-2 animate-pulse">⏳</div>
+                <p className="text-sm text-gray-600">Cargando campos personalizados...</p>
+              </div>
+            ) : customFields.length > 0 ? (
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4">
+                <div className="flex items-start gap-2 mb-3">
+                  <span className="text-2xl">💡</span>
+                  <div>
+                    <h3 className="font-bold text-blue-900 mb-1">
+                      Campos a mencionar en tu grabación:
+                    </h3>
+                    <p className="text-sm text-blue-700">
+                      Menciona estos detalles para que la IA los complete automáticamente
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  {customFields.map(field => (
+                    <div key={field.id} className="flex items-center gap-2 text-sm font-semibold text-blue-900">
+                      <span className="text-lg">{field.icon}</span>
+                      <span>{field.field_name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-4">
+                <div className="flex items-start gap-2">
+                  <span className="text-2xl">ℹ️</span>
+                  <div>
+                    <p className="text-sm text-yellow-800 font-semibold mb-1">
+                      No hay campos personalizados para esta combinación
+                    </p>
+                    <button
+                      onClick={() => router.push('/settings/custom-fields')}
+                      className="text-sm text-blue-600 underline font-semibold"
+                    >
+                      Crear campos personalizados
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section 3: Voice Recording */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <span>🎤</span> Paso 3: Descripción por Voz
             </h2>
             <p className="text-sm text-gray-600 mb-4">
-              Describe la propiedad: ubicación, habitaciones, baños, características especiales, precio, etc.
+              Describe la propiedad: ubicación, precio, características especiales{customFields.length > 0 && ', y los campos personalizados mencionados arriba'}.
             </p>
             <VoiceRecorder 
               onRecordingComplete={handleRecordingComplete}
@@ -317,14 +496,43 @@ export default function CreatePropertyPage() {
             </div>
           )}
 
-          {/* Section 3: Generated Preview */}
+          {/* Section 4: Generated Preview */}
           {propertyData && (
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <span>✅</span> Paso 3: Revisar y Publicar
+                <span>✅</span> Paso 4: Revisar y Publicar
               </h2>
               
               <div className="space-y-4">
+                {/* Property Type and Listing Type (NO EDITABLE) */}
+                <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Tipo de propiedad y listing:</p>
+                      <p className="font-bold text-gray-900">
+                        {propertyType === 'house' ? 'Casa' : 
+                         propertyType === 'condo' ? 'Condominio' :
+                         propertyType === 'apartment' ? 'Apartamento' :
+                         propertyType === 'land' ? 'Terreno' : 'Comercial'}
+                        {' → '}
+                        {listingType === 'sale' ? 'Venta' : 'Alquiler'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setPropertyData(null);
+                        setCustomFieldsValues({});
+                      }}
+                      className="text-sm text-blue-600 underline font-semibold"
+                    >
+                      Cambiar tipo
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    ℹ️ Para cambiar el tipo, debes regenerar el listing
+                  </p>
+                </div>
+
                 {/* Title */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -351,87 +559,18 @@ export default function CreatePropertyPage() {
                   />
                 </div>
 
-                {/* Price and Details Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Precio ($)
-                    </label>
-                    <input
-                      type="number"
-                      value={propertyData.price || ''}
-                      onChange={(e) => setPropertyData({ ...propertyData, price: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Habitaciones
-                    </label>
-                    <input
-                      type="number"
-                      value={propertyData.bedrooms || ''}
-                      onChange={(e) => setPropertyData({ ...propertyData, bedrooms: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Baños
-                    </label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={propertyData.bathrooms || ''}
-                      onChange={(e) => setPropertyData({ ...propertyData, bathrooms: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Pies cuadrados
-                    </label>
-                    <input
-                      type="number"
-                      value={propertyData.sqft || ''}
-                      onChange={(e) => setPropertyData({ ...propertyData, sqft: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tipo de propiedad
-                    </label>
-                    <select
-                      value={propertyData.property_type}
-                      onChange={(e) => setPropertyData({ ...propertyData, property_type: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    >
-                      <option value="house">Casa</option>
-                      <option value="condo">Condominio</option>
-                      <option value="apartment">Apartamento</option>
-                      <option value="land">Terreno</option>
-                      <option value="commercial">Comercial</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tipo de Listing
-                    </label>
-                    <select
-                      value={propertyData.listing_type || 'sale'}
-                      onChange={(e) => setPropertyData({ ...propertyData, listing_type: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    >
-                      <option value="sale">Venta</option>
-                      <option value="rent">Alquiler</option>
-                    </select>
-                  </div>
+                {/* Price */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Precio ($)
+                  </label>
+                  <input
+                    type="number"
+                    value={propertyData.price || ''}
+                    onChange={(e) => setPropertyData({ ...propertyData, price: Number(e.target.value) || null })}
+                    placeholder="Opcional"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
                 </div>
 
                 {/* Location */}
@@ -462,7 +601,7 @@ export default function CreatePropertyPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Estado
+                      Estado / Provincia
                     </label>
                     <input
                       type="text"
@@ -485,7 +624,7 @@ export default function CreatePropertyPage() {
                   </div>
                 </div>
 
-                {/* 🗺️ MAP SECTION */}
+                {/* MAP SECTION */}
                 <div className="pt-4 border-t border-gray-200">
                   <div className="flex items-center justify-between mb-4">
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -523,10 +662,68 @@ export default function CreatePropertyPage() {
                   )}
                 </div>
 
+                {/* CUSTOM FIELDS */}
+                {customFields.length > 0 && (
+                  <div className="pt-4 border-t border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <span>🏷️</span>
+                      Campos Personalizados
+                    </h3>
+
+                    <div className="space-y-3">
+                      {customFields.map((field) => (
+                        <div key={field.id}>
+                          <label className="block text-sm font-semibold mb-2 flex items-center gap-2 text-gray-700">
+                            <span className="text-lg">{field.icon || '🏷️'}</span>
+                            {field.field_name}
+                          </label>
+                          <input
+                            type={field.field_type === 'number' ? 'number' : 'text'}
+                            value={getCustomFieldValue(field.field_name)}
+                            onChange={(e) => handleCustomFieldChange(field.field_name, e.target.value)}
+                            placeholder={field.placeholder}
+                            maxLength={field.field_type === 'text' ? 200 : undefined}
+                            className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            style={{ 
+                              borderColor: '#E5E7EB',
+                              backgroundColor: '#F9FAFB'
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Warning si hay campos vacíos */}
+                    {emptyCustomFields.length > 0 && (
+                      <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <div className="flex items-start gap-2">
+                          <span className="text-xl">⚠️</span>
+                          <div>
+                            <p className="text-sm font-semibold text-yellow-800 mb-1">
+                              Algunos campos personalizados están vacíos:
+                            </p>
+                            <ul className="text-xs text-yellow-700 space-y-1">
+                              {emptyCustomFields.map(field => (
+                                <li key={field.id}>• {field.icon} {field.field_name}</li>
+                              ))}
+                            </ul>
+                            <p className="text-xs text-yellow-600 mt-2">
+                              Puedes publicar de todas formas, pero te recomendamos llenarlos para una mejor presentación.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Publish Button */}
                 <div className="flex gap-4 pt-4">
                   <button
-                    onClick={() => setPropertyData(null)}
+                    onClick={() => {
+                      setPropertyData(null);
+                      setCustomFieldsValues({});
+                    }}
                     className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50"
                   >
                     Cancelar

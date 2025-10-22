@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     // 3. Generar slug único
     const slug = generateSlug(propertyData.title);
 
-    // 4. Crear propiedad (🗺️ CON CAMPOS DE UBICACIÓN)
+    // 4. Crear propiedad (SIN bedrooms, bathrooms, sqft)
     const { data: property, error: propertyError } = await supabaseAdmin
       .from('properties')
       .insert({
@@ -86,19 +86,16 @@ export async function POST(req: NextRequest) {
         city: propertyData.city,
         state: propertyData.state,
         zip_code: propertyData.zip_code,
-        bedrooms: propertyData.bedrooms,
-        bathrooms: propertyData.bathrooms,
-        sqft: propertyData.sqft,
         property_type: propertyData.property_type || 'house',
         listing_type: propertyData.listing_type || 'sale',
         photos: propertyData.photos || [],
         audio_url: propertyData.audio_url || null,
         status: 'active',
         slug,
-        // 🗺️ NUEVOS CAMPOS
         latitude: propertyData.latitude || null,
         longitude: propertyData.longitude || null,
         show_map: propertyData.show_map !== undefined ? propertyData.show_map : true,
+        custom_fields_data: propertyData.custom_fields_data || {},
       })
       .select()
       .single();
@@ -126,6 +123,7 @@ export async function POST(req: NextRequest) {
     console.log('Slug:', property.slug);
     console.log('Ubicación:', property.latitude, property.longitude);
     console.log('Mostrar mapa:', property.show_map);
+    console.log('Campos personalizados:', Object.keys(property.custom_fields_data || {}).length);
 
     return NextResponse.json({
       success: true,

@@ -6,17 +6,29 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const PROPERTY_PROMPT = `Eres un experto en copywriting de bienes raíces. 
+interface CustomField {
+  field_name: string;
+  field_type: 'text' | 'number';
+  icon: string;
+}
+
+function buildPropertyPrompt(customFields: CustomField[] = []): string {
+  const customFieldsSection = customFields.length > 0 
+    ? `\n\n4. CAMPOS PERSONALIZADOS (extraer del audio si se mencionan):
+${customFields.map(f => `   - ${f.icon} ${f.field_name} (${f.field_type === 'number' ? 'número' : 'texto'})`).join('\n')}
+
+   IMPORTANTE: Los campos personalizados deben ir en un objeto "custom_fields_data" con keys en minúsculas y sin espacios.
+   Ejemplo: Si el campo se llama "Frente al mar", la key debe ser "frente_al_mar".
+   Si el agente NO mencionó un campo, NO lo incluyas en custom_fields_data.`
+    : '';
+
+  return `Eres un experto en copywriting de bienes raíces. 
 
 Un agente inmobiliario acaba de describir una propiedad por voz. Tu trabajo es:
 
 1. EXTRAER toda la información estructurada que mencionó:
-   - Tipo de propiedad (house, condo, apartment, land, commercial)
    - Precio (si lo mencionó)
-   - Ubicación completa (dirección, ciudad, estado, código postal)
-   - Habitaciones (bedrooms)
-   - Baños (bathrooms)
-   - Pies cuadrados (sqft)
+   - Ubicación completa (dirección, ciudad, estado/provincia, código postal)
    - Características destacadas
 
 2. GENERAR una descripción profesional y atractiva:
@@ -35,22 +47,19 @@ Un agente inmobiliario acaba de describir una propiedad por voz. Tu trabajo es:
   "address": "123 Main Street",
   "city": "Austin",
   "state": "TX",
-  "zip_code": "78701",
-  "bedrooms": 3,
-  "bathrooms": 2.5,
-  "sqft": 2100,
-  "property_type": "house"
-}
+  "zip_code": "78701"${customFields.length > 0 ? ',\n  "custom_fields_data": {\n    "frente_al_mar": "Sí, 50 metros",\n    "metros_frente": "25"\n  }' : ''}
+}${customFieldsSection}
 
 REGLAS IMPORTANTES:
-- Si el agente NO mencionó algún dato, usa null
+- Si el agente NO mencionó algún dato, usa null (excepto custom_fields_data que no debe incluir campos no mencionados)
 - El precio debe ser número sin símbolos ni comas
-- Los baños pueden ser decimales (2.5 = 2 baños completos + 1 medio baño)
-- property_type debe ser uno de: house, condo, apartment, land, commercial
+- "state" puede ser estado o provincia (son equivalentes)
 - La descripción debe ser fluida, no una lista de características
 - NO inventes información que no fue mencionada
+- custom_fields_data: solo incluir campos que SÍ fueron mencionados en el audio
 
 Transcripción del agente:`;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -63,7 +72,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { transcription } = await req.json();
+    const { transcription, property_type, listing_type, custom_fields } = await req.json();
 
     if (!transcription || transcription.trim().length < 20) {
       return NextResponse.json(
@@ -72,16 +81,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!property_type || !listing_type) {
+      return NextResponse.json(
+        { error: 'Faltan property_type o listing_type' },
+        { status: 400 }
+      );
+    }
+
     console.log('🤖 Generando descripción con GPT-4...');
+    console.log('Tipo:', property_type, '→', listing_type);
+    console.log('Campos personalizados:', custom_fields?.length || 0);
     console.log('Transcripción:', transcription.substring(0, 100) + '...');
+
+    // Construir prompt dinámico
+    const systemPrompt = buildPropertyPrompt(custom_fields || []);
 
     // Llamar a GPT-4
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Más barato y rápido, puedes usar 'gpt-4' si prefieres
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: PROPERTY_PROMPT,
+          content: systemPrompt,
         },
         {
           role: 'user',
@@ -117,17 +138,16 @@ export async function POST(req: NextRequest) {
       city: property.city || '',
       state: property.state || '',
       zip_code: property.zip_code || '',
-      bedrooms: property.bedrooms || null,
-      bathrooms: property.bathrooms || null,
-      sqft: property.sqft || null,
-      property_type: property.property_type || 'house',
+      property_type: property_type,
+      listing_type: listing_type,
+      custom_fields_data: property.custom_fields_data || {},
     };
 
     console.log('📋 Datos extraídos:', {
       title: propertyData.title,
       price: propertyData.price,
-      bedrooms: propertyData.bedrooms,
       city: propertyData.city,
+      custom_fields: Object.keys(propertyData.custom_fields_data).length,
     });
 
     return NextResponse.json({
@@ -142,7 +162,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Error al generar la descripción',
-        details: error
+        details: error instanceof Error ? error.message : 'Error desconocido'
       },
       { status: 500 }
     );

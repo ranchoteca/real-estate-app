@@ -309,7 +309,8 @@ export default function CreatePropertyPage() {
   // Validar campos personalizados vacíos
   const emptyCustomFields = customFields.filter(field => {
     const key = field.field_name.toLowerCase().replace(/ /g, '_');
-    return !customFieldsValues[key] || customFieldsValues[key].trim() === '';
+    const value = customFieldsValues[key];
+    return !value || (typeof value === 'string' && value.trim() === '');
   });
 
   return (

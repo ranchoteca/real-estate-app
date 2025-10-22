@@ -23,10 +23,20 @@ interface PropertyData {
   photos: string[];
   status: string;
   listing_type: string;
-  // 🗺️ NUEVOS CAMPOS
   latitude: number | null;
   longitude: number | null;
   show_map: boolean;
+  custom_fields_data: Record<string, string>;
+}
+
+interface CustomField {
+  id: string;
+  property_type: string;
+  listing_type: string;
+  field_name: string;
+  field_type: 'text' | 'number';
+  placeholder: string;
+  icon: string;
 }
 
 export default function EditPropertyPage() {
@@ -46,6 +56,11 @@ export default function EditPropertyPage() {
   const [newPhotosPreviews, setNewPhotosPreviews] = useState<string[]>([]);
   const [photosToDelete, setPhotosToDelete] = useState<string[]>([]);
 
+  // 🆕 Estados para campos personalizados
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [customFieldsValues, setCustomFieldsValues] = useState<Record<string, string>>({});
+  const [loadingCustomFields, setLoadingCustomFields] = useState(false);
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -57,6 +72,13 @@ export default function EditPropertyPage() {
       loadProperty();
     }
   }, [propertyId]);
+
+  // 🆕 Cargar campos personalizados cuando cambia property_type o listing_type
+  useEffect(() => {
+    if (property?.property_type && property?.listing_type) {
+      loadCustomFields(property.property_type, property.listing_type);
+    }
+  }, [property?.property_type, property?.listing_type]);
 
   const loadProperty = async () => {
     try {
@@ -70,12 +92,57 @@ export default function EditPropertyPage() {
       const data = await response.json();
       setProperty(data.property);
       setExistingPhotos(data.property.photos || []);
+      
+      // 🆕 Cargar valores de campos personalizados
+      setCustomFieldsValues(data.property.custom_fields_data || {});
     } catch (err: any) {
       console.error('Error loading property:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  // 🆕 Función para cargar campos personalizados
+  const loadCustomFields = async (propertyType: string, listingType: string) => {
+    try {
+      setLoadingCustomFields(true);
+      const response = await fetch(
+        `/api/custom-fields/list?property_type=${propertyType}&listing_type=${listingType}`
+      );
+      
+      if (!response.ok) {
+        console.error('Error al cargar campos personalizados');
+        setCustomFields([]);
+        return;
+      }
+      
+      const data = await response.json();
+      setCustomFields(data.fields || []);
+      console.log(`📋 Campos cargados para ${propertyType} > ${listingType}:`, data.fields?.length || 0);
+    } catch (err) {
+      console.error('Error loading custom fields:', err);
+      setCustomFields([]);
+    } finally {
+      setLoadingCustomFields(false);
+    }
+  };
+
+  // 🆕 Función para actualizar valor de campo personalizado
+  const handleCustomFieldChange = (fieldName: string, value: string) => {
+    // Convertir nombre a key válida (sin espacios, minúsculas)
+    const key = fieldName.toLowerCase().replace(/ /g, '_');
+    
+    setCustomFieldsValues(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  // 🆕 Función para obtener valor de campo personalizado
+  const getCustomFieldValue = (fieldName: string): string => {
+    const key = fieldName.toLowerCase().replace(/ /g, '_');
+    return customFieldsValues[key] || '';
   };
 
   const compressImage = async (file: File): Promise<File> => {
@@ -161,7 +228,7 @@ export default function EditPropertyPage() {
       // 2. Combinar fotos existentes + nuevas
       const allPhotos = [...existingPhotos, ...uploadedUrls];
 
-      // 3. Actualizar propiedad (🗺️ CON CAMPOS DE UBICACIÓN)
+      // 3. Actualizar propiedad (🗺️ CON CAMPOS DE UBICACIÓN + 🆕 CUSTOM FIELDS)
       const response = await fetch(`/api/property/update/${propertyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -169,6 +236,7 @@ export default function EditPropertyPage() {
           ...property,
           photos: allPhotos,
           photosToDelete,
+          custom_fields_data: customFieldsValues, // 🆕 Guardar campos personalizados
         }),
       });
 
@@ -598,6 +666,87 @@ export default function EditPropertyPage() {
               />
             )}
           </div>
+        </div>
+
+        {/* 🆕 Campos Personalizados */}
+        <div 
+          className="rounded-2xl p-4 shadow-lg space-y-4"
+          style={{ backgroundColor: '#FFFFFF' }}
+        >
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold" style={{ color: '#0F172A' }}>
+              🏷️ Campos Personalizados
+            </h3>
+            <button
+              onClick={() => router.push('/settings/custom-fields')}
+              className="text-xs font-semibold underline"
+              style={{ color: '#2563EB' }}
+            >
+              Gestionar campos
+            </button>
+          </div>
+
+          {loadingCustomFields ? (
+            <div className="text-center py-4">
+              <div className="text-3xl mb-2 animate-pulse">⏳</div>
+              <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
+                Cargando campos...
+              </p>
+            </div>
+          ) : customFields.length > 0 ? (
+            <div className="space-y-3">
+              {customFields.map((field) => (
+                <div key={field.id}>
+                  <label className="block text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#0F172A' }}>
+                    <span className="text-lg">{field.icon || '🏷️'}</span>
+                    {field.field_name}
+                  </label>
+                  <input
+                    type={field.field_type === 'number' ? 'number' : 'text'}
+                    value={getCustomFieldValue(field.field_name)}
+                    onChange={(e) => handleCustomFieldChange(field.field_name, e.target.value)}
+                    placeholder={field.placeholder}
+                    maxLength={field.field_type === 'text' ? 200 : undefined}
+                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
+                    style={{ 
+                      borderColor: '#E5E7EB',
+                      backgroundColor: '#F9FAFB'
+                    }}
+                  />
+                </div>
+              ))}
+              
+              <div 
+                className="px-3 py-2 rounded-lg text-xs"
+                style={{ backgroundColor: '#F0F9FF', color: '#0369A1' }}
+              >
+                💡 <strong>Tip:</strong> Los campos se guardan automáticamente al actualizar la propiedad. 
+                Si cambias el tipo de propiedad, los datos se mantienen y puedes volver a verlos cuando regreses a esta configuración.
+              </div>
+            </div>
+          ) : (
+            <div 
+              className="rounded-xl p-4 text-center"
+              style={{ backgroundColor: '#FEF3C7' }}
+            >
+              <div className="text-3xl mb-2">📝</div>
+              <p className="text-sm font-semibold mb-1" style={{ color: '#92400E' }}>
+                No hay campos personalizados para esta combinación
+              </p>
+              <p className="text-xs opacity-70 mb-3" style={{ color: '#92400E' }}>
+                {property?.property_type && property?.listing_type && (
+                  <>Tipo: {property.property_type} → {property.listing_type === 'sale' ? 'Venta' : 'Alquiler'}</>
+                )}
+              </p>
+              <button
+                onClick={() => router.push('/settings/custom-fields')}
+                className="px-4 py-2 rounded-xl font-bold text-white active:scale-95 transition-transform"
+                style={{ backgroundColor: '#2563EB' }}
+              >
+                ➕ Crear campos
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Status */}

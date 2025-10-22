@@ -55,7 +55,7 @@ export async function PUT(
       }
     }
 
-    // Actualizar
+    // Actualizar (🗺️ AGREGADOS: latitude, longitude, show_map + 🆕 custom_fields_data)
     const { error } = await supabaseAdmin
       .from('properties')
       .update({
@@ -76,6 +76,7 @@ export async function PUT(
         latitude: updates.latitude,
         longitude: updates.longitude,
         show_map: updates.show_map,
+        custom_fields_data: updates.custom_fields_data || {},
       })
       .eq('id', id);
 

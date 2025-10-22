@@ -12,6 +12,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Obtener query params
+    const { searchParams } = new URL(req.url);
+    const property_type = searchParams.get('property_type');
+    const listing_type = searchParams.get('listing_type');
+
     // Obtener agente
     const { data: agent, error: agentError } = await supabaseAdmin
       .from('agents')
@@ -26,13 +31,21 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Obtener campos personalizados del agente
-    const { data: fields, error: fieldsError } = await supabaseAdmin
+    // Construir query con filtros opcionales
+    let query = supabaseAdmin
       .from('custom_fields')
       .select('*')
-      .eq('agent_id', agent.id)
-      .order('property_type', { ascending: true })
-      .order('listing_type', { ascending: true })
+      .eq('agent_id', agent.id);
+
+    // Aplicar filtros si existen
+    if (property_type) {
+      query = query.eq('property_type', property_type);
+    }
+    if (listing_type) {
+      query = query.eq('listing_type', listing_type);
+    }
+
+    const { data: fields, error: fieldsError } = await query
       .order('display_order', { ascending: true });
 
     if (fieldsError) {
@@ -42,6 +55,8 @@ export async function GET(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    console.log(`✅ Campos cargados: ${fields?.length || 0} (type: ${property_type}, listing: ${listing_type})`);
 
     return NextResponse.json({
       success: true,

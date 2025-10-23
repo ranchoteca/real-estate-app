@@ -13,13 +13,25 @@ interface Property {
   price: number | null;
   city: string | null;
   state: string | null;
-  bedrooms: number | null;
-  bathrooms: number | null;
+  property_type: string | null;
   photos: string[] | null;
   status: string;
   views: number;
   created_at: string;
+  listing_type: 'rent' | 'sale';
 }
+
+// 🆕 Función para traducir tipos de propiedad
+const translatePropertyType = (type: string | null): string => {
+  const translations: Record<string, string> = {
+    house: 'Casa',
+    condo: 'Condominio',
+    apartment: 'Apartamento',
+    land: 'Terreno',
+    commercial: 'Comercial',
+  };
+  return type ? translations[type] || type : 'Propiedad';
+};
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -332,17 +344,21 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* Property Details */}
-                {(property.bedrooms > 0 || property.bathrooms > 0) && (
-                  <div className="flex gap-4 text-sm mb-3" style={{ color: '#0F172A' }}>
-                    {property.bedrooms > 0 && (
-                      <span className="opacity-70">🛏️ {property.bedrooms} hab</span>
-                    )}
-                    {property.bathrooms > 0 && (
-                      <span className="opacity-70">🚿 {property.bathrooms} baños</span>
-                    )}
-                  </div>
-                )}
+                {/* Property Type Badge */}
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{
+                    backgroundColor: '#F5EAD3',
+                    color: '#0F172A'
+                  }}>
+                    🏡 {translatePropertyType(property.property_type)}
+                  </span>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{
+                    backgroundColor: property.listing_type === 'rent' ? '#FEF3C7' : '#D1FAE5',
+                    color: property.listing_type === 'rent' ? '#92400E' : '#065F46'
+                  }}>
+                    {property.listing_type === 'rent' ? 'Alquiler' : 'Venta'}
+                  </span>
+                </div>
 
                 {/* Footer */}
                 <div className="flex justify-between items-center text-xs pt-3 border-t opacity-60" style={{ color: '#0F172A', borderTopColor: '#E5E7EB' }}>

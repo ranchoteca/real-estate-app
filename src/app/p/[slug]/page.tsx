@@ -25,19 +25,16 @@ interface Property {
   city: string | null;
   state: string | null;
   zip_code: string | null;
-  bedrooms: number | null;
-  bathrooms: number | null;
-  sqft: number | null;
   property_type: string | null;
   photos: string[] | null;
   status: string;
   views: number;
   created_at: string;
   listing_type: 'rent' | 'sale';
-  // 🗺️ NUEVOS CAMPOS
   latitude: number | null;
   longitude: number | null;
   show_map: boolean;
+  custom_fields_data: Record<string, string> | null;
   agent: {
     name: string | null;
     full_name: string | null;
@@ -48,12 +45,32 @@ interface Property {
   };
 }
 
+interface CustomField {
+  id: string;
+  field_name: string;
+  field_type: 'text' | 'number';
+  icon: string;
+}
+
+// 🆕 Función para traducir tipos de propiedad
+const translatePropertyType = (type: string | null): string => {
+  const translations: Record<string, string> = {
+    house: 'Casa',
+    condo: 'Condominio',
+    apartment: 'Apartamento',
+    land: 'Terreno',
+    commercial: 'Comercial',
+  };
+  return type ? translations[type] || type : 'Propiedad';
+};
+
 export default function PropertyPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
 
   const [property, setProperty] = useState<Property | null>(null);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
@@ -81,12 +98,40 @@ export default function PropertyPage() {
       
       const data = await response.json();
       setProperty(data.property);
+
+      // 🆕 Cargar campos personalizados si existen
+      if (data.property.property_type && data.property.listing_type) {
+        loadCustomFields(data.property.property_type, data.property.listing_type);
+      }
     } catch (err) {
       console.error('Error loading property:', err);
       setError('Error al cargar la propiedad');
     } finally {
       setLoading(false);
     }
+  };
+
+  // 🆕 Cargar definiciones de campos personalizados
+  const loadCustomFields = async (propertyType: string, listingType: string) => {
+    try {
+      const response = await fetch(
+        `/api/custom-fields/list?property_type=${propertyType}&listing_type=${listingType}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCustomFields(data.fields || []);
+      }
+    } catch (err) {
+      console.error('Error loading custom fields:', err);
+    }
+  };
+
+  // 🆕 Función para obtener valor de campo personalizado
+  const getCustomFieldValue = (fieldName: string): string | null => {
+    if (!property?.custom_fields_data) return null;
+    const key = fieldName.toLowerCase().replace(/ /g, '_');
+    return property.custom_fields_data[key] || null;
   };
 
   const formatPrice = (price: number | null) => {
@@ -164,6 +209,12 @@ export default function PropertyPage() {
   const photos = property.photos && property.photos.length > 0 
     ? property.photos 
     : ['https://via.placeholder.com/800x600?text=No+Image'];
+
+  // 🆕 Filtrar campos personalizados que tienen valor
+  const filledCustomFields = customFields.filter(field => {
+    const value = getCustomFieldValue(field.field_name);
+    return value !== null && value !== '';
+  });
 
   return (
     <MobileLayout title={property.city || 'Propiedad'} showBack={true} showTabs={false}>
@@ -251,13 +302,15 @@ export default function PropertyPage() {
               <h1 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
                 {property.title}
               </h1>
-              <p className="text-sm opacity-70 flex items-center gap-1" style={{ color: '#0F172A' }}>
+              <p className="text-sm opacity-70 flex items-center gap-1 mb-1" style={{ color: '#0F172A' }}>
                 <span>📍</span>
                 {property.address}
-                {property.city && property.state && (
-                  <span>, {property.city}, {property.state}</span>
-                )}
               </p>
+              {(property.city || property.state || property.zip_code) && (
+                <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
+                  {[property.city, property.state, property.zip_code].filter(Boolean).join(', ')}
+                </p>
+              )}
             </div>
           </div>
 
@@ -265,44 +318,62 @@ export default function PropertyPage() {
             {formatPrice(property.price)}
           </div>
 
-          <div className="text-sm font-semibold px-3 py-1 rounded-full inline-block mb-4" style={{ 
-            backgroundColor: property.listing_type === 'rent' ? '#F59E0B' : '#10B981',
-            color: '#FFFFFF'
-          }}>
-            {property.listing_type === 'rent' ? '🏠 Para Alquiler' : '💰 En Venta'}
-          </div>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {property.bedrooms && property.bedrooms > 0 && (
-              <div className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
-                <div className="text-2xl mb-1">🛏️</div>
-                <div className="text-lg font-bold" style={{ color: '#0F172A' }}>{property.bedrooms}</div>
-                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Hab</div>
-              </div>
-            )}
-            {property.bathrooms && property.bathrooms > 0 && (
-              <div className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
-                <div className="text-2xl mb-1">🚿</div>
-                <div className="text-lg font-bold" style={{ color: '#0F172A' }}>{property.bathrooms}</div>
-                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Baños</div>
-              </div>
-            )}
-            {property.sqft && property.sqft > 0 && (
-              <div className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
-                <div className="text-2xl mb-1">📏</div>
-                <div className="text-lg font-bold" style={{ color: '#0F172A' }}>{property.sqft.toLocaleString()}</div>
-                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>ft²</div>
-              </div>
-            )}
+          <div className="flex items-center gap-2 mb-4">
+            <div className="text-sm font-semibold px-3 py-1 rounded-full" style={{ 
+              backgroundColor: property.listing_type === 'rent' ? '#F59E0B' : '#10B981',
+              color: '#FFFFFF'
+            }}>
+              {property.listing_type === 'rent' ? '🏠 Para Alquiler' : '💰 En Venta'}
+            </div>
+            
             {property.property_type && (
-              <div className="text-center p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
-                <div className="text-2xl mb-1">🏡</div>
-                <div className="text-xs font-bold capitalize" style={{ color: '#0F172A' }}>{property.property_type}</div>
+              <div className="text-sm font-semibold px-3 py-1 rounded-full" style={{
+                backgroundColor: '#F5EAD3',
+                color: '#0F172A'
+              }}>
+                🏡 {translatePropertyType(property.property_type)}
               </div>
             )}
           </div>
         </div>
+
+        {/* 🆕 CAMPOS PERSONALIZADOS - Diseño Moderno con Cards */}
+        {filledCustomFields.length > 0 && (
+          <div 
+            className="rounded-2xl p-5 shadow-lg"
+            style={{ backgroundColor: '#FFFFFF' }}
+          >
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
+              <span>✨</span>
+              Características Especiales
+            </h2>
+            
+            <div className="grid grid-cols-2 gap-3">
+              {filledCustomFields.map((field) => {
+                const value = getCustomFieldValue(field.field_name);
+                if (!value) return null;
+
+                return (
+                  <div
+                    key={field.id}
+                    className="rounded-xl p-4 shadow-md"
+                    style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    }}
+                  >
+                    <div className="text-3xl mb-2">{field.icon || '🏷️'}</div>
+                    <div className="text-xs font-semibold mb-1 opacity-90" style={{ color: '#FFFFFF' }}>
+                      {field.field_name}
+                    </div>
+                    <div className="text-sm font-bold" style={{ color: '#FFFFFF' }}>
+                      {value}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Description */}
         <div 
@@ -321,7 +392,7 @@ export default function PropertyPage() {
           </div>
         </div>
 
-        {/* 🗺️ MAP SECTION (NUEVO) */}
+        {/* MAP SECTION */}
         {property.show_map && property.latitude && property.longitude && (
           <div 
             className="rounded-2xl p-5 shadow-lg"
@@ -336,12 +407,17 @@ export default function PropertyPage() {
               state={property.state || ''}
               initialLat={property.latitude}
               initialLng={property.longitude}
-              onLocationChange={() => {}} // No editable en vista pública
+              onLocationChange={() => {}}
               editable={false}
             />
             <p className="text-xs mt-3 opacity-60" style={{ color: '#0F172A' }}>
               {property.address}
-              {property.city && property.state && `, ${property.city}, ${property.state}`}
+              {(property.city || property.state || property.zip_code) && (
+                <span>
+                  {', '}
+                  {[property.city, property.state, property.zip_code].filter(Boolean).join(', ')}
+                </span>
+              )}
             </p>
           </div>
         )}

@@ -115,15 +115,28 @@ export default function PropertyPage() {
   const loadCustomFields = async (propertyType: string, listingType: string) => {
     try {
       const response = await fetch(
-        `/api/custom-fields/list?property_type=${propertyType}&listing_type=${listingType}`
+        `/api/custom-fields/list?property_type=${propertyType}&listing_type=${listingType}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          cache: 'no-store', // 🔥 Evitar caché
+        }
       );
       
       if (response.ok) {
         const data = await response.json();
-        setCustomFields(data.fields || []);
+        const fields = data.fields || [];
+        setCustomFields(fields);
+        console.log('✅ Campos personalizados cargados:', fields.length, fields);
+      } else {
+        console.error('❌ Error HTTP al cargar custom fields:', response.status);
+        setCustomFields([]);
       }
     } catch (err) {
-      console.error('Error loading custom fields:', err);
+      console.error('❌ Error catch loading custom fields:', err);
+      setCustomFields([]);
     }
   };
 

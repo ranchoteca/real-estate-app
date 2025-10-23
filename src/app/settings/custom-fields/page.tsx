@@ -198,18 +198,6 @@ export default function CustomFieldsPage() {
     }
   };
 
-  const openEditForm = (field: CustomField) => {
-    setEditingField(field);
-    setFieldName(field.field_name);
-    setFieldType(field.field_type);
-    setPlaceholder(field.placeholder);
-    setSelectedIcon(field.icon || '🏷️');
-    setSelectedPropertyType(field.property_type);
-    setSelectedListingType(field.listing_type);
-    setShowAddForm(true);
-    setError(null);
-  };
-
   const handleCloneField = async () => {
     if (!fieldToClone) return;
 
@@ -675,7 +663,15 @@ export default function CustomFieldsPage() {
 
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => openEditForm(field)}
+                        onClick={() => {
+                          setEditingField(field);
+                          setFieldName(field.field_name);
+                          setFieldType(field.field_type);
+                          setPlaceholder(field.placeholder);
+                          setSelectedIcon(field.icon || '🏷️');
+                          setShowAddForm(false);
+                          setError(null);
+                        }}
                         className="p-2 rounded-xl active:scale-90 transition-transform"
                         style={{ backgroundColor: '#DBEAFE', color: '#1E40AF' }}
                         title="Editar campo"
@@ -832,6 +828,207 @@ export default function CustomFieldsPage() {
                     style={{ backgroundColor: '#8B5CF6' }}
                   >
                     {saving ? 'Clonando...' : '🔄 Clonar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Edit Modal */}
+        {editingField && !showAddForm && (
+          <>
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => {
+                setEditingField(null);
+                setFieldName('');
+                setPlaceholder('');
+                setSelectedIcon('🏷️');
+                setError(null);
+              }}
+            />
+
+            <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-md mx-auto max-h-[90vh] overflow-y-auto">
+              <div 
+                className="rounded-2xl p-6 shadow-2xl space-y-4"
+                style={{ backgroundColor: '#FFFFFF' }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>
+                    ✏️ Editar Campo
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setEditingField(null);
+                      setFieldName('');
+                      setPlaceholder('');
+                      setSelectedIcon('🏷️');
+                      setError(null);
+                    }}
+                    className="p-2 rounded-xl active:scale-90 transition-transform"
+                    style={{ backgroundColor: '#F3F4F6' }}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="#0F172A" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {error && (
+                  <div 
+                    className="rounded-xl p-3 border-2 text-sm"
+                    style={{ 
+                      backgroundColor: '#FEE2E2',
+                      borderColor: '#DC2626',
+                      color: '#DC2626'
+                    }}
+                  >
+                    {error}
+                  </div>
+                )}
+
+                <div 
+                  className="p-3 rounded-xl"
+                  style={{ backgroundColor: '#F0F9FF' }}
+                >
+                  <p className="text-sm font-semibold mb-1" style={{ color: '#0369A1' }}>
+                    Campo de:
+                  </p>
+                  <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                    {PROPERTY_TYPES.find(t => t.value === editingField.property_type)?.label} → {LISTING_TYPES.find(t => t.value === editingField.listing_type)?.label}
+                  </p>
+                </div>
+
+                {/* Icono */}
+                <div>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
+                    Icono del Campo
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowIconPicker(!showIconPicker)}
+                      className="w-16 h-16 rounded-xl border-2 flex items-center justify-center text-3xl active:scale-95 transition-transform"
+                      style={{ borderColor: '#2563EB', backgroundColor: '#EFF6FF' }}
+                    >
+                      {selectedIcon}
+                    </button>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>
+                        Icono seleccionado
+                      </p>
+                      <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                        Click para cambiar
+                      </p>
+                    </div>
+                  </div>
+
+                  {showIconPicker && (
+                    <div 
+                      className="mt-3 p-3 rounded-xl border-2 grid grid-cols-10 gap-2 max-h-48 overflow-y-auto"
+                      style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
+                    >
+                      {AVAILABLE_ICONS.map((icon) => (
+                        <button
+                          key={icon}
+                          type="button"
+                          onClick={() => {
+                            setSelectedIcon(icon);
+                            setShowIconPicker(false);
+                          }}
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center text-2xl active:scale-90 transition-transform ${
+                            selectedIcon === icon ? 'ring-2 ring-blue-500' : ''
+                          }`}
+                          style={{ 
+                            backgroundColor: selectedIcon === icon ? '#DBEAFE' : '#FFFFFF',
+                          }}
+                        >
+                          {icon}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Nombre */}
+                <div>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
+                    Nombre del Campo
+                  </label>
+                  <input
+                    type="text"
+                    value={fieldName}
+                    onChange={(e) => setFieldName(e.target.value)}
+                    placeholder="Ej: Frente al mar"
+                    maxLength={30}
+                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
+                    style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
+                  />
+                  <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
+                    {fieldName.length}/30 caracteres
+                  </p>
+                </div>
+
+                {/* Tipo */}
+                <div>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
+                    Tipo de Campo
+                  </label>
+                  <select
+                    value={fieldType}
+                    onChange={(e) => setFieldType(e.target.value as 'text' | 'number')}
+                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
+                    style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
+                  >
+                    {FIELD_TYPES.map(type => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Placeholder */}
+                <div>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
+                    Placeholder (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={placeholder}
+                    onChange={(e) => setPlaceholder(e.target.value)}
+                    placeholder="Texto de ayuda"
+                    maxLength={50}
+                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
+                    style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
+                  />
+                </div>
+
+                {/* Botones */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      setEditingField(null);
+                      setFieldName('');
+                      setPlaceholder('');
+                      setSelectedIcon('🏷️');
+                      setError(null);
+                    }}
+                    className="flex-1 py-3 rounded-xl font-bold border-2 active:scale-95 transition-transform"
+                    style={{ 
+                      borderColor: '#E5E7EB',
+                      color: '#0F172A',
+                      backgroundColor: '#FFFFFF'
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleEditField}
+                    disabled={saving || !fieldName.trim()}
+                    className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
+                    style={{ backgroundColor: '#2563EB' }}
+                  >
+                    {saving ? 'Guardando...' : '💾 Actualizar'}
                   </button>
                 </div>
               </div>

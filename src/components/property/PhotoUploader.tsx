@@ -22,10 +22,10 @@ export default function PhotoUploader({
 
   const compressImage = async (file: File): Promise<File> => {
     const options = {
-      maxSizeMB: 0.8, // Máximo 0.8MB por foto
-      maxWidthOrHeight: 1920, // Max dimensión 1920px
+      maxSizeMB: 0.8,
+      maxWidthOrHeight: 1920,
       useWebWorker: true,
-      fileType: 'image/jpeg', // Convertir todo a JPEG
+      fileType: 'image/jpeg',
     };
 
     try {
@@ -40,20 +40,18 @@ export default function PhotoUploader({
       return compressedFile;
     } catch (error) {
       console.error('Error comprimiendo imagen:', error);
-      return file; // Si falla, usar original
+      return file;
     }
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
     
-    // Validar número máximo
     if (files.length + selectedFiles.length > maxPhotos) {
       alert(`Máximo ${maxPhotos} fotos permitidas`);
       return;
     }
 
-    // Validar tipo
     const validFiles = selectedFiles.filter(file => {
       const isImage = file.type.startsWith('image/');
       
@@ -69,12 +67,10 @@ export default function PhotoUploader({
     setCompressing(true);
 
     try {
-      // Comprimir todas las imágenes
       const compressedFiles = await Promise.all(
         validFiles.map(file => compressImage(file))
       );
 
-      // Crear previews
       const newPreviews = compressedFiles.map(file => URL.createObjectURL(file));
       
       const updatedFiles = [...files, ...compressedFiles];
@@ -88,11 +84,14 @@ export default function PhotoUploader({
       alert('Error al procesar las imágenes');
     } finally {
       setCompressing(false);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
   const removePhoto = (index: number) => {
-    // Revocar URL para liberar memoria
     URL.revokeObjectURL(previews[index]);
     
     const updatedFiles = files.filter((_, i) => i !== index);
@@ -103,135 +102,105 @@ export default function PhotoUploader({
     onPhotosChange(updatedFiles);
   };
 
-  const movePhoto = (fromIndex: number, toIndex: number) => {
-    const newFiles = [...files];
-    const newPreviews = [...previews];
-    
-    [newFiles[fromIndex], newFiles[toIndex]] = [newFiles[toIndex], newFiles[fromIndex]];
-    [newPreviews[fromIndex], newPreviews[toIndex]] = [newPreviews[toIndex], newPreviews[fromIndex]];
-    
-    setFiles(newFiles);
-    setPreviews(newPreviews);
-    onPhotosChange(newFiles);
-  };
-
   return (
     <div className="w-full">
-      {/* Upload Button */}
-      <button
-        type="button"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={files.length >= maxPhotos}
-        className="w-full py-4 px-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <div className="flex flex-col items-center gap-2">
-          <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <p className="text-sm text-gray-600">
-            Click para subir fotos ({files.length}/{maxPhotos})
-          </p>
-          <p className="text-xs text-gray-400">
-            Mínimo {minPhotos} fotos • Máximo 1MB cada una (se comprimen automáticamente)
-          </p>
-        </div>
-      </button>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={handleFileSelect}
-        className="hidden"
-      />
+      {/* Contador y botón */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-bold text-gray-900">
+          Fotos ({files.length}/{maxPhotos})
+        </h3>
+        <label className="cursor-pointer">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFileSelect}
+            disabled={files.length >= maxPhotos || compressing}
+            className="hidden"
+          />
+          <span 
+            className={`px-4 py-2 rounded-xl font-semibold text-white shadow-lg active:scale-95 transition-transform inline-block ${
+              files.length >= maxPhotos || compressing ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600'
+            }`}
+          >
+            {compressing ? '⏳ Comprimiendo...' : '➕ Agregar'}
+          </span>
+        </label>
+      </div>
 
       {/* Preview Grid */}
-      {previews.length > 0 && (
-        <div className="mt-6">
-          <p className="text-sm font-medium text-gray-700 mb-3">
-            Fotos seleccionadas ({files.length})
-            {files.length > 0 && <span className="text-xs text-gray-500 ml-2">La primera será la foto principal</span>}
+      {previews.length > 0 ? (
+        <div>
+          <p className="text-xs mb-2 opacity-70 text-gray-900">
+            Fotos nuevas:
           </p>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-2">
             {previews.map((preview, index) => (
-              <div key={index} className="relative group">
-                {/* Image */}
-                <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
-                  {preview && (
-                    <Image
-                      src={preview}
-                      alt={`Preview ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      unoptimized
-                      onError={(e) => {
-                        console.error('Error cargando preview:', e);
-                      }}
-                    />
-                  )}
-                  
-                  {/* Badge de foto principal */}
-                  {index === 0 && (
-                    <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                      Principal
-                    </div>
-                  )}
-                </div>
-
-                {/* Controles */}
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-center justify-center gap-2">
-                  {/* Mover a la izquierda */}
-                  {index > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => movePhoto(index, index - 1)}
-                      className="opacity-0 group-hover:opacity-100 bg-white p-2 rounded-full hover:bg-gray-100 transition-all"
-                      title="Mover izquierda"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                  )}
-
-                  {/* Eliminar */}
-                  <button
-                    type="button"
-                    onClick={() => removePhoto(index)}
-                    className="opacity-0 group-hover:opacity-100 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-all"
-                    title="Eliminar"
+              <div key={index} className="relative aspect-square rounded-xl overflow-hidden">
+                <Image
+                  src={preview}
+                  alt={`Photo ${index + 1}`}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+                
+                {/* Botón eliminar */}
+                <button
+                  type="button"
+                  onClick={() => removePhoto(index)}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
+                >
+                  ✕
+                </button>
+                
+                {/* Badge Principal (primera foto) */}
+                {index === 0 && (
+                  <div 
+                    className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-xs font-bold text-white"
+                    style={{ backgroundColor: '#2563EB' }}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-
-                  {/* Mover a la derecha */}
-                  {index < previews.length - 1 && (
-                    <button
-                      type="button"
-                      onClick={() => movePhoto(index, index + 1)}
-                      className="opacity-0 group-hover:opacity-100 bg-white p-2 rounded-full hover:bg-gray-100 transition-all"
-                      title="Mover derecha"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  )}
+                    Principal
+                  </div>
+                )}
+                
+                {/* Badge Nueva (todas las fotos) */}
+                <div className="absolute bottom-1 right-1 px-2 py-0.5 rounded text-xs font-bold text-white bg-green-500">
+                  Nueva
                 </div>
               </div>
             ))}
           </div>
-
+          
           {/* Advertencia si no hay suficientes fotos */}
           {files.length < minPhotos && (
-            <p className="mt-3 text-sm text-amber-600">
-              ⚠️ Necesitas al menos {minPhotos} fotos para continuar
+            <p className="text-xs mt-2 text-red-600">
+              ⚠️ Mínimo {minPhotos} fotos requeridas
             </p>
           )}
+        </div>
+      ) : (
+        /* Estado vacío */
+        <div 
+          className="w-full py-12 px-6 border-2 border-dashed rounded-xl cursor-pointer hover:border-blue-500 transition-colors"
+          style={{ borderColor: '#E5E7EB' }}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <div className="flex flex-col items-center gap-2">
+            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p className="text-sm text-gray-600 font-semibold">
+              Click para subir fotos
+            </p>
+            <p className="text-xs text-gray-400">
+              Mínimo {minPhotos} fotos • Máximo {maxPhotos} fotos
+            </p>
+            <p className="text-xs text-gray-400">
+              Se comprimen automáticamente
+            </p>
+          </div>
         </div>
       )}
     </div>

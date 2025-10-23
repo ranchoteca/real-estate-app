@@ -179,7 +179,7 @@ export default function LandingPage() {
                 step: '1',
                 emoji: '📸',
                 title: 'Sube Fotos',
-                description: 'Toma fotos con tu móvil o selecciónalas de tu galería. Mínimo 2, máximo 20.'
+                description: 'Selecciónalas de tu galería. Mínimo 2, máximo 10.'
               },
               {
                 step: '2',
@@ -191,7 +191,7 @@ export default function LandingPage() {
                 step: '3',
                 emoji: '✨',
                 title: 'IA Genera Todo',
-                description: 'Nuestra IA crea título, descripción profesional y extrae todos los detalles.'
+                description: 'Nuestra IA crea título, descripción profesional y extrae todos los detalles. Además puedes entrenar a la IA con tus propios campos personalizados.'
               }
             ].map((item, index) => (
               <div
@@ -232,7 +232,7 @@ export default function LandingPage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { emoji: '🤖', title: 'IA Avanzada', desc: 'GPT-4 y Whisper para resultados perfectos' },
+              { emoji: '🤖', title: 'IA Avanzada', desc: 'Nuestra IA hará más agradable registrar tus propiedades' },
               { emoji: '📱', title: 'App Móvil', desc: 'PWA nativa para iOS y Android' },
               { emoji: '⚡', title: 'Super Rápido', desc: 'Crea listings en menos de 60 segundos' },
               { emoji: '🔒', title: 'Seguro', desc: 'Tus datos protegidos con encriptación' },
@@ -346,8 +346,8 @@ export default function LandingPage() {
                   '3 propiedades totales',
                   'Portfolio público',
                   'Descripción con IA',
-                  'Fotos ilimitadas',
-                  'Export CSV'
+                  'Hasta 10 fotos por propiedad',
+                  'Exporta tus propiedades a CSV'
                 ],
                 highlight: false
               },
@@ -361,7 +361,7 @@ export default function LandingPage() {
                   '30 propiedades nuevas/mes',
                   'Todo en Free +',
                   'Sin marca de agua',
-                  'Portfolio personalizado',
+                  'Incluye tu logo personalizado',
                   'Soporte prioritario',
                   'Analytics básico'
                 ],

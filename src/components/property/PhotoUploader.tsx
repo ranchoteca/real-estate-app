@@ -67,11 +67,23 @@ export default function PhotoUploader({
     setCompressing(true);
 
     try {
-      const compressedFiles = await Promise.all(
-        validFiles.map(file => compressImage(file))
-      );
+      // Comprimir todas las imágenes de forma secuencial para evitar race conditions
+      const compressedFiles: File[] = [];
+      
+      for (const file of validFiles) {
+        const compressed = await compressImage(file);
+        compressedFiles.push(compressed);
+      }
 
-      const newPreviews = compressedFiles.map(file => URL.createObjectURL(file));
+      // Crear previews después de que todas estén comprimidas
+      const newPreviews = compressedFiles.map(file => {
+        try {
+          return URL.createObjectURL(file);
+        } catch (err) {
+          console.error('Error creando preview:', err);
+          return ''; // Preview vacío en caso de error
+        }
+      }).filter(url => url !== ''); // Filtrar previews fallidos
       
       const updatedFiles = [...files, ...compressedFiles];
       const updatedPreviews = [...previews, ...newPreviews];
@@ -81,7 +93,7 @@ export default function PhotoUploader({
       onPhotosChange(updatedFiles);
     } catch (error) {
       console.error('Error procesando imágenes:', error);
-      alert('Error al procesar las imágenes');
+      alert('Error al procesar las imágenes. Intenta subirlas de nuevo.');
     } finally {
       setCompressing(false);
       // Reset input
@@ -155,20 +167,19 @@ export default function PhotoUploader({
                   ✕
                 </button>
                 
-                {/* Badge Principal (primera foto) */}
-                {index === 0 && (
+                {/* Badge Principal (primera foto) o Nueva (resto) */}
+                {index === 0 ? (
                   <div 
                     className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-xs font-bold text-white"
                     style={{ backgroundColor: '#2563EB' }}
                   >
                     Principal
                   </div>
+                ) : (
+                  <div className="absolute bottom-1 right-1 px-2 py-0.5 rounded text-xs font-bold text-white bg-green-500">
+                    Nueva
+                  </div>
                 )}
-                
-                {/* Badge Nueva (todas las fotos) */}
-                <div className="absolute bottom-1 right-1 px-2 py-0.5 rounded text-xs font-bold text-white bg-green-500">
-                  Nueva
-                </div>
               </div>
             ))}
           </div>

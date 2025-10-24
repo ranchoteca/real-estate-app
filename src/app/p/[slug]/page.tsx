@@ -230,7 +230,7 @@ export default function PropertyPage() {
 
   // Filtrar campos personalizados que tienen valor
   const filledCustomFields = customFields.filter(field => {
-    const value = getCustomFieldValue(field.field_name);
+    const value = getCustomFieldValue(field.field_key);  // 👈 CAMBIAR A field_key
     return value !== null && value !== '';
   });
 

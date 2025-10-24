@@ -53,7 +53,7 @@ interface CustomField {
   icon: string;
 }
 
-// 🆕 Función para traducir tipos de propiedad
+// Función para traducir tipos de propiedad
 const translatePropertyType = (type: string | null): string => {
   const translations: Record<string, string> = {
     house: 'Casa',
@@ -100,9 +100,13 @@ export default function PropertyPage() {
       const data = await response.json();
       setProperty(data.property);
 
-      // 🆕 Cargar campos personalizados si existen
-      if (data.property.property_type && data.property.listing_type) {
-        loadCustomFields(data.property.property_type, data.property.listing_type);
+      // Cargar campos personalizados usando el username del agente
+      if (data.property.property_type && data.property.listing_type && data.property.agent?.username) {
+        loadCustomFields(
+          data.property.property_type, 
+          data.property.listing_type,
+          data.property.agent.username
+        );
       }
     } catch (err) {
       console.error('Error loading property:', err);
@@ -112,7 +116,7 @@ export default function PropertyPage() {
     }
   };
 
-  // 🆕 Cargar definiciones de campos personalizados
+  // Cargar definiciones de campos personalizados
   const loadCustomFields = async (propertyType: string, listingType: string, agentUsername: string) => {
     try {
       const response = await fetch(
@@ -141,41 +145,7 @@ export default function PropertyPage() {
     }
   };
 
-  // En loadProperty
-  const loadProperty = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/property/${slug}`);
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          setError('Propiedad no encontrada');
-        } else {
-          setError('Error al cargar la propiedad');
-        }
-        return;
-      }
-      
-      const data = await response.json();
-      setProperty(data.property);
-
-      // 🆕 Cargar campos personalizados usando el username del agente
-      if (data.property.property_type && data.property.listing_type && data.property.agent?.username) {
-        loadCustomFields(
-          data.property.property_type, 
-          data.property.listing_type,
-          data.property.agent.username // 👈 Pasar username
-        );
-      }
-    } catch (err) {
-      console.error('Error loading property:', err);
-      setError('Error al cargar la propiedad');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🆕 Función para obtener valor de campo personalizado
+  // Función para obtener valor de campo personalizado
   const getCustomFieldValue = (fieldName: string): string | null => {
     if (!property?.custom_fields_data) return null;
     const key = fieldName.toLowerCase().replace(/ /g, '_');
@@ -258,7 +228,7 @@ export default function PropertyPage() {
     ? property.photos 
     : ['https://via.placeholder.com/800x600?text=No+Image'];
 
-  // 🆕 Filtrar campos personalizados que tienen valor
+  // Filtrar campos personalizados que tienen valor
   const filledCustomFields = customFields.filter(field => {
     const value = getCustomFieldValue(field.field_name);
     return value !== null && value !== '';
@@ -385,7 +355,7 @@ export default function PropertyPage() {
           </div>
         </div>
 
-        {/* 🆕 CAMPOS PERSONALIZADOS - Diseño Moderno con Cards */}
+        {/* CAMPOS PERSONALIZADOS - Diseño Moderno con Cards */}
         {filledCustomFields.length > 0 && (
           <div 
             className="rounded-2xl p-5 shadow-lg"

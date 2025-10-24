@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const property_type = searchParams.get('property_type');
     const listing_type = searchParams.get('listing_type');
-    const username = searchParams.get('username'); // 👈 Nuevo parámetro para acceso público
+    const username = searchParams.get('username'); 
 
     // ===== CASO 1: Usuario AUTENTICADO (Dashboard) =====
     const session = await getServerSession();
@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
     // Obtener campos personalizados (solo campos necesarios para renderizar)
     const { data: fields, error: fieldsError } = await supabaseAdmin
       .from('custom_fields')
-      .select('id, field_name, field_type, icon, display_order')
+      .select('id, field_key, field_name, field_type, icon, display_order')
       .eq('agent_id', agent.id)
       .eq('property_type', property_type)
       .eq('listing_type', listing_type)

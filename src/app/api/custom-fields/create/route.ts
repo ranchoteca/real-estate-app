@@ -100,6 +100,7 @@ export async function POST(req: NextRequest) {
       .from('custom_fields')
       .insert({
         agent_id: agent.id,
+        field_key: `cf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         property_type,
         listing_type,
         field_name: field_name.trim(),

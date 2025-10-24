@@ -48,6 +48,7 @@ interface Property {
 
 interface CustomField {
   id: string;
+  field_key: string;   
   field_name: string;
   field_type: 'text' | 'number';
   icon: string;
@@ -146,10 +147,9 @@ export default function PropertyPage() {
   };
 
   // Función para obtener valor de campo personalizado
-  const getCustomFieldValue = (fieldName: string): string | null => {
+  const getCustomFieldValue = (fieldKey: string): string | null => {
     if (!property?.custom_fields_data) return null;
-    const key = fieldName.toLowerCase().replace(/ /g, '_');
-    return property.custom_fields_data[key] || null;
+    return property.custom_fields_data[fieldKey] || null;
   };
 
   const formatPrice = (price: number | null) => {
@@ -368,7 +368,7 @@ export default function PropertyPage() {
             
             <div className="grid grid-cols-2 gap-3">
               {filledCustomFields.map((field) => {
-                const value = getCustomFieldValue(field.field_name);
+                const value = getCustomFieldValue(field.field_key);
                 if (!value) return null;
 
                 return (

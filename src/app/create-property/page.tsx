@@ -27,6 +27,7 @@ interface CustomField {
   id: string;
   property_type: string;
   listing_type: string;
+  field_key: string;   
   field_name: string;
   field_type: 'text' | 'number';
   placeholder: string;
@@ -291,25 +292,22 @@ export default function CreatePropertyPage() {
     }
   };
 
-  const handleCustomFieldChange = (fieldName: string, value: string) => {
-    const key = fieldName.toLowerCase().replace(/ /g, '_');
+  const handleCustomFieldChange = (fieldKey: string, value: string) => {
     setCustomFieldsValues(prev => ({
       ...prev,
-      [key]: value
+      [fieldKey]: value
     }));
   };
 
-  const getCustomFieldValue = (fieldName: string): string => {
-    const key = fieldName.toLowerCase().replace(/ /g, '_');
-    return customFieldsValues[key] || '';
+  const getCustomFieldValue = (fieldKey: string): string => {
+    return customFieldsValues[fieldKey] || '';
   };
 
   const canGenerate = photos.length >= 2 && audioBlob !== null;
 
   // Validar campos personalizados vacíos
   const emptyCustomFields = customFields.filter(field => {
-    const key = field.field_name.toLowerCase().replace(/ /g, '_');
-    const value = customFieldsValues[key];
+    const value = customFieldsValues[field.field_key];
     return !value || (typeof value === 'string' && value.trim() === '');
   });
 
@@ -680,8 +678,8 @@ export default function CreatePropertyPage() {
                           </label>
                           <input
                             type={field.field_type === 'number' ? 'number' : 'text'}
-                            value={getCustomFieldValue(field.field_name)}
-                            onChange={(e) => handleCustomFieldChange(field.field_name, e.target.value)}
+                            value={getCustomFieldValue(field.field_key)}
+                            onChange={(e) => handleCustomFieldChange(field.field_key, e.target.value)}
                             placeholder={field.placeholder}
                             maxLength={field.field_type === 'text' ? 200 : undefined}
                             className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent"

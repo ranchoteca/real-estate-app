@@ -7,6 +7,7 @@ const openai = new OpenAI({
 });
 
 interface CustomField {
+  field_key: string;   
   field_name: string;
   field_type: 'text' | 'number';
   icon: string;
@@ -15,10 +16,10 @@ interface CustomField {
 function buildPropertyPrompt(customFields: CustomField[] = []): string {
   const customFieldsSection = customFields.length > 0 
     ? `\n\n4. CAMPOS PERSONALIZADOS (extraer del audio si se mencionan):
-${customFields.map(f => `   - ${f.icon} ${f.field_name} (${f.field_type === 'number' ? 'número' : 'texto'})`).join('\n')}
+${customFields.map(f => `   - ${f.icon} ${f.field_name} [key: ${f.field_key}] (${f.field_type === 'number' ? 'número' : 'texto'})`).join('\n')}
 
-   IMPORTANTE: Los campos personalizados deben ir en un objeto "custom_fields_data" con keys en minúsculas y sin espacios.
-   Ejemplo: Si el campo se llama "Frente al mar", la key debe ser "frente_al_mar".
+   IMPORTANTE: Los campos personalizados deben ir en un objeto "custom_fields_data" usando el field_key de cada campo.
+   No uses el field_name como key, usa el field_key que se proporciona en la lista de campos.
    Si el agente NO mencionó un campo, NO lo incluyas en custom_fields_data.`
     : '';
 
@@ -33,7 +34,7 @@ Un agente inmobiliario acaba de describir una propiedad por voz. Tu trabajo es:
 
 2. GENERAR una descripción profesional y atractiva:
    - Título llamativo (máximo 80 caracteres)
-   - Descripción completa (250-400 palabras)
+   - Descripción completa (250-300 palabras)
    - Tono: profesional pero cálido y acogedor
    - Enfocado en beneficios y estilo de vida
    - Resalta las características únicas
@@ -47,7 +48,7 @@ Un agente inmobiliario acaba de describir una propiedad por voz. Tu trabajo es:
   "address": "123 Main Street",
   "city": "Austin",
   "state": "TX",
-  "zip_code": "78701"${customFields.length > 0 ? ',\n  "custom_fields_data": {\n    "frente_al_mar": "Sí, 50 metros",\n    "metros_frente": "25"\n  }' : ''}
+  "zip_code": "78701"${customFields.length > 0 ? ',\n  "custom_fields_data": {\n' + customFields.map(f => `    "${f.field_key}": "${f.field_type === 'number' ? '25' : 'Ejemplo de valor'}"`).join(',\n') + '\n  }' : ''}
 }${customFieldsSection}
 
 REGLAS IMPORTANTES:

@@ -9,6 +9,7 @@ interface CustomField {
   id: string;
   property_type: string;
   listing_type: string;
+  field_key: string;   
   field_name: string;
   field_type: 'text' | 'number';
   placeholder: string;

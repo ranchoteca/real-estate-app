@@ -42,6 +42,7 @@ interface Property {
     email: string;
     brokerage: string | null;
     profile_photo: string | null;
+    username: string;
   };
 }
 
@@ -112,16 +113,16 @@ export default function PropertyPage() {
   };
 
   // 🆕 Cargar definiciones de campos personalizados
-  const loadCustomFields = async (propertyType: string, listingType: string) => {
+  const loadCustomFields = async (propertyType: string, listingType: string, agentUsername: string) => {
     try {
       const response = await fetch(
-        `/api/custom-fields/list?property_type=${propertyType}&listing_type=${listingType}`,
+        `/api/custom-fields/list?property_type=${propertyType}&listing_type=${listingType}&username=${agentUsername}`,
         {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
-          cache: 'no-store', // 🔥 Evitar caché
+          cache: 'no-store',
         }
       );
       
@@ -137,6 +138,40 @@ export default function PropertyPage() {
     } catch (err) {
       console.error('❌ Error catch loading custom fields:', err);
       setCustomFields([]);
+    }
+  };
+
+  // En loadProperty
+  const loadProperty = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/property/${slug}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          setError('Propiedad no encontrada');
+        } else {
+          setError('Error al cargar la propiedad');
+        }
+        return;
+      }
+      
+      const data = await response.json();
+      setProperty(data.property);
+
+      // 🆕 Cargar campos personalizados usando el username del agente
+      if (data.property.property_type && data.property.listing_type && data.property.agent?.username) {
+        loadCustomFields(
+          data.property.property_type, 
+          data.property.listing_type,
+          data.property.agent.username // 👈 Pasar username
+        );
+      }
+    } catch (err) {
+      console.error('Error loading property:', err);
+      setError('Error al cargar la propiedad');
+    } finally {
+      setLoading(false);
     }
   };
 

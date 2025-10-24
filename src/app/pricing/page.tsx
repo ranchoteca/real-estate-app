@@ -16,8 +16,8 @@ const PLANS = [
       '3 propiedades totales',
       'Portfolio público',
       'Descripción con IA',
-      'Fotos ilimitadas',
-      'Export CSV'
+      'Hasta 10 fotos por propiedad',
+      'Exporta tus propiedades a CSV'
     ],
     cta: 'Plan Actual',
     highlight: false
@@ -33,7 +33,7 @@ const PLANS = [
       '30 propiedades nuevas/mes',
       'Todo en Free +',
       'Sin marca de agua',
-      'Portfolio personalizado',
+      'Incluye tu logo personalizado',
       'Soporte prioritario',
       'Analytics básico'
     ],
@@ -111,7 +111,7 @@ export default function PricingPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-3" style={{ color: '#0F172A' }}>
-            Elige tu Plan
+            Elige tu plan de RealFlow AI
           </h1>
           <p className="opacity-80" style={{ color: '#0F172A' }}>
             Crea más propiedades y crece tu negocio
@@ -213,7 +213,7 @@ export default function PricingPage() {
             },
             {
               q: '¿Hay límite de fotos por propiedad?',
-              a: 'Sí, máximo 20 fotos por propiedad.'
+              a: 'Sí, máximo 10 fotos por propiedad.'
             },
             {
               q: '¿Puedo cambiar de plan?',

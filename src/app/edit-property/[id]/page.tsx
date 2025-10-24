@@ -496,58 +496,6 @@ export default function EditPropertyPage() {
                 <option value="rent">Alquiler</option>
               </select>
             </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                Habitaciones
-              </label>
-              <input
-                type="number"
-                value={property.bedrooms || ''}
-                onChange={(e) => setProperty({ ...property, bedrooms: Number(e.target.value) || null })}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
-                style={{ 
-                  borderColor: '#E5E7EB',
-                  backgroundColor: '#F9FAFB',
-                  color: '#0F172A'
-                }}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                Baños
-              </label>
-              <input
-                type="number"
-                step="0.5"
-                value={property.bathrooms || ''}
-                onChange={(e) => setProperty({ ...property, bathrooms: Number(e.target.value) || null })}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
-                style={{ 
-                  borderColor: '#E5E7EB',
-                  backgroundColor: '#F9FAFB',
-                  color: '#0F172A'
-                }}
-              />
-            </div>
-
-            <div className="col-span-2">
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                Pies cuadrados
-              </label>
-              <input
-                type="number"
-                value={property.sqft || ''}
-                onChange={(e) => setProperty({ ...property, sqft: Number(e.target.value) || null })}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
-                style={{ 
-                  borderColor: '#E5E7EB',
-                  backgroundColor: '#F9FAFB',
-                  color: '#0F172A'
-                }}
-              />
-            </div>
           </div>
         </div>
 

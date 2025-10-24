@@ -28,7 +28,8 @@ export async function GET(
           phone,
           email,
           brokerage,
-          profile_photo
+          profile_photo,
+          username
         )
       `)
       .eq('slug', slug)
@@ -50,7 +51,6 @@ export async function GET(
 
     if (updateError) {
       console.error('⚠️ Error al actualizar vistas:', updateError);
-      // No retornamos error, solo logeamos
     }
 
     console.log('✅ Propiedad encontrada:', property.title);
@@ -59,7 +59,7 @@ export async function GET(
     const formattedProperty = {
       ...property,
       agent: Array.isArray(property.agent) ? property.agent[0] : property.agent,
-      views: property.views + 1, // Incluir la vista actual
+      views: property.views + 1,
     };
 
     return NextResponse.json({

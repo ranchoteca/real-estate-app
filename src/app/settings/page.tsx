@@ -41,6 +41,13 @@ export default function SettingsPage() {
       color: '#2563EB',
     },
     {
+      icon: '🎨',
+      title: 'Logo Personalizado',
+      description: 'Configura tu marca en las fotos',
+      href: '/settings/watermark',
+      color: '#8B5CF6',
+    },
+    {
       icon: '👤',
       title: 'Mi Perfil',
       description: 'Editar información personal',

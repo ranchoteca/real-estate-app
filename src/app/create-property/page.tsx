@@ -41,6 +41,7 @@ export default function CreatePropertyPage() {
   // Step 1: Photos
   const [photos, setPhotos] = useState<File[]>([]);
   const [tempPhotoUrls, setTempPhotoUrls] = useState<string[]>([]);
+  const [watermarkConfig, setWatermarkConfig] = useState<any>(null);
 
   // Step 2: Property Configuration
   const [propertyType, setPropertyType] = useState<string>('house');
@@ -71,6 +72,28 @@ export default function CreatePropertyPage() {
       loadCustomFields(propertyType, listingType);
     }
   }, [propertyType, listingType]);
+
+  useEffect(() => {
+    if (session) {
+      loadWatermarkConfig();
+    }
+  }, [session]);
+
+  const loadWatermarkConfig = async () => {
+    try {
+      const response = await fetch('/api/agent/profile');
+      if (response.ok) {
+        const data = await response.json();
+        setWatermarkConfig({
+          logoUrl: data.agent.watermark_logo || null,
+          position: data.agent.watermark_position || 'bottom-right',
+          size: data.agent.watermark_size || 'medium',
+        });
+      }
+    } catch (err) {
+      console.error('Error loading watermark config:', err);
+    }
+  };
 
   const loadCustomFields = async (propType: string, listType: string) => {
     try {
@@ -363,6 +386,7 @@ export default function CreatePropertyPage() {
               onPhotosChange={handlePhotosChange}
               minPhotos={2}
               maxPhotos={10}
+              watermarkConfig={watermarkConfig}
             />
           </div>
 

@@ -3,17 +3,20 @@
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
+import { applyWatermark, WatermarkConfig } from '@/lib/watermark';
 
 interface PhotoUploaderProps {
   onPhotosChange: (files: File[]) => void;
   maxPhotos?: number;
   minPhotos?: number;
+  watermarkConfig?: WatermarkConfig | null;
 }
 
 export default function PhotoUploader({ 
   onPhotosChange, 
-  maxPhotos = 20,
-  minPhotos = 2 
+  maxPhotos = 10,
+  minPhotos = 2,
+  watermarkConfig = null
 }: PhotoUploaderProps) {
   const [previews, setPreviews] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
@@ -68,15 +71,29 @@ export default function PhotoUploader({
 
     try {
       // Comprimir todas las imágenes de forma secuencial para evitar race conditions
-      const compressedFiles: File[] = [];
-      
+      const processedFiles: File[] = [];
+  
       for (const file of validFiles) {
         const compressed = await compressImage(file);
-        compressedFiles.push(compressed);
+        
+        // Aplicar watermark si existe configuración
+        let finalFile = compressed;
+        if (watermarkConfig) {
+          try {
+            finalFile = await applyWatermark(compressed, watermarkConfig);
+            console.log('✅ Watermark aplicado a', file.name);
+          } catch (err) {
+            console.error('Error aplicando watermark:', err);
+            // Si falla, usar imagen sin watermark
+            finalFile = compressed;
+          }
+        }
+        
+        processedFiles.push(finalFile);
       }
 
       // Crear previews después de que todas estén comprimidas
-      const newPreviews = compressedFiles.map(file => {
+      const newPreviews = processedFiles.map(file => {
         try {
           return URL.createObjectURL(file);
         } catch (err) {
@@ -85,7 +102,7 @@ export default function PhotoUploader({
         }
       }).filter(url => url !== ''); // Filtrar previews fallidos
       
-      const updatedFiles = [...files, ...compressedFiles];
+      const updatedFiles = [...files, ...processedFiles];
       const updatedPreviews = [...previews, ...newPreviews];
       
       setFiles(updatedFiles);

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import MobileLayout from '@/components/MobileLayout';
 import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
+import { applyWatermark, WatermarkConfig } from '@/lib/watermark';
 import MapEditor from '@/components/property/MapEditor';
 
 interface PropertyData {
@@ -61,6 +62,7 @@ export default function EditPropertyPage() {
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customFieldsValues, setCustomFieldsValues] = useState<Record<string, string>>({});
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
+  const [watermarkConfig, setWatermarkConfig] = useState<WatermarkConfig | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -80,6 +82,28 @@ export default function EditPropertyPage() {
       loadCustomFields(property.property_type, property.listing_type);
     }
   }, [property?.property_type, property?.listing_type]);
+
+  useEffect(() => {
+    if (session) {
+      loadWatermarkConfig();
+    }
+  }, [session]);
+
+  const loadWatermarkConfig = async () => {
+    try {
+      const response = await fetch('/api/agent/profile');
+      if (response.ok) {
+        const data = await response.json();
+        setWatermarkConfig({
+          logoUrl: data.agent.watermark_logo || null,
+          position: data.agent.watermark_position || 'bottom-right',
+          size: data.agent.watermark_size || 'medium',
+        });
+      }
+    } catch (err) {
+      console.error('Error loading watermark config:', err);
+    }
+  };
 
   const loadProperty = async () => {
     try {
@@ -168,10 +192,28 @@ export default function EditPropertyPage() {
       return;
     }
 
+    // Comprimir fotos
     const compressedFiles = await Promise.all(files.map(f => compressImage(f)));
-    const previews = compressedFiles.map(file => URL.createObjectURL(file));
     
-    setNewPhotos([...newPhotos, ...compressedFiles]);
+    // Aplicar watermark
+    const processedFiles: File[] = [];
+    for (const file of compressedFiles) {
+      let finalFile = file;
+      if (watermarkConfig) {
+        try {
+          finalFile = await applyWatermark(file, watermarkConfig);
+          console.log('✅ Watermark aplicado a', file.name);
+        } catch (err) {
+          console.error('Error aplicando watermark:', err);
+          finalFile = file;
+        }
+      }
+      processedFiles.push(finalFile);
+    }
+    
+    const previews = processedFiles.map(file => URL.createObjectURL(file));
+    
+    setNewPhotos([...newPhotos, ...processedFiles]);
     setNewPhotosPreviews([...newPhotosPreviews, ...previews]);
   };
 

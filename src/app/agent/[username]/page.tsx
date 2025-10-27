@@ -364,7 +364,7 @@ export default function AgentPortfolioPage() {
                         src={property.photos[0]}
                         alt={property.title}
                         fill
-                        className="object-cover"
+                        className="object-contain bg-gray-900"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-5xl">

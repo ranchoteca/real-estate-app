@@ -243,7 +243,7 @@ export default function PropertyPage() {
             src={photos[selectedPhotoIndex]}
             alt={property.title}
             fill
-            className="object-cover"
+            className="object-contain bg-black"
             priority
           />
           

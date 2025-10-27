@@ -47,6 +47,7 @@ export default function SettingsPage() {
       href: '/settings/watermark',
       color: '#8B5CF6',
     },
+    /*
     {
       icon: '📘',
       title: 'Facebook',
@@ -54,6 +55,7 @@ export default function SettingsPage() {
       href: '/settings/facebook',
       color: '#1877F2',
     },
+    */
     {
       icon: '👤',
       title: 'Mi Perfil',

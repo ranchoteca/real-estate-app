@@ -48,6 +48,13 @@ export default function SettingsPage() {
       color: '#8B5CF6',
     },
     {
+      icon: '📘',
+      title: 'Facebook',
+      description: 'Publica automáticamente tus propiedades',
+      href: '/settings/facebook',
+      color: '#1877F2',
+    },
+    {
       icon: '👤',
       title: 'Mi Perfil',
       description: 'Editar información personal',

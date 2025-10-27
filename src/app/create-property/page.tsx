@@ -95,6 +95,10 @@ export default function CreatePropertyPage() {
     }
   };
 
+  useEffect(() => {
+    console.log('🎨 Watermark Config:', watermarkConfig);
+  }, [watermarkConfig]);
+
   const loadCustomFields = async (propType: string, listType: string) => {
     try {
       setLoadingCustomFields(true);

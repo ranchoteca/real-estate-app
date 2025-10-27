@@ -82,6 +82,7 @@ export default function WatermarkSettingsPage() {
 
       const data = await response.json();
       setLogoUrl(data.logoUrl);
+      await loadSettings();
       alert('✅ Logo subido correctamente');
     } catch (err: any) {
       alert(err.message);

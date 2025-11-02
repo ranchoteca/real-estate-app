@@ -70,8 +70,23 @@ export default function FacebookSettingsContent() {
     }
   };
 
-  const handleConnect = () => {
-    window.location.href = '/api/facebook/auth';
+  const handleConnect = async () => {
+    try {
+      const response = await fetch('/api/facebook/auth');
+      const data = await response.json();
+      
+      if (data.authUrl) {
+        // Redirige directamente a Facebook
+        window.location.href = data.authUrl;
+      } else if (data.error) {
+        alert(`❌ ${data.error}`);
+      } else {
+        alert('❌ Error al conectar con Facebook');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('❌ Error al conectar con Facebook');
+    }
   };
 
   const handleDisconnect = async () => {

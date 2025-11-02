@@ -15,7 +15,8 @@ export async function GET(req: NextRequest) {
     
     const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${session.user.email}`;
 
-    return NextResponse.redirect(authUrl);
+    // Devolver la URL en lugar de redirigir
+    return NextResponse.json({ authUrl });
   } catch (error: any) {
     console.error('Error en Facebook auth:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

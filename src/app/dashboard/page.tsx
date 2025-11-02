@@ -358,7 +358,7 @@ export default function DashboardPage() {
                     >
                       <span>📄</span> Exportar PDF
                     </button>
-                    {/*
+                    {
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
@@ -372,7 +372,7 @@ export default function DashboardPage() {
                       <span>📘</span> 
                       {publishingToFacebook === property.id ? 'Publicando...' : 'Publicar en Facebook'}
                     </button>
-                    */}
+                    }
                   </div>
                 )}
               </div>

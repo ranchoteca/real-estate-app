@@ -12,6 +12,7 @@ export default function FacebookSettingsContent() {
 
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [facebookData, setFacebookData] = useState<{
     connected: boolean;
     pageName: string | null;
@@ -70,37 +71,90 @@ export default function FacebookSettingsContent() {
     }
   };
 
+  // ✅ SOLUCIÓN DEFINITIVA: Abrir popup INMEDIATAMENTE, luego cargar URL
   const handleFacebookConnect = async () => {
     try {
-      // Obtener la URL de autenticación
-      const response = await fetch('/api/facebook/auth');
-      const data = await response.json();
-      
-      if (!response.ok || !data.authUrl) {
-        throw new Error('Error al obtener URL de autenticación');
-      }
+      setConnecting(true);
 
-      // ✅ Abrir en ventana nueva - esto funciona en PWAs
+      // ✅ CRÍTICO: Abrir el popup INMEDIATAMENTE en el evento click
+      // Si esperamos al fetch, la PWA lo bloquea
       const width = 600;
       const height = 700;
       const left = window.screen.width / 2 - width / 2;
       const top = window.screen.height / 2 - height / 2;
       
+      // Abrir con página de carga temporal
       const popup = window.open(
-        data.authUrl,
+        'about:blank',
         'facebook-auth',
         `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
       );
 
       if (!popup) {
         alert('⚠️ Por favor permite ventanas emergentes para conectar con Facebook');
+        setConnecting(false);
         return;
       }
 
-      // ✅ Detectar cuando el popup se cierre y recargar los datos
+      // Mostrar página de carga en el popup
+      popup.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Conectando...</title>
+            <style>
+              body {
+                margin: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+              }
+              .container { text-align: center; }
+              .spinner {
+                width: 50px;
+                height: 50px;
+                margin: 0 auto 1rem;
+                border: 4px solid rgba(255,255,255,0.3);
+                border-top-color: white;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+              }
+              @keyframes spin { to { transform: rotate(360deg); } }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div style="font-size: 4rem; margin-bottom: 1rem;">📘</div>
+              <div class="spinner"></div>
+              <h2>Conectando con Facebook...</h2>
+              <p>Por favor espera</p>
+            </div>
+          </body>
+        </html>
+      `);
+
+      // Ahora sí hacer el fetch
+      const response = await fetch('/api/facebook/auth');
+      const data = await response.json();
+      
+      if (!response.ok || !data.authUrl) {
+        popup.close();
+        throw new Error('Error al obtener URL de autenticación');
+      }
+
+      // Redirigir el popup a Facebook
+      popup.location.href = data.authUrl;
+
+      // ✅ Detectar cuando el popup se cierre
       const checkPopup = setInterval(() => {
         if (popup.closed) {
           clearInterval(checkPopup);
+          setConnecting(false);
           // Esperar un momento y recargar los datos
           setTimeout(() => {
             loadFacebookData();
@@ -109,7 +163,9 @@ export default function FacebookSettingsContent() {
       }, 500);
 
     } catch (error: any) {
+      console.error('Error connecting to Facebook:', error);
       alert(`❌ Error: ${error.message}`);
+      setConnecting(false);
     }
   };
 
@@ -256,16 +312,17 @@ export default function FacebookSettingsContent() {
                 </ul>
               </div>
 
-              {/* Connect Button */}
+              {/* Connect Button - ✅ CAMBIADO A BUTTON CON onClick */}
               <button
                 onClick={handleFacebookConnect}
-                className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+                disabled={connecting}
+                className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
                 style={{ backgroundColor: '#1877F2' }}
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                 </svg>
-                Conectar con Facebook
+                {connecting ? 'Abriendo Facebook...' : 'Conectar con Facebook'}
               </button>
             </div>
           )}

@@ -71,96 +71,41 @@ export default function FacebookSettingsContent() {
     }
   };
 
-  // ✅ SOLUCIÓN DEFINITIVA: Abrir popup INMEDIATAMENTE, luego cargar URL
   const handleFacebookConnect = async () => {
     try {
       setConnecting(true);
 
-      // ✅ CRÍTICO: Abrir el popup INMEDIATAMENTE en el evento click
-      // Si esperamos al fetch, la PWA lo bloquea
-      const width = 600;
-      const height = 700;
-      const left = window.screen.width / 2 - width / 2;
-      const top = window.screen.height / 2 - height / 2;
-      
-      // Abrir con página de carga temporal
-      const popup = window.open(
-        'about:blank',
-        'facebook-auth',
-        `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
-      );
-
-      if (!popup) {
-        alert('⚠️ Por favor permite ventanas emergentes para conectar con Facebook');
-        setConnecting(false);
-        return;
-      }
-
-      // Mostrar página de carga en el popup
-      popup.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <title>Conectando...</title>
-            <style>
-              body {
-                margin: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                min-height: 100vh;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-              }
-              .container { text-align: center; }
-              .spinner {
-                width: 50px;
-                height: 50px;
-                margin: 0 auto 1rem;
-                border: 4px solid rgba(255,255,255,0.3);
-                border-top-color: white;
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-              }
-              @keyframes spin { to { transform: rotate(360deg); } }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div style="font-size: 4rem; margin-bottom: 1rem;">📘</div>
-              <div class="spinner"></div>
-              <h2>Conectando con Facebook...</h2>
-              <p>Por favor espera</p>
-            </div>
-          </body>
-        </html>
-      `);
-
-      // Ahora sí hacer el fetch
+      // ✅ Primero obtener la URL via fetch
       const response = await fetch('/api/facebook/auth');
       const data = await response.json();
       
       if (!response.ok || !data.authUrl) {
-        popup.close();
         throw new Error('Error al obtener URL de autenticación');
       }
 
-      // Redirigir el popup a Facebook
-      popup.location.href = data.authUrl;
+      // ✅ Crear un enlace temporal y hacer click programático
+      const a = document.createElement('a');
+      a.href = data.authUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
 
-      // ✅ Detectar cuando el popup se cierre
-      const checkPopup = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(checkPopup);
-          setConnecting(false);
-          // Esperar un momento y recargar los datos
-          setTimeout(() => {
+      // Dar tiempo para que abra y luego resetear el estado
+      setTimeout(() => {
+        setConnecting(false);
+        // Polling para detectar cuando vuelva
+        const checkInterval = setInterval(() => {
+          if (document.hasFocus()) {
+            clearInterval(checkInterval);
             loadFacebookData();
-          }, 1000);
-        }
-      }, 500);
+          }
+        }, 1000);
+        
+        // Limpiar después de 2 minutos
+        setTimeout(() => clearInterval(checkInterval), 120000);
+      }, 1000);
 
     } catch (error: any) {
       console.error('Error connecting to Facebook:', error);

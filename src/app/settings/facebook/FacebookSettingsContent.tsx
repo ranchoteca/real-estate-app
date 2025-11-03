@@ -71,11 +71,12 @@ export default function FacebookSettingsContent() {
     }
   };
 
+  // ✅ SOLUCIÓN MÁS SIMPLE: Pre-cargar URL y abrir popup inmediatamente
   const handleFacebookConnect = async () => {
     try {
       setConnecting(true);
 
-      // ✅ Primero obtener la URL via fetch
+      // Primero obtener la URL
       const response = await fetch('/api/facebook/auth');
       const data = await response.json();
       
@@ -83,29 +84,35 @@ export default function FacebookSettingsContent() {
         throw new Error('Error al obtener URL de autenticación');
       }
 
-      // ✅ Crear un enlace temporal y hacer click programático
-      const a = document.createElement('a');
-      a.href = data.authUrl;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // ✅ Ahora abrir el popup directamente con la URL de Facebook
+      const width = 600;
+      const height = 700;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+      
+      const popup = window.open(
+        data.authUrl,
+        'facebook-auth',
+        `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
+      );
 
-      // Dar tiempo para que abra y luego resetear el estado
-      setTimeout(() => {
+      if (!popup) {
+        alert('⚠️ Por favor permite ventanas emergentes para conectar con Facebook');
         setConnecting(false);
-        // Polling para detectar cuando vuelva
-        const checkInterval = setInterval(() => {
-          if (document.hasFocus()) {
-            clearInterval(checkInterval);
+        return;
+      }
+
+      // ✅ Detectar cuando el popup se cierre
+      const checkPopup = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkPopup);
+          setConnecting(false);
+          // Esperar un momento y recargar los datos
+          setTimeout(() => {
             loadFacebookData();
-          }
-        }, 1000);
-        
-        // Limpiar después de 2 minutos
-        setTimeout(() => clearInterval(checkInterval), 120000);
-      }, 1000);
+          }, 1000);
+        }
+      }, 500);
 
     } catch (error: any) {
       console.error('Error connecting to Facebook:', error);

@@ -21,10 +21,13 @@ export async function GET(req: NextRequest) {
     
     const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${encodeURIComponent(session.user.email)}`;
 
-    // ✅ Retornar la URL para que el cliente la abra con window.open()
+    // ✅ Retornar JSON para que el componente lo use con window.open()
     return new Response(JSON.stringify({ authUrl }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store'
+      },
     });
   } catch (error: any) {
     console.error('Error:', error);

@@ -216,6 +216,10 @@ export default function FacebookSettingsContent() {
               {/* Connect Button */}
               <a 
                 href="/api/facebook/auth"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.assign('/api/facebook/auth');
+                }}
                 className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 no-underline block text-center"
                 style={{ backgroundColor: '#1877F2' }}
               >

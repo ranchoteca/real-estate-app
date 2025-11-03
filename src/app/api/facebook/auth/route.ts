@@ -15,9 +15,11 @@ export async function GET(req: NextRequest) {
 
     const appId = process.env.FACEBOOK_APP_ID;
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/facebook/callback`;
-    const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts';
     
-    const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${encodeURIComponent(session.user.email)}`;
+    // ✅ Solo los permisos que añadiste en el Dashboard de Facebook
+    const scope = 'pages_show_list,pages_manage_posts,pages_read_engagement';
+    
+    const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${encodeURIComponent(session.user.email)}`;
 
     // ✅ Retornar la URL para que el cliente la abra con window.open()
     return new Response(JSON.stringify({ authUrl }), {

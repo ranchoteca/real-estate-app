@@ -70,6 +70,49 @@ export default function FacebookSettingsContent() {
     }
   };
 
+  const handleFacebookConnect = async () => {
+    try {
+      // Obtener la URL de autenticación
+      const response = await fetch('/api/facebook/auth');
+      const data = await response.json();
+      
+      if (!response.ok || !data.authUrl) {
+        throw new Error('Error al obtener URL de autenticación');
+      }
+
+      // ✅ Abrir en ventana nueva - esto funciona en PWAs
+      const width = 600;
+      const height = 700;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+      
+      const popup = window.open(
+        data.authUrl,
+        'facebook-auth',
+        `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
+      );
+
+      if (!popup) {
+        alert('⚠️ Por favor permite ventanas emergentes para conectar con Facebook');
+        return;
+      }
+
+      // ✅ Detectar cuando el popup se cierre y recargar los datos
+      const checkPopup = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkPopup);
+          // Esperar un momento y recargar los datos
+          setTimeout(() => {
+            loadFacebookData();
+          }, 1000);
+        }
+      }, 500);
+
+    } catch (error: any) {
+      alert(`❌ Error: ${error.message}`);
+    }
+  };
+
   const handleDisconnect = async () => {
     if (!confirm('¿Desvincular tu página de Facebook?')) return;
 
@@ -214,18 +257,16 @@ export default function FacebookSettingsContent() {
               </div>
 
               {/* Connect Button */}
-              <a 
-                href="/api/facebook/auth"
-                target="_blank"  // ✅ Abre en nueva pestaña (importante para PWAs)
-                rel="noopener noreferrer"
-                className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 no-underline block text-center"
+              <button
+                onClick={handleFacebookConnect}
+                className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
                 style={{ backgroundColor: '#1877F2' }}
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                 </svg>
                 Conectar con Facebook
-              </a>
+              </button>
             </div>
           )}
         </div>

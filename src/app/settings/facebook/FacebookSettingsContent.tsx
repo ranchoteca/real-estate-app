@@ -72,21 +72,29 @@ export default function FacebookSettingsContent() {
 
   const handleConnect = async () => {
     try {
-      const response = await fetch('/api/facebook/auth');
-      const data = await response.json();
-      
-      if (data.authUrl) {
-        // Redirige directamente a Facebook
-        window.location.href = data.authUrl;
-      } else if (data.error) {
-        alert(`❌ ${data.error}`);
-      } else {
+        console.log('🔵 [Cliente] Iniciando conexión...');
+        
+        const response = await fetch('/api/facebook/auth');
+        console.log('🔵 [Cliente] Response status:', response.status);
+        console.log('🔵 [Cliente] Response ok:', response.ok);
+        
+        const data = await response.json();
+        console.log('🔵 [Cliente] Data recibida:', data);
+        
+        if (data.authUrl) {
+          console.log('✅ [Cliente] Redirigiendo a:', data.authUrl.substring(0, 100) + '...');
+          window.location.href = data.authUrl;
+        } else if (data.error) {
+          console.error('🔴 [Cliente] Error del servidor:', data.error);
+          alert(`❌ ${data.error}`);
+        } else {
+          console.error('🔴 [Cliente] Respuesta inesperada:', data);
+          alert('❌ Error al conectar con Facebook');
+        }
+      } catch (error) {
+        console.error('🔴 [Cliente] Error de fetch:', error);
         alert('❌ Error al conectar con Facebook');
       }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('❌ Error al conectar con Facebook');
-    }
   };
 
   const handleDisconnect = async () => {

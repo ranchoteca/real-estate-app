@@ -70,33 +70,6 @@ export default function FacebookSettingsContent() {
     }
   };
 
-  const handleConnect = async () => {
-    try {
-        console.log('🔵 [Cliente] Iniciando conexión...');
-        
-        const response = await fetch('/api/facebook/auth');
-        console.log('🔵 [Cliente] Response status:', response.status);
-        console.log('🔵 [Cliente] Response ok:', response.ok);
-        
-        const data = await response.json();
-        console.log('🔵 [Cliente] Data recibida:', data);
-        
-        if (data.authUrl) {
-          console.log('✅ [Cliente] Redirigiendo a:', data.authUrl.substring(0, 100) + '...');
-          window.location.href = data.authUrl;
-        } else if (data.error) {
-          console.error('🔴 [Cliente] Error del servidor:', data.error);
-          alert(`❌ ${data.error}`);
-        } else {
-          console.error('🔴 [Cliente] Respuesta inesperada:', data);
-          alert('❌ Error al conectar con Facebook');
-        }
-      } catch (error) {
-        console.error('🔴 [Cliente] Error de fetch:', error);
-        alert('❌ Error al conectar con Facebook');
-      }
-  };
-
   const handleDisconnect = async () => {
     if (!confirm('¿Desvincular tu página de Facebook?')) return;
 
@@ -241,16 +214,16 @@ export default function FacebookSettingsContent() {
               </div>
 
               {/* Connect Button */}
-              <button
-                onClick={handleConnect}
-                className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+              <a
+                href="/api/facebook/auth"
+                className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 no-underline"
                 style={{ backgroundColor: '#1877F2' }}
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                 </svg>
                 Conectar con Facebook
-              </button>
+              </a>
             </div>
           )}
         </div>

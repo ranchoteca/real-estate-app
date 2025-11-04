@@ -102,20 +102,32 @@ export default function FacebookSettingsContent() {
         <html>
           <head>
             <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
             <title>Conectando...</title>
             <style>
-              body {
+              * {
                 margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              html, body {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+              }
+              body {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                min-height: 100vh;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
+                font-size: 16px;
               }
-              .container { text-align: center; }
+              .container { 
+                text-align: center;
+                padding: 20px;
+              }
               .spinner {
                 width: 50px;
                 height: 50px;
@@ -126,6 +138,13 @@ export default function FacebookSettingsContent() {
                 animation: spin 1s linear infinite;
               }
               @keyframes spin { to { transform: rotate(360deg); } }
+              h2 {
+                font-size: 1.5rem;
+                margin-bottom: 0.5rem;
+              }
+              p {
+                font-size: 1rem;
+              }
             </style>
           </head>
           <body>

@@ -111,7 +111,7 @@ export default function PricingPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-3" style={{ color: '#0F172A' }}>
-            Elige tu plan de RealFlow AI
+            Elige tu plan de Flow Estate AI
           </h1>
           <p className="opacity-80" style={{ color: '#0F172A' }}>
             Crea más propiedades y crece tu negocio

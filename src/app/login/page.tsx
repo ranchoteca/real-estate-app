@@ -41,7 +41,7 @@ export default function LoginPage() {
             </div>
             
             <h1 className="text-4xl font-bold mb-3" style={{ color: '#0F172A' }}>
-              RealFlow
+              Flow Estate AI
             </h1>
             
             <p className="text-lg opacity-80" style={{ color: '#0F172A' }}>

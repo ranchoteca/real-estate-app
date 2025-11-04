@@ -156,7 +156,7 @@ export default function WatermarkSettingsPage() {
         >
           <p className="text-sm font-semibold" style={{ color: '#1E40AF' }}>
             💡 <strong>Tip:</strong> Sube un logo para que aparezca automáticamente en todas las fotos de tus propiedades. 
-            Si no subes logo, se usará el texto "FlowEstate AI".
+            Si no subes logo, se usará el texto "Flow Estate AI".
           </p>
         </div>
 

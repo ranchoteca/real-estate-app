@@ -149,7 +149,7 @@ export default function AgentPortfolioPage() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
               <span className="text-2xl">🏠</span>
-              <span className="text-xl font-bold text-white">Real Estate AI</span>
+              <span className="text-xl font-bold text-white">Flow Estate AI</span>
             </div>
             <button
               onClick={() => router.push('/')}
@@ -438,11 +438,11 @@ export default function AgentPortfolioPage() {
           <div className="flex items-center justify-center gap-2 mb-3">
             <span className="text-2xl">🏠</span>
             <span className="text-lg font-bold" style={{ color: '#0F172A' }}>
-              RealFlow
+              Flow Estate AI
             </span>
           </div>
           <p className="text-sm opacity-60 mb-3" style={{ color: '#0F172A' }}>
-            Portfolio creado con RealFlow AI
+            Portfolio creado con Flow Estate AI
           </p>
           <a
             href="/"

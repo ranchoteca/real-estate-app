@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         plan_id: paypalPlanId,
         application_context: {
-          brand_name: 'Real Estate AI',
+          brand_name: 'Flow Estate AI',
           user_action: 'SUBSCRIBE_NOW',
           return_url: `${process.env.NEXTAUTH_URL}/api/payments/success`,
           cancel_url: `${process.env.NEXTAUTH_URL}/pricing`,

@@ -4,7 +4,7 @@ import './globals.css';
 import 'leaflet/dist/leaflet.css';
 
 export const metadata: Metadata = {
-  title: 'RealFlow - Publica propiedades con IA',
+  title: 'Flow Estate AI - Publica propiedades con IA',
   description: 'Crea y publica anuncios de bienes raíces desde tu celular en segundos usando inteligencia artificial',
 };
 

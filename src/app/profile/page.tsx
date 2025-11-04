@@ -322,7 +322,7 @@ export default function ProfilePage() {
         {/* App Info */}
         <div className="text-center pt-6 pb-4 opacity-50">
           <p className="text-xs" style={{ color: '#0F172A' }}>
-            Real Estate AI • v1.0.0
+            Flow Estate AI • v1.0.0
           </p>
         </div>
       </div>

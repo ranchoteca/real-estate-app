@@ -26,6 +26,7 @@ interface PropertyData {
   listing_type: string;
   latitude: number | null;
   longitude: number | null;
+  plus_code: string | null;
   show_map: boolean;
   custom_fields_data: Record<string, string>;
 }
@@ -58,7 +59,7 @@ export default function EditPropertyPage() {
   const [newPhotosPreviews, setNewPhotosPreviews] = useState<string[]>([]);
   const [photosToDelete, setPhotosToDelete] = useState<string[]>([]);
 
-  // 🆕 Estados para campos personalizados
+  // Estados para campos personalizados
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customFieldsValues, setCustomFieldsValues] = useState<Record<string, string>>({});
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
@@ -76,7 +77,7 @@ export default function EditPropertyPage() {
     }
   }, [propertyId]);
 
-  // 🆕 Cargar campos personalizados cuando cambia property_type o listing_type
+  // Cargar campos personalizados cuando cambia property_type o listing_type
   useEffect(() => {
     if (property?.property_type && property?.listing_type) {
       loadCustomFields(property.property_type, property.listing_type);
@@ -118,7 +119,7 @@ export default function EditPropertyPage() {
       setProperty(data.property);
       setExistingPhotos(data.property.photos || []);
       
-      // 🆕 Cargar valores de campos personalizados
+      // Cargar valores de campos personalizados
       setCustomFieldsValues(data.property.custom_fields_data || {});
     } catch (err: any) {
       console.error('Error loading property:', err);
@@ -128,7 +129,7 @@ export default function EditPropertyPage() {
     }
   };
 
-  // 🆕 Función para cargar campos personalizados
+  // Función para cargar campos personalizados
   const loadCustomFields = async (propertyType: string, listingType: string) => {
     try {
       setLoadingCustomFields(true);
@@ -153,7 +154,7 @@ export default function EditPropertyPage() {
     }
   };
 
-  // 🆕 Función para actualizar valor de campo personalizado
+  // Función para actualizar valor de campo personalizado
   const handleCustomFieldChange = (fieldKey: string, value: string) => {
     setCustomFieldsValues(prev => ({
       ...prev,
@@ -161,7 +162,7 @@ export default function EditPropertyPage() {
     }));
   };
 
-  // 🆕 Función para obtener valor de campo personalizado
+  // Función para obtener valor de campo personalizado
   const getCustomFieldValue = (fieldKey: string): string => {
     return customFieldsValues[fieldKey] || '';
   };
@@ -237,10 +238,16 @@ export default function EditPropertyPage() {
       return;
     }
 
-    // Validar coordenadas si show_map está activo
-    if (property.show_map && (!property.latitude || !property.longitude)) {
-      setError('Debes configurar la ubicación en el mapa');
-      return;
+    // Validar coordenadas Y Plus Code si show_map está activo
+    if (property.show_map) {
+      if (!property.latitude || !property.longitude) {
+        setError('Debes configurar la ubicación en el mapa');
+        return;
+      }
+      if (!property.plus_code) {
+        setError('El Plus Code no se generó correctamente');
+        return;
+      }
     }
 
     setSaving(true);
@@ -267,7 +274,7 @@ export default function EditPropertyPage() {
       // 2. Combinar fotos existentes + nuevas
       const allPhotos = [...existingPhotos, ...uploadedUrls];
 
-      // 3. Actualizar propiedad (🗺️ CON CAMPOS DE UBICACIÓN + 🆕 CUSTOM FIELDS)
+      // 3. Actualizar propiedad (CON plus_code)
       const response = await fetch(`/api/property/update/${propertyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -275,7 +282,7 @@ export default function EditPropertyPage() {
           ...property,
           photos: allPhotos,
           photosToDelete,
-          custom_fields_data: customFieldsValues, // 🆕 Guardar campos personalizados
+          custom_fields_data: customFieldsValues,
         }),
       });
 
@@ -617,7 +624,7 @@ export default function EditPropertyPage() {
             </div>
           </div>
 
-          {/* 🗺️ MAP SECTION */}
+          {/* MAP SECTION (CON PLUS CODE) */}
           <div className="pt-4 border-t" style={{ borderTopColor: '#E5E7EB' }}>
             <label className="flex items-center gap-2 cursor-pointer mb-3">
               <input
@@ -641,12 +648,14 @@ export default function EditPropertyPage() {
                 state={property.state}
                 initialLat={property.latitude}
                 initialLng={property.longitude}
-                onLocationChange={(lat, lng) => {
-                  console.log('📍 Nueva ubicación:', lat, lng);
+                initialPlusCode={property.plus_code}
+                onLocationChange={(lat, lng, plusCode) => {
+                  console.log('📍 Nueva ubicación:', lat, lng, plusCode);
                   setProperty({ 
                     ...property, 
                     latitude: lat, 
-                    longitude: lng 
+                    longitude: lng,
+                    plus_code: plusCode
                   });
                 }}
                 editable={true}
@@ -655,7 +664,7 @@ export default function EditPropertyPage() {
           </div>
         </div>
 
-        {/* 🆕 Campos Personalizados */}
+        {/* Campos Personalizados */}
         <div 
           className="rounded-2xl p-4 shadow-lg space-y-4"
           style={{ backgroundColor: '#FFFFFF' }}

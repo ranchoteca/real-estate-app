@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { encode, decode } from 'open-location-code';
 import 'leaflet/dist/leaflet.css';
 
 // Importar Leaflet dinámicamente (solo client-side)
@@ -28,7 +29,8 @@ interface MapEditorProps {
   state: string;
   initialLat?: number | null;
   initialLng?: number | null;
-  onLocationChange: (lat: number, lng: number) => void;
+  initialPlusCode?: string | null;
+  onLocationChange: (lat: number, lng: number, plusCode: string) => void;
   editable?: boolean;
 }
 
@@ -73,17 +75,18 @@ export default function MapEditor({
   state,
   initialLat,
   initialLng,
+  initialPlusCode,
   onLocationChange,
   editable = true,
 }: MapEditorProps) {
   const [position, setPosition] = useState<[number, number] | null>(null);
   const [manualLat, setManualLat] = useState('');
   const [manualLng, setManualLng] = useState('');
+  const [plusCode, setPlusCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gpsUsed, setGpsUsed] = useState(false);
   const [leafletReady, setLeafletReady] = useState(false);
-  const [mapKey, setMapKey] = useState(0); // Para forzar re-render del mapa
 
   // 🔧 Configurar iconos de Leaflet una sola vez
   useEffect(() => {
@@ -100,6 +103,29 @@ export default function MapEditor({
     }
   }, []);
 
+  // Generar Plus Code desde coordenadas
+  const generatePlusCode = (lat: number, lng: number): string => {
+    try {
+      return encode(lat, lng, 11); // 11 dígitos = precisión de ~3.5m
+    } catch (err) {
+      console.error('Error generando Plus Code:', err);
+      return '';
+    }
+  };
+
+  // Decodificar Plus Code a coordenadas
+  const decodePlusCode = (code: string): [number, number] | null => {
+    try {
+      const decoded = decode(code);
+      const lat = decoded.latitudeCenter;
+      const lng = decoded.longitudeCenter;
+      return [lat, lng];
+    } catch (err) {
+      console.error('Error decodificando Plus Code:', err);
+      return null;
+    }
+  };
+
   // Intentar GPS primero, luego geocoding
   useEffect(() => {
     const initializeLocation = async () => {
@@ -109,14 +135,31 @@ export default function MapEditor({
       // 1. Si ya tiene coordenadas iniciales, usarlas
       if (initialLat && initialLng) {
         const coords: [number, number] = [initialLat, initialLng];
+        const code = initialPlusCode || generatePlusCode(initialLat, initialLng);
+        
         setPosition(coords);
         setManualLat(initialLat.toFixed(6));
         setManualLng(initialLng.toFixed(6));
+        setPlusCode(code);
         setLoading(false);
         return;
       }
 
-      // 2. Intentar GPS del móvil
+      // 2. Si tiene Plus Code inicial, decodificarlo
+      if (initialPlusCode) {
+        const coords = decodePlusCode(initialPlusCode);
+        if (coords) {
+          setPosition(coords);
+          setManualLat(coords[0].toFixed(6));
+          setManualLng(coords[1].toFixed(6));
+          setPlusCode(initialPlusCode);
+          onLocationChange(coords[0], coords[1], initialPlusCode);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 3. Intentar GPS del móvil
       if (navigator.geolocation && editable) {
         try {
           const gpsPosition = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -131,6 +174,8 @@ export default function MapEditor({
             gpsPosition.coords.longitude,
           ];
 
+          const code = generatePlusCode(gpsCoords[0], gpsCoords[1]);
+
           // Geocodificar la dirección para comparar
           const geocodedCoords = await geocodeAddress(address, city, state);
 
@@ -140,7 +185,7 @@ export default function MapEditor({
 
             // Si están a más de 1km, mostrar alerta
             if (distance > 1) {
-              setError(`⚠️ Tu ubicación está a ${distance.toFixed(1)}km de la dirección. Ajusta el pin si es necesario.`);
+              setError(`⚠️ Tu ubicación está a ${distance.toFixed(1)}km de la dirección. Ajusta el pin o pega el Plus Code correcto.`);
             } else {
               setGpsUsed(true);
             }
@@ -149,13 +194,15 @@ export default function MapEditor({
             setPosition(gpsCoords);
             setManualLat(gpsCoords[0].toFixed(6));
             setManualLng(gpsCoords[1].toFixed(6));
-            onLocationChange(gpsCoords[0], gpsCoords[1]);
+            setPlusCode(code);
+            onLocationChange(gpsCoords[0], gpsCoords[1], code);
           } else {
             // Si geocoding falla, usar GPS
             setPosition(gpsCoords);
             setManualLat(gpsCoords[0].toFixed(6));
             setManualLng(gpsCoords[1].toFixed(6));
-            onLocationChange(gpsCoords[0], gpsCoords[1]);
+            setPlusCode(code);
+            onLocationChange(gpsCoords[0], gpsCoords[1], code);
             setGpsUsed(true);
           }
 
@@ -166,28 +213,32 @@ export default function MapEditor({
         }
       }
 
-      // 3. Fallback: Geocoding de dirección
+      // 4. Fallback: Geocoding de dirección
       const coords = await geocodeAddress(address, city, state);
       if (coords) {
+        const code = generatePlusCode(coords[0], coords[1]);
         setPosition(coords);
         setManualLat(coords[0].toFixed(6));
         setManualLng(coords[1].toFixed(6));
-        onLocationChange(coords[0], coords[1]);
-        setError('📍 Ubicación aproximada. Arrastra el pin para mayor precisión.');
+        setPlusCode(code);
+        onLocationChange(coords[0], coords[1], code);
+        setError('📍 Ubicación aproximada. Arrastra el pin o pega el Plus Code exacto.');
       } else {
         // Default: centro de Costa Rica
         const defaultCoords: [number, number] = [9.7489, -83.7534];
+        const code = generatePlusCode(defaultCoords[0], defaultCoords[1]);
         setPosition(defaultCoords);
         setManualLat(defaultCoords[0].toFixed(6));
         setManualLng(defaultCoords[1].toFixed(6));
-        setError('⚠️ No se pudo ubicar la dirección. Coloca el pin manualmente.');
+        setPlusCode(code);
+        setError('⚠️ No se pudo ubicar la dirección. Pega el Plus Code de Google Maps.');
       }
 
       setLoading(false);
     };
 
     initializeLocation();
-  }, [address, city, state, initialLat, initialLng]);
+  }, [address, city, state, initialLat, initialLng, initialPlusCode]);
 
   // Geocoding con Nominatim (OpenStreetMap)
   const geocodeAddress = async (
@@ -203,7 +254,7 @@ export default function MapEditor({
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
         {
           headers: {
-            'User-Agent': 'RealEstateApp/1.0', // Requerido por Nominatim
+            'User-Agent': 'RealEstateApp/1.0',
           },
         }
       );
@@ -246,20 +297,49 @@ export default function MapEditor({
 
     if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
       const newPos: [number, number] = [lat, lng];
+      const code = generatePlusCode(lat, lng);
+      
       setPosition(newPos);
-      onLocationChange(lat, lng);
+      setPlusCode(code);
+      onLocationChange(lat, lng, code);
       setError(null);
     } else {
       setError('⚠️ Coordenadas inválidas');
     }
   };
 
+  // Actualizar desde Plus Code pegado
+  const handlePlusCodeUpdate = () => {
+    const trimmedCode = plusCode.trim().toUpperCase();
+    
+    if (!trimmedCode) {
+      setError('⚠️ Plus Code vacío');
+      return;
+    }
+
+    const coords = decodePlusCode(trimmedCode);
+    
+    if (coords) {
+      setPosition(coords);
+      setManualLat(coords[0].toFixed(6));
+      setManualLng(coords[1].toFixed(6));
+      setPlusCode(trimmedCode);
+      onLocationChange(coords[0], coords[1], trimmedCode);
+      setError(null);
+    } else {
+      setError('⚠️ Plus Code inválido. Formato: 87G5MX9C+XX');
+    }
+  };
+
   // Actualizar cuando se mueve el pin
   const handlePositionChange = (newPos: [number, number]) => {
+    const code = generatePlusCode(newPos[0], newPos[1]);
+    
     setPosition(newPos);
     setManualLat(newPos[0].toFixed(6));
     setManualLng(newPos[1].toFixed(6));
-    onLocationChange(newPos[0], newPos[1]);
+    setPlusCode(code);
+    onLocationChange(newPos[0], newPos[1], code);
   };
 
   if (loading) {
@@ -320,42 +400,76 @@ export default function MapEditor({
 
       {/* Inputs manuales */}
       {editable && (
-        <div className="space-y-2">
-          <p className="text-xs text-gray-600">
-            💡 <strong>Tip:</strong> Arrastra el pin o pega coordenadas desde Google Maps
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold mb-1 text-gray-700">
-                Latitud
-              </label>
+        <div className="space-y-3">
+          {/* Plus Code Input (PRINCIPAL) */}
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-3">
+            <label className="block text-sm font-bold mb-2 text-blue-900 flex items-center gap-2">
+              <span className="text-lg">📍</span>
+              Plus Code (Google Maps)
+            </label>
+            <div className="flex gap-2">
               <input
                 type="text"
-                value={manualLat}
-                onChange={(e) => setManualLat(e.target.value)}
-                placeholder="9.748917"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 font-semibold"
+                value={plusCode}
+                onChange={(e) => setPlusCode(e.target.value.toUpperCase())}
+                placeholder="87G5MX9C+XX"
+                className="flex-1 px-3 py-2 border-2 border-blue-300 rounded-lg text-sm text-gray-900 font-mono font-bold bg-white"
               />
+              <button
+                onClick={handlePlusCodeUpdate}
+                className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors text-sm whitespace-nowrap"
+              >
+                Aplicar
+              </button>
             </div>
-            <div>
-              <label className="block text-xs font-semibold mb-1 text-gray-700">
-                Longitud
-              </label>
-              <input
-                type="text"
-                value={manualLng}
-                onChange={(e) => setManualLng(e.target.value)}
-                placeholder="-83.753428"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 font-semibold"
-              />
-            </div>
+            <p className="text-xs text-blue-700 mt-2">
+              💡 <strong>Copia el Plus Code desde Google Maps</strong> (búscalo haciendo clic derecho en el mapa)
+            </p>
           </div>
-          <button
-            onClick={handleManualUpdate}
-            className="w-full py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors text-sm"
-          >
-            📍 Actualizar ubicación
-          </button>
+
+          {/* Coordenadas Manuales (Alternativa) */}
+          <details className="bg-gray-50 border border-gray-300 rounded-xl p-3">
+            <summary className="text-xs font-semibold text-gray-700 cursor-pointer">
+              ⚙️ Opciones avanzadas (coordenadas manuales)
+            </summary>
+            <div className="mt-3 space-y-2">
+              <p className="text-xs text-gray-600">
+                También puedes arrastrar el pin en el mapa o ingresar coordenadas:
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-gray-700">
+                    Latitud
+                  </label>
+                  <input
+                    type="text"
+                    value={manualLat}
+                    onChange={(e) => setManualLat(e.target.value)}
+                    placeholder="9.748917"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-gray-700">
+                    Longitud
+                  </label>
+                  <input
+                    type="text"
+                    value={manualLng}
+                    onChange={(e) => setManualLng(e.target.value)}
+                    placeholder="-83.753428"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 font-semibold"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleManualUpdate}
+                className="w-full py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors text-sm"
+              >
+                📍 Actualizar desde coordenadas
+              </button>
+            </div>
+          </details>
         </div>
       )}
     </div>

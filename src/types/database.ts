@@ -82,6 +82,7 @@ export type Database = {
           listing_type: string | null
           latitude: number | null
           longitude: number | null
+          plus_code: string | null
           show_map: boolean
         }
         Insert: {
@@ -109,6 +110,7 @@ export type Database = {
           listing_type?: string | null
           latitude?: number | null
           longitude?: number | null
+          plus_code?: string | null
           show_map?: boolean
         }
         Update: {
@@ -136,6 +138,7 @@ export type Database = {
           listing_type?: string | null
           latitude?: number | null
           longitude?: number | null
+          plus_code?: string | null
           show_map?: boolean
         }
       }

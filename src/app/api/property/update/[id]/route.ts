@@ -55,7 +55,7 @@ export async function PUT(
       }
     }
 
-    // Actualizar (🗺️ AGREGADOS: latitude, longitude, show_map + 🆕 custom_fields_data)
+    // Actualizar propiedad (INCLUYENDO plus_code)
     const { error } = await supabaseAdmin
       .from('properties')
       .update({
@@ -75,19 +75,24 @@ export async function PUT(
         photos: updates.photos,
         latitude: updates.latitude,
         longitude: updates.longitude,
+        plus_code: updates.plus_code, // 🆕 PLUS CODE
         show_map: updates.show_map,
         custom_fields_data: updates.custom_fields_data || {},
       })
       .eq('id', id);
 
     if (error) {
+      console.error('Error al actualizar:', error);
       return NextResponse.json({ error: 'Error al actualizar' }, { status: 500 });
     }
 
     console.log('✅ Propiedad actualizada:', id);
+    console.log('📍 Plus Code:', updates.plus_code);
+    console.log('🗺️ Coordenadas:', updates.latitude, updates.longitude);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    console.error('❌ Error en update:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

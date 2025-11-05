@@ -19,6 +19,7 @@ interface PropertyData {
   listing_type: string;
   latitude: number | null;
   longitude: number | null;
+  plus_code: string | null;
   show_map: boolean;
   custom_fields_data: Record<string, string>;
 }
@@ -175,10 +176,11 @@ export default function CreatePropertyPage() {
       // 4. Actualizar estado con datos generados
       setPropertyData({
         ...generatedData,
-        property_type: propertyType, // Forzar el tipo seleccionado
-        listing_type: listingType,   // Forzar el listing type seleccionado
+        property_type: propertyType,
+        listing_type: listingType,
         latitude: null,
         longitude: null,
+        plus_code: null, // Se generará en el MapEditor
         show_map: true,
         custom_fields_data: generatedData.custom_fields_data || {},
       });
@@ -279,10 +281,16 @@ export default function CreatePropertyPage() {
   const handlePublish = async () => {
     if (!propertyData) return;
 
-    // Validar coordenadas si show_map está activo
-    if (propertyData.show_map && (!propertyData.latitude || !propertyData.longitude)) {
-      setError('Debes configurar la ubicación en el mapa');
-      return;
+    // Validar coordenadas Y Plus Code si show_map está activo
+    if (propertyData.show_map) {
+      if (!propertyData.latitude || !propertyData.longitude) {
+        setError('Debes configurar la ubicación en el mapa');
+        return;
+      }
+      if (!propertyData.plus_code) {
+        setError('El Plus Code no se generó correctamente');
+        return;
+      }
     }
 
     setIsProcessing(true);
@@ -651,7 +659,7 @@ export default function CreatePropertyPage() {
                   </div>
                 </div>
 
-                {/* MAP SECTION */}
+                {/* MAP SECTION (CON PLUS CODE) */}
                 <div className="pt-4 border-t border-gray-200">
                   <div className="flex items-center justify-between mb-4">
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -677,11 +685,13 @@ export default function CreatePropertyPage() {
                       state={propertyData.state}
                       initialLat={propertyData.latitude}
                       initialLng={propertyData.longitude}
-                      onLocationChange={(lat, lng) => {
+                      initialPlusCode={propertyData.plus_code}
+                      onLocationChange={(lat, lng, plusCode) => {
                         setPropertyData({ 
                           ...propertyData, 
                           latitude: lat, 
-                          longitude: lng 
+                          longitude: lng,
+                          plus_code: plusCode
                         });
                       }}
                       editable={true}

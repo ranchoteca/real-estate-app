@@ -274,10 +274,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Filters Section */}
-      <div className="px-4 pt-3 pb-2">
+      {/* Filters Section - STICKY */}
+      <div className="sticky top-0 z-20 px-4 pt-3 pb-2" style={{ backgroundColor: '#F5EAD3' }}>
         <div 
-          className="rounded-2xl p-4 shadow-lg space-y-3"
+          className="rounded-2xl p-4 shadow-xl space-y-3"
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <h3 className="font-bold text-sm" style={{ color: '#0F172A' }}>

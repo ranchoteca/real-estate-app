@@ -39,6 +39,8 @@ const AVAILABLE_ICONS = [
   '🏷️', '📏', '🛏️', '🚿', '🚗', '🏊', '🌳', '🏡', '🔑', '💎',
   '🌟', '⭐', '✨', '🎯', '📍', '🏖️', '🌊', '⛰️', '🌅', '🔥',
   '❄️', '☀️', '🌙', '💡', '🔒', '🚪', '🪟', '🏗️', '🧱', '📐',
+  '⚡', '💧', '🏞️', '🌲', '🏔️', '🏝️', '🌴', '🎋', '🌺', '🌸',
+  '🏰', '🏛️', '⛪', '🕌', '🏤', '🏦', '🏨', '🏩', '🏬', '🏭',
 ];
 
 const MAX_FIELDS_PER_COMBO = 5;
@@ -273,7 +275,7 @@ export default function CustomFieldsPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <MobileLayout title="Campos Personalizados" showBack={true} showTabs={false}>
+      <MobileLayout title="Campos" showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">🏷️</div>
@@ -289,7 +291,7 @@ export default function CustomFieldsPage() {
   const filteredFields = getFilteredFields();
 
   return (
-    <MobileLayout title="Campos Personalizados" showBack={true} showTabs={false}>
+    <MobileLayout title="Campos" showBack={true} showTabs={true}>
       <div className="px-4 pt-4 pb-24 space-y-4">
         {/* Info Card */}
         <div 

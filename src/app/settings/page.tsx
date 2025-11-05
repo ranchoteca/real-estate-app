@@ -55,20 +55,61 @@ export default function SettingsPage() {
       color: '#1877F2',
     },
     {
-      icon: '👤',
-      title: 'Mi Perfil',
-      description: 'Editar información personal',
-      href: '/profile',
+      icon: '🔗',
+      title: 'Mi Portfolio',
+      description: 'Ver tu portfolio público',
+      href: session.user.username ? `/agent/${session.user.username}` : '/profile',
       color: '#10B981',
+      disabled: !session.user.username,
+    },
+    {
+      icon: '📥',
+      title: 'Exportar Propiedades',
+      description: 'Descarga tus propiedades en CSV',
+      action: 'export',
+      color: '#F59E0B',
     },
     {
       icon: '💳',
       title: 'Plan y Facturación',
       description: 'Administrar suscripción',
       href: '/pricing',
-      color: '#F59E0B',
+      color: '#EC4899',
     },
   ];
+
+  const handleExport = async () => {
+    try {
+      const response = await fetch('/api/agent/export-csv');
+      if (!response.ok) throw new Error('Error al exportar');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mis-propiedades-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      alert('✅ Propiedades exportadas exitosamente');
+    } catch (error) {
+      alert('Error al exportar. Intenta nuevamente.');
+    }
+  };
+
+  const handleOptionClick = (option: typeof settingsOptions[0]) => {
+    if (option.action === 'export') {
+      handleExport();
+    } else if (option.href) {
+      if (option.disabled) {
+        alert('⚠️ Primero configura tu username en tu perfil');
+      } else {
+        router.push(option.href);
+      }
+    }
+  };
 
   return (
     <MobileLayout title="Ajustes" showTabs={true}>
@@ -109,9 +150,10 @@ export default function SettingsPage() {
           {settingsOptions.map((option, index) => (
             <button
               key={index}
-              onClick={() => router.push(option.href)}
-              className="w-full rounded-2xl p-5 shadow-lg active:scale-98 transition-transform"
+              onClick={() => handleOptionClick(option)}
+              className="w-full rounded-2xl p-5 shadow-lg active:scale-98 transition-transform disabled:opacity-50"
               style={{ backgroundColor: '#FFFFFF' }}
+              disabled={option.disabled}
             >
               <div className="flex items-center gap-4">
                 <div 
@@ -123,6 +165,7 @@ export default function SettingsPage() {
                 <div className="flex-1 text-left">
                   <h3 className="font-bold mb-0.5" style={{ color: '#0F172A' }}>
                     {option.title}
+                    {option.disabled && <span className="text-xs ml-2 opacity-50">(Configura username)</span>}
                   </h3>
                   <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
                     {option.description}
@@ -145,20 +188,6 @@ export default function SettingsPage() {
             </button>
           ))}
         </div>
-
-        {/* Sign Out Button */}
-        <button
-          onClick={() => router.push('/api/auth/signout')}
-          className="w-full rounded-2xl p-4 shadow-lg active:scale-98 transition-transform mt-6"
-          style={{ backgroundColor: '#FEE2E2', color: '#DC2626' }}
-        >
-          <div className="flex items-center justify-center gap-2 font-bold">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Cerrar Sesión
-          </div>
-        </button>
       </div>
     </MobileLayout>
   );

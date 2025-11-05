@@ -86,7 +86,7 @@ export default function MobileLayout({
         </div>
       </main>
 
-      {/* Bottom Tab Bar */}
+      {/* Bottom Tab Bar - ACTUALIZADO CON 5 OPCIONES */}
       {showTabs && session && (
         <nav 
           className="fixed bottom-0 left-0 right-0 border-t safe-bottom shadow-2xl z-50"
@@ -96,7 +96,7 @@ export default function MobileLayout({
           }}
         >
           <div className="flex justify-around items-center h-16">
-            {/* Home Tab */}
+            {/* Inicio Tab */}
             <button
               onClick={() => router.push('/dashboard')}
               className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all active:scale-95 ${
@@ -114,26 +114,41 @@ export default function MobileLayout({
               </span>
             </button>
 
-            {/* Create Tab - Center FAB */}
+            {/* Analíticas Tab - NUEVO */}
+            <button
+              onClick={() => {
+                // Por ahora no hace nada, futuro módulo de analíticas
+              }}
+              className="flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all active:scale-95 opacity-50"
+            >
+              <svg className="w-6 h-6" fill="#0F172A" viewBox="0 0 24 24">
+                <path d="M3 13h2v8H3v-8zm4-6h2v14H7V7zm4-4h2v18h-2V3zm4 9h2v9h-2v-9zm4-3h2v12h-2V9z"/>
+              </svg>
+              <span 
+                className="text-xs font-semibold"
+                style={{ color: '#0F172A' }}
+              >
+                Analíticas
+              </span>
+            </button>
+
+            {/* Create Tab - Center FAB (SIN TEXTO) */}
             <button
               onClick={() => router.push('/create-property')}
               disabled={!session.user || (session.user.plan === 'free' && session.user.totalProperties >= 20)}
               className="flex-1 flex flex-col items-center justify-center transition-all active:scale-95 disabled:opacity-50"
             >
               <div 
-                className="w-14 h-14 rounded-full shadow-2xl flex items-center justify-center mb-1"
+                className="w-14 h-14 rounded-full shadow-2xl flex items-center justify-center"
                 style={{ backgroundColor: '#2563EB' }}
               >
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                 </svg>
               </div>
-              <span className="text-xs font-semibold" style={{ color: '#0F172A' }}>
-                Nueva
-              </span>
             </button>
 
-            {/* Settings Tab - NUEVO */}
+            {/* Ajustes Tab */}
             <button
               onClick={() => router.push('/settings')}
               className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all active:scale-95 ${
@@ -148,6 +163,24 @@ export default function MobileLayout({
                 style={{ color: isActive('/settings') ? '#2563EB' : '#0F172A' }}
               >
                 Ajustes
+              </span>
+            </button>
+
+            {/* Perfil Tab - NUEVO */}
+            <button
+              onClick={() => router.push('/profile')}
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all active:scale-95 ${
+                isActive('/profile') ? 'opacity-100' : 'opacity-50'
+              }`}
+            >
+              <svg className="w-6 h-6" fill={isActive('/profile') ? '#2563EB' : '#0F172A'} viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              </svg>
+              <span 
+                className="text-xs font-semibold"
+                style={{ color: isActive('/profile') ? '#2563EB' : '#0F172A' }}
+              >
+                Perfil
               </span>
             </button>
           </div>

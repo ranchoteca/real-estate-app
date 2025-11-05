@@ -88,21 +88,25 @@ export default function MapEditor({
   const [leafletReady, setLeafletReady] = useState(false);
   const [olcReady, setOlcReady] = useState(false);
   
-  // Guardar referencia a la clase OpenLocationCode
-  const OpenLocationCodeClass = useRef<any>(null);
+  // Guardar referencia a la instancia de OpenLocationCode
+  const olcInstance = useRef<any>(null);
 
   // 🔧 Cargar open-location-code dinámicamente
   useEffect(() => {
-    if (typeof window !== 'undefined' && !OpenLocationCodeClass.current) {
+    if (typeof window !== 'undefined' && !olcInstance.current) {
       import('open-location-code').then((module) => {
         // La librería exporta una clase OpenLocationCode
-        OpenLocationCodeClass.current = module.default?.OpenLocationCode || module.OpenLocationCode;
+        const OpenLocationCodeClass = module.default?.OpenLocationCode || module.OpenLocationCode;
         
-        console.log('✅ OpenLocationCode cargado:', OpenLocationCodeClass.current);
+        // Crear una instancia de la clase
+        olcInstance.current = new OpenLocationCodeClass();
+        
+        console.log('✅ OpenLocationCode instanciado:', olcInstance.current);
+        console.log('✅ Métodos disponibles:', Object.getOwnPropertyNames(Object.getPrototypeOf(olcInstance.current)));
         setOlcReady(true);
       }).catch(err => {
         console.error('❌ Error cargando open-location-code:', err);
-        setOlcReady(true); // Marcar como listo de todos modos
+        setOlcReady(true);
       });
     }
   }, []);
@@ -125,11 +129,10 @@ export default function MapEditor({
   // Generar Plus Code desde coordenadas
   const generatePlusCode = (lat: number, lng: number): string => {
     try {
-      if (OpenLocationCodeClass.current) {
-        // Usar métodos estáticos de la clase
-        return OpenLocationCodeClass.current.encode(lat, lng, 11);
+      if (olcInstance.current?.encode) {
+        return olcInstance.current.encode(lat, lng, 11);
       }
-      console.warn('⚠️ OpenLocationCode no disponible, usando coordenadas');
+      console.warn('⚠️ OpenLocationCode.encode no disponible');
       return `${lat.toFixed(6)},${lng.toFixed(6)}`;
     } catch (err) {
       console.error('Error generando Plus Code:', err);
@@ -148,12 +151,12 @@ export default function MapEditor({
         }
       }
       
-      if (OpenLocationCodeClass.current) {
-        const decoded = OpenLocationCodeClass.current.decode(code);
+      if (olcInstance.current?.decode) {
+        const decoded = olcInstance.current.decode(code);
         return [decoded.latitudeCenter, decoded.longitudeCenter];
       }
       
-      console.warn('⚠️ OpenLocationCode no disponible');
+      console.warn('⚠️ OpenLocationCode.decode no disponible');
       return null;
     } catch (err) {
       console.error('Error decodificando Plus Code:', err);
@@ -342,7 +345,7 @@ export default function MapEditor({
   };
 
   const handlePlusCodeUpdate = () => {
-    if (!OpenLocationCodeClass.current) {
+    if (!olcInstance.current) {
       setError('⚠️ Librería de Plus Code no está cargada');
       return;
     }
@@ -368,9 +371,9 @@ export default function MapEditor({
       let fullCode = trimmedCode;
 
       // Si es corto, expandirlo
-      if (isShort) {
+      if (isShort && olcInstance.current.recoverNearest) {
         const reference = position || [10.3, -84.8]; // Guanacaste, Costa Rica
-        fullCode = OpenLocationCodeClass.current.recoverNearest(
+        fullCode = olcInstance.current.recoverNearest(
           trimmedCode, 
           reference[0], 
           reference[1]
@@ -379,7 +382,7 @@ export default function MapEditor({
       }
 
       // Decodificar
-      const decoded = OpenLocationCodeClass.current.decode(fullCode);
+      const decoded = olcInstance.current.decode(fullCode);
       if (decoded && decoded.latitudeCenter && decoded.longitudeCenter) {
         const coords: [number, number] = [decoded.latitudeCenter, decoded.longitudeCenter];
         setPosition(coords);

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { encode, decode, recoverNearest } from 'open-location-code';
 import 'leaflet/dist/leaflet.css';
 
 // Importar Leaflet dinámicamente (solo client-side)
@@ -307,7 +308,7 @@ export default function MapEditor({
     }
   };
 
-  const handlePlusCodeUpdate = async () => {
+  const handlePlusCodeUpdate = () => {
     const trimmedCode = plusCode.trim().toUpperCase();
     if (!trimmedCode) {
       setError('⚠️ Plus Code vacío');
@@ -320,38 +321,27 @@ export default function MapEditor({
       let fullCode = trimmedCode;
 
       // 📍 Si es corto, intentar expandirlo usando una posición de referencia
-      const { recoverNearest, decode } = await import('open-location-code');
-
       if (isShort) {
         const reference = position || [9.7489, -83.7534]; // coordenadas por defecto en Costa Rica
         fullCode = recoverNearest(trimmedCode, reference[0], reference[1]);
       }
 
-      applyFullCode(fullCode, decode);
-
-    } catch (err) {
-      console.error("Error decodificando Plus Code:", err);
-      setError('⚠️ Plus Code inválido o no reconocido');
-    }
-  };
-
-  const applyFullCode = (code: string, decode: any) => {
-    try {
-      const decoded = decode(code);
+      // Aplicar el código completo
+      const decoded = decode(fullCode);
       if (decoded && decoded.latitudeCenter && decoded.longitudeCenter) {
-        const coords = [decoded.latitudeCenter, decoded.longitudeCenter];
+        const coords: [number, number] = [decoded.latitudeCenter, decoded.longitudeCenter];
         setPosition(coords);
         setManualLat(coords[0].toFixed(6));
         setManualLng(coords[1].toFixed(6));
-        setPlusCode(code);
-        onLocationChange(coords[0], coords[1], code);
+        setPlusCode(fullCode);
+        onLocationChange(coords[0], coords[1], fullCode);
         setError(null);
       } else {
         setError('⚠️ No se pudo convertir el Plus Code.');
       }
     } catch (err) {
-      console.error("Error aplicando Plus Code:", err);
-      setError('⚠️ No se pudo decodificar el Plus Code.');
+      console.error("Error decodificando Plus Code:", err);
+      setError('⚠️ Plus Code inválido o no reconocido');
     }
   };
 

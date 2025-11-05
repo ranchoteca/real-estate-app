@@ -52,13 +52,11 @@ export default function WatermarkSettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validar tamaño
     if (file.size > 2 * 1024 * 1024) {
       alert('La imagen es muy grande. Máximo 2MB.');
       return;
     }
 
-    // Validar tipo
     if (!file.type.startsWith('image/')) {
       alert('Solo se permiten imágenes PNG o JPG.');
       return;
@@ -133,7 +131,7 @@ export default function WatermarkSettingsPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <MobileLayout title="Logo Personalizado" showBack={true} showTabs={false}>
+      <MobileLayout title="Logo" showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">🎨</div>
@@ -147,7 +145,7 @@ export default function WatermarkSettingsPage() {
   if (!session) return null;
 
   return (
-    <MobileLayout title="Logo Personalizado" showBack={true} showTabs={false}>
+    <MobileLayout title="Logo" showBack={true} showTabs={true}>
       <div className="px-4 pt-4 pb-24 space-y-4">
         {/* Info Card */}
         <div 
@@ -356,7 +354,6 @@ export default function WatermarkSettingsPage() {
             <div className="absolute inset-0 flex items-center justify-center text-gray-400">
               <span className="text-6xl">🏠</span>
             </div>
-            {/* Simulación de watermark */}
             {logoUrl ? (
               <div
                 className="absolute"

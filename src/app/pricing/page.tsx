@@ -97,7 +97,7 @@ export default function PricingPage() {
 
   if (status === 'loading') {
     return (
-      <MobileLayout title="Planes" showBack={true} showTabs={false}>
+      <MobileLayout title="Planes" showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-5xl animate-pulse">💳</div>
         </div>
@@ -106,7 +106,7 @@ export default function PricingPage() {
   }
 
   return (
-    <MobileLayout title="Planes y Precios" showBack={true} showTabs={false}>
+    <MobileLayout title="Planes" showBack={true} showTabs={true}>
       <div className="px-4 pt-4 pb-24">
         {/* Header */}
         <div className="text-center mb-8">

@@ -21,7 +21,6 @@ interface Property {
   listing_type: 'rent' | 'sale';
 }
 
-// 🆕 Función para traducir tipos de propiedad
 const translatePropertyType = (type: string | null): string => {
   const translations: Record<string, string> = {
     house: 'Casa',
@@ -33,6 +32,23 @@ const translatePropertyType = (type: string | null): string => {
   return type ? translations[type] || type : 'Propiedad';
 };
 
+const PROPERTY_TYPES = [
+  { value: '', label: 'Todos los tipos' },
+  { value: 'house', label: '🏠 Casa' },
+  { value: 'condo', label: '🏢 Condominio' },
+  { value: 'apartment', label: '🏘️ Apartamento' },
+  { value: 'land', label: '🌳 Terreno' },
+  { value: 'commercial', label: '🏪 Comercial' },
+];
+
+const STATUS_OPTIONS = [
+  { value: '', label: 'Todos los estados' },
+  { value: 'active', label: '● Disponible' },
+  { value: 'pending', label: '● Pendiente' },
+  { value: 'rented', label: '● Alquilada' },
+  { value: 'sold', label: '● Vendida' },
+];
+
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -42,6 +58,11 @@ export default function DashboardPage() {
   const [publishingToFacebook, setPublishingToFacebook] = useState<string | null>(null);
   const [facebookConnected, setFacebookConnected] = useState(false);
   const [planInfo, setPlanInfo] = useState<{ plan: string; properties_this_month: number } | null>(null);
+
+  // Estados de filtros
+  const [filterPropertyType, setFilterPropertyType] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -141,6 +162,43 @@ export default function DashboardPage() {
     }
   };
 
+  // Función para filtrar propiedades
+  const getFilteredProperties = () => {
+    return properties.filter(property => {
+      // Filtro por tipo de propiedad
+      if (filterPropertyType && property.property_type !== filterPropertyType) {
+        return false;
+      }
+
+      // Filtro por estado
+      if (filterStatus && property.status !== filterStatus) {
+        return false;
+      }
+
+      // Filtro por búsqueda de texto
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const titleMatch = property.title.toLowerCase().includes(query);
+        const cityMatch = property.city?.toLowerCase().includes(query);
+        const stateMatch = property.state?.toLowerCase().includes(query);
+        
+        if (!titleMatch && !cityMatch && !stateMatch) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  };
+
+  const clearFilters = () => {
+    setFilterPropertyType('');
+    setFilterStatus('');
+    setSearchQuery('');
+  };
+
+  const hasActiveFilters = filterPropertyType || filterStatus || searchQuery.trim();
+
   if (status === 'loading' || loading) {
     return (
       <MobileLayout title="Mis Propiedades" showTabs={false}>
@@ -166,6 +224,8 @@ export default function DashboardPage() {
       minimumFractionDigits: 0,
     }).format(price);
   };
+
+  const filteredProperties = getFilteredProperties();
 
   return (
     <MobileLayout title="Mis Propiedades" showTabs={true}>
@@ -214,6 +274,94 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Filters Section */}
+      <div className="px-4 pt-3 pb-2">
+        <div 
+          className="rounded-2xl p-4 shadow-lg space-y-3"
+          style={{ backgroundColor: '#FFFFFF' }}
+        >
+          <h3 className="font-bold text-sm" style={{ color: '#0F172A' }}>
+            🔍 Filtrar Propiedades
+          </h3>
+
+          {/* Search Input */}
+          <div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por título, ciudad o estado..."
+              className="w-full px-4 py-2.5 rounded-xl border-2 focus:outline-none text-sm"
+              style={{ 
+                borderColor: '#E5E7EB',
+                backgroundColor: '#F9FAFB',
+                color: '#0F172A'
+              }}
+            />
+          </div>
+
+          {/* Filter Selects */}
+          <div className="grid grid-cols-2 gap-3">
+            <select
+              value={filterPropertyType}
+              onChange={(e) => setFilterPropertyType(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold"
+              style={{ 
+                borderColor: '#E5E7EB',
+                backgroundColor: '#F9FAFB',
+                color: '#0F172A'
+              }}
+            >
+              {PROPERTY_TYPES.map(type => (
+                <option key={type.value} value={type.value}>{type.label}</option>
+              ))}
+            </select>
+
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold"
+              style={{ 
+                borderColor: '#E5E7EB',
+                backgroundColor: '#F9FAFB',
+                color: '#0F172A'
+              }}
+            >
+              {STATUS_OPTIONS.map(status => (
+                <option key={status.value} value={status.value}>{status.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Clear Filters Button */}
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="text-sm font-semibold underline"
+              style={{ color: '#2563EB' }}
+            >
+              Limpiar filtros
+            </button>
+          )}
+
+          {/* Results Count */}
+          {hasActiveFilters && (
+            <div 
+              className="px-3 py-2 rounded-lg text-xs font-semibold"
+              style={{ 
+                backgroundColor: '#EFF6FF',
+                color: '#1E40AF'
+              }}
+            >
+              {filteredProperties.length === 0 
+                ? '❌ No hay coincidencias' 
+                : `✓ ${filteredProperties.length} ${filteredProperties.length === 1 ? 'resultado' : 'resultados'}`
+              }
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* No Credits Warning */}
       {session.user.credits === 0 && (
         <div className="px-4 pt-3">
@@ -247,32 +395,51 @@ export default function DashboardPage() {
       )}
 
       {/* Properties List */}
-      {properties.length === 0 ? (
+      {filteredProperties.length === 0 ? (
         <div className="px-4 pt-8">
           <div 
             className="rounded-2xl p-8 text-center"
             style={{ backgroundColor: '#FFFFFF' }}
           >
-            <div className="text-6xl mb-4">🏘️</div>
+            <div className="text-6xl mb-4">
+              {hasActiveFilters ? '🔍' : '🏘️'}
+            </div>
             <h3 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>
-              Sin propiedades
+              {hasActiveFilters ? 'Sin coincidencias' : 'Sin propiedades'}
             </h3>
             <p className="opacity-70 mb-6" style={{ color: '#0F172A' }}>
-              Crea tu primera propiedad con IA
+              {hasActiveFilters 
+                ? 'No se encontraron propiedades con los filtros seleccionados'
+                : 'Crea tu primera propiedad con IA'
+              }
             </p>
-            <button
-              onClick={() => router.push('/create-property')}
-              disabled={session.user.credits < 1}
-              className="w-full py-3 rounded-xl font-semibold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
-              style={{ backgroundColor: '#2563EB' }}
-            >
-              ➕ Crear Propiedad
-            </button>
+            {hasActiveFilters ? (
+              <button
+                onClick={clearFilters}
+                className="w-full py-3 rounded-xl font-semibold border-2 active:scale-95 transition-transform"
+                style={{ 
+                  borderColor: '#2563EB',
+                  color: '#2563EB',
+                  backgroundColor: '#FFFFFF'
+                }}
+              >
+                Limpiar filtros
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push('/create-property')}
+                disabled={session.user.credits < 1}
+                className="w-full py-3 rounded-xl font-semibold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
+                style={{ backgroundColor: '#2563EB' }}
+              >
+                ➕ Crear Propiedad
+              </button>
+            )}
           </div>
         </div>
       ) : (
         <div className="px-4 pt-3 space-y-3 pb-4">
-          {properties.map((property) => (
+          {filteredProperties.map((property) => (
             <div
               key={property.id}
               className="rounded-2xl overflow-hidden shadow-lg active:scale-[0.98] transition-transform relative"
@@ -358,7 +525,6 @@ export default function DashboardPage() {
                     >
                       <span>📄</span> Exportar PDF
                     </button>
-                    {
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
@@ -372,7 +538,6 @@ export default function DashboardPage() {
                       <span>📘</span> 
                       {publishingToFacebook === property.id ? 'Publicando...' : 'Publicar en Facebook'}
                     </button>
-                    }
                   </div>
                 )}
               </div>

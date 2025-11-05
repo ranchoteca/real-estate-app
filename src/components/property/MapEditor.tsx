@@ -88,13 +88,29 @@ export default function MapEditor({
   const [leafletReady, setLeafletReady] = useState(false);
   
   // Guardar referencia a las funciones de open-location-code
-  const olcRef = useRef<any>(null);
+  const olcRef = useRef<{
+    encode: (lat: number, lng: number, length?: number) => string;
+    decode: (code: string) => any;
+    recoverNearest: (shortCode: string, refLat: number, refLng: number) => string;
+  } | null>(null);
 
   // 🔧 Cargar open-location-code dinámicamente
   useEffect(() => {
     if (typeof window !== 'undefined' && !olcRef.current) {
-      import('open-location-code').then((olc) => {
-        olcRef.current = olc;
+      import('open-location-code').then((module) => {
+        // La librería puede exportar de diferentes maneras
+        // Intentar obtener las funciones del módulo
+        const olc = module.default || module;
+        
+        olcRef.current = {
+          encode: olc.encode || module.encode,
+          decode: olc.decode || module.decode,
+          recoverNearest: olc.recoverNearest || module.recoverNearest,
+        };
+        
+        console.log('📦 open-location-code cargado:', olcRef.current);
+      }).catch(err => {
+        console.error('Error cargando open-location-code:', err);
       });
     }
   }, []);
@@ -117,8 +133,8 @@ export default function MapEditor({
   // Generar Plus Code desde coordenadas
   const generatePlusCode = (lat: number, lng: number): string => {
     try {
-      if (!olcRef.current) {
-        console.warn('open-location-code no está cargado aún');
+      if (!olcRef.current?.encode) {
+        console.warn('open-location-code.encode no está disponible');
         return '';
       }
       return olcRef.current.encode(lat, lng, 11); // 11 dígitos = precisión de ~3.5m
@@ -131,8 +147,8 @@ export default function MapEditor({
   // Decodificar Plus Code a coordenadas
   const decodePlusCode = (code: string): [number, number] | null => {
     try {
-      if (!olcRef.current) {
-        console.warn('open-location-code no está cargado aún');
+      if (!olcRef.current?.decode) {
+        console.warn('open-location-code.decode no está disponible');
         return null;
       }
       const decoded = olcRef.current.decode(code);
@@ -149,13 +165,23 @@ export default function MapEditor({
   useEffect(() => {
     const initializeLocation = async () => {
       // Esperar a que open-location-code esté cargado
-      if (!olcRef.current) {
+      if (!olcRef.current?.encode) {
         const checkOLC = setInterval(() => {
-          if (olcRef.current) {
+          if (olcRef.current?.encode) {
             clearInterval(checkOLC);
             initializeLocation();
           }
         }, 100);
+        
+        // Timeout de 5 segundos
+        setTimeout(() => {
+          clearInterval(checkOLC);
+          if (!olcRef.current?.encode) {
+            console.error('Timeout esperando open-location-code');
+            setLoading(false);
+            setError('⚠️ Error cargando componente de Plus Code');
+          }
+        }, 5000);
         return;
       }
 
@@ -339,26 +365,37 @@ export default function MapEditor({
   };
 
   const handlePlusCodeUpdate = () => {
-    if (!olcRef.current) {
+    if (!olcRef.current?.decode || !olcRef.current?.recoverNearest) {
       setError('⚠️ Librería de Plus Code aún no está cargada');
       return;
     }
 
-    const trimmedCode = plusCode.trim().toUpperCase();
+    // Limpiar el input: remover texto adicional y espacios
+    let trimmedCode = plusCode.trim().toUpperCase();
+    
+    // Si el usuario pegó algo como "856V+75F VILLAREAL, PROVINCIA DE GUANACASTE"
+    // extraer solo el código
+    const codeMatch = trimmedCode.match(/[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,}/);
+    if (codeMatch) {
+      trimmedCode = codeMatch[0];
+    }
+    
     if (!trimmedCode) {
       setError('⚠️ Plus Code vacío');
       return;
     }
 
     try {
-      // 🔍 Detectar si el Plus Code es corto (por ejemplo: 856V+75F)
-      const isShort = !trimmedCode.includes(' ') && trimmedCode.split('+')[0].length < 8;
+      // 🔍 Detectar si el Plus Code es corto (sin área de referencia)
+      const parts = trimmedCode.split('+');
+      const isShort = parts[0].length < 8;
       let fullCode = trimmedCode;
 
-      // 📍 Si es corto, intentar expandirlo usando una posición de referencia
+      // 📍 Si es corto, expandirlo usando una posición de referencia
       if (isShort) {
-        const reference = position || [9.7489, -83.7534]; // coordenadas por defecto en Costa Rica
+        const reference = position || [10.3, -84.8]; // Centro aproximado de Guanacaste, Costa Rica
         fullCode = olcRef.current.recoverNearest(trimmedCode, reference[0], reference[1]);
+        console.log(`🔄 Plus Code expandido de ${trimmedCode} a ${fullCode}`);
       }
 
       // Aplicar el código completo
@@ -376,7 +413,7 @@ export default function MapEditor({
       }
     } catch (err) {
       console.error("Error decodificando Plus Code:", err);
-      setError('⚠️ Plus Code inválido o no reconocido');
+      setError('⚠️ Plus Code inválido o no reconocido. Intenta copiar el código completo desde Google Maps.');
     }
   };
 
@@ -461,7 +498,7 @@ export default function MapEditor({
                 type="text"
                 value={plusCode}
                 onChange={(e) => setPlusCode(e.target.value.toUpperCase())}
-                placeholder="87G5MX9C+XX"
+                placeholder="856V+75F o 856V+75F Ciudad"
                 className="flex-1 px-3 py-2 border-2 border-blue-300 rounded-lg text-sm text-gray-900 font-mono font-bold bg-white"
               />
               <button
@@ -472,7 +509,7 @@ export default function MapEditor({
               </button>
             </div>
             <p className="text-xs text-blue-700 mt-2">
-              💡 <strong>Copia el Plus Code desde Google Maps</strong> (búscalo haciendo clic derecho en el mapa)
+              💡 <strong>Pega el Plus Code desde Google Maps</strong> (puede incluir o no el nombre de la ciudad)
             </p>
           </div>
 

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { encode, decode, recoverNearest } from 'open-location-code';
 import 'leaflet/dist/leaflet.css';
 
 // Importar Leaflet dinámicamente (solo client-side)
@@ -308,42 +307,51 @@ export default function MapEditor({
     }
   };
 
-  const handlePlusCodeUpdate = () => {
-    let trimmedCode = plusCode.trim().toUpperCase();
+  const handlePlusCodeUpdate = async () => {
+    const trimmedCode = plusCode.trim().toUpperCase();
     if (!trimmedCode) {
       setError('⚠️ Plus Code vacío');
       return;
     }
 
     try {
-      // 🔍 Detectar si el Plus Code es corto
+      // 🔍 Detectar si el Plus Code es corto (por ejemplo: 856V+75F)
       const isShort = !trimmedCode.includes(' ') && trimmedCode.split('+')[0].length < 8;
       let fullCode = trimmedCode;
 
       // 📍 Si es corto, intentar expandirlo usando una posición de referencia
+      const { recoverNearest, decode } = await import('open-location-code');
+
       if (isShort) {
-          const reference = position || [9.7489, -83.7534];
-          fullCode = recoverNearest(trimmedCode, reference[0], reference[1]);
-          applyFullCode(fullCode);
-      } else {
-          applyFullCode(fullCode);
-      } 
+        const reference = position || [9.7489, -83.7534]; // coordenadas por defecto en Costa Rica
+        fullCode = recoverNearest(trimmedCode, reference[0], reference[1]);
+      }
+
+      applyFullCode(fullCode, decode);
+
     } catch (err) {
+      console.error("Error decodificando Plus Code:", err);
       setError('⚠️ Plus Code inválido o no reconocido');
     }
   };
 
-  const applyFullCode = (code: string) => {
-    const coords = decodePlusCode(code);
-    if (coords) {
-      setPosition(coords);
-      setManualLat(coords[0].toFixed(6));
-      setManualLng(coords[1].toFixed(6));
-      setPlusCode(code);
-      onLocationChange(coords[0], coords[1], code);
-      setError(null);
-    } else {
-      setError('⚠️ No se pudo convertir el Plus Code.');
+  const applyFullCode = (code: string, decode: any) => {
+    try {
+      const decoded = decode(code);
+      if (decoded && decoded.latitudeCenter && decoded.longitudeCenter) {
+        const coords = [decoded.latitudeCenter, decoded.longitudeCenter];
+        setPosition(coords);
+        setManualLat(coords[0].toFixed(6));
+        setManualLng(coords[1].toFixed(6));
+        setPlusCode(code);
+        onLocationChange(coords[0], coords[1], code);
+        setError(null);
+      } else {
+        setError('⚠️ No se pudo convertir el Plus Code.');
+      }
+    } catch (err) {
+      console.error("Error aplicando Plus Code:", err);
+      setError('⚠️ No se pudo decodificar el Plus Code.');
     }
   };
 

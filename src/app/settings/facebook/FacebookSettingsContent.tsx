@@ -32,7 +32,6 @@ export default function FacebookSettingsContent() {
   }, [session]);
 
   useEffect(() => {
-    // Manejar callbacks de OAuth
     const success = searchParams.get('success');
     const error = searchParams.get('error');
 
@@ -71,19 +70,15 @@ export default function FacebookSettingsContent() {
     }
   };
 
-  // ✅ SOLUCIÓN DEFINITIVA: Abrir popup INMEDIATAMENTE, luego cargar URL
   const handleFacebookConnect = async () => {
     try {
       setConnecting(true);
 
-      // ✅ CRÍTICO: Abrir el popup INMEDIATAMENTE en el evento click
-      // Si esperamos al fetch, la PWA lo bloquea
       const width = 600;
       const height = 700;
       const left = window.screen.width / 2 - width / 2;
       const top = window.screen.height / 2 - height / 2;
       
-      // Abrir con página de carga temporal
       const popup = window.open(
         'about:blank',
         'facebook-auth',
@@ -96,7 +91,6 @@ export default function FacebookSettingsContent() {
         return;
       }
 
-      // Mostrar página de carga en el popup
       popup.document.write(`
         <!DOCTYPE html>
         <html>
@@ -158,7 +152,6 @@ export default function FacebookSettingsContent() {
         </html>
       `);
 
-      // Ahora sí hacer el fetch
       const response = await fetch('/api/facebook/auth');
       const data = await response.json();
       
@@ -167,15 +160,12 @@ export default function FacebookSettingsContent() {
         throw new Error('Error al obtener URL de autenticación');
       }
 
-      // Redirigir el popup a Facebook
       popup.location.href = data.authUrl;
 
-      // ✅ Detectar cuando el popup se cierre
       const checkPopup = setInterval(() => {
         if (popup.closed) {
           clearInterval(checkPopup);
           setConnecting(false);
-          // Esperar un momento y recargar los datos
           setTimeout(() => {
             loadFacebookData();
           }, 1000);
@@ -211,7 +201,7 @@ export default function FacebookSettingsContent() {
 
   if (status === 'loading' || loading) {
     return (
-      <MobileLayout title="Facebook" showBack={true} showTabs={false}>
+      <MobileLayout title="Facebook" showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">📘</div>
@@ -225,7 +215,7 @@ export default function FacebookSettingsContent() {
   if (!session) return null;
 
   return (
-    <MobileLayout title="Facebook" showBack={true} showTabs={false}>
+    <MobileLayout title="Facebook" showBack={true} showTabs={true}>
       <div className="px-4 pt-4 pb-24 space-y-4">
         {/* Info Card */}
         <div 
@@ -332,7 +322,7 @@ export default function FacebookSettingsContent() {
                 </ul>
               </div>
 
-              {/* Connect Button - ✅ CAMBIADO A BUTTON CON onClick */}
+              {/* Connect Button */}
               <button
                 onClick={handleFacebookConnect}
                 disabled={connecting}

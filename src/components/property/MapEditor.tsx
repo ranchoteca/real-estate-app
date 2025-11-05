@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { encode, decode } from 'open-location-code';
+import { encode, decode, recoverNearest } from 'open-location-code';
 import 'leaflet/dist/leaflet.css';
 
 // Importar Leaflet dinámicamente (solo client-side)
@@ -308,26 +308,42 @@ export default function MapEditor({
     }
   };
 
-  // Actualizar desde Plus Code pegado
   const handlePlusCodeUpdate = () => {
-    const trimmedCode = plusCode.trim().toUpperCase();
-    
+    let trimmedCode = plusCode.trim().toUpperCase();
     if (!trimmedCode) {
       setError('⚠️ Plus Code vacío');
       return;
     }
 
-    const coords = decodePlusCode(trimmedCode);
-    
+    try {
+      // 🔍 Detectar si el Plus Code es corto
+      const isShort = !trimmedCode.includes(' ') && trimmedCode.split('+')[0].length < 8;
+      let fullCode = trimmedCode;
+
+      // 📍 Si es corto, intentar expandirlo usando una posición de referencia
+      if (isShort) {
+          const reference = position || [9.7489, -83.7534];
+          fullCode = recoverNearest(trimmedCode, reference[0], reference[1]);
+          applyFullCode(fullCode);
+      } else {
+          applyFullCode(fullCode);
+      } 
+    } catch (err) {
+      setError('⚠️ Plus Code inválido o no reconocido');
+    }
+  };
+
+  const applyFullCode = (code: string) => {
+    const coords = decodePlusCode(code);
     if (coords) {
       setPosition(coords);
       setManualLat(coords[0].toFixed(6));
       setManualLng(coords[1].toFixed(6));
-      setPlusCode(trimmedCode);
-      onLocationChange(coords[0], coords[1], trimmedCode);
+      setPlusCode(code);
+      onLocationChange(coords[0], coords[1], code);
       setError(null);
     } else {
-      setError('⚠️ Plus Code inválido. Formato: 87G5MX9C+XX');
+      setError('⚠️ No se pudo convertir el Plus Code.');
     }
   };
 

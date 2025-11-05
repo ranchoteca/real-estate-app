@@ -86,31 +86,37 @@ export default function MapEditor({
   const [error, setError] = useState<string | null>(null);
   const [gpsUsed, setGpsUsed] = useState(false);
   const [leafletReady, setLeafletReady] = useState(false);
+  const [olcReady, setOlcReady] = useState(false);
   
   // Guardar referencia a las funciones de open-location-code
-  const olcRef = useRef<{
-    encode: (lat: number, lng: number, length?: number) => string;
-    decode: (code: string) => any;
-    recoverNearest: (shortCode: string, refLat: number, refLng: number) => string;
-  } | null>(null);
+  const olcRef = useRef<any>(null);
 
-  // 🔧 Cargar open-location-code dinámicamente
+  // 🔧 Cargar open-location-code dinámicamente de múltiples maneras
   useEffect(() => {
     if (typeof window !== 'undefined' && !olcRef.current) {
       import('open-location-code').then((module) => {
-        // La librería puede exportar de diferentes maneras
-        // Intentar obtener las funciones del módulo
-        const olc = module.default || module;
+        console.log('📦 Módulo completo:', module);
+        console.log('📦 Module.default:', module.default);
+        console.log('📦 Module keys:', Object.keys(module));
         
-        olcRef.current = {
-          encode: olc.encode || module.encode,
-          decode: olc.decode || module.decode,
-          recoverNearest: olc.recoverNearest || module.recoverNearest,
-        };
+        // Intentar diferentes formas de acceder a las funciones
+        let olc = module;
         
-        console.log('📦 open-location-code cargado:', olcRef.current);
+        // Si todas las propiedades directas son undefined, probar con default
+        if (!module.encode && module.default) {
+          olc = module.default;
+        }
+        
+        // Guardar referencia
+        olcRef.current = olc;
+        
+        console.log('📦 OLC final:', olcRef.current);
+        console.log('📦 OLC.encode:', olcRef.current?.encode);
+        
+        setOlcReady(true);
       }).catch(err => {
-        console.error('Error cargando open-location-code:', err);
+        console.error('❌ Error cargando open-location-code:', err);
+        setOlcReady(true); // Marcar como listo de todos modos para continuar
       });
     }
   }, []);
@@ -130,31 +136,41 @@ export default function MapEditor({
     }
   }, []);
 
-  // Generar Plus Code desde coordenadas
+  // Generar Plus Code desde coordenadas (con fallback a formato simple)
   const generatePlusCode = (lat: number, lng: number): string => {
     try {
-      if (!olcRef.current?.encode) {
-        console.warn('open-location-code.encode no está disponible');
-        return '';
+      if (olcRef.current?.encode && typeof olcRef.current.encode === 'function') {
+        return olcRef.current.encode(lat, lng, 11);
       }
-      return olcRef.current.encode(lat, lng, 11); // 11 dígitos = precisión de ~3.5m
+      // Fallback: retornar coordenadas en formato simple
+      console.warn('⚠️ encode no disponible, usando formato de coordenadas');
+      return `${lat.toFixed(6)},${lng.toFixed(6)}`;
     } catch (err) {
       console.error('Error generando Plus Code:', err);
-      return '';
+      return `${lat.toFixed(6)},${lng.toFixed(6)}`;
     }
   };
 
   // Decodificar Plus Code a coordenadas
   const decodePlusCode = (code: string): [number, number] | null => {
     try {
-      if (!olcRef.current?.decode) {
-        console.warn('open-location-code.decode no está disponible');
-        return null;
+      // Si es un formato de coordenadas simple (fallback)
+      if (code.includes(',') && !code.includes('+')) {
+        const [lat, lng] = code.split(',').map(s => parseFloat(s.trim()));
+        if (!isNaN(lat) && !isNaN(lng)) {
+          return [lat, lng];
+        }
       }
-      const decoded = olcRef.current.decode(code);
-      const lat = decoded.latitudeCenter;
-      const lng = decoded.longitudeCenter;
-      return [lat, lng];
+      
+      if (olcRef.current?.decode && typeof olcRef.current.decode === 'function') {
+        const decoded = olcRef.current.decode(code);
+        const lat = decoded.latitudeCenter;
+        const lng = decoded.longitudeCenter;
+        return [lat, lng];
+      }
+      
+      console.warn('⚠️ decode no disponible');
+      return null;
     } catch (err) {
       console.error('Error decodificando Plus Code:', err);
       return null;
@@ -163,28 +179,9 @@ export default function MapEditor({
 
   // Intentar GPS primero, luego geocoding
   useEffect(() => {
-    const initializeLocation = async () => {
-      // Esperar a que open-location-code esté cargado
-      if (!olcRef.current?.encode) {
-        const checkOLC = setInterval(() => {
-          if (olcRef.current?.encode) {
-            clearInterval(checkOLC);
-            initializeLocation();
-          }
-        }, 100);
-        
-        // Timeout de 5 segundos
-        setTimeout(() => {
-          clearInterval(checkOLC);
-          if (!olcRef.current?.encode) {
-            console.error('Timeout esperando open-location-code');
-            setLoading(false);
-            setError('⚠️ Error cargando componente de Plus Code');
-          }
-        }, 5000);
-        return;
-      }
+    if (!olcReady) return;
 
+    const initializeLocation = async () => {
       setLoading(true);
       setError(null);
 
@@ -294,7 +291,7 @@ export default function MapEditor({
     };
 
     initializeLocation();
-  }, [address, city, state, initialLat, initialLng, initialPlusCode]);
+  }, [olcReady, address, city, state, initialLat, initialLng, initialPlusCode]);
 
   // Geocoding con Nominatim (OpenStreetMap)
   const geocodeAddress = async (
@@ -365,11 +362,6 @@ export default function MapEditor({
   };
 
   const handlePlusCodeUpdate = () => {
-    if (!olcRef.current?.decode || !olcRef.current?.recoverNearest) {
-      setError('⚠️ Librería de Plus Code aún no está cargada');
-      return;
-    }
-
     // Limpiar el input: remover texto adicional y espacios
     let trimmedCode = plusCode.trim().toUpperCase();
     
@@ -392,28 +384,32 @@ export default function MapEditor({
       let fullCode = trimmedCode;
 
       // 📍 Si es corto, expandirlo usando una posición de referencia
-      if (isShort) {
+      if (isShort && olcRef.current?.recoverNearest && typeof olcRef.current.recoverNearest === 'function') {
         const reference = position || [10.3, -84.8]; // Centro aproximado de Guanacaste, Costa Rica
         fullCode = olcRef.current.recoverNearest(trimmedCode, reference[0], reference[1]);
         console.log(`🔄 Plus Code expandido de ${trimmedCode} a ${fullCode}`);
       }
 
       // Aplicar el código completo
-      const decoded = olcRef.current.decode(fullCode);
-      if (decoded && decoded.latitudeCenter && decoded.longitudeCenter) {
-        const coords: [number, number] = [decoded.latitudeCenter, decoded.longitudeCenter];
-        setPosition(coords);
-        setManualLat(coords[0].toFixed(6));
-        setManualLng(coords[1].toFixed(6));
-        setPlusCode(fullCode);
-        onLocationChange(coords[0], coords[1], fullCode);
-        setError(null);
+      if (olcRef.current?.decode && typeof olcRef.current.decode === 'function') {
+        const decoded = olcRef.current.decode(fullCode);
+        if (decoded && decoded.latitudeCenter && decoded.longitudeCenter) {
+          const coords: [number, number] = [decoded.latitudeCenter, decoded.longitudeCenter];
+          setPosition(coords);
+          setManualLat(coords[0].toFixed(6));
+          setManualLng(coords[1].toFixed(6));
+          setPlusCode(fullCode);
+          onLocationChange(coords[0], coords[1], fullCode);
+          setError(null);
+        } else {
+          setError('⚠️ No se pudo convertir el Plus Code.');
+        }
       } else {
-        setError('⚠️ No se pudo convertir el Plus Code.');
+        setError('⚠️ Funcionalidad de Plus Code no disponible. Por favor ingresa coordenadas manualmente.');
       }
     } catch (err) {
       console.error("Error decodificando Plus Code:", err);
-      setError('⚠️ Plus Code inválido o no reconocido. Intenta copiar el código completo desde Google Maps.');
+      setError('⚠️ Plus Code inválido. Intenta usar las coordenadas manuales en su lugar.');
     }
   };
 

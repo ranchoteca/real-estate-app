@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { encode, decode, recoverNearest } from 'open-location-code';
 import 'leaflet/dist/leaflet.css';
 
 // Importar Leaflet dinámicamente (solo client-side)
@@ -87,6 +86,18 @@ export default function MapEditor({
   const [error, setError] = useState<string | null>(null);
   const [gpsUsed, setGpsUsed] = useState(false);
   const [leafletReady, setLeafletReady] = useState(false);
+  
+  // Guardar referencia a las funciones de open-location-code
+  const olcRef = useRef<any>(null);
+
+  // 🔧 Cargar open-location-code dinámicamente
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !olcRef.current) {
+      import('open-location-code').then((olc) => {
+        olcRef.current = olc;
+      });
+    }
+  }, []);
 
   // 🔧 Configurar iconos de Leaflet una sola vez
   useEffect(() => {
@@ -106,7 +117,11 @@ export default function MapEditor({
   // Generar Plus Code desde coordenadas
   const generatePlusCode = (lat: number, lng: number): string => {
     try {
-      return encode(lat, lng, 11); // 11 dígitos = precisión de ~3.5m
+      if (!olcRef.current) {
+        console.warn('open-location-code no está cargado aún');
+        return '';
+      }
+      return olcRef.current.encode(lat, lng, 11); // 11 dígitos = precisión de ~3.5m
     } catch (err) {
       console.error('Error generando Plus Code:', err);
       return '';
@@ -116,7 +131,11 @@ export default function MapEditor({
   // Decodificar Plus Code a coordenadas
   const decodePlusCode = (code: string): [number, number] | null => {
     try {
-      const decoded = decode(code);
+      if (!olcRef.current) {
+        console.warn('open-location-code no está cargado aún');
+        return null;
+      }
+      const decoded = olcRef.current.decode(code);
       const lat = decoded.latitudeCenter;
       const lng = decoded.longitudeCenter;
       return [lat, lng];
@@ -129,6 +148,17 @@ export default function MapEditor({
   // Intentar GPS primero, luego geocoding
   useEffect(() => {
     const initializeLocation = async () => {
+      // Esperar a que open-location-code esté cargado
+      if (!olcRef.current) {
+        const checkOLC = setInterval(() => {
+          if (olcRef.current) {
+            clearInterval(checkOLC);
+            initializeLocation();
+          }
+        }, 100);
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
@@ -309,6 +339,11 @@ export default function MapEditor({
   };
 
   const handlePlusCodeUpdate = () => {
+    if (!olcRef.current) {
+      setError('⚠️ Librería de Plus Code aún no está cargada');
+      return;
+    }
+
     const trimmedCode = plusCode.trim().toUpperCase();
     if (!trimmedCode) {
       setError('⚠️ Plus Code vacío');
@@ -323,11 +358,11 @@ export default function MapEditor({
       // 📍 Si es corto, intentar expandirlo usando una posición de referencia
       if (isShort) {
         const reference = position || [9.7489, -83.7534]; // coordenadas por defecto en Costa Rica
-        fullCode = recoverNearest(trimmedCode, reference[0], reference[1]);
+        fullCode = olcRef.current.recoverNearest(trimmedCode, reference[0], reference[1]);
       }
 
       // Aplicar el código completo
-      const decoded = decode(fullCode);
+      const decoded = olcRef.current.decode(fullCode);
       if (decoded && decoded.latitudeCenter && decoded.longitudeCenter) {
         const coords: [number, number] = [decoded.latitudeCenter, decoded.longitudeCenter];
         setPosition(coords);

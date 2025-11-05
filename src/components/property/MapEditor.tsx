@@ -88,35 +88,21 @@ export default function MapEditor({
   const [leafletReady, setLeafletReady] = useState(false);
   const [olcReady, setOlcReady] = useState(false);
   
-  // Guardar referencia a las funciones de open-location-code
-  const olcRef = useRef<any>(null);
+  // Guardar referencia a la clase OpenLocationCode
+  const OpenLocationCodeClass = useRef<any>(null);
 
-  // 🔧 Cargar open-location-code dinámicamente de múltiples maneras
+  // 🔧 Cargar open-location-code dinámicamente
   useEffect(() => {
-    if (typeof window !== 'undefined' && !olcRef.current) {
+    if (typeof window !== 'undefined' && !OpenLocationCodeClass.current) {
       import('open-location-code').then((module) => {
-        console.log('📦 Módulo completo:', module);
-        console.log('📦 Module.default:', module.default);
-        console.log('📦 Module keys:', Object.keys(module));
+        // La librería exporta una clase OpenLocationCode
+        OpenLocationCodeClass.current = module.default?.OpenLocationCode || module.OpenLocationCode;
         
-        // Intentar diferentes formas de acceder a las funciones
-        let olc = module;
-        
-        // Si todas las propiedades directas son undefined, probar con default
-        if (!module.encode && module.default) {
-          olc = module.default;
-        }
-        
-        // Guardar referencia
-        olcRef.current = olc;
-        
-        console.log('📦 OLC final:', olcRef.current);
-        console.log('📦 OLC.encode:', olcRef.current?.encode);
-        
+        console.log('✅ OpenLocationCode cargado:', OpenLocationCodeClass.current);
         setOlcReady(true);
       }).catch(err => {
         console.error('❌ Error cargando open-location-code:', err);
-        setOlcReady(true); // Marcar como listo de todos modos para continuar
+        setOlcReady(true); // Marcar como listo de todos modos
       });
     }
   }, []);
@@ -136,14 +122,14 @@ export default function MapEditor({
     }
   }, []);
 
-  // Generar Plus Code desde coordenadas (con fallback a formato simple)
+  // Generar Plus Code desde coordenadas
   const generatePlusCode = (lat: number, lng: number): string => {
     try {
-      if (olcRef.current?.encode && typeof olcRef.current.encode === 'function') {
-        return olcRef.current.encode(lat, lng, 11);
+      if (OpenLocationCodeClass.current) {
+        // Usar métodos estáticos de la clase
+        return OpenLocationCodeClass.current.encode(lat, lng, 11);
       }
-      // Fallback: retornar coordenadas en formato simple
-      console.warn('⚠️ encode no disponible, usando formato de coordenadas');
+      console.warn('⚠️ OpenLocationCode no disponible, usando coordenadas');
       return `${lat.toFixed(6)},${lng.toFixed(6)}`;
     } catch (err) {
       console.error('Error generando Plus Code:', err);
@@ -154,7 +140,7 @@ export default function MapEditor({
   // Decodificar Plus Code a coordenadas
   const decodePlusCode = (code: string): [number, number] | null => {
     try {
-      // Si es un formato de coordenadas simple (fallback)
+      // Si es formato de coordenadas simple (fallback)
       if (code.includes(',') && !code.includes('+')) {
         const [lat, lng] = code.split(',').map(s => parseFloat(s.trim()));
         if (!isNaN(lat) && !isNaN(lng)) {
@@ -162,14 +148,12 @@ export default function MapEditor({
         }
       }
       
-      if (olcRef.current?.decode && typeof olcRef.current.decode === 'function') {
-        const decoded = olcRef.current.decode(code);
-        const lat = decoded.latitudeCenter;
-        const lng = decoded.longitudeCenter;
-        return [lat, lng];
+      if (OpenLocationCodeClass.current) {
+        const decoded = OpenLocationCodeClass.current.decode(code);
+        return [decoded.latitudeCenter, decoded.longitudeCenter];
       }
       
-      console.warn('⚠️ decode no disponible');
+      console.warn('⚠️ OpenLocationCode no disponible');
       return null;
     } catch (err) {
       console.error('Error decodificando Plus Code:', err);
@@ -233,24 +217,20 @@ export default function MapEditor({
           const geocodedCoords = await geocodeAddress(address, city, state);
 
           if (geocodedCoords) {
-            // Calcular distancia
             const distance = calculateDistance(gpsCoords, geocodedCoords);
 
-            // Si están a más de 1km, mostrar alerta
             if (distance > 1) {
               setError(`⚠️ Tu ubicación está a ${distance.toFixed(1)}km de la dirección. Ajusta el pin o pega el Plus Code correcto.`);
             } else {
               setGpsUsed(true);
             }
 
-            // Usar GPS de todos modos
             setPosition(gpsCoords);
             setManualLat(gpsCoords[0].toFixed(6));
             setManualLng(gpsCoords[1].toFixed(6));
             setPlusCode(code);
             onLocationChange(gpsCoords[0], gpsCoords[1], code);
           } else {
-            // Si geocoding falla, usar GPS
             setPosition(gpsCoords);
             setManualLat(gpsCoords[0].toFixed(6));
             setManualLng(gpsCoords[1].toFixed(6));
@@ -330,7 +310,7 @@ export default function MapEditor({
     coords1: [number, number],
     coords2: [number, number]
   ): number => {
-    const R = 6371; // Radio de la Tierra en km
+    const R = 6371;
     const dLat = ((coords2[0] - coords1[0]) * Math.PI) / 180;
     const dLon = ((coords2[1] - coords1[1]) * Math.PI) / 180;
     const a =
@@ -362,11 +342,15 @@ export default function MapEditor({
   };
 
   const handlePlusCodeUpdate = () => {
-    // Limpiar el input: remover texto adicional y espacios
+    if (!OpenLocationCodeClass.current) {
+      setError('⚠️ Librería de Plus Code no está cargada');
+      return;
+    }
+
+    // Limpiar el input: extraer solo el código
     let trimmedCode = plusCode.trim().toUpperCase();
     
-    // Si el usuario pegó algo como "856V+75F VILLAREAL, PROVINCIA DE GUANACASTE"
-    // extraer solo el código
+    // Extraer el código Plus Code del texto (ej: "856V+75F VILLAREAL..." → "856V+75F")
     const codeMatch = trimmedCode.match(/[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,}/);
     if (codeMatch) {
       trimmedCode = codeMatch[0];
@@ -378,38 +362,38 @@ export default function MapEditor({
     }
 
     try {
-      // 🔍 Detectar si el Plus Code es corto (sin área de referencia)
+      // Detectar si es un código corto
       const parts = trimmedCode.split('+');
       const isShort = parts[0].length < 8;
       let fullCode = trimmedCode;
 
-      // 📍 Si es corto, expandirlo usando una posición de referencia
-      if (isShort && olcRef.current?.recoverNearest && typeof olcRef.current.recoverNearest === 'function') {
-        const reference = position || [10.3, -84.8]; // Centro aproximado de Guanacaste, Costa Rica
-        fullCode = olcRef.current.recoverNearest(trimmedCode, reference[0], reference[1]);
-        console.log(`🔄 Plus Code expandido de ${trimmedCode} a ${fullCode}`);
+      // Si es corto, expandirlo
+      if (isShort) {
+        const reference = position || [10.3, -84.8]; // Guanacaste, Costa Rica
+        fullCode = OpenLocationCodeClass.current.recoverNearest(
+          trimmedCode, 
+          reference[0], 
+          reference[1]
+        );
+        console.log(`🔄 Plus Code expandido: ${trimmedCode} → ${fullCode}`);
       }
 
-      // Aplicar el código completo
-      if (olcRef.current?.decode && typeof olcRef.current.decode === 'function') {
-        const decoded = olcRef.current.decode(fullCode);
-        if (decoded && decoded.latitudeCenter && decoded.longitudeCenter) {
-          const coords: [number, number] = [decoded.latitudeCenter, decoded.longitudeCenter];
-          setPosition(coords);
-          setManualLat(coords[0].toFixed(6));
-          setManualLng(coords[1].toFixed(6));
-          setPlusCode(fullCode);
-          onLocationChange(coords[0], coords[1], fullCode);
-          setError(null);
-        } else {
-          setError('⚠️ No se pudo convertir el Plus Code.');
-        }
+      // Decodificar
+      const decoded = OpenLocationCodeClass.current.decode(fullCode);
+      if (decoded && decoded.latitudeCenter && decoded.longitudeCenter) {
+        const coords: [number, number] = [decoded.latitudeCenter, decoded.longitudeCenter];
+        setPosition(coords);
+        setManualLat(coords[0].toFixed(6));
+        setManualLng(coords[1].toFixed(6));
+        setPlusCode(fullCode);
+        onLocationChange(coords[0], coords[1], fullCode);
+        setError(null);
       } else {
-        setError('⚠️ Funcionalidad de Plus Code no disponible. Por favor ingresa coordenadas manualmente.');
+        setError('⚠️ No se pudo convertir el Plus Code.');
       }
     } catch (err) {
       console.error("Error decodificando Plus Code:", err);
-      setError('⚠️ Plus Code inválido. Intenta usar las coordenadas manuales en su lugar.');
+      setError('⚠️ Plus Code inválido. Intenta con el código completo desde Google Maps.');
     }
   };
 
@@ -505,7 +489,7 @@ export default function MapEditor({
               </button>
             </div>
             <p className="text-xs text-blue-700 mt-2">
-              💡 <strong>Pega el Plus Code desde Google Maps</strong> (puede incluir o no el nombre de la ciudad)
+              💡 <strong>Pega el Plus Code desde Google Maps</strong> (puede incluir el nombre de la ciudad)
             </p>
           </div>
 

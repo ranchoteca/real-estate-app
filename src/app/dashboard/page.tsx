@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import FacebookPublishModal from '@/components/FacebookPublishModal';
 import MobileLayout from '@/components/MobileLayout';
 import Image from 'next/image';
 
@@ -55,8 +56,8 @@ export default function DashboardPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState<string | null>(null);
-  const [publishingToFacebook, setPublishingToFacebook] = useState<string | null>(null);
-  const [facebookConnected, setFacebookConnected] = useState(false);
+  const [publishModalOpen, setPublishModalOpen] = useState(false);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [planInfo, setPlanInfo] = useState<{ plan: string; properties_this_month: number } | null>(null);
 
   // Estados de filtros
@@ -82,11 +83,6 @@ export default function DashboardPage() {
       const response = await fetch('/api/agent/current-plan');
       const data = await response.json();
       setPlanInfo(data);
-      const profileResponse = await fetch('/api/agent/profile');
-      if (profileResponse.ok) {
-        const profileData = await profileResponse.json();
-        setFacebookConnected(!!profileData.agent.facebook_page_id);
-      }
     } catch (error) {
       console.error('Error loading plan:', error);
     }
@@ -128,37 +124,6 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error deleting property:', error);
       alert('Error al eliminar la propiedad');
-    }
-  };
-
-  const handlePublishToFacebook = async (propertyId: string) => {
-    setPublishingToFacebook(propertyId);
-    
-    try {
-      const response = await fetch('/api/facebook/publish', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ propertyId }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Error al publicar');
-      }
-
-      alert('✅ ¡Publicado en Facebook exitosamente!');
-    } catch (error: any) {
-      console.error('Error publishing to Facebook:', error);
-      
-      if (error.message === 'Facebook no vinculado') {
-        if (confirm('❌ Debes conectar tu página de Facebook primero. ¿Ir a configuración?')) {
-          router.push('/settings/facebook');
-        }
-      } else {
-        alert(`❌ ${error.message}`);
-      }
-    } finally {
-      setPublishingToFacebook(null);
     }
   };
 
@@ -526,17 +491,16 @@ export default function DashboardPage() {
                       <span>📄</span> Exportar PDF
                     </button>
                     <button
-                      onClick={async (e) => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         setShowMenu(null);
-                        await handlePublishToFacebook(property.id);
+                        setSelectedPropertyId(property.id);
+                        setPublishModalOpen(true);
                       }}
-                      disabled={publishingToFacebook === property.id}
-                      className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t disabled:opacity-50"
+                      className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
                       style={{ color: '#1877F2', borderTopColor: '#F3F4F6' }}
                     >
-                      <span>📘</span> 
-                      {publishingToFacebook === property.id ? 'Publicando...' : 'Publicar en Facebook'}
+                      <span>📘</span> Publicar en Facebook
                     </button>
                   </div>
                 )}
@@ -588,6 +552,12 @@ export default function DashboardPage() {
           ))}
         </div>
       )}
+      {/* Facebook Publish Modal */}
+      <FacebookPublishModal
+        isOpen={publishModalOpen}
+        onClose={() => setPublishModalOpen(false)}
+        propertyId={selectedPropertyId || ''}
+      />
     </MobileLayout>
   );
 }

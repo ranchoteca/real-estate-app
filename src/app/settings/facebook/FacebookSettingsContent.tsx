@@ -19,6 +19,16 @@ export default function FacebookSettingsContent() {
     connectedAt: string | null;
   }>({ connected: false, pageName: null, connectedAt: null });
 
+  // ✅ AGREGAR ESTO AQUÍ 👇
+  const [aiSettings, setAiSettings] = useState({
+    enabled: false,
+    colorPrimary: '#1877F2',
+    colorSecondary: '#FFFFFF',
+    template: 'moderna'
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+  // ✅ FIN DE LO AGREGADO
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -28,6 +38,7 @@ export default function FacebookSettingsContent() {
   useEffect(() => {
     if (session) {
       loadFacebookData();
+      loadAISettings();
     }
   }, [session]);
 
@@ -67,6 +78,23 @@ export default function FacebookSettingsContent() {
       console.error('Error loading Facebook data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAISettings = async () => {
+    try {
+      const response = await fetch('/api/agent/profile');
+      if (response.ok) {
+        const data = await response.json();
+        setAiSettings({
+          enabled: data.agent.fb_ai_enabled || false,
+          colorPrimary: data.agent.fb_brand_color_primary || '#1877F2',
+          colorSecondary: data.agent.fb_brand_color_secondary || '#FFFFFF',
+          template: data.agent.fb_template || 'moderna'
+        });
+      }
+    } catch (err) {
+      console.error('Error loading AI settings:', err);
     }
   };
 
@@ -196,6 +224,27 @@ export default function FacebookSettingsContent() {
       alert(`❌ ${err.message}`);
     } finally {
       setDisconnecting(false);
+    }
+  };
+
+  const handleSaveAISettings = async () => {
+    setSavingSettings(true);
+    try {
+      const response = await fetch('/api/facebook/ai-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(aiSettings)
+      });
+
+      if (response.ok) {
+        alert('✅ Configuración guardada');
+      } else {
+        throw new Error('Error al guardar');
+      }
+    } catch (err: any) {
+      alert(`❌ ${err.message}`);
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -337,6 +386,107 @@ export default function FacebookSettingsContent() {
             </div>
           )}
         </div>
+
+        {facebookData.connected && (
+          <div 
+            className="rounded-2xl p-5 shadow-lg"
+            style={{ backgroundColor: '#FFFFFF' }}
+          >
+            <h3 className="font-bold text-lg mb-4" style={{ color: '#0F172A' }}>
+              ✨ Mejora tus Publicaciones con IA
+            </h3>
+
+            {/* Toggle para activar IA */}
+            <div className="mb-4 p-4 rounded-xl" style={{ backgroundColor: '#F0F9FF' }}>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={aiSettings.enabled}
+                  onChange={(e) => setAiSettings({ ...aiSettings, enabled: e.target.checked })}
+                  className="w-5 h-5 rounded accent-blue-600"
+                />
+                <div>
+                  <p className="font-semibold" style={{ color: '#0F172A' }}>
+                    Generar diseños automáticos
+                  </p>
+                  <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                    La primera imagen se convertirá en un flyer profesional con tu marca
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            {aiSettings.enabled && (
+              <div className="space-y-4">
+                {/* Selector de colores */}
+                <div>
+                  <p className="font-semibold mb-2" style={{ color: '#0F172A' }}>
+                    🎨 Colores de tu marca
+                  </p>
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <label className="text-xs opacity-70 block mb-1" style={{ color: '#0F172A' }}>
+                        Color principal
+                      </label>
+                      <input
+                        type="color"
+                        value={aiSettings.colorPrimary}
+                        onChange={(e) => setAiSettings({ ...aiSettings, colorPrimary: e.target.value })}
+                        className="w-full h-12 rounded-lg border-2 cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs opacity-70 block mb-1" style={{ color: '#0F172A' }}>
+                        Color secundario
+                      </label>
+                      <input
+                        type="color"
+                        value={aiSettings.colorSecondary}
+                        onChange={(e) => setAiSettings({ ...aiSettings, colorSecondary: e.target.value })}
+                        className="w-full h-12 rounded-lg border-2 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Selector de plantilla */}
+                <div>
+                  <p className="font-semibold mb-2" style={{ color: '#0F172A' }}>
+                    📐 Estilo de diseño
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['moderna', 'elegante', 'minimalista', 'vibrante'].map((template) => (
+                      <button
+                        key={template}
+                        onClick={() => setAiSettings({ ...aiSettings, template })}
+                        className={`p-3 rounded-lg border-2 text-sm font-semibold transition-all ${
+                          aiSettings.template === template
+                            ? 'border-blue-600 bg-blue-50'
+                            : 'border-gray-200 bg-white'
+                        }`}
+                        style={{
+                          color: aiSettings.template === template ? '#1E40AF' : '#0F172A'
+                        }}
+                      >
+                        {template.charAt(0).toUpperCase() + template.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Botón guardar */}
+                <button
+                  onClick={handleSaveAISettings}
+                  disabled={savingSettings}
+                  className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
+                  style={{ backgroundColor: '#10B981' }}
+                >
+                  {savingSettings ? 'Guardando...' : '💾 Guardar Configuración'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Help Card */}
         <div 

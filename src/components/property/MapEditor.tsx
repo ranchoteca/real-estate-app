@@ -87,6 +87,12 @@ export default function MapEditor({
   const [gpsUsed, setGpsUsed] = useState(false);
   const [leafletReady, setLeafletReady] = useState(false);
   const [olcReady, setOlcReady] = useState(false);
+  const [plusCodeSuccess, setPlusCodeSuccess] = useState(false);
+  const [coordsSuccess, setCoordsSuccess] = useState(false);
+  const [coordsError, setCoordsError] = useState(false);
+  
+  // Referencia al mapa para poder actualizarlo
+  const mapRef = useRef<any>(null);
   
   // Guardar referencia a la instancia de OpenLocationCode
   const olcInstance = useRef<any>(null);
@@ -95,14 +101,9 @@ export default function MapEditor({
   useEffect(() => {
     if (typeof window !== 'undefined' && !olcInstance.current) {
       import('open-location-code').then((module) => {
-        // La librería exporta una clase OpenLocationCode
         const OpenLocationCodeClass = module.default?.OpenLocationCode || module.OpenLocationCode;
-        
-        // Crear una instancia de la clase
         olcInstance.current = new OpenLocationCodeClass();
-        
-        console.log('✅ OpenLocationCode instanciado:', olcInstance.current);
-        console.log('✅ Métodos disponibles:', Object.getOwnPropertyNames(Object.getPrototypeOf(olcInstance.current)));
+        console.log('✅ OpenLocationCode instanciado');
         setOlcReady(true);
       }).catch(err => {
         console.error('❌ Error cargando open-location-code:', err);
@@ -143,7 +144,6 @@ export default function MapEditor({
   // Decodificar Plus Code a coordenadas
   const decodePlusCode = (code: string): [number, number] | null => {
     try {
-      // Si es formato de coordenadas simple (fallback)
       if (code.includes(',') && !code.includes('+')) {
         const [lat, lng] = code.split(',').map(s => parseFloat(s.trim()));
         if (!isNaN(lat) && !isNaN(lng)) {
@@ -164,6 +164,27 @@ export default function MapEditor({
     }
   };
 
+  // Componente interno que usa el hook useMap para actualizar la vista
+  const MapUpdater = dynamic(
+    () => import('react-leaflet').then((mod) => {
+      const { useMap } = mod;
+      return () => {
+        const map = useMap();
+        mapRef.current = map;
+        
+        // Actualizar vista cuando cambia la posición
+        useEffect(() => {
+          if (position && map) {
+            map.setView(position, 15, { animate: true });
+          }
+        }, [position, map]);
+        
+        return null;
+      };
+    }),
+    { ssr: false }
+  );
+
   // Intentar GPS primero, luego geocoding
   useEffect(() => {
     if (!olcReady) return;
@@ -172,7 +193,6 @@ export default function MapEditor({
       setLoading(true);
       setError(null);
 
-      // 1. Si ya tiene coordenadas iniciales, usarlas
       if (initialLat && initialLng) {
         const coords: [number, number] = [initialLat, initialLng];
         const code = initialPlusCode || generatePlusCode(initialLat, initialLng);
@@ -185,7 +205,6 @@ export default function MapEditor({
         return;
       }
 
-      // 2. Si tiene Plus Code inicial, decodificarlo
       if (initialPlusCode) {
         const coords = decodePlusCode(initialPlusCode);
         if (coords) {
@@ -199,7 +218,6 @@ export default function MapEditor({
         }
       }
 
-      // 3. Intentar GPS del móvil
       if (navigator.geolocation && editable) {
         try {
           const gpsPosition = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -215,8 +233,6 @@ export default function MapEditor({
           ];
 
           const code = generatePlusCode(gpsCoords[0], gpsCoords[1]);
-
-          // Geocodificar la dirección para comparar
           const geocodedCoords = await geocodeAddress(address, city, state);
 
           if (geocodedCoords) {
@@ -249,7 +265,6 @@ export default function MapEditor({
         }
       }
 
-      // 4. Fallback: Geocoding de dirección
       const coords = await geocodeAddress(address, city, state);
       if (coords) {
         const code = generatePlusCode(coords[0], coords[1]);
@@ -260,7 +275,6 @@ export default function MapEditor({
         onLocationChange(coords[0], coords[1], code);
         setError('📍 Ubicación aproximada. Arrastra el pin o pega el Plus Code exacto.');
       } else {
-        // Default: centro de Costa Rica
         const defaultCoords: [number, number] = [9.7489, -83.7534];
         const code = generatePlusCode(defaultCoords[0], defaultCoords[1]);
         setPosition(defaultCoords);
@@ -276,7 +290,6 @@ export default function MapEditor({
     initializeLocation();
   }, [olcReady, address, city, state, initialLat, initialLng, initialPlusCode]);
 
-  // Geocoding con Nominatim (OpenStreetMap)
   const geocodeAddress = async (
     address: string, 
     city: string, 
@@ -308,7 +321,6 @@ export default function MapEditor({
     }
   };
 
-  // Calcular distancia entre dos puntos (Haversine)
   const calculateDistance = (
     coords1: [number, number],
     coords2: [number, number]
@@ -326,10 +338,13 @@ export default function MapEditor({
     return R * c;
   };
 
-  // Actualizar posición desde inputs manuales
   const handleManualUpdate = () => {
     const lat = parseFloat(manualLat);
     const lng = parseFloat(manualLng);
+
+    // Limpiar estados de feedback
+    setCoordsSuccess(false);
+    setCoordsError(false);
 
     if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
       const newPos: [number, number] = [lat, lng];
@@ -339,8 +354,13 @@ export default function MapEditor({
       setPlusCode(code);
       onLocationChange(lat, lng, code);
       setError(null);
+      
+      // Mostrar feedback de éxito
+      setCoordsSuccess(true);
+      setTimeout(() => setCoordsSuccess(false), 3000);
     } else {
-      setError('⚠️ Coordenadas inválidas');
+      setCoordsError(true);
+      setTimeout(() => setCoordsError(false), 3000);
     }
   };
 
@@ -350,10 +370,11 @@ export default function MapEditor({
       return;
     }
 
-    // Limpiar el input: extraer solo el código
+    // Limpiar estado de éxito anterior
+    setPlusCodeSuccess(false);
+
     let trimmedCode = plusCode.trim().toUpperCase();
     
-    // Extraer el código Plus Code del texto (ej: "856V+75F VILLAREAL..." → "856V+75F")
     const codeMatch = trimmedCode.match(/[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,}/);
     if (codeMatch) {
       trimmedCode = codeMatch[0];
@@ -365,14 +386,12 @@ export default function MapEditor({
     }
 
     try {
-      // Detectar si es un código corto
       const parts = trimmedCode.split('+');
       const isShort = parts[0].length < 8;
       let fullCode = trimmedCode;
 
-      // Si es corto, expandirlo
       if (isShort && olcInstance.current.recoverNearest) {
-        const reference = position || [10.3, -84.8]; // Guanacaste, Costa Rica
+        const reference = position || [10.3, -84.8];
         fullCode = olcInstance.current.recoverNearest(
           trimmedCode, 
           reference[0], 
@@ -381,7 +400,6 @@ export default function MapEditor({
         console.log(`🔄 Plus Code expandido: ${trimmedCode} → ${fullCode}`);
       }
 
-      // Decodificar
       const decoded = olcInstance.current.decode(fullCode);
       if (decoded && decoded.latitudeCenter && decoded.longitudeCenter) {
         const coords: [number, number] = [decoded.latitudeCenter, decoded.longitudeCenter];
@@ -391,6 +409,10 @@ export default function MapEditor({
         setPlusCode(fullCode);
         onLocationChange(coords[0], coords[1], fullCode);
         setError(null);
+        
+        // Mostrar badge de éxito
+        setPlusCodeSuccess(true);
+        setTimeout(() => setPlusCodeSuccess(false), 3000);
       } else {
         setError('⚠️ No se pudo convertir el Plus Code.');
       }
@@ -400,7 +422,6 @@ export default function MapEditor({
     }
   };
 
-  // Actualizar cuando se mueve el pin
   const handlePositionChange = (newPos: [number, number]) => {
     const code = generatePlusCode(newPos[0], newPos[1]);
     
@@ -435,7 +456,7 @@ export default function MapEditor({
 
   return (
     <div className="space-y-3">
-      {/* Mensajes */}
+      {/* Mensajes globales */}
       {gpsUsed && !error && (
         <div className="px-3 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
           ✅ Ubicación detectada con GPS
@@ -464,6 +485,7 @@ export default function MapEditor({
             setPosition={handlePositionChange}
             editable={editable}
           />
+          <MapUpdater />
         </MapContainer>
       </div>
 
@@ -491,6 +513,17 @@ export default function MapEditor({
                 Aplicar
               </button>
             </div>
+            
+            {/* Badge de éxito para Plus Code */}
+            {plusCodeSuccess && (
+              <div className="mt-2 px-3 py-1.5 bg-green-100 border border-green-300 rounded-lg flex items-center gap-2 animate-in fade-in duration-300">
+                <span className="text-green-600 font-bold">✓</span>
+                <span className="text-xs font-semibold text-green-700">
+                  Plus Code aplicado exitosamente
+                </span>
+              </div>
+            )}
+            
             <p className="text-xs text-blue-700 mt-2">
               💡 <strong>Pega el Plus Code desde Google Maps</strong> (puede incluir el nombre de la ciudad)
             </p>
@@ -537,6 +570,25 @@ export default function MapEditor({
               >
                 📍 Actualizar desde coordenadas
               </button>
+              
+              {/* Badges de feedback para coordenadas */}
+              {coordsSuccess && (
+                <div className="px-3 py-1.5 bg-green-100 border border-green-300 rounded-lg flex items-center gap-2 animate-in fade-in duration-300">
+                  <span className="text-green-600 font-bold">✓</span>
+                  <span className="text-xs font-semibold text-green-700">
+                    Ubicación actualizada exitosamente
+                  </span>
+                </div>
+              )}
+              
+              {coordsError && (
+                <div className="px-3 py-1.5 bg-red-100 border border-red-300 rounded-lg flex items-center gap-2 animate-in fade-in duration-300">
+                  <span className="text-red-600 font-bold">✕</span>
+                  <span className="text-xs font-semibold text-red-700">
+                    Coordenadas inválidas. Verifica los valores ingresados.
+                  </span>
+                </div>
+              )}
             </div>
           </details>
         </div>

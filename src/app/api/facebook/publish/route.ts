@@ -3,6 +3,22 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { supabaseAdmin } from '@/lib/supabase';
 
+
+export async function GET(req: NextRequest) {
+  const propertyId = req.nextUrl.searchParams.get('propertyId');
+  
+  if (!propertyId) {
+    return NextResponse.json({ error: 'propertyId requerido' }, { status: 400 });
+  }
+
+  // Crear un objeto Request simulado con el propertyId
+  const mockRequest = {
+    json: async () => ({ propertyId })
+  };
+
+  return POST(mockRequest as any);
+}
+
 export async function POST(req: NextRequest) {
   const encoder = new TextEncoder();
   const stream = new TransformStream();

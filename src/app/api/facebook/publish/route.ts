@@ -50,6 +50,8 @@ export async function POST(req: NextRequest) {
         .eq('email', session.user.email)
         .single();
 
+      console.log('🔍 Agent data:', agent);
+
       if (!agent?.facebook_page_id || !agent?.facebook_access_token) {
         await sendEvent({ error: 'Facebook no conectado', progress: 0 });
         await writer.close();

@@ -33,11 +33,15 @@ export async function POST(req: NextRequest) {
   (async () => {
     try {
       const session = await getServerSession(authOptions);
+      console.log('🔍 Session completa:', JSON.stringify(session, null, 2));
       if (!session?.user?.email) {
         await sendEvent({ error: 'No autenticado', progress: 0 });
         await writer.close();
         return;
       }
+
+      const userEmail = session.user.email;
+      console.log('📧 Email del usuario:', userEmail);
 
       const { propertyId } = await req.json();
 
@@ -47,7 +51,7 @@ export async function POST(req: NextRequest) {
       const { data: agent } = await supabaseAdmin
         .from('agents')
         .select('id, facebook_page_id, facebook_access_token, fb_ai_enabled, fb_brand_color_primary, fb_brand_color_secondary, fb_template, logo_url')
-        .eq('email', session.user.email)
+        .eq('email', userEmail)
         .single();
 
       console.log('🔍 Agent data:', agent);
@@ -205,7 +209,9 @@ ${property.description || ''}
       console.error('Error en publicación:', error);
       await sendEvent({ error: error.message || 'Error al publicar', progress: 0 });
     } finally {
-      await writer.close();
+        try {
+          await writer.close();
+        } catch (err) {}
     }
   })();
 

@@ -10,7 +10,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'propertyId requerido' }, { status: 400 });
   }
 
-  // Llamar directamente a la función de procesamiento
   return handlePublish(propertyId);
 }
 
@@ -24,13 +23,11 @@ export async function POST(req: NextRequest) {
   return handlePublish(propertyId);
 }
 
-// Función compartida que maneja la publicación
 function handlePublish(propertyId: string) {
   const encoder = new TextEncoder();
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
 
-  // Función helper para enviar eventos SSE
   const sendEvent = async (data: any) => {
     try {
       await writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
@@ -39,7 +36,6 @@ function handlePublish(propertyId: string) {
     }
   };
 
-  // Procesar en background
   (async () => {
     try {
       const session = await getServerSession(authOptions);
@@ -79,10 +75,10 @@ function handlePublish(propertyId: string) {
         return;
       }
 
-      // 2. Obtener propiedad
+      // 2. Obtener propiedad (con el campo photos que es un ARRAY)
       const { data: property, error: propertyError } = await supabaseAdmin
         .from('properties')
-        .select('*, property_images(*)')
+        .select('id, title, description, price, city, state, address, photos')
         .eq('id', propertyId)
         .single();
 
@@ -98,7 +94,8 @@ function handlePublish(propertyId: string) {
 
       await sendEvent({ message: 'Preparando imágenes...', progress: 20 });
 
-      let imageUrls = property.property_images?.map((img: any) => img.url) || [];
+      // Las imágenes están en el campo photos (es un array de strings)
+      let imageUrls: string[] = property.photos || [];
       
       if (imageUrls.length === 0) {
         await sendEvent({ error: 'La propiedad no tiene imágenes', progress: 0 });
@@ -106,37 +103,48 @@ function handlePublish(propertyId: string) {
         return;
       }
 
-      let flyerUrl = null;
+      console.log(`✅ Imágenes encontradas: ${imageUrls.length}`);
+
+      let flyerUrl: string | null = null;
 
       // 3. Generar flyer con IA si está habilitado
       if (agent.fb_ai_enabled) {
         await sendEvent({ message: '🎨 Generando diseño con IA...', progress: 30 });
 
-        const flyerResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/openai/generate-flyer`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            property: {
-              title: property.title,
-              location: property.location,
-              price: property.price,
-            },
-            template: agent.fb_template,
-            colorPrimary: agent.fb_brand_color_primary,
-            colorSecondary: agent.fb_brand_color_secondary,
-          }),
-        });
+        try {
+          // Construir location desde los campos disponibles
+          const locationParts = [property.city, property.state].filter(Boolean);
+          const location = locationParts.length > 0 ? locationParts.join(', ') : property.address || 'Ubicación disponible';
 
-        if (flyerResponse.ok) {
-          const flyerData = await flyerResponse.json();
-          flyerUrl = flyerData.imageUrl;
-          
-          // Agregar el flyer como primera imagen
-          imageUrls = [flyerUrl, ...imageUrls];
-          
-          await sendEvent({ message: '✅ Diseño generado', progress: 50 });
-        } else {
-          console.error('Error generando flyer, continuando con imágenes originales');
+          const flyerResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/openai/generate-flyer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              property: {
+                title: property.title,
+                location: location,
+                price: property.price,
+              },
+              template: agent.fb_template,
+              colorPrimary: agent.fb_brand_color_primary,
+              colorSecondary: agent.fb_brand_color_secondary,
+            }),
+          });
+
+          if (flyerResponse.ok) {
+            const flyerData = await flyerResponse.json();
+            flyerUrl = flyerData.imageUrl;
+            
+            // Agregar el flyer como primera imagen
+            imageUrls = [flyerUrl, ...imageUrls];
+            
+            await sendEvent({ message: '✅ Diseño generado', progress: 50 });
+          } else {
+            console.error('Error generando flyer, continuando con imágenes originales');
+            await sendEvent({ message: 'Continuando sin diseño IA...', progress: 50 });
+          }
+        } catch (flyerError) {
+          console.error('Error en generación de flyer:', flyerError);
           await sendEvent({ message: 'Continuando sin diseño IA...', progress: 50 });
         }
       } else {
@@ -144,11 +152,14 @@ function handlePublish(propertyId: string) {
       }
 
       // 4. Preparar mensaje
+      const locationParts = [property.city, property.state].filter(Boolean);
+      const displayLocation = locationParts.length > 0 ? locationParts.join(', ') : property.address || 'Ubicación disponible';
+
       const message = `
 🏡 ${property.title}
 
-📍 ${property.location || 'Ubicación disponible'}
-💰 ${property.price ? `$${property.price.toLocaleString()}` : 'Consultar precio'}
+📍 ${displayLocation}
+💰 ${property.price ? `$${Number(property.price).toLocaleString()}` : 'Consultar precio'}
 
 ${property.description || ''}
 
@@ -161,8 +172,13 @@ ${property.description || ''}
       await sendEvent({ message: 'Subiendo imágenes a Facebook...', progress: 60 });
 
       // 5. Subir todas las imágenes
-      const uploadedPhotoIds = await Promise.all(
-        imageUrls.map(async (imageUrl: string) => {
+      const uploadedPhotoIds: string[] = [];
+      
+      for (let i = 0; i < imageUrls.length; i++) {
+        const imageUrl = imageUrls[i];
+        try {
+          console.log(`📤 Subiendo imagen ${i + 1}/${imageUrls.length}: ${imageUrl}`);
+          
           const uploadResponse = await fetch(
             `https://graph.facebook.com/v18.0/${pageId}/photos`,
             {
@@ -179,12 +195,22 @@ ${property.description || ''}
           const uploadData = await uploadResponse.json();
           
           if (uploadData.error) {
-            throw new Error(`Error subiendo imagen: ${uploadData.error.message}`);
+            console.error(`❌ Error subiendo imagen ${i + 1}:`, uploadData.error);
+            continue;
           }
 
-          return uploadData.id;
-        })
-      );
+          uploadedPhotoIds.push(uploadData.id);
+          console.log(`✅ Imagen ${i + 1} subida: ${uploadData.id}`);
+        } catch (uploadError) {
+          console.error(`❌ Error en upload de imagen ${i + 1}:`, uploadError);
+        }
+      }
+
+      if (uploadedPhotoIds.length === 0) {
+        throw new Error('No se pudo subir ninguna imagen a Facebook');
+      }
+
+      console.log(`✅ Total de imágenes subidas: ${uploadedPhotoIds.length}`);
 
       await sendEvent({ message: 'Publicando en Facebook...', progress: 80 });
 
@@ -205,19 +231,26 @@ ${property.description || ''}
       const publishData = await publishResponse.json();
 
       if (publishData.error) {
+        console.error('❌ Error publicando en Facebook:', publishData.error);
         throw new Error(publishData.error.message);
       }
+
+      console.log('✅ Publicado en Facebook:', publishData.id);
 
       await sendEvent({ message: 'Guardando registro...', progress: 90 });
 
       // 7. Guardar registro
-      await supabaseAdmin.from('facebook_posts').insert({
+      const { error: insertError } = await supabaseAdmin.from('facebook_posts').insert({
         property_id: propertyId,
         agent_id: agent.id,
         facebook_post_id: publishData.id,
         flyer_url: flyerUrl,
         published_at: new Date().toISOString(),
       });
+
+      if (insertError) {
+        console.error('⚠️ Error guardando registro (no crítico):', insertError);
+      }
 
       await sendEvent({ 
         message: '✅ ¡Publicado exitosamente!', 
@@ -226,6 +259,8 @@ ${property.description || ''}
         postUrl: `https://facebook.com/${publishData.id}`
       });
 
+      console.log('🎉 Proceso completado exitosamente');
+
     } catch (error: any) {
       console.error('💥 Error en publicación:', error);
       await sendEvent({ error: error.message || 'Error al publicar', progress: 0 });
@@ -233,7 +268,7 @@ ${property.description || ''}
       try {
         await writer.close();
       } catch (err) {
-        console.error('Error cerrando writer:', err);
+        // Ignorar error de cierre
       }
     }
   })();

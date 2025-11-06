@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { supabaseAdmin } from '@/lib/supabase';
 
-
 export async function GET(req: NextRequest) {
   const propertyId = req.nextUrl.searchParams.get('propertyId');
   
@@ -11,22 +10,33 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'propertyId requerido' }, { status: 400 });
   }
 
-  // Crear un objeto Request simulado con el propertyId
-  const mockRequest = {
-    json: async () => ({ propertyId })
-  };
-
-  return POST(mockRequest as any);
+  // Llamar directamente a la función de procesamiento
+  return handlePublish(propertyId);
 }
 
 export async function POST(req: NextRequest) {
+  const { propertyId } = await req.json();
+  
+  if (!propertyId) {
+    return NextResponse.json({ error: 'propertyId requerido' }, { status: 400 });
+  }
+
+  return handlePublish(propertyId);
+}
+
+// Función compartida que maneja la publicación
+function handlePublish(propertyId: string) {
   const encoder = new TextEncoder();
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
 
   // Función helper para enviar eventos SSE
   const sendEvent = async (data: any) => {
-    await writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+    try {
+      await writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+    } catch (err) {
+      console.error('Error enviando evento SSE:', err);
+    }
   };
 
   // Procesar en background
@@ -34,6 +44,7 @@ export async function POST(req: NextRequest) {
     try {
       const session = await getServerSession(authOptions);
       console.log('🔍 Session completa:', JSON.stringify(session, null, 2));
+      
       if (!session?.user?.email) {
         await sendEvent({ error: 'No autenticado', progress: 0 });
         await writer.close();
@@ -42,38 +53,48 @@ export async function POST(req: NextRequest) {
 
       const userEmail = session.user.email;
       console.log('📧 Email del usuario:', userEmail);
-
-      const { propertyId } = await req.json();
+      console.log('🏠 Property ID recibido:', propertyId);
 
       await sendEvent({ message: 'Obteniendo datos...', progress: 10 });
 
       // 1. Obtener datos del agente
-      const { data: agent } = await supabaseAdmin
+      const { data: agent, error: agentError } = await supabaseAdmin
         .from('agents')
         .select('id, facebook_page_id, facebook_access_token, fb_ai_enabled, fb_brand_color_primary, fb_brand_color_secondary, fb_template')
         .eq('email', userEmail)
         .single();
 
-      console.log('✅ Agent obtenido correctamente');
+      if (agentError || !agent) {
+        console.error('❌ Error obteniendo agente:', agentError);
+        await sendEvent({ error: 'Agente no encontrado', progress: 0 });
+        await writer.close();
+        return;
+      }
 
-      if (!agent?.facebook_page_id || !agent?.facebook_access_token) {
+      console.log('✅ Agent obtenido correctamente:', agent.id);
+
+      if (!agent.facebook_page_id || !agent.facebook_access_token) {
         await sendEvent({ error: 'Facebook no conectado', progress: 0 });
         await writer.close();
         return;
       }
 
       // 2. Obtener propiedad
-      const { data: property } = await supabaseAdmin
+      const { data: property, error: propertyError } = await supabaseAdmin
         .from('properties')
         .select('*, property_images(*)')
         .eq('id', propertyId)
         .single();
 
-      if (!property) {
+      if (propertyError || !property) {
+        console.error('❌ Error obteniendo propiedad:', propertyError);
+        console.error('🔍 Property ID buscado:', propertyId);
         await sendEvent({ error: 'Propiedad no encontrada', progress: 0 });
         await writer.close();
         return;
       }
+
+      console.log('✅ Propiedad encontrada:', property.title);
 
       await sendEvent({ message: 'Preparando imágenes...', progress: 20 });
 
@@ -206,12 +227,14 @@ ${property.description || ''}
       });
 
     } catch (error: any) {
-      console.error('Error en publicación:', error);
+      console.error('💥 Error en publicación:', error);
       await sendEvent({ error: error.message || 'Error al publicar', progress: 0 });
     } finally {
-        try {
-          await writer.close();
-        } catch (err) {}
+      try {
+        await writer.close();
+      } catch (err) {
+        console.error('Error cerrando writer:', err);
+      }
     }
   })();
 

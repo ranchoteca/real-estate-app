@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import PhotoUploader from '@/components/property/PhotoUploader';
 import VoiceRecorder from '@/components/property/VoiceRecorder';
 import MapEditor from '@/components/property/MapEditor';
+import MobileLayout from '@/components/MobileLayout';
 
 interface PropertyData {
   title: string;
@@ -126,9 +127,14 @@ export default function CreatePropertyPage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading...</div>
-      </div>
+      <MobileLayout title="Crear Propiedad" showBack={true} showTabs={true}>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center py-12">
+            <div className="text-5xl mb-4 animate-pulse">🏠</div>
+            <div className="text-lg" style={{ color: '#0F172A' }}>Cargando...</div>
+          </div>
+        </div>
+      </MobileLayout>
     );
   }
 
@@ -347,35 +353,13 @@ export default function CreatePropertyPage() {
   });
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F5EAD3' }}>
-      {/* Navbar */}
-      <nav className="shadow-lg" style={{ backgroundColor: '#0F172A' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🏠</span>
-              <span className="text-xl font-bold text-white">Flow Estate AI</span>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="text-white hover:opacity-80 font-semibold transition-opacity"
-              >
-                ← Dashboard
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+    <MobileLayout title="Crear Propiedad" showBack={true} showTabs={true}>
+      <div className="px-4 py-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
             Crear nueva propiedad
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm" style={{ color: '#64748B' }}>
             Sube fotos, configura el tipo de propiedad y describe por voz. La IA generará el listing completo.
           </p>
         </div>
@@ -388,7 +372,7 @@ export default function CreatePropertyPage() {
         )}
 
         {/* Form Sections */}
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* Section 1: Photos */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -408,7 +392,7 @@ export default function CreatePropertyPage() {
               <span>🏷️</span> Paso 2: Configuración de Propiedad
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Tipo de propiedad
@@ -609,8 +593,8 @@ export default function CreatePropertyPage() {
                 </div>
 
                 {/* Location */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Dirección
                     </label>
@@ -777,7 +761,7 @@ export default function CreatePropertyPage() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </MobileLayout>
   );
 }

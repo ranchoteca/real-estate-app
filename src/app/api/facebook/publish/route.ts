@@ -48,12 +48,13 @@ export async function POST(req: NextRequest) {
       await sendEvent({ message: 'Obteniendo datos...', progress: 10 });
 
       // 1. Obtener datos del agente
-      const { data: agent } = await supabaseAdmin
+      const { data: agent, error: agentError } = await supabaseAdmin
         .from('agents')
-        .select('id, facebook_page_id, facebook_access_token, fb_ai_enabled, fb_brand_color_primary, fb_brand_color_secondary, fb_template, logo_url')
+        .select('*')
         .eq('email', userEmail)
         .single();
 
+      console.log('🔍 Agent error:', agentError);
       console.log('🔍 Agent data:', agent);
 
       if (!agent?.facebook_page_id || !agent?.facebook_access_token) {

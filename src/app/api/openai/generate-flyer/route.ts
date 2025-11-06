@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import sharp from 'sharp';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -16,130 +15,93 @@ export async function POST(req: NextRequest) {
       logoUrl,
     } = await req.json();
 
-    console.log('🎨 Generando flyer para:', property.title);
+    console.log('🎨 Generando flyer digital para:', property.title);
+    console.log('🎨 Colores:', { colorPrimary, colorSecondary });
+    console.log('🏷️ Logo:', logoUrl || 'Sin logo');
 
-    const hasImages = property.photos && property.photos.length > 0;
-    const baseImageUrl = hasImages ? property.photos[0] : null;
-
-    // 🖼️ Si existe imagen real, usarla como base
-    if (baseImageUrl) {
-      console.log('🖼️ Usando la primera imagen real de la propiedad como base');
-
-      const baseRes = await fetch(baseImageUrl);
-      const baseBuffer = Buffer.from(await baseRes.arrayBuffer());
-
-      // 🧠 Crear capa SVG con los tres campos: título, ubicación y precio
-      const overlaySvg = `
-        <svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
-          <!-- Oscurece ligeramente la imagen para mejorar legibilidad -->
-          <rect width="1024" height="1024" fill="rgba(0,0,0,0.25)" />
-          
-          <!-- Franja inferior semitransparente -->
-          <rect x="0" y="760" width="1024" height="264" fill="rgba(255,255,255,0.92)" />
-
-          <!-- Título -->
-          <text x="60" y="860" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="${colorPrimary}">
-            ${property.title?.toUpperCase() || 'PROPIEDAD EN VENTA'}
-          </text>
-
-          <!-- Ubicación -->
-          <text x="60" y="920" font-family="Arial, sans-serif" font-size="36" fill="${colorSecondary}">
-            ${property.location || 'Ubicación no disponible'}
-          </text>
-
-          <!-- Precio -->
-          <text x="60" y="980" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="${colorPrimary}">
-            ${property.price ? `$${property.price.toLocaleString()}` : 'Contactar precio'}
-          </text>
-        </svg>
-      `;
-
-      // 🧩 Composición de la imagen base + la capa SVG
-      let composed = sharp(baseBuffer)
-        .resize(1024, 1024, { fit: 'cover' })
-        .composite([{ input: Buffer.from(overlaySvg), top: 0, left: 0 }]);
-
-      // 🏷️ Si el agente tiene logo, lo colocamos en la esquina superior izquierda
-      if (logoUrl) {
-        console.log('🏷️ Agregando logo del agente');
-
-        const logoRes = await fetch(logoUrl);
-        const logoBuffer = Buffer.from(await logoRes.arrayBuffer());
-
-        composed = composed.composite([
-          {
-            input: await sharp(logoBuffer)
-              .resize(140, 140, { fit: 'contain' })
-              .png()
-              .toBuffer(),
-            top: 40,
-            left: 40,
-          },
-        ]);
-      }
-
-      // 📸 Exportar imagen final en formato Base64
-      const outputBuffer = await composed.jpeg({ quality: 90 }).toBuffer();
-      const base64Image = `data:image/jpeg;base64,${outputBuffer.toString('base64')}`;
-
-      console.log('✅ Flyer generado con imagen real y colores del agente');
-
-      return NextResponse.json({
-        success: true,
-        source: 'real-photo',
-        imageBase64: base64Image,
-      });
-    }
-
-    // ⚙️ Si no hay imágenes, usar DALL·E 3 como fallback
-    console.log('⚙️ No hay imagen ni logo, usando DALL·E 3 para generar arte');
-
+    // 📝 Estilos de plantillas
     const templateStyles = {
-      moderna: 'Modern real estate flyer with clean geometric layout and strong typography',
-      elegante: 'Elegant luxury real estate flyer with premium look and serif fonts',
-      minimalista: 'Minimalist flyer with soft background and simple visual hierarchy',
-      vibrante: 'Vibrant flyer with high contrast and colorful accents',
+      moderna: 'Modern, clean, minimalist design with geometric shapes and bold sans-serif typography',
+      elegante: 'Elegant, sophisticated luxury design with premium aesthetics and refined serif fonts',
+      minimalista: 'Ultra-minimalist with maximum white space, simple layout, and subtle hierarchy',
+      vibrante: 'Bold, energetic design with high contrast, vibrant accents, and dynamic composition',
     };
 
+    const selectedStyle = templateStyles[template as keyof typeof templateStyles] || templateStyles.moderna;
+
+    // 🎨 Prompt detallado para DALL-E 3
     const prompt = `
-      Create a professional real estate flyer with these specs:
-      STYLE: ${templateStyles[template as keyof typeof templateStyles]}
-      PROPERTY DETAILS:
-      - Title: ${property.title}
-      - Location: ${property.location}
-      - Price: $${property.price?.toLocaleString() || 'Contact for price'}
+Create a professional real estate marketing flyer design:
 
-      DESIGN REQUIREMENTS:
-      - Primary brand color: ${colorPrimary}
-      - Secondary brand color: ${colorSecondary}
-      - Prominent price display
-      - Include clear space for logo
-      - Square 1024x1024 format suitable for Facebook
-      - No people, realistic architectural look
-    `;
+PROPERTY DETAILS:
+- Title: "${property.title}"
+- Location: "${property.location || 'Location available'}"
+- Price: "${property.price ? `$${Number(property.price).toLocaleString()}` : 'Contact for price'}"
 
+DESIGN STYLE: ${selectedStyle}
+
+BRAND COLORS (USE EXACTLY):
+- Primary: ${colorPrimary} - for main title and key elements
+- Secondary: ${colorSecondary} - for location text and accents
+
+LAYOUT REQUIREMENTS:
+- Square 1024x1024px format for Facebook
+- Top section: ${logoUrl ? 'Space for company logo (light background area, top-left corner)' : 'Clean header area'}
+- Main content centered or upper-center:
+  * Property title in LARGE bold text (${colorPrimary})
+  * Location with pin icon in medium text (${colorSecondary})
+  * Price prominently displayed (${colorPrimary})
+- Background: Subtle architectural/real estate imagery that doesn't compete with text
+- Professional, modern, clean aesthetic
+- High contrast for readability
+- No people, focus on design and architecture
+
+The flyer should look like premium real estate marketing material, with clear visual hierarchy and the brand colors integrated throughout the design.
+    `.trim();
+
+    console.log('🤖 Generando con DALL-E 3...');
+
+    // 🚀 Generar con DALL-E 3
     const response = await openai.images.generate({
       model: 'dall-e-3',
       prompt,
       size: '1024x1024',
-      n: 1,
+      quality: 'hd',
       style: 'natural',
-      quality: 'standard',
+      n: 1,
     });
 
-    const imageUrl = response.data[0].url;
-    if (!imageUrl) throw new Error('No se generó la imagen con DALL·E');
+    const imageUrl = response.data[0]?.url;
+    
+    if (!imageUrl) {
+      throw new Error('No se generó la imagen');
+    }
 
-    console.log('✅ Flyer generado con DALL·E 3 (fallback)');
+    console.log('✅ Flyer generado exitosamente');
+
     return NextResponse.json({
       success: true,
-      source: 'dalle',
       imageUrl,
+      source: 'dalle-3',
+      template,
+      colors: {
+        primary: colorPrimary,
+        secondary: colorSecondary,
+      },
     });
+
   } catch (error: any) {
     console.error('❌ Error generando flyer:', error);
+    
+    if (error.response) {
+      console.error('OpenAI Error:', error.response.data);
+    }
+
     return NextResponse.json(
-      { success: false, error: error.message || 'Error generando flyer' },
+      { 
+        success: false, 
+        error: error.message || 'Error generando flyer',
+      },
       { status: 500 }
     );
   }

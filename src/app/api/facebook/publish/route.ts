@@ -48,14 +48,13 @@ export async function POST(req: NextRequest) {
       await sendEvent({ message: 'Obteniendo datos...', progress: 10 });
 
       // 1. Obtener datos del agente
-      const { data: agent, error: agentError } = await supabaseAdmin
+      const { data: agent } = await supabaseAdmin
         .from('agents')
-        .select('*')
+        .select('id, facebook_page_id, facebook_access_token, fb_ai_enabled, fb_brand_color_primary, fb_brand_color_secondary, fb_template')
         .eq('email', userEmail)
         .single();
 
-      console.log('🔍 Agent error:', agentError);
-      console.log('🔍 Agent data:', agent);
+      console.log('✅ Agent obtenido correctamente');
 
       if (!agent?.facebook_page_id || !agent?.facebook_access_token) {
         await sendEvent({ error: 'Facebook no conectado', progress: 0 });

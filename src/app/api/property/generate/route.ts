@@ -10,20 +10,59 @@ interface CustomField {
   field_key: string;   
   field_name: string;
   field_type: 'text' | 'number';
+  placeholder: string;
   icon: string;
 }
 
 function buildPropertyPrompt(customFields: CustomField[] = []): string {
   const customFieldsSection = customFields.length > 0 
-    ? `\n\n4. CAMPOS PERSONALIZADOS (extraer del audio si se mencionan):
-${customFields.map(f => `   - ${f.icon} ${f.field_name} [key: ${f.field_key}] (${f.field_type === 'number' ? 'número' : 'texto'})`).join('\n')}
+    ? `\n\n4. CAMPOS PERSONALIZADOS (IMPORTANTE - Lee con atención):
 
-   IMPORTANTE: Los campos personalizados deben ir en un objeto "custom_fields_data" usando el field_key de cada campo.
-   No uses el field_name como key, usa el field_key que se proporciona en la lista de campos.
-   Si el agente NO mencionó un campo, NO lo incluyas en custom_fields_data.`
+LISTA DE CAMPOS DISPONIBLES:
+${customFields.map(f => `   ${f.icon} "${f.field_name}" [key: ${f.field_key}]
+      - Tipo: ${f.field_type === 'number' ? 'NÚMERO (solo dígitos)' : 'TEXTO (respuestas cortas como: Sí, No, o descripción breve)'}
+      - Placeholder: "${f.placeholder}"
+      - Ejemplo: ${f.field_type === 'number' ? '"2" (si menciona "dos nacientes")' : '"Sí" (si dice que tiene), "No" (si dice que no tiene), o descripción breve'}`).join('\n\n')}
+
+REGLAS CRÍTICAS PARA CAMPOS PERSONALIZADOS:
+1. ✅ SOLO incluye en "custom_fields_data" los campos que el agente SÍ mencionó
+2. ❌ NO uses el nombre del campo como valor (ejemplo: NO hacer "garaje": "Garaje")
+3. ✅ Para campos de TEXTO sobre existencia/presencia:
+   - Si dice que SÍ tiene: usa "Sí" o "Disponible"
+   - Si dice que NO tiene: usa "No" o "No disponible"
+   - Si da detalles: usa la descripción breve (máximo 50 caracteres)
+4. ✅ Para campos NUMÉRICOS:
+   - Extrae SOLO el número mencionado
+   - "dos nacientes" → "2"
+   - "tres lagos" → "3"
+   - Si no especifica cantidad: omite el campo
+5. ✅ Usa el "field_key" (no el "field_name") como llave en el JSON
+6. ❌ Si el agente NO mencionó un campo, NO lo incluyas en custom_fields_data
+
+EJEMPLOS CORRECTOS:
+- Agente dice: "tiene garaje para dos carros" 
+  → "garaje": "Sí - 2 carros" (campo texto)
+
+- Agente dice: "cuenta con malla perimetral"
+  → "malla_perimetral": "Sí" (campo texto)
+
+- Agente dice: "no tiene terraza"
+  → "terraza": "No" (campo texto)
+
+- Agente dice: "hay tres nacientes en la propiedad"
+  → "nacientes": "3" (campo número)
+
+- Agente NO menciona "lagos"
+  → NO incluir "lagos" en custom_fields_data
+
+EJEMPLOS INCORRECTOS ❌:
+- "garaje": "Garaje" → MAL (usa el nombre como valor)
+- "malla_perimetral": "Malla perimetral" → MAL (usa el nombre como valor)
+- "nacientes": "nacientes" → MAL (usa el nombre como valor)
+- Incluir campos no mencionados → MAL`
     : '';
 
-  return `Eres un experto en copywriting de bienes raíces. 
+  return `Eres un experto en copywriting de bienes raíces y extracción de información estructurada.
 
 Un agente inmobiliario acaba de describir una propiedad por voz. Tu trabajo es:
 
@@ -48,16 +87,15 @@ Un agente inmobiliario acaba de describir una propiedad por voz. Tu trabajo es:
   "address": "123 Main Street",
   "city": "Austin",
   "state": "TX",
-  "zip_code": "78701"${customFields.length > 0 ? ',\n  "custom_fields_data": {\n' + customFields.map(f => `    "${f.field_key}": "${f.field_type === 'number' ? '25' : 'Ejemplo de valor'}"`).join(',\n') + '\n  }' : ''}
+  "zip_code": "78701"${customFields.length > 0 ? ',\n  "custom_fields_data": {\n    "campo_ejemplo": "Sí"\n  }' : ''}
 }${customFieldsSection}
 
-REGLAS IMPORTANTES:
-- Si el agente NO mencionó algún dato, usa null (excepto custom_fields_data que no debe incluir campos no mencionados)
+REGLAS GENERALES:
+- Si el agente NO mencionó algún dato básico, usa null
 - El precio debe ser número sin símbolos ni comas
 - "state" puede ser estado o provincia (son equivalentes)
 - La descripción debe ser fluida, no una lista de características
 - NO inventes información que no fue mencionada
-- custom_fields_data: solo incluir campos que SÍ fueron mencionados en el audio
 
 Transcripción del agente:`;
 }
@@ -92,6 +130,11 @@ export async function POST(req: NextRequest) {
     console.log('🤖 Generando descripción con GPT-4...');
     console.log('Tipo:', property_type, '→', listing_type);
     console.log('Campos personalizados:', custom_fields?.length || 0);
+    if (custom_fields && custom_fields.length > 0) {
+      console.log('📋 Campos disponibles:', custom_fields.map((f: CustomField) => 
+        `${f.field_name} (${f.field_key}) - ${f.field_type}`
+      ));
+    }
     console.log('Transcripción:', transcription.substring(0, 100) + '...');
 
     // Construir prompt dinámico
@@ -100,6 +143,8 @@ export async function POST(req: NextRequest) {
     // Llamar a GPT-4
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      temperature: 0.7,
+      response_format: { type: 'json_object' },
       messages: [
         {
           role: 'system',
@@ -110,8 +155,6 @@ export async function POST(req: NextRequest) {
           content: transcription,
         },
       ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
     });
 
     const responseText = completion.choices[0].message.content;
@@ -148,7 +191,8 @@ export async function POST(req: NextRequest) {
       title: propertyData.title,
       price: propertyData.price,
       city: propertyData.city,
-      custom_fields: Object.keys(propertyData.custom_fields_data).length,
+      custom_fields_keys: Object.keys(propertyData.custom_fields_data),
+      custom_fields_values: propertyData.custom_fields_data,
     });
 
     return NextResponse.json({

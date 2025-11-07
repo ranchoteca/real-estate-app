@@ -302,7 +302,7 @@ export default function EditPropertyPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <MobileLayout title="Cargando..." showBack={true} showTabs={false}>
+      <MobileLayout title="Cargando..." showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">✏️</div>
@@ -320,8 +320,8 @@ export default function EditPropertyPage() {
   const totalPhotos = existingPhotos.length + newPhotos.length;
 
   return (
-    <MobileLayout title="Editar Propiedad" showBack={true} showTabs={false}>
-      <div className="px-4 pt-4 pb-24 space-y-4">
+    <MobileLayout title="Editar Propiedad" showBack={true} showTabs={true}>
+      <div className="px-4 py-6 space-y-4">
         {/* Error Message */}
         {error && (
           <div 

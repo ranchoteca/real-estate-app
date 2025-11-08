@@ -1,124 +1,188 @@
-import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from '@/lib/supabase';
-import OpenAI from "openai";
-import { v4 as uuidv4 } from "uuid";
+import { NextRequest, NextResponse } from 'next/server';
+import OpenAI from 'openai';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
+  apiKey: process.env.OPENAI_API_KEY,
 });
-
-export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
-    const { property, theme, logoUrl } = await req.json();
-    const requestId = uuidv4();
-    console.log(`[${requestId}] 🎨 Generando arte digital...`);
+    const {
+      property,
+      template,
+      colorPrimary,
+      colorSecondary,
+      logoUrl,
+    } = await req.json();
 
-    const firstImageUrl = property?.images?.[0] || null;
+    console.log('🎨 Generando arte digital con GPT-5 para:', property.title);
+    console.log('🎨 Template:', template);
+    console.log('🎨 Colores:', { colorPrimary, colorSecondary });
+    console.log('🏷️ Logo:', logoUrl || 'Sin logo');
 
-    // 1️⃣ — GPT-5: generar y optimizar prompt
-    const creativePrompt = `
-Eres un diseñador gráfico experto en anuncios inmobiliarios para redes sociales.
+    // 📝 Estilos visuales
+    const visualStyles = {
+      moderna: 'diseño minimalista moderno con formas geométricas limpias y arquitectura contemporánea',
+      elegante: 'diseño de lujo elegante con estética premium sofisticada y detalles refinados',
+      minimalista: 'diseño ultra-minimalista con máximo espacio en blanco y jerarquía visual simple',
+      vibrante: 'diseño vibrante y energético con colores audaces y elementos visuales dinámicos',
+    };
 
-Genera un prompt técnico y corto para DALL·E 3 (formato cuadrado 1:1),
-que indique cómo diseñar un arte atractivo para Facebook Ads inmobiliario.
+    const style = visualStyles[template as keyof typeof visualStyles] || visualStyles.moderna;
 
-Datos:
-- Tema: ${theme}
-- Propiedad: ${property?.title || "Propiedad en venta"}
-- Ubicación: ${property?.location || "Ubicación desconocida"}
-- Precio: ${property?.price || "Precio no indicado"}
-- Logo disponible: ${logoUrl ? "Sí" : "No"}
-- Imagen base disponible: ${firstImageUrl ? "Sí" : "No"}
+    // Obtener la primera foto de la propiedad
+    const propertyImage = property.photos && property.photos.length > 0 ? property.photos[0] : null;
 
-Instrucciones:
-Si hay imagen base, el arte debe superponer textos y diseño sobre esa imagen real, 
-manteniendo buena composición, contraste y legibilidad del texto.
-Si no hay imagen base, crea un fondo visual coherente con el tema y estilo inmobiliario.
+    // 🎨 Prompt optimizado para generar arte digital
+    const prompt = `
+Genera un arte digital profesional para publicidad inmobiliaria en Facebook (formato cuadrado 1024x1024px).
 
-Devuelve solo el prompt final.
-`;
+INFORMACIÓN DE LA PROPIEDAD:
+- Título: ${property.title}
+- Ubicación: ${property.location || 'Ubicación disponible'}
+- Precio: ${property.price ? `$${Number(property.price).toLocaleString()}` : 'Consultar precio'}
 
-    console.log(`[${requestId}] 🧠 Solicitando prompt a GPT-5...`);
+ESTILO VISUAL: ${style}
 
-    const gptResponse = await openai.chat.completions.create({
-      model: "gpt-5",
-      messages: [
+COLORES DE MARCA (usar estos colores exactos):
+- Color Principal: ${colorPrimary} - para el título de la propiedad
+- Color Secundario: ${colorSecondary} - para ubicación y elementos decorativos
+
+REQUISITOS DEL DISEÑO:
+${propertyImage ? `
+- Usa la imagen de la propiedad proporcionada como fondo principal
+- Aplica una capa oscura semitransparente (25-35% de opacidad) sobre la foto para mejorar la legibilidad del texto
+- El fondo debe ser la fotografía de la propiedad en toda la composición
+` : `
+- Crea un fondo arquitectónico moderno y atractivo
+- Usa elementos visuales sutiles relacionados con bienes raíces
+`}
+
+COMPOSICIÓN:
+1. ${logoUrl ? 'Reserva la esquina superior izquierda (140x140px) como área limpia y clara para logo' : 'Encabezado limpio en la parte superior'}
+2. Centro/Parte superior: Título de la propiedad en tipografía GRANDE y bold (color: ${colorPrimary})
+3. Sección media: Ubicación con ícono de pin/mapa (color: ${colorSecondary})
+4. Parte inferior: Precio de forma prominente y clara (color: ${colorPrimary})
+
+ESTILO:
+- Tipografía moderna, profesional y altamente legible
+- Alto contraste para excelente legibilidad
+- Sin personas visibles
+- Apariencia de marketing inmobiliario premium para redes sociales
+- Los colores de marca deben ser elementos visuales dominantes
+
+${propertyImage ? 'IMPORTANTE: Superpón el texto sobre la fotografía de la propiedad con excelente contraste y legibilidad.' : ''}
+
+Genera un diseño limpio y profesional para Facebook.
+    `.trim();
+
+    console.log('🤖 Generando arte con Responses API...');
+
+    // Preparar el input con imagen si existe
+    const contentArray: any[] = [
+      {
+        type: 'input_text',
+        text: prompt,
+      },
+    ];
+
+    // Si hay imagen de la propiedad, agregarla
+    if (propertyImage) {
+      contentArray.push({
+        type: 'input_image',
+        image_url: propertyImage,
+      });
+    }
+
+    // 🚀 Usar Responses API con image_generation tool
+    const response = await openai.responses.create({
+      model: 'gpt-4.1',
+      input: [
         {
-          role: "system",
-          content:
-            "Eres un experto en marketing visual y creación de prompts para imágenes publicitarias. Devuelve SOLO el prompt final optimizado.",
+          role: 'user',
+          content: contentArray,
         },
-        { role: "user", content: creativePrompt },
       ],
+      tools: [{ type: 'image_generation' }],
     });
 
-    const optimizedPrompt =
-      gptResponse.choices[0]?.message?.content?.trim() ||
-      `${theme} visual para publicidad inmobiliaria`;
+    console.log('📦 Respuesta recibida');
 
-    console.log(`[${requestId}] ✅ Prompt optimizado:\n${optimizedPrompt}`);
-
-    // 2️⃣ — DALL·E: renderizar arte (usando imagen base si existe)
-    console.log(
-      `[${requestId}] 🖼️ Solicitando render a gpt-image-1 ${
-        firstImageUrl ? "con imagen base" : "sin imagen base"
-      }...`
+    // Extraer la imagen generada
+    const imageGenerationCalls = response.output.filter(
+      (output: any) => output.type === 'image_generation_call'
     );
 
-    const imageResponse = await openai.images.generate({
-      model: "gpt-image-1",
-      prompt: optimizedPrompt,
-      size: "1024x1024",
-      n: 1,
-      response_format: "b64_json",
-      ...(firstImageUrl
-        ? {
-            image: firstImageUrl,
-          }
-        : {}),
-    });
+    if (!imageGenerationCalls || imageGenerationCalls.length === 0) {
+      console.error('❌ No se generó imagen');
+      console.error('Response output:', JSON.stringify(response.output, null, 2));
+      throw new Error('No se generó imagen en la respuesta');
+    }
 
-    const imageBase64 = imageResponse.data[0].b64_json;
-    if (!imageBase64) throw new Error("No se recibió imagen del modelo.");
+    const imageBase64 = imageGenerationCalls[0].result;
 
-    // 3️⃣ — Convertir base64 a buffer binario
-    const imageBuffer = Buffer.from(imageBase64, "base64");
+    if (!imageBase64) {
+      throw new Error('No se recibió imagen base64');
+    }
 
-    // 4️⃣ — Subir imagen a Supabase
-    const fileName = `artes/${requestId}.png`;
-    console.log(`[${requestId}] ☁️ Subiendo arte a Supabase: ${fileName}`);
-    const { data, error: uploadError } = await supabaseAdmin.storage
-      .from("public-assets")
+    console.log('✅ Imagen generada correctamente');
+    console.log('📤 Subiendo a Supabase Storage...');
+
+    // Convertir base64 a buffer
+    const imageBuffer = Buffer.from(imageBase64, 'base64');
+
+    // Subir a Supabase Storage
+    const fileName = `flyers/${Date.now()}-${property.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
+
+    const { data: uploadData, error: uploadError } = await supabaseAdmin
+      .storage
+      .from('property-images')
       .upload(fileName, imageBuffer, {
-        contentType: "image/png",
-        upsert: true,
+        contentType: 'image/png',
+        cacheControl: '3600',
+        upsert: false,
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error('❌ Error subiendo a Supabase:', uploadError);
+      throw new Error(`Error subiendo imagen: ${uploadError.message}`);
+    }
 
-    const {
-      data: { publicUrl },
-    } = supabaseAdmin.storage
-      .from("public-assets")
+    // Obtener URL pública
+    const { data: publicUrlData } = supabaseAdmin
+      .storage
+      .from('property-images')
       .getPublicUrl(fileName);
 
-    console.log(`[${requestId}] ✅ Arte subido correctamente: ${publicUrl}`);
+    const publicUrl = publicUrlData.publicUrl;
 
-    // 5️⃣ — Respuesta final
+    console.log('✅ Arte digital subido exitosamente:', publicUrl);
+
     return NextResponse.json({
       success: true,
       imageUrl: publicUrl,
-      prompt: optimizedPrompt,
-      model: "gpt-image-1",
-      usedBaseImage: Boolean(firstImageUrl),
-      requestId,
+      source: 'gpt-4.1-image-generation',
+      template,
+      colors: {
+        primary: colorPrimary,
+        secondary: colorSecondary,
+      },
     });
+
   } catch (error: any) {
-    console.error("❌ Error generando arte:", error);
+    console.error('❌ Error generando arte digital:', error);
+    
+    if (error.response) {
+      console.error('OpenAI API Error:', error.response.data);
+    }
+
     return NextResponse.json(
-      { success: false, error: error.message || "Error interno" },
+      { 
+        success: false, 
+        error: error.message || 'Error generando arte digital',
+        details: error.response?.data || null,
+      },
       { status: 500 }
     );
   }

@@ -6,6 +6,32 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Función auxiliar para descargar y convertir imagen a base64
+async function downloadImageAsBase64(imageUrl: string): Promise<string> {
+  try {
+    console.log('📥 Descargando imagen desde:', imageUrl);
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.statusText}`);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString('base64');
+    
+    // Detectar el tipo de imagen desde Content-Type
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    
+    console.log('✅ Imagen descargada, tamaño:', buffer.length, 'bytes');
+    console.log('📄 Content-Type:', contentType);
+    
+    return `data:${contentType};base64,${base64}`;
+  } catch (error) {
+    console.error('❌ Error descargando imagen:', error);
+    throw error;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const {
@@ -16,7 +42,7 @@ export async function POST(req: NextRequest) {
       logoUrl,
     } = await req.json();
 
-    console.log('🎨 Generando arte digital con GPT-5 para:', property.title);
+    console.log('🎨 Generando arte digital con gpt-4o para:', property.title);
     console.log('🎨 Template:', template);
     console.log('🎨 Colores:', { colorPrimary, colorSecondary });
     console.log('🏷️ Logo:', logoUrl || 'Sin logo');
@@ -32,82 +58,100 @@ export async function POST(req: NextRequest) {
     const style = visualStyles[template as keyof typeof visualStyles] || visualStyles.moderna;
 
     // Obtener la primera foto de la propiedad
-    const propertyImage = property.photos && property.photos.length > 0 ? property.photos[0] : null;
+    const propertyImageUrl = property.photos && property.photos.length > 0 ? property.photos[0] : null;
 
-    // 🎨 Prompt optimizado para generar arte digital
+    if (!propertyImageUrl) {
+      throw new Error('No hay imagen de propiedad disponible. Se requiere al menos una foto.');
+    }
+
+    console.log('📷 Imagen de propiedad encontrada:', propertyImageUrl);
+
+    // 🎨 Prompt optimizado para usar imagen base
     const prompt = `
-Genera un arte digital profesional para publicidad inmobiliaria en Facebook (formato cuadrado 1024x1024px).
+Crea un arte digital profesional para publicidad inmobiliaria en Facebook (formato cuadrado 1024x1024px) usando la imagen de la propiedad proporcionada como base.
 
 INFORMACIÓN DE LA PROPIEDAD:
 - Título: ${property.title}
-- Ubicación: ${property.location || 'Ubicación disponible'}
-- Precio: ${property.price ? `$${Number(property.price).toLocaleString()}` : 'Consultar precio'}
+- Ubicación: ${property.location || property.city || property.address || 'Ubicación disponible'}
+- Precio: ${property.price ? `$${Number(property.price).toLocaleString()}` : 'Precio a consultar'}
+- Tipo: ${property.property_type || 'Propiedad'}
 
 ESTILO VISUAL: ${style}
 
-COLORES DE MARCA (usar estos colores exactos):
+COLORES DE MARCA (usar exactamente estos colores):
 - Color Principal: ${colorPrimary} - para el título de la propiedad
 - Color Secundario: ${colorSecondary} - para ubicación y elementos decorativos
 
-REQUISITOS DEL DISEÑO:
-${propertyImage ? `
-- Usa la imagen de la propiedad proporcionada como fondo principal
-- Aplica una capa oscura semitransparente (25-35% de opacidad) sobre la foto para mejorar la legibilidad del texto
-- El fondo debe ser la fotografía de la propiedad en toda la composición
-` : `
-- Crea un fondo arquitectónico moderno y atractivo
-- Usa elementos visuales sutiles relacionados con bienes raíces
-`}
+REQUISITOS CRÍTICOS DEL DISEÑO:
+1. USA LA IMAGEN PROPORCIONADA como fondo principal - mantenla visible y reconocible
+2. Aplica un overlay oscuro semitransparente (25-35% de opacidad) sobre la imagen para mejorar la legibilidad del texto
+3. Superpón elementos de texto profesionales sobre la imagen:
+   
+   PARTE SUPERIOR:
+   - ${logoUrl ? 'Reserva esquina superior izquierda (140x140px) completamente limpia y clara para colocar logo después' : 'Área superior limpia'}
+   - Título de la propiedad en tipografía GRANDE, BOLD y moderna (color: ${colorPrimary})
+   - Debe ser el elemento más prominente visualmente
+   
+   PARTE MEDIA:
+   - Ubicación con ícono de pin/ubicación estilizado (color: ${colorSecondary})
+   - Tamaño mediano, claramente visible
+   
+   PARTE INFERIOR:
+   - Precio en tamaño GRANDE y destacado (color: ${colorPrimary})
+   - Puede incluir badge o shape decorativo de fondo
 
-COMPOSICIÓN:
-1. ${logoUrl ? 'Reserva la esquina superior izquierda (140x140px) como área limpia y clara para logo' : 'Encabezado limpio en la parte superior'}
-2. Centro/Parte superior: Título de la propiedad en tipografía GRANDE y bold (color: ${colorPrimary})
-3. Sección media: Ubicación con ícono de pin/mapa (color: ${colorSecondary})
-4. Parte inferior: Precio de forma prominente y clara (color: ${colorPrimary})
+4. IMPORTANTE: La imagen de la propiedad debe permanecer claramente visible y reconocible a través del overlay
+5. Tipografía moderna, sans-serif, altamente legible
+6. Alto contraste entre texto y fondo para máxima legibilidad
+7. NO incluir personas, caras o figuras humanas
+8. Estética profesional de marketing inmobiliario premium para redes sociales
+9. Los colores de marca (${colorPrimary} y ${colorSecondary}) deben ser elementos visuales dominantes
+10. Composición equilibrada y profesional
 
-ESTILO:
-- Tipografía moderna, profesional y altamente legible
-- Alto contraste para excelente legibilidad
-- Sin personas visibles
-- Apariencia de marketing inmobiliario premium para redes sociales
-- Los colores de marca deben ser elementos visuales dominantes
-
-${propertyImage ? 'IMPORTANTE: Superpón el texto sobre la fotografía de la propiedad con excelente contraste y legibilidad.' : ''}
-
-Genera un diseño limpio y profesional para Facebook.
+RESULTADO ESPERADO:
+Un diseño que combine profesionalmente la fotografía real de la propiedad con elementos gráficos modernos y texto superpuesto, creando un flyer atractivo y efectivo para Facebook.
     `.trim();
 
-    console.log('🤖 Generando arte con Responses API...');
+    console.log('🤖 Iniciando generación con Responses API (gpt-4o)...');
 
-    // Preparar el input con imagen si existe
-    const contentArray: any[] = [
+    // Descargar y convertir imagen a base64
+    const imageBase64DataUrl = await downloadImageAsBase64(propertyImageUrl);
+
+    // Preparar el content array con la imagen
+    const contentArray = [
       {
         type: 'input_text',
         text: prompt,
       },
+      {
+        type: 'input_image',
+        image_url: imageBase64DataUrl,
+      },
     ];
 
-    // Si hay imagen de la propiedad, agregarla
-    if (propertyImage) {
-      contentArray.push({
-        type: 'input_image',
-        image_url: propertyImage,
-      });
-    }
+    console.log('📤 Enviando request a OpenAI con imagen de referencia...');
 
-    // 🚀 Usar Responses API con image_generation tool
+    // 🚀 Llamada a Responses API con gpt-4o
     const response = await openai.responses.create({
-      model: 'gpt-4.1',
+      model: 'gpt-4o',
       input: [
         {
           role: 'user',
           content: contentArray,
         },
       ],
-      tools: [{ type: 'image_generation' }],
+      tools: [
+        {
+          type: 'image_generation',
+          size: '1024x1024',
+          quality: 'high',
+          output_format: 'png',
+          input_fidelity: 'high', // Mantener alta fidelidad de la imagen original
+        }
+      ],
     });
 
-    console.log('📦 Respuesta recibida');
+    console.log('📦 Respuesta recibida de OpenAI');
 
     // Extraer la imagen generada
     const imageGenerationCalls = response.output.filter(
@@ -126,17 +170,22 @@ Genera un diseño limpio y profesional para Facebook.
       throw new Error('No se recibió imagen base64');
     }
 
-    console.log('✅ Imagen generada correctamente');
+    console.log('✅ Imagen generada correctamente por gpt-4o');
     console.log('📤 Subiendo a Supabase Storage...');
 
-    // Convertir base64 a buffer
-    const imageBuffer = Buffer.from(imageBase64, 'base64');
+    // Convertir base64 a buffer (remover el prefijo data:image si existe)
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    const imageBuffer = Buffer.from(base64Data, 'base64');
 
-    // ✅ CAMBIO 1: Obtener agent_id y usar estructura correcta
+    // Obtener agent_id y crear nombre de archivo
     const agentId = property.agent_id || 'default';
-    const fileName = `${agentId}/flyers/${Date.now()}-${property.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
+    const sanitizedTitle = property.title.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    const fileName = `${agentId}/flyers/${Date.now()}-${sanitizedTitle}.png`;
 
-    // ✅ CAMBIO 2: Usar bucket 'property-photos' que sí existe
+    console.log('📁 Ruta de archivo:', fileName);
+    console.log('🗂️ Esto creará: property-photos/' + agentId + '/flyers/');
+
+    // Subir a Supabase Storage
     const { data: uploadData, error: uploadError } = await supabaseAdmin
       .storage
       .from('property-photos')
@@ -151,7 +200,9 @@ Genera un diseño limpio y profesional para Facebook.
       throw new Error(`Error subiendo imagen: ${uploadError.message}`);
     }
 
-    // ✅ CAMBIO 3: Obtener URL pública del bucket correcto
+    console.log('✅ Archivo subido exitosamente a Supabase');
+
+    // Obtener URL pública
     const { data: publicUrlData } = supabaseAdmin
       .storage
       .from('property-photos')
@@ -159,24 +210,38 @@ Genera un diseño limpio y profesional para Facebook.
 
     const publicUrl = publicUrlData.publicUrl;
 
-    console.log('✅ Arte digital subido exitosamente:', publicUrl);
+    console.log('✅ Arte digital generado y subido exitosamente');
+    console.log('🔗 URL pública:', publicUrl);
+    console.log('📂 Ubicación: property-photos/' + agentId + '/flyers/');
 
     return NextResponse.json({
       success: true,
       imageUrl: publicUrl,
-      source: 'gpt-4.1-image-generation',
+      source: 'gpt-4o-responses-api',
+      model: 'gpt-4o',
       template,
       colors: {
         primary: colorPrimary,
         secondary: colorSecondary,
       },
+      hasPropertyImage: true,
+      filePath: fileName,
     });
 
   } catch (error: any) {
     console.error('❌ Error generando arte digital:', error);
     
+    // Logging detallado del error
     if (error.response) {
-      console.error('OpenAI API Error:', error.response.data);
+      console.error('OpenAI API Response Error:', error.response.data);
+    }
+    
+    if (error.status === 403) {
+      console.error('⚠️ Error 403: No tienes acceso a gpt-4o con Responses API');
+      console.error('💡 Posibles soluciones:');
+      console.error('   1. Verifica tu organización en https://platform.openai.com/settings/organization/general');
+      console.error('   2. Espera 15 minutos después de verificar');
+      console.error('   3. Verifica que tu API key tenga los permisos correctos');
     }
 
     return NextResponse.json(
@@ -184,8 +249,9 @@ Genera un diseño limpio y profesional para Facebook.
         success: false, 
         error: error.message || 'Error generando arte digital',
         details: error.response?.data || null,
+        status: error.status || 500,
       },
-      { status: 500 }
+      { status: error.status || 500 }
     );
   }
 }

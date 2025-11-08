@@ -78,7 +78,7 @@ function handlePublish(propertyId: string) {
       // 2. Obtener propiedad (con el campo photos que es un ARRAY)
       const { data: property, error: propertyError } = await supabaseAdmin
         .from('properties')
-        .select('id, title, description, price, city, state, address, photos')
+        .select('id, title, description, price, city, state, address, photos, agent_id, property_type')
         .eq('id', propertyId)
         .single();
 
@@ -116,14 +116,27 @@ function handlePublish(propertyId: string) {
           const locationParts = [property.city, property.state].filter(Boolean);
           const location = locationParts.length > 0 ? locationParts.join(', ') : property.address || 'Ubicación disponible';
 
+          console.log('📤 Enviando datos a generate-flyer:', {
+            propertyId: property.id,
+            hasPhotos: property.photos?.length || 0,
+            firstPhoto: property.photos?.[0] || 'none',
+          });
+
           const flyerResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/openai/generate-flyer`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               property: {
+                id: property.id,              // ✅ AGREGADO
+                agent_id: property.agent_id,  // ✅ AGREGADO
                 title: property.title,
                 location: location,
+                city: property.city,           // ✅ AGREGADO
+                state: property.state,         // ✅ AGREGADO
+                address: property.address,     // ✅ AGREGADO
                 price: property.price,
+                property_type: property.property_type, // ✅ AGREGADO
+                photos: property.photos,       // ✅ AGREGADO - LO MÁS IMPORTANTE
               },
               template: agent.fb_template,
               colorPrimary: agent.fb_brand_color_primary,
@@ -135,16 +148,20 @@ function handlePublish(propertyId: string) {
             const flyerData = await flyerResponse.json();
             flyerUrl = flyerData.imageUrl;
             
+            console.log('✅ Flyer generado exitosamente:', flyerUrl);
+            
             // Agregar el flyer como primera imagen
             imageUrls = [flyerUrl, ...imageUrls];
             
             await sendEvent({ message: '✅ Diseño generado', progress: 50 });
           } else {
+            const errorData = await flyerResponse.json();
+            console.error('❌ Error generando flyer:', errorData);
             console.error('Error generando flyer, continuando con imágenes originales');
             await sendEvent({ message: 'Continuando sin diseño IA...', progress: 50 });
           }
         } catch (flyerError) {
-          console.error('Error en generación de flyer:', flyerError);
+          console.error('❌ Error en generación de flyer:', flyerError);
           await sendEvent({ message: 'Continuando sin diseño IA...', progress: 50 });
         }
       } else {

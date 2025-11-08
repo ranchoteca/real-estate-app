@@ -57,10 +57,27 @@ export async function POST(req: NextRequest) {
 
     const style = visualStyles[template as keyof typeof visualStyles] || visualStyles.moderna;
 
-    // Obtener la primera foto de la propiedad
-    const propertyImageUrl = property.photos && property.photos.length > 0 ? property.photos[0] : null;
+    // Intentar obtener la primera foto de la propiedad
+    let propertyImageUrl = property.photos && property.photos.length > 0 ? property.photos[0] : null;
+
+    // Si no viene en el objeto, intentar obtenerla de Supabase directamente
+    if (!propertyImageUrl && property.id) {
+      console.log('⚠️ No hay fotos en el objeto property, buscando en Supabase...');
+      
+      const { data: propertyData, error: propertyError } = await supabaseAdmin
+        .from('properties')
+        .select('photos')
+        .eq('id', property.id)
+        .single();
+
+      if (!propertyError && propertyData && propertyData.photos && propertyData.photos.length > 0) {
+        propertyImageUrl = propertyData.photos[0];
+        console.log('✅ Foto encontrada en Supabase:', propertyImageUrl);
+      }
+    }
 
     if (!propertyImageUrl) {
+      console.error('❌ Property object:', JSON.stringify(property, null, 2));
       throw new Error('No hay imagen de propiedad disponible. Se requiere al menos una foto.');
     }
 

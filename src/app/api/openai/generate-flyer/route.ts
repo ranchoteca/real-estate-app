@@ -20,12 +20,12 @@ export async function POST(req: NextRequest) {
     console.log('🎨 Colores:', { colorPrimary, colorSecondary });
     console.log('🏷️ Logo:', logoUrl || 'Sin logo');
 
-    // 📝 Visual styles
+    // 📝 Estilos visuales
     const visualStyles = {
-      moderna: 'modern minimalist design with clean geometric shapes and contemporary architecture',
-      elegante: 'elegant luxury design with sophisticated premium aesthetics and refined details',
-      minimalista: 'ultra-minimalist design with maximum white space and simple visual hierarchy',
-      vibrante: 'vibrant energetic design with bold colors and dynamic visual elements',
+      moderna: 'diseño minimalista moderno con formas geométricas limpias y arquitectura contemporánea',
+      elegante: 'diseño de lujo elegante con estética premium sofisticada y detalles refinados',
+      minimalista: 'diseño ultra-minimalista con máximo espacio en blanco y jerarquía visual simple',
+      vibrante: 'diseño vibrante y energético con colores audaces y elementos visuales dinámicos',
     };
 
     const style = visualStyles[template as keyof typeof visualStyles] || visualStyles.moderna;
@@ -33,42 +33,42 @@ export async function POST(req: NextRequest) {
     // Obtener la primera foto de la propiedad
     const propertyImage = property.photos && property.photos.length > 0 ? property.photos[0] : null;
 
-    // 🎨 Instruction for GPT-5 in English
+    // 🎨 Instrucción para GPT-5 en español
     const instruction = `
-Create a professional real estate digital art graphic for social media (Facebook post) with these exact specifications:
+Crea un arte digital profesional de bienes raíces para redes sociales (publicación de Facebook) con estas especificaciones exactas:
 
-PROPERTY INFORMATION:
-- Property Name: ${property.title}
-- Location: ${property.location || 'Location available'}
-- Price: ${property.price ? `${Number(property.price).toLocaleString()}` : 'Contact for price'}
-${propertyImage ? `- Property Photo URL: ${propertyImage}` : ''}
+INFORMACIÓN DE LA PROPIEDAD:
+- Nombre de la propiedad: ${property.title}
+- Ubicación: ${property.location || 'Ubicación disponible'}
+- Precio: ${property.price ? `${Number(property.price).toLocaleString()}` : 'Consultar precio'}
+${propertyImage ? `- URL de la foto de la propiedad: ${propertyImage}` : ''}
 
-VISUAL STYLE: ${style}
+ESTILO VISUAL: ${style}
 
-BRAND COLORS (MUST USE EXACTLY):
-- Primary Color: ${colorPrimary} - use for the property name/title
-- Secondary Color: ${colorSecondary} - use for location text and decorative elements
+COLORES DE MARCA (USAR EXACTAMENTE ESTOS COLORES):
+- Color Primario: ${colorPrimary} - usar para el nombre/título de la propiedad
+- Color Secundario: ${colorSecondary} - usar para el texto de ubicación y elementos decorativos
 
-DESIGN REQUIREMENTS:
-1. Format: Square 1024x1024px perfect for Facebook
-2. Layout structure:
-   ${logoUrl ? '- Top-left corner: Clean light area reserved for company logo overlay (140x140px space)' : '- Top section: Clean modern header'}
-   - Center/Upper area: Property name in LARGE bold typography (color: ${colorPrimary})
-   - Middle: Location text with pin/map icon (color: ${colorSecondary})
-   - Lower area: Price displayed prominently (color: ${colorPrimary})
-3. Background: Subtle architectural or abstract design elements that don't compete with text
-4. Typography: Professional, modern, highly readable fonts
-5. Overall aesthetic: Premium real estate marketing material
-6. NO people, NO magazine covers - this is digital art for social media
-7. High contrast for excellent readability
-8. The brand colors should be the dominant visual elements
+REQUISITOS DE DISEÑO:
+1. Formato: Cuadrado 1024x1024px perfecto para Facebook
+2. Estructura del diseño:
+   ${logoUrl ? '- Esquina superior izquierda: Área limpia y clara reservada para superponer el logo de la empresa (espacio de 140x140px)' : '- Sección superior: Encabezado moderno y limpio'}
+   - Centro/Área superior: Nombre de la propiedad en tipografía GRANDE y bold (color: ${colorPrimary})
+   - Sección media: Texto de ubicación con ícono de pin/mapa (color: ${colorSecondary})
+   - Área inferior: Precio mostrado de forma prominente (color: ${colorPrimary})
+3. Fondo: Elementos arquitectónicos sutiles o diseño abstracto que no compita con el texto
+4. Tipografía: Fuentes profesionales, modernas y altamente legibles
+5. Estética general: Material de marketing de bienes raíces premium
+6. SIN personas, SIN portadas de revista - esto es arte digital para redes sociales
+7. Alto contraste para excelente legibilidad
+8. Los colores de marca deben ser los elementos visuales dominantes
 
-Create a clean, professional digital art piece that looks like modern real estate marketing content for social media.
+Crea una pieza de arte digital limpia y profesional que se vea como contenido de marketing inmobiliario moderno para redes sociales.
     `.trim();
 
     console.log('🤖 Llamando a GPT-5 con Responses API...');
 
-    // 🚀 Use GPT-5 Responses API
+    // 🚀 Usar GPT-5 Responses API
     const response = await openai.responses.create({
       model: 'gpt-5',
       input: instruction,
@@ -82,7 +82,7 @@ Create a clean, professional digital art piece that looks like modern real estat
 
     console.log('📦 Respuesta de GPT-5:', response);
 
-    // Extract generated image URL
+    // Extraer la URL de la imagen generada
     const imageUrl = response.output_image_url || response.output_text;
 
     if (!imageUrl) {

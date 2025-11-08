@@ -15,74 +15,86 @@ export async function POST(req: NextRequest) {
       logoUrl,
     } = await req.json();
 
-    console.log('🎨 Generando flyer digital para:', property.title);
+    console.log('🎨 Generando arte digital con GPT-5 para:', property.title);
+    console.log('🎨 Template:', template);
     console.log('🎨 Colores:', { colorPrimary, colorSecondary });
     console.log('🏷️ Logo:', logoUrl || 'Sin logo');
 
-    // 📝 Estilos de plantillas
-    const templateStyles = {
-      moderna: 'Modern, clean, minimalist design with geometric shapes and bold sans-serif typography',
-      elegante: 'Elegant, sophisticated luxury design with premium aesthetics and refined serif fonts',
-      minimalista: 'Ultra-minimalist with maximum white space, simple layout, and subtle hierarchy',
-      vibrante: 'Bold, energetic design with high contrast, vibrant accents, and dynamic composition',
+    // 📝 Visual styles
+    const visualStyles = {
+      moderna: 'modern minimalist design with clean geometric shapes and contemporary architecture',
+      elegante: 'elegant luxury design with sophisticated premium aesthetics and refined details',
+      minimalista: 'ultra-minimalist design with maximum white space and simple visual hierarchy',
+      vibrante: 'vibrant energetic design with bold colors and dynamic visual elements',
     };
 
-    const selectedStyle = templateStyles[template as keyof typeof templateStyles] || templateStyles.moderna;
+    const style = visualStyles[template as keyof typeof visualStyles] || visualStyles.moderna;
 
-    // 🎨 Prompt detallado para DALL-E 3
-    const prompt = `
-Create a professional real estate marketing flyer design:
+    // Obtener la primera foto de la propiedad
+    const propertyImage = property.photos && property.photos.length > 0 ? property.photos[0] : null;
 
-PROPERTY DETAILS:
-- Title: "${property.title}"
-- Location: "${property.location || 'Location available'}"
-- Price: "${property.price ? `$${Number(property.price).toLocaleString()}` : 'Contact for price'}"
+    // 🎨 Instruction for GPT-5 in English
+    const instruction = `
+Create a professional real estate digital art graphic for social media (Facebook post) with these exact specifications:
 
-DESIGN STYLE: ${selectedStyle}
+PROPERTY INFORMATION:
+- Property Name: ${property.title}
+- Location: ${property.location || 'Location available'}
+- Price: ${property.price ? `${Number(property.price).toLocaleString()}` : 'Contact for price'}
+${propertyImage ? `- Property Photo URL: ${propertyImage}` : ''}
 
-BRAND COLORS (USE EXACTLY):
-- Primary: ${colorPrimary} - for main title and key elements
-- Secondary: ${colorSecondary} - for location text and accents
+VISUAL STYLE: ${style}
 
-LAYOUT REQUIREMENTS:
-- Square 1024x1024px format for Facebook
-- Top section: ${logoUrl ? 'Space for company logo (light background area, top-left corner)' : 'Clean header area'}
-- Main content centered or upper-center:
-  * Property title in LARGE bold text (${colorPrimary})
-  * Location with pin icon in medium text (${colorSecondary})
-  * Price prominently displayed (${colorPrimary})
-- Background: Subtle architectural/real estate imagery that doesn't compete with text
-- Professional, modern, clean aesthetic
-- High contrast for readability
-- No people, focus on design and architecture
+BRAND COLORS (MUST USE EXACTLY):
+- Primary Color: ${colorPrimary} - use for the property name/title
+- Secondary Color: ${colorSecondary} - use for location text and decorative elements
 
-The flyer should look like premium real estate marketing material, with clear visual hierarchy and the brand colors integrated throughout the design.
+DESIGN REQUIREMENTS:
+1. Format: Square 1024x1024px perfect for Facebook
+2. Layout structure:
+   ${logoUrl ? '- Top-left corner: Clean light area reserved for company logo overlay (140x140px space)' : '- Top section: Clean modern header'}
+   - Center/Upper area: Property name in LARGE bold typography (color: ${colorPrimary})
+   - Middle: Location text with pin/map icon (color: ${colorSecondary})
+   - Lower area: Price displayed prominently (color: ${colorPrimary})
+3. Background: Subtle architectural or abstract design elements that don't compete with text
+4. Typography: Professional, modern, highly readable fonts
+5. Overall aesthetic: Premium real estate marketing material
+6. NO people, NO magazine covers - this is digital art for social media
+7. High contrast for excellent readability
+8. The brand colors should be the dominant visual elements
+
+Create a clean, professional digital art piece that looks like modern real estate marketing content for social media.
     `.trim();
 
-    console.log('🤖 Generando con DALL-E 3...');
+    console.log('🤖 Llamando a GPT-5 con Responses API...');
 
-    // 🚀 Generar con DALL-E 3
-    const response = await openai.images.generate({
-      model: 'dall-e-3',
-      prompt,
-      size: '1024x1024',
-      quality: 'hd',
-      style: 'natural',
-      n: 1,
+    // 🚀 Use GPT-5 Responses API
+    const response = await openai.responses.create({
+      model: 'gpt-5',
+      input: instruction,
+      reasoning: {
+        effort: 'medium',
+      },
+      text: {
+        verbosity: 'low',
+      },
     });
 
-    const imageUrl = response.data[0]?.url;
-    
+    console.log('📦 Respuesta de GPT-5:', response);
+
+    // Extract generated image URL
+    const imageUrl = response.output_image_url || response.output_text;
+
     if (!imageUrl) {
-      throw new Error('No se generó la imagen');
+      throw new Error('GPT-5 no generó una imagen válida');
     }
 
-    console.log('✅ Flyer generado exitosamente');
+    console.log('✅ Arte digital generado exitosamente:', imageUrl);
 
     return NextResponse.json({
       success: true,
       imageUrl,
-      source: 'dalle-3',
+      source: 'gpt-5',
       template,
       colors: {
         primary: colorPrimary,
@@ -91,16 +103,17 @@ The flyer should look like premium real estate marketing material, with clear vi
     });
 
   } catch (error: any) {
-    console.error('❌ Error generando flyer:', error);
+    console.error('❌ Error generando arte digital:', error);
     
     if (error.response) {
-      console.error('OpenAI Error:', error.response.data);
+      console.error('GPT-5 API Error:', error.response.data);
     }
 
     return NextResponse.json(
       { 
         success: false, 
-        error: error.message || 'Error generando flyer',
+        error: error.message || 'Error generando arte digital',
+        details: error.response?.data || null,
       },
       { status: 500 }
     );

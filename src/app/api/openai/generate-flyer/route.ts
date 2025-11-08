@@ -132,12 +132,14 @@ Genera un diseño limpio y profesional para Facebook.
     // Convertir base64 a buffer
     const imageBuffer = Buffer.from(imageBase64, 'base64');
 
-    // Subir a Supabase Storage
-    const fileName = `flyers/${Date.now()}-${property.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
+    // ✅ CAMBIO 1: Obtener agent_id y usar estructura correcta
+    const agentId = property.agent_id || 'default';
+    const fileName = `${agentId}/flyers/${Date.now()}-${property.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
 
+    // ✅ CAMBIO 2: Usar bucket 'property-photos' que sí existe
     const { data: uploadData, error: uploadError } = await supabaseAdmin
       .storage
-      .from('property-images')
+      .from('property-photos')
       .upload(fileName, imageBuffer, {
         contentType: 'image/png',
         cacheControl: '3600',
@@ -149,10 +151,10 @@ Genera un diseño limpio y profesional para Facebook.
       throw new Error(`Error subiendo imagen: ${uploadError.message}`);
     }
 
-    // Obtener URL pública
+    // ✅ CAMBIO 3: Obtener URL pública del bucket correcto
     const { data: publicUrlData } = supabaseAdmin
       .storage
-      .from('property-images')
+      .from('property-photos')
       .getPublicUrl(fileName);
 
     const publicUrl = publicUrlData.publicUrl;

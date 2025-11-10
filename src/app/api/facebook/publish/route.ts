@@ -24,14 +24,34 @@ export async function POST(req: NextRequest) {
 }
 
 // Función para construir el mensaje mejorado de Facebook
-function buildFacebookMessage(property: any, agent: any): string {
-  // 1. Tipo de operación (Venta/Alquiler)
-  const operationType = property.listing_type === 'rent' ? 'ALQUILER' : 'VENTA';
+async function buildFacebookMessage(property: any, agent: any, customFieldsMap: Map<string, string>): Promise<string> {
+  // 1. Tipo de operación con icono de bombillo
+  const operationType = property.listing_type === 'rent' ? '💡 ALQUILER' : '💡 VENTA';
   
-  // 2. Descripción corta (primeras 120 caracteres para que sea concisa)
-  const shortDescription = property.description 
-    ? property.description.substring(0, 120).trim() + (property.description.length > 120 ? '...' : '')
-    : 'Excelente oportunidad inmobiliaria';
+  // 2. Descripción corta inteligente (primeras 2 oraciones completas)
+  let shortDescription = 'Excelente oportunidad inmobiliaria';
+  
+  if (property.description) {
+    // Dividir por puntos para obtener oraciones completas
+    const sentences = property.description
+      .split(/\. |\.\n/)
+      .filter((s: string) => s.trim().length > 0);
+    
+    if (sentences.length >= 2) {
+      shortDescription = sentences.slice(0, 2).join('. ') + '.';
+    } else if (sentences.length === 1) {
+      shortDescription = sentences[0] + '.';
+    } else {
+      // Fallback: primeros 150 caracteres
+      shortDescription = property.description.substring(0, 150).trim() + 
+        (property.description.length > 150 ? '...' : '');
+    }
+    
+    // Limitar a máximo 200 caracteres si es muy largo
+    if (shortDescription.length > 200) {
+      shortDescription = shortDescription.substring(0, 197) + '...';
+    }
+  }
   
   // 3. Ubicación
   const locationParts = [property.city, property.state].filter(Boolean);
@@ -41,21 +61,17 @@ function buildFacebookMessage(property: any, agent: any): string {
   
   // 4. Precio formateado
   const displayPrice = property.price 
-    ? `$${Number(property.price).toLocaleString()}` 
+    ? `${Number(property.price).toLocaleString()}` 
     : 'Precio a consultar';
   
-  // 5. Campos personalizados (custom fields)
+  // 5. Campos personalizados (custom fields) - usando los nombres reales
   let customFieldsText = '';
   if (property.custom_fields_data && typeof property.custom_fields_data === 'object') {
     const fields = Object.entries(property.custom_fields_data)
       .filter(([_, value]) => value !== null && value !== undefined && value !== '')
-      .map(([key, value]) => {
-        // Formatear la clave (de snake_case a Title Case)
-        const formattedKey = key
-          .replace(/_/g, ' ')
-          .split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ');
+      .map(([fieldKey, value]) => {
+        // Obtener el nombre real del campo desde el Map
+        const fieldName = customFieldsMap.get(fieldKey) || fieldKey;
         
         // Formatear el valor (manejar booleanos, números, etc)
         let formattedValue = value;
@@ -63,7 +79,7 @@ function buildFacebookMessage(property: any, agent: any): string {
           formattedValue = value ? 'Sí' : 'No';
         }
         
-        return `🟩 ${formattedKey}: ${formattedValue}`;
+        return `✅ ${fieldName}: ${formattedValue}`;
       });
     
     if (fields.length > 0) {
@@ -81,7 +97,7 @@ function buildFacebookMessage(property: any, agent: any): string {
   
   // 8. Construir mensaje completo
   const message = `
-💡 ${operationType}
+${operationType}
 
 📝 ${shortDescription}
 
@@ -171,6 +187,29 @@ function handlePublish(propertyId: string) {
       console.log('✅ Propiedad encontrada:', property.title);
       console.log('📋 Custom fields:', property.custom_fields_data);
 
+      // 2.1 Obtener los nombres reales de los custom fields
+      const customFieldsMap = new Map<string, string>();
+      
+      if (property.custom_fields_data && Object.keys(property.custom_fields_data).length > 0) {
+        const fieldKeys = Object.keys(property.custom_fields_data);
+        
+        console.log('🔍 Buscando nombres de campos personalizados:', fieldKeys);
+        
+        const { data: customFields, error: fieldsError } = await supabaseAdmin
+          .from('custom_fields')
+          .select('field_key, field_name')
+          .in('field_key', fieldKeys);
+        
+        if (!fieldsError && customFields) {
+          customFields.forEach(field => {
+            customFieldsMap.set(field.field_key, field.field_name);
+          });
+          console.log('✅ Nombres de campos obtenidos:', Object.fromEntries(customFieldsMap));
+        } else {
+          console.error('⚠️ Error obteniendo nombres de campos:', fieldsError);
+        }
+      }
+
       await sendEvent({ message: 'Preparando imágenes...', progress: 20 });
 
       // Las imágenes están en el campo photos (es un array de strings)
@@ -249,7 +288,7 @@ function handlePublish(propertyId: string) {
       }
 
       // 4. Construir mensaje mejorado
-      const message = buildFacebookMessage(property, agent);
+      const message = await buildFacebookMessage(property, agent, customFieldsMap);
       
       console.log('📝 Mensaje de Facebook construido:');
       console.log(message);

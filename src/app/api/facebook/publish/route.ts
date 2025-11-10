@@ -23,6 +23,84 @@ export async function POST(req: NextRequest) {
   return handlePublish(propertyId);
 }
 
+// Función para construir el mensaje mejorado de Facebook
+function buildFacebookMessage(property: any, agent: any): string {
+  // 1. Tipo de operación (Venta/Alquiler)
+  const operationType = property.listing_type === 'rent' ? 'ALQUILER' : 'VENTA';
+  
+  // 2. Descripción corta (primeras 120 caracteres para que sea concisa)
+  const shortDescription = property.description 
+    ? property.description.substring(0, 120).trim() + (property.description.length > 120 ? '...' : '')
+    : 'Excelente oportunidad inmobiliaria';
+  
+  // 3. Ubicación
+  const locationParts = [property.city, property.state].filter(Boolean);
+  const displayLocation = locationParts.length > 0 
+    ? locationParts.join(', ') 
+    : property.address || 'Ubicación disponible';
+  
+  // 4. Precio formateado
+  const displayPrice = property.price 
+    ? `$${Number(property.price).toLocaleString()}` 
+    : 'Precio a consultar';
+  
+  // 5. Campos personalizados (custom fields)
+  let customFieldsText = '';
+  if (property.custom_fields_data && typeof property.custom_fields_data === 'object') {
+    const fields = Object.entries(property.custom_fields_data)
+      .filter(([_, value]) => value !== null && value !== undefined && value !== '')
+      .map(([key, value]) => {
+        // Formatear la clave (de snake_case a Title Case)
+        const formattedKey = key
+          .replace(/_/g, ' ')
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        
+        // Formatear el valor (manejar booleanos, números, etc)
+        let formattedValue = value;
+        if (typeof value === 'boolean') {
+          formattedValue = value ? 'Sí' : 'No';
+        }
+        
+        return `🟩 ${formattedKey}: ${formattedValue}`;
+      });
+    
+    if (fields.length > 0) {
+      customFieldsText = '\n\n✨ Características\n' + fields.join('\n');
+    }
+  }
+  
+  // 6. Links
+  const propertyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/p/${property.slug}`;
+  const agentPortfolioUrl = `${process.env.NEXT_PUBLIC_APP_URL}/agent/${agent.username}`;
+  
+  // 7. Nombre del agente y teléfono
+  const agentName = agent.full_name || agent.name || 'Agente inmobiliario';
+  const agentPhone = agent.phone || '';
+  
+  // 8. Construir mensaje completo
+  const message = `
+💡 ${operationType}
+
+📝 ${shortDescription}
+
+🏡 ${property.title}
+
+📍 ${displayLocation}
+
+💰 ${displayPrice}${customFieldsText}
+
+📅 Agende su visita con ${agentName}${agentPhone ? ` al 📱 ${agentPhone}` : ''}
+
+🔗 Link de la propiedad: ${propertyUrl}
+
+💼 Mira el portafolio del agente: ${agentPortfolioUrl}
+  `.trim();
+  
+  return message;
+}
+
 function handlePublish(propertyId: string) {
   const encoder = new TextEncoder();
   const stream = new TransformStream();
@@ -53,10 +131,10 @@ function handlePublish(propertyId: string) {
 
       await sendEvent({ message: 'Obteniendo datos...', progress: 10 });
 
-      // 1. Obtener datos del agente
+      // 1. Obtener datos del agente (agregamos username, full_name, phone)
       const { data: agent, error: agentError } = await supabaseAdmin
         .from('agents')
-        .select('id, facebook_page_id, facebook_access_token, fb_ai_enabled, fb_brand_color_primary, fb_brand_color_secondary, fb_template')
+        .select('id, username, full_name, name, phone, facebook_page_id, facebook_access_token, fb_ai_enabled, fb_brand_color_primary, fb_brand_color_secondary, fb_template')
         .eq('email', userEmail)
         .single();
 
@@ -75,10 +153,10 @@ function handlePublish(propertyId: string) {
         return;
       }
 
-      // 2. Obtener propiedad (con el campo photos que es un ARRAY)
+      // 2. Obtener propiedad (agregamos listing_type, slug, custom_fields_data)
       const { data: property, error: propertyError } = await supabaseAdmin
         .from('properties')
-        .select('id, title, description, price, city, state, address, photos, agent_id, property_type')
+        .select('id, title, description, price, city, state, address, photos, agent_id, property_type, listing_type, slug, custom_fields_data')
         .eq('id', propertyId)
         .single();
 
@@ -91,6 +169,7 @@ function handlePublish(propertyId: string) {
       }
 
       console.log('✅ Propiedad encontrada:', property.title);
+      console.log('📋 Custom fields:', property.custom_fields_data);
 
       await sendEvent({ message: 'Preparando imágenes...', progress: 20 });
 
@@ -127,16 +206,16 @@ function handlePublish(propertyId: string) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               property: {
-                id: property.id,              // ✅ AGREGADO
-                agent_id: property.agent_id,  // ✅ AGREGADO
+                id: property.id,
+                agent_id: property.agent_id,
                 title: property.title,
                 location: location,
-                city: property.city,           // ✅ AGREGADO
-                state: property.state,         // ✅ AGREGADO
-                address: property.address,     // ✅ AGREGADO
+                city: property.city,
+                state: property.state,
+                address: property.address,
                 price: property.price,
-                property_type: property.property_type, // ✅ AGREGADO
-                photos: property.photos,       // ✅ AGREGADO - LO MÁS IMPORTANTE
+                property_type: property.property_type,
+                photos: property.photos,
               },
               template: agent.fb_template,
               colorPrimary: agent.fb_brand_color_primary,
@@ -165,23 +244,15 @@ function handlePublish(propertyId: string) {
           await sendEvent({ message: 'Continuando sin diseño IA...', progress: 50 });
         }
       } else {
+        console.log('ℹ️ Generación de IA deshabilitada (fb_ai_enabled = false)');
         await sendEvent({ message: 'Omitiendo diseño IA', progress: 50 });
       }
 
-      // 4. Preparar mensaje
-      const locationParts = [property.city, property.state].filter(Boolean);
-      const displayLocation = locationParts.length > 0 ? locationParts.join(', ') : property.address || 'Ubicación disponible';
-
-      const message = `
-🏡 ${property.title}
-
-📍 ${displayLocation}
-💰 ${property.price ? `$${Number(property.price).toLocaleString()}` : 'Consultar precio'}
-
-${property.description || ''}
-
-📞 ¡Contáctame para más información!
-      `.trim();
+      // 4. Construir mensaje mejorado
+      const message = buildFacebookMessage(property, agent);
+      
+      console.log('📝 Mensaje de Facebook construido:');
+      console.log(message);
 
       const pageId = agent.facebook_page_id;
       const accessToken = agent.facebook_access_token;

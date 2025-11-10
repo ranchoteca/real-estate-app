@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 // Función para construir el mensaje mejorado de Facebook
 async function buildFacebookMessage(property: any, agent: any, customFieldsMap: Map<string, string>): Promise<string> {
   // 1. Tipo de operación con icono de bombillo
-  const operationType = property.listing_type === 'rent' ? '💡 ALQUILER' : '💡 VENTA';
+  const operationType = property.listing_type === 'rent' ? '🚀 ALQUILER' : '🚀 VENTA';
   
   // 2. Descripción corta inteligente (primeras 2 oraciones completas)
   let shortDescription = 'Excelente oportunidad inmobiliaria';
@@ -34,22 +34,22 @@ async function buildFacebookMessage(property: any, agent: any, customFieldsMap: 
   if (property.description) {
     // Dividir por puntos para obtener oraciones completas
     const sentences = property.description
-      .split(/\. |\.\n/)
-      .filter((s: string) => s.trim().length > 0);
+      .split(/\.(?=\s|$)/) // Dividir solo por punto seguido de espacio o fin de texto
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0);
     
     if (sentences.length >= 2) {
-      shortDescription = sentences.slice(0, 2).join('. ') + '.';
+      // Tomar las primeras 2 oraciones completas
+      shortDescription = sentences[0] + '. ' + sentences[1] + '.';
     } else if (sentences.length === 1) {
+      // Si solo hay 1 oración, usarla completa
       shortDescription = sentences[0] + '.';
     } else {
-      // Fallback: primeros 150 caracteres
-      shortDescription = property.description.substring(0, 150).trim() + 
-        (property.description.length > 150 ? '...' : '');
-    }
-    
-    // Limitar a máximo 200 caracteres si es muy largo
-    if (shortDescription.length > 200) {
-      shortDescription = shortDescription.substring(0, 197) + '...';
+      // Fallback si no hay oraciones bien formadas
+      shortDescription = property.description.substring(0, 150).trim();
+      if (property.description.length > 150) {
+        shortDescription += '...';
+      }
     }
   }
   

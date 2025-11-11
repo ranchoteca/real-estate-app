@@ -124,12 +124,10 @@ async function createCoverPage(
   const title = property.title.toUpperCase();
   const splitTitle = pdf.splitTextToSize(title, pageWidth - (margin * 2));
   let currentY = titleY;
-  splitTitle.forEach((line: string, index: number) => {
-    if (index < 2) { // Máximo 2 líneas para el título
-      pdf.text(line, margin, currentY);
-      currentY += 9;
-    }
-  });
+  for (let index = 0; index < Math.min(splitTitle.length, 2); index++) {
+    pdf.text(splitTitle[index], margin, currentY);
+    currentY += 9;
+  }
 
   // Precio (grande y destacado)
   pdf.setFontSize(28);
@@ -441,7 +439,7 @@ async function createDescriptionPage(
   pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
   
   const splitDescription = pdf.splitTextToSize(property.description, contentWidth - 5);
-  splitDescription.forEach((line: string) => {
+  for (const line of splitDescription) {
     if (yPos > pageHeight - 40) {
       pdf.addPage();
       await addHeaderLogo(pdf, agent, margin, 10);
@@ -449,7 +447,7 @@ async function createDescriptionPage(
     }
     pdf.text(line, margin + 5, yPos);
     yPos += 6;
-  });
+  }
 
   await addFooter(pdf, agent, pageWidth, pageHeight);
   await addWatermark(pdf, agent, pageWidth, pageHeight);

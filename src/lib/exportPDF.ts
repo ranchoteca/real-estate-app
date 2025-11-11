@@ -2,14 +2,15 @@ import jsPDF from 'jspdf';
 
 // Colores de Flow Estate AI
 const COLORS = {
-  primary: '#2563eb', // Azul principal
-  secondary: '#1e40af', // Azul oscuro
-  accent: '#3b82f6', // Azul claro
-  success: '#22c55e', // Verde
-  text: '#1f2937', // Gris oscuro
-  textLight: '#6b7280', // Gris medio
-  border: '#e5e7eb', // Gris claro
-  background: '#f9fafb', // Fondo claro
+  primary: '#2563eb',
+  secondary: '#1e40af',
+  accent: '#3b82f6',
+  success: '#22c55e',
+  text: '#1f2937',
+  textLight: '#6b7280',
+  border: '#e5e7eb',
+  background: '#f9fafb',
+  sectionBg: '#eff6ff', // Fondo azul claro para secciones
 };
 
 interface AgentInfo {
@@ -29,6 +30,10 @@ export async function exportPropertyToPDF(property: any, agent?: AgentInfo) {
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 20;
   const contentWidth = pageWidth - (margin * 2);
+
+  // Log para debug
+  console.log('🔍 Exportando PDF con agente:', agent);
+  console.log('🔍 Campos personalizados:', property.custom_fields_data);
 
   // ============================================
   // PORTADA
@@ -82,7 +87,7 @@ async function createCoverPage(
       
       // Overlay oscuro para mejor legibilidad del texto
       pdf.setFillColor(0, 0, 0);
-      pdf.setGState(new pdf.GState({ opacity: 0.4 }));
+      pdf.setGState(new pdf.GState({ opacity: 0.5 }));
       pdf.rect(0, 0, imgWidth, imgHeight, 'F');
       pdf.setGState(new pdf.GState({ opacity: 1 }));
     } catch (err) {
@@ -90,21 +95,21 @@ async function createCoverPage(
     }
   }
 
-  // Logo y marca de agua
+  // Logo en el encabezado
   await addHeaderLogo(pdf, agent, margin, 10);
 
   // Badge de estado (Venta/Alquiler)
-  const badgeY = pageHeight * 0.5;
+  const badgeY = pageHeight * 0.48;
   if (property.listing_type) {
-    pdf.setFontSize(14);
+    pdf.setFontSize(12);
     pdf.setFont('helvetica', 'bold');
     
-    const badgeText = property.listing_type === 'sale' ? 'EN VENTA' : 'EN ALQUILER';
+    const badgeText = property.listing_type === 'sale' ? '💰 EN VENTA' : '🏠 EN ALQUILER';
     const badgeColor = property.listing_type === 'sale' ? COLORS.success : COLORS.accent;
     
-    // Fondo del badge
+    // Fondo del badge con sombra
     pdf.setFillColor(hexToRgb(badgeColor).r, hexToRgb(badgeColor).g, hexToRgb(badgeColor).b);
-    pdf.roundedRect(margin, badgeY - 7, 40, 10, 2, 2, 'F');
+    pdf.roundedRect(margin, badgeY - 6, 50, 9, 2, 2, 'F');
     
     // Texto del badge
     pdf.setTextColor(255, 255, 255);
@@ -112,30 +117,32 @@ async function createCoverPage(
   }
 
   // Título (en blanco sobre la imagen)
-  const titleY = pageHeight * 0.55;
-  pdf.setFontSize(24);
+  const titleY = pageHeight * 0.53;
+  pdf.setFontSize(22);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(255, 255, 255);
   const title = property.title.toUpperCase();
   const splitTitle = pdf.splitTextToSize(title, pageWidth - (margin * 2));
   let currentY = titleY;
-  splitTitle.forEach((line: string) => {
-    pdf.text(line, margin, currentY);
-    currentY += 10;
+  splitTitle.forEach((line: string, index: number) => {
+    if (index < 2) { // Máximo 2 líneas para el título
+      pdf.text(line, margin, currentY);
+      currentY += 9;
+    }
   });
 
   // Precio (grande y destacado)
-  pdf.setFontSize(32);
+  pdf.setFontSize(28);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(255, 255, 255);
   const price = property.price 
     ? `$${property.price.toLocaleString()}`
     : 'Precio a consultar';
-  pdf.text(price, margin, currentY + 15);
+  pdf.text(price, margin, currentY + 12);
 
-  // Información del agente (parte inferior)
-  const footerY = pageHeight - 40;
-  await addAgentInfo(pdf, agent, margin, footerY, pageWidth);
+  // Información del agente (parte inferior con fondo elegante)
+  const footerY = pageHeight - 45;
+  await addAgentInfoBox(pdf, agent, margin, footerY, pageWidth);
 
   // Marca de agua en la portada
   await addWatermark(pdf, agent, pageWidth, pageHeight);
@@ -151,17 +158,14 @@ async function createImageGridPage(
 ) {
   await addHeaderLogo(pdf, agent, margin, 10);
 
-  // Título de la sección
-  pdf.setFontSize(18);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
-  pdf.text('GALERÍA DE IMÁGENES', margin, 30);
+  // Título de la sección con fondo
+  addSectionTitle(pdf, '📸 GALERÍA DE IMÁGENES', margin, 28, contentWidth(pageWidth, margin));
 
   // Grid 2x3 de imágenes
   const imageSize = (pageWidth - (margin * 3)) / 2;
   const spacing = 5;
   let xPos = margin;
-  let yPos = 40;
+  let yPos = 45;
   let count = 0;
 
   for (const photoUrl of photos) {
@@ -179,7 +183,7 @@ async function createImageGridPage(
       // Verificar si cabe en la página
       if (yPos + imageSize > pageHeight - 30) break;
 
-      // Dibujar imagen con borde
+      // Dibujar imagen con borde elegante
       pdf.setDrawColor(hexToRgb(COLORS.border).r, hexToRgb(COLORS.border).g, hexToRgb(COLORS.border).b);
       pdf.setLineWidth(0.5);
       pdf.addImage(img, 'JPEG', xPos, yPos, imageSize, imageSize);
@@ -207,11 +211,11 @@ async function createDetailsPage(
 ) {
   await addHeaderLogo(pdf, agent, margin, 10);
 
-  let yPos = 35;
+  let yPos = 33;
 
-  // Tipo de Propiedad
+  // Tipo de Propiedad con fondo
   if (property.property_type) {
-    yPos = addSection(pdf, 'TIPO DE PROPIEDAD', yPos, margin);
+    yPos = addSectionTitle(pdf, '🏠 TIPO DE PROPIEDAD', margin, yPos, contentWidth);
     
     const propertyTypes: { [key: string]: string } = {
       'house': 'Casa',
@@ -222,15 +226,15 @@ async function createDetailsPage(
     };
 
     pdf.setFontSize(14);
-    pdf.setFont('helvetica', 'normal');
+    pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
     const propertyTypeText = propertyTypes[property.property_type] || property.property_type;
-    pdf.text(propertyTypeText, margin, yPos);
-    yPos += 15;
+    pdf.text(propertyTypeText, margin + 5, yPos);
+    yPos += 18;
   }
 
-  // Características principales
-  yPos = addSection(pdf, 'CARACTERÍSTICAS', yPos, margin);
+  // Características principales con fondo
+  yPos = addSectionTitle(pdf, '✨ CARACTERÍSTICAS PRINCIPALES', margin, yPos, contentWidth);
   
   const mainFeatures = [
     { value: property.bedrooms, label: 'Habitaciones', icon: '🛏️' },
@@ -243,55 +247,118 @@ async function createDetailsPage(
     let xPos = margin;
 
     mainFeatures.forEach(feature => {
-      // Caja con borde
+      // Caja con borde y fondo
       pdf.setDrawColor(hexToRgb(COLORS.border).r, hexToRgb(COLORS.border).g, hexToRgb(COLORS.border).b);
       pdf.setFillColor(hexToRgb(COLORS.background).r, hexToRgb(COLORS.background).g, hexToRgb(COLORS.background).b);
-      pdf.roundedRect(xPos, yPos, boxWidth - 5, 25, 3, 3, 'FD');
+      pdf.roundedRect(xPos, yPos, boxWidth - 5, 28, 3, 3, 'FD');
+
+      // Icono
+      pdf.setFontSize(18);
+      const iconWidth = pdf.getTextWidth(feature.icon);
+      pdf.text(feature.icon, xPos + (boxWidth - 5) / 2 - iconWidth / 2, yPos + 10);
 
       // Valor
-      pdf.setFontSize(20);
+      pdf.setFontSize(18);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
       const valueText = feature.value.toLocaleString();
       const valueWidth = pdf.getTextWidth(valueText);
-      pdf.text(valueText, xPos + (boxWidth - 5) / 2 - valueWidth / 2, yPos + 12);
+      pdf.text(valueText, xPos + (boxWidth - 5) / 2 - valueWidth / 2, yPos + 17);
 
       // Label
-      pdf.setFontSize(10);
+      pdf.setFontSize(9);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
       const labelWidth = pdf.getTextWidth(feature.label);
-      pdf.text(feature.label, xPos + (boxWidth - 5) / 2 - labelWidth / 2, yPos + 20);
+      pdf.text(feature.label, xPos + (boxWidth - 5) / 2 - labelWidth / 2, yPos + 23);
 
       xPos += boxWidth;
     });
 
-    yPos += 35;
+    yPos += 38;
   }
 
-  // Campos personalizados
+  // Campos personalizados (SIN título "Detalles adicionales")
   if (property.custom_fields_data && Object.keys(property.custom_fields_data).length > 0) {
-    yPos = addSection(pdf, 'DETALLES ADICIONALES', yPos, margin);
-    
-    Object.entries(property.custom_fields_data).forEach(([key, value]) => {
-      if (value) {
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
-        
-        // Checkmark
-        pdf.setTextColor(hexToRgb(COLORS.success).r, hexToRgb(COLORS.success).g, hexToRgb(COLORS.success).b);
-        pdf.text('✓', margin, yPos);
-        
-        pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
-        pdf.text(`${key}: ${value}`, margin + 8, yPos);
-        yPos += 8;
-      }
-    });
+    // Agregar separador visual
+    pdf.setDrawColor(hexToRgb(COLORS.border).r, hexToRgb(COLORS.border).g, hexToRgb(COLORS.border).b);
+    pdf.setLineWidth(0.3);
+    pdf.line(margin, yPos, pageWidth - margin, yPos);
     yPos += 10;
+
+    // Cargar los campos personalizados del agente para obtener los nombres reales
+    const customFieldsDefinitions = await loadCustomFieldsDefinitions(
+      property.agent_id,
+      property.property_type,
+      property.listing_type
+    );
+
+    console.log('📋 Definiciones de campos:', customFieldsDefinitions);
+
+    // Renderizar campos personalizados en grid de 2 columnas
+    const entries = Object.entries(property.custom_fields_data);
+    const columnWidth = (contentWidth - 10) / 2;
+    
+    for (let i = 0; i < entries.length; i++) {
+      const [key, value] = entries[i];
+      
+      if (!value) continue;
+
+      // Buscar la definición del campo
+      const fieldDef = customFieldsDefinitions.find((f: any) => f.field_key === key);
+      const fieldName = fieldDef?.field_name || key;
+      const fieldIcon = fieldDef?.icon || '📌';
+
+      // Verificar si necesitamos nueva página
+      if (yPos > pageHeight - 50) {
+        pdf.addPage();
+        await addHeaderLogo(pdf, agent, margin, 10);
+        yPos = 35;
+      }
+
+      // Posición en columna (izquierda o derecha)
+      const isLeftColumn = i % 2 === 0;
+      const xPos = isLeftColumn ? margin : margin + columnWidth + 5;
+
+      // Caja del campo con fondo
+      pdf.setFillColor(hexToRgb(COLORS.sectionBg).r, hexToRgb(COLORS.sectionBg).g, hexToRgb(COLORS.sectionBg).b);
+      pdf.setDrawColor(hexToRgb(COLORS.border).r, hexToRgb(COLORS.border).g, hexToRgb(COLORS.border).b);
+      pdf.roundedRect(xPos, yPos - 4, columnWidth - 2, 12, 2, 2, 'FD');
+
+      // Icono más grande y visible
+      pdf.setFontSize(12);
+      pdf.text(fieldIcon, xPos + 3, yPos + 3);
+
+      // Nombre del campo
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
+      const displayText = `${fieldName}:`;
+      pdf.text(displayText, xPos + 10, yPos + 3);
+
+      // Valor del campo
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
+      const valueText = String(value);
+      const maxValueWidth = columnWidth - 15;
+      const splitValue = pdf.splitTextToSize(valueText, maxValueWidth);
+      
+      // Solo mostrar la primera línea del valor para mantener el diseño compacto
+      if (splitValue.length > 0) {
+        const valueX = xPos + 10 + pdf.getTextWidth(displayText) + 2;
+        pdf.text(splitValue[0], valueX, yPos + 3);
+      }
+
+      // Avanzar a la siguiente fila después de 2 columnas
+      if (!isLeftColumn || i === entries.length - 1) {
+        yPos += 15;
+      }
+    }
+
+    yPos += 5;
   }
 
-  // Ubicación
+  // Ubicación con icono
   const locationParts = [
     property.address,
     property.city,
@@ -300,29 +367,35 @@ async function createDetailsPage(
   ].filter(Boolean);
 
   if (locationParts.length > 0) {
-    yPos = addSection(pdf, 'UBICACIÓN', yPos, margin);
+    if (yPos > pageHeight - 60) {
+      pdf.addPage();
+      await addHeaderLogo(pdf, agent, margin, 10);
+      yPos = 35;
+    }
+
+    yPos = addSectionTitle(pdf, '📍 UBICACIÓN', margin, yPos, contentWidth);
     
-    pdf.setFontSize(13);
+    pdf.setFontSize(12);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
     const location = locationParts.join(', ');
-    const splitLocation = pdf.splitTextToSize(location, contentWidth);
+    const splitLocation = pdf.splitTextToSize(location, contentWidth - 5);
     splitLocation.forEach((line: string) => {
-      pdf.text(line, margin, yPos);
-      yPos += 7;
+      pdf.text(line, margin + 5, yPos);
+      yPos += 6;
     });
-    yPos += 10;
+    yPos += 12;
   }
 
-  // QR Code
-  if (yPos < pageHeight - 80) {
-    yPos = addSection(pdf, 'VER MÁS INFORMACIÓN', yPos, margin);
+  // QR Code con diseño mejorado
+  if (yPos < pageHeight - 70) {
+    yPos = addSectionTitle(pdf, '📱 VER EN LÍNEA', margin, yPos, contentWidth);
     
-    pdf.setFontSize(11);
+    pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
-    pdf.text('Escanea este código para ver la propiedad en línea:', margin, yPos);
-    yPos += 10;
+    pdf.text('Escanea este código QR para ver más información:', margin + 5, yPos);
+    yPos += 8;
 
     const propertyUrl = `${window.location.origin}/p/${property.slug}`;
     const qrSize = 45;
@@ -331,15 +404,14 @@ async function createDetailsPage(
       const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(propertyUrl)}`;
       const qrImg = await loadImage(qrCodeUrl);
       
-      // Fondo blanco para el QR
+      // Fondo blanco con borde para el QR
       pdf.setFillColor(255, 255, 255);
-      pdf.roundedRect(margin - 2, yPos - 2, qrSize + 4, qrSize + 4, 2, 2, 'F');
+      pdf.setDrawColor(hexToRgb(COLORS.border).r, hexToRgb(COLORS.border).g, hexToRgb(COLORS.border).b);
+      pdf.roundedRect(margin + 3, yPos - 2, qrSize + 4, qrSize + 4, 2, 2, 'FD');
       
-      pdf.addImage(qrImg, 'PNG', margin, yPos, qrSize, qrSize);
+      pdf.addImage(qrImg, 'PNG', margin + 5, yPos, qrSize, qrSize);
     } catch (err) {
       console.error('Error generando QR:', err);
-      pdf.setFontSize(9);
-      pdf.text(propertyUrl, margin, yPos);
     }
   }
 
@@ -358,25 +430,25 @@ async function createDescriptionPage(
 ) {
   await addHeaderLogo(pdf, agent, margin, 10);
 
-  let yPos = 35;
+  let yPos = 33;
 
-  // Título de sección
-  yPos = addSection(pdf, 'DESCRIPCIÓN DE LA PROPIEDAD', yPos, margin);
+  // Título de sección con fondo
+  yPos = addSectionTitle(pdf, '📝 DESCRIPCIÓN DE LA PROPIEDAD', margin, yPos, contentWidth);
 
   // Descripción con formato mejorado
-  pdf.setFontSize(12);
+  pdf.setFontSize(11);
   pdf.setFont('helvetica', 'normal');
   pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
   
-  const splitDescription = pdf.splitTextToSize(property.description, contentWidth);
+  const splitDescription = pdf.splitTextToSize(property.description, contentWidth - 5);
   splitDescription.forEach((line: string) => {
     if (yPos > pageHeight - 40) {
       pdf.addPage();
-      addHeaderLogo(pdf, agent, margin, 10);
+      await addHeaderLogo(pdf, agent, margin, 10);
       yPos = 35;
     }
-    pdf.text(line, margin, yPos);
-    yPos += 7;
+    pdf.text(line, margin + 5, yPos);
+    yPos += 6;
   });
 
   await addFooter(pdf, agent, pageWidth, pageHeight);
@@ -387,18 +459,22 @@ async function createDescriptionPage(
 // COMPONENTES REUTILIZABLES
 // ============================================
 
-function addSection(pdf: jsPDF, title: string, yPos: number, margin: number): number {
-  pdf.setFontSize(16);
+function addSectionTitle(pdf: jsPDF, title: string, margin: number, yPos: number, contentWidth: number): number {
+  // Fondo de la sección
+  pdf.setFillColor(hexToRgb(COLORS.sectionBg).r, hexToRgb(COLORS.sectionBg).g, hexToRgb(COLORS.sectionBg).b);
+  pdf.roundedRect(margin, yPos - 6, contentWidth, 12, 2, 2, 'F');
+  
+  // Texto del título
+  pdf.setFontSize(13);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-  pdf.text(title, margin, yPos);
+  pdf.text(title, margin + 5, yPos + 2);
   
-  // Línea decorativa
-  pdf.setDrawColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-  pdf.setLineWidth(0.8);
-  pdf.line(margin, yPos + 2, margin + 40, yPos + 2);
-  
-  return yPos + 12;
+  return yPos + 16;
+}
+
+function contentWidth(pageWidth: number, margin: number): number {
+  return pageWidth - (margin * 2);
 }
 
 async function addHeaderLogo(
@@ -410,22 +486,23 @@ async function addHeaderLogo(
   if (agent?.watermark_logo) {
     try {
       const logo = await loadImage(agent.watermark_logo);
-      const logoHeight = 12;
+      const logoHeight = 15;
       const logoWidth = (logo.width / logo.height) * logoHeight;
       pdf.addImage(logo, 'PNG', margin, yPos, logoWidth, logoHeight);
     } catch (err) {
+      console.error('Error cargando logo:', err);
       // Si falla, usar texto
-      pdf.setFontSize(12);
+      pdf.setFontSize(14);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-      pdf.text('Flow Estate AI', margin, yPos + 8);
+      pdf.text('Flow Estate AI', margin, yPos + 10);
     }
   } else {
     // Texto por defecto
-    pdf.setFontSize(12);
+    pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-    pdf.text('Flow Estate AI', margin, yPos + 8);
+    pdf.text('Flow Estate AI', margin, yPos + 10);
   }
 }
 
@@ -437,9 +514,9 @@ async function addFooter(
 ) {
   const footerY = pageHeight - 15;
   
-  // Línea superior
-  pdf.setDrawColor(hexToRgb(COLORS.border).r, hexToRgb(COLORS.border).g, hexToRgb(COLORS.border).b);
-  pdf.setLineWidth(0.3);
+  // Línea superior decorativa
+  pdf.setDrawColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
+  pdf.setLineWidth(0.5);
   pdf.line(20, footerY - 5, pageWidth - 20, footerY - 5);
 
   pdf.setFontSize(8);
@@ -448,9 +525,23 @@ async function addFooter(
 
   if (agent) {
     const agentName = agent.full_name || agent.name || '';
-    const contactInfo = [agentName, agent.phone, agent.email].filter(Boolean).join(' • ');
+    const parts = [];
+    
+    if (agentName) parts.push(agentName);
+    if (agent.phone) parts.push(`📱 ${agent.phone}`);
+    if (agent.email) parts.push(`✉️ ${agent.email}`);
+    
+    const contactInfo = parts.join('  •  ');
     const textWidth = pdf.getTextWidth(contactInfo);
     pdf.text(contactInfo, pageWidth / 2 - textWidth / 2, footerY);
+    
+    // Brokerage en segunda línea si existe
+    if (agent.brokerage) {
+      pdf.setFontSize(7);
+      const brokerageText = agent.brokerage;
+      const brokerageWidth = pdf.getTextWidth(brokerageText);
+      pdf.text(brokerageText, pageWidth / 2 - brokerageWidth / 2, footerY + 4);
+    }
   } else {
     const text = 'Generado por Flow Estate AI';
     const textWidth = pdf.getTextWidth(text);
@@ -458,7 +549,7 @@ async function addFooter(
   }
 }
 
-async function addAgentInfo(
+async function addAgentInfoBox(
   pdf: jsPDF,
   agent: AgentInfo | undefined,
   margin: number,
@@ -467,37 +558,52 @@ async function addAgentInfo(
 ) {
   if (!agent) return;
 
-  // Caja con fondo semi-transparente
+  const boxHeight = 35;
+  const boxWidth = pageWidth - (margin * 2);
+
+  // Caja con fondo blanco semi-transparente y borde elegante
   pdf.setFillColor(255, 255, 255);
   pdf.setGState(new pdf.GState({ opacity: 0.95 }));
-  pdf.roundedRect(margin, yPos, pageWidth - (margin * 2), 30, 3, 3, 'F');
+  pdf.roundedRect(margin, yPos, boxWidth, boxHeight, 4, 4, 'F');
   pdf.setGState(new pdf.GState({ opacity: 1 }));
+  
+  // Borde decorativo
+  pdf.setDrawColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
+  pdf.setLineWidth(0.8);
+  pdf.roundedRect(margin, yPos, boxWidth, boxHeight, 4, 4, 'D');
 
-  // Información del agente
-  pdf.setFontSize(10);
+  // Badge "Agente Inmobiliario"
+  pdf.setFontSize(9);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
+  pdf.text('👤 AGENTE INMOBILIARIO', margin + 6, yPos + 8);
+
+  // Nombre del agente (más grande y destacado)
+  pdf.setFontSize(16);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
-  pdf.text('Agente Inmobiliario', margin + 5, yPos + 8);
-
-  pdf.setFontSize(14);
-  pdf.setFont('helvetica', 'bold');
   const agentName = agent.full_name || agent.name || 'Agente';
-  pdf.text(agentName, margin + 5, yPos + 16);
+  pdf.text(agentName, margin + 6, yPos + 17);
 
+  // Información de contacto con iconos
+  let contactY = yPos + 24;
   pdf.setFontSize(9);
   pdf.setFont('helvetica', 'normal');
   pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
   
-  let contactY = yPos + 22;
-  if (agent.phone) {
-    pdf.text(`📱 ${agent.phone}`, margin + 5, contactY);
-    contactY += 5;
+  const contactInfo = [];
+  if (agent.phone) contactInfo.push(`📱 ${agent.phone}`);
+  if (agent.email) contactInfo.push(`✉️ ${agent.email}`);
+  
+  if (contactInfo.length > 0) {
+    pdf.text(contactInfo.join('  •  '), margin + 6, contactY);
   }
-  if (agent.email) {
-    pdf.text(`✉️ ${agent.email}`, margin + 5, contactY);
-  }
+
+  // Brokerage (si existe)
   if (agent.brokerage) {
-    pdf.text(agent.brokerage, pageWidth - margin - pdf.getTextWidth(agent.brokerage) - 5, yPos + 16);
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'italic');
+    pdf.text(agent.brokerage, margin + 6, yPos + 30);
   }
 }
 
@@ -544,6 +650,7 @@ async function addWatermark(
       const logoHeight = (logo.height / logo.width) * wmSize;
       pdf.addImage(logo, 'PNG', xPos, yPos, logoWidth, logoHeight);
     } catch (err) {
+      console.error('Error cargando watermark:', err);
       // Si falla, usar texto
       pdf.setFontSize(wmSize / 2);
       pdf.setFont('helvetica', 'bold');
@@ -559,6 +666,38 @@ async function addWatermark(
   }
 
   pdf.setGState(new pdf.GState({ opacity: 1 }));
+}
+
+// ============================================
+// CARGAR DEFINICIONES DE CAMPOS PERSONALIZADOS
+// ============================================
+
+async function loadCustomFieldsDefinitions(
+  agentId: string,
+  propertyType: string,
+  listingType: string
+): Promise<any[]> {
+  try {
+    // Construir la URL con los parámetros necesarios
+    const params = new URLSearchParams({
+      property_type: propertyType,
+      listing_type: listingType,
+    });
+
+    const response = await fetch(`/api/custom-fields/list?${params.toString()}`);
+    
+    if (!response.ok) {
+      console.error('Error al cargar definiciones de campos personalizados');
+      return [];
+    }
+
+    const data = await response.json();
+    console.log('✅ Definiciones de campos personalizados cargadas:', data.fields);
+    return data.fields || [];
+  } catch (error) {
+    console.error('Error al cargar definiciones de campos:', error);
+    return [];
+  }
 }
 
 // ============================================

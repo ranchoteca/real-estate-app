@@ -514,8 +514,15 @@ async function createCompactGalleryPage(
   
   yPos += 12;
 
-  // Grid de fotos 2x3 (6 fotos máximo)
-  const photos = property.photos.slice(1, 7); // índices 1 a 6 (6 fotos)
+  // Grid de fotos 2x3 (6 fotos de la galería)
+  // Si hay 10 fotos total: [0]=portada, [1,2,3,4,5,6]=galería
+  const totalPhotos = property.photos.length;
+  console.log(`📸 Total de fotos disponibles: ${totalPhotos}`);
+  
+  // Tomar hasta 6 fotos para la galería (índices 1 al 6)
+  const photos = property.photos.slice(1, 7);
+  console.log(`📸 Fotos en galería: ${photos.length}`, photos);
+  
   const spacing = 4;
   const imageSize = (pageWidth - (margin * 2) - spacing) / 2;
   
@@ -523,7 +530,13 @@ async function createCompactGalleryPage(
   let count = 0;
 
   for (const photoUrl of photos) {
+    if (count >= 6) {
+      console.log('⚠️ Límite de 6 fotos alcanzado en galería');
+      break;
+    }
+
     try {
+      console.log(`🖼️ Cargando foto ${count + 1}:`, photoUrl);
       const img = await loadImage(photoUrl);
       
       if (count > 0 && count % 2 === 0) {
@@ -531,7 +544,10 @@ async function createCompactGalleryPage(
         yPos += imageSize + spacing;
       }
 
-      if (yPos + imageSize > pageHeight - 30) break;
+      if (yPos + imageSize > pageHeight - 30) {
+        console.log('⚠️ No hay más espacio en la página');
+        break;
+      }
 
       // Imagen con borde
       pdf.addImage(img, 'JPEG', xPos, yPos, imageSize, imageSize);
@@ -541,10 +557,13 @@ async function createCompactGalleryPage(
 
       xPos += imageSize + spacing;
       count++;
+      console.log(`✅ Foto ${count} cargada exitosamente`);
     } catch (err) {
-      console.error('Error loading gallery image:', err);
+      console.error(`❌ Error loading gallery image ${count + 1}:`, err, photoUrl);
     }
   }
+  
+  console.log(`✅ Total de fotos cargadas en galería: ${count}`);
 
   await addCompactFooter(pdf, agent, pageWidth, pageHeight);
 }
@@ -682,8 +701,6 @@ function getPropertyTypeName(type: string): string {
     'apartment': 'Apartamento',
     'land': 'Terreno',
     'commercial': 'Comercial',
-    'townhouse': 'Casa adosada',
-    'villa': 'Villa',
   };
   return types[type] || type.charAt(0).toUpperCase() + type.slice(1);
 }

@@ -1,24 +1,25 @@
 import jsPDF from 'jspdf';
 
-// Paleta de colores profesional
+// Paleta de colores profesional - Azul oscuro y Amarillo/Dorado
 const COLORS = {
-  primary: '#1a365d',      // Azul marino profundo
-  secondary: '#2c5282',    // Azul medio
-  accent: '#3182ce',       // Azul brillante
-  gold: '#d69e2e',         // Dorado elegante
-  success: '#38a169',      // Verde
-  text: '#1a202c',         // Negro suave
-  textLight: '#4a5568',    // Gris medio
-  textMuted: '#718096',    // Gris claro
-  border: '#e2e8f0',       // Borde suave
-  background: '#f7fafc',   // Fondo muy claro
+  primary: '#0f172a',        // Azul muy oscuro (slate-900)
+  secondary: '#1e3a8a',      // Azul oscuro (blue-900)
+  accent: '#1e40af',         // Azul medio (blue-800)
+  gold: '#eab308',           // Amarillo dorado (yellow-500)
+  goldDark: '#ca8a04',       // Amarillo oscuro (yellow-600)
+  text: '#0f172a',           // Texto oscuro
+  textLight: '#64748b',      // Gris medio
+  textMuted: '#94a3b8',      // Gris claro
+  border: '#e2e8f0',         // Borde claro
+  background: '#f8fafc',     // Fondo muy claro
   white: '#ffffff',
-  overlay: 'rgba(0, 0, 0, 0.4)',
 };
 
 interface AgentInfo {
+  id?: string;
   full_name?: string;
   name?: string;
+  username?: string;
   phone?: string;
   email?: string;
   brokerage?: string;
@@ -27,40 +28,56 @@ interface AgentInfo {
   watermark_size?: 'small' | 'medium' | 'large';
 }
 
-export async function exportPropertyToPDF(property: any, agent?: AgentInfo) {
+export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo) {
+  console.log('🚀 Iniciando exportación de PDF...');
+  console.log('📦 Propiedad:', property.title);
+  console.log('👤 Agente (parámetro):', agentParam);
+
+  // Cargar información del agente desde la API
+  let agent: AgentInfo | undefined = agentParam;
+  
+  if (!agent || !agent.full_name) {
+    console.log('⚠️ Información de agente incompleta, cargando desde API...');
+    try {
+      const response = await fetch('/api/agent/profile');
+      if (response.ok) {
+        const data = await response.json();
+        agent = data.agent;
+        console.log('✅ Agente cargado desde API:', agent);
+      } else {
+        console.warn('⚠️ No se pudo cargar la información del agente');
+      }
+    } catch (error) {
+      console.error('❌ Error cargando información del agente:', error);
+    }
+  }
+
+  console.log('📋 Agente final a usar:', {
+    nombre: agent?.full_name || agent?.name || 'NO DISPONIBLE',
+    email: agent?.email || 'NO DISPONIBLE',
+    phone: agent?.phone || 'NO DISPONIBLE',
+    brokerage: agent?.brokerage || 'NO DISPONIBLE',
+  });
+
   const pdf = new jsPDF('p', 'mm', 'a4');
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 15;
 
-  console.log('🏠 Generando PDF profesional para:', property.title);
+  // PÁGINA 1: PORTADA CON INFO PRINCIPAL
+  await createCompactCoverPage(pdf, property, agent, pageWidth, pageHeight, margin);
 
-  // PÁGINA 1: PORTADA IMPACTANTE
-  await createPremiumCoverPage(pdf, property, agent, pageWidth, pageHeight);
-
-  // PÁGINA 2: OVERVIEW CON FEATURES
+  // PÁGINA 2: DETALLES, AMENIDADES Y DESCRIPCIÓN (TODO EN UNA)
   pdf.addPage();
-  await createOverviewPage(pdf, property, agent, pageWidth, pageHeight, margin);
+  await createCompactDetailsPage(pdf, property, agent, pageWidth, pageHeight, margin);
 
-  // PÁGINA 3: GALERÍA DE FOTOS
+  // PÁGINA 3: GALERÍA DE FOTOS (Solo si hay fotos)
   if (property.photos && property.photos.length > 1) {
     pdf.addPage();
-    await createPhotoGalleryPage(pdf, property, agent, pageWidth, pageHeight, margin);
+    await createCompactGalleryPage(pdf, property, agent, pageWidth, pageHeight, margin);
   }
 
-  // PÁGINA 4: DETALLES Y AMENIDADES
-  pdf.addPage();
-  await createDetailsAmenitiesPage(pdf, property, agent, pageWidth, pageHeight, margin);
-
-  // PÁGINA 5: DESCRIPCIÓN Y UBICACIÓN
-  pdf.addPage();
-  await createDescriptionLocationPage(pdf, property, agent, pageWidth, pageHeight, margin);
-
-  // PÁGINA 6: CONTACTO Y CTA
-  pdf.addPage();
-  await createContactCTAPage(pdf, property, agent, pageWidth, pageHeight);
-
-  // Guardar con nombre profesional
+  // Guardar PDF
   const fileName = `${property.title.replace(/[^a-z0-9]/gi, '_')}_Brochure.pdf`;
   pdf.save(fileName);
   
@@ -68,246 +85,243 @@ export async function exportPropertyToPDF(property: any, agent?: AgentInfo) {
 }
 
 // ============================================
-// PÁGINA 1: PORTADA PREMIUM
+// PÁGINA 1: PORTADA COMPACTA
 // ============================================
-async function createPremiumCoverPage(
+async function createCompactCoverPage(
   pdf: jsPDF,
   property: any,
   agent: AgentInfo | undefined,
   pageWidth: number,
-  pageHeight: number
+  pageHeight: number,
+  margin: number
 ) {
-  // Imagen de fondo a pantalla completa con overlay
+  // Imagen principal (2/3 superior de la página)
+  const imageHeight = pageHeight * 0.65;
+  
   if (property.photos && property.photos.length > 0) {
     try {
       const img = await loadImage(property.photos[0]);
-      pdf.addImage(img, 'JPEG', 0, 0, pageWidth, pageHeight);
+      pdf.addImage(img, 'JPEG', 0, 0, pageWidth, imageHeight);
       
-      // Overlay gradiente oscuro (de arriba hacia abajo)
-      pdf.setFillColor(0, 0, 0);
-      pdf.setGState(new pdf.GState({ opacity: 0.6 }));
-      pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+      // Overlay oscuro degradado
+      pdf.setFillColor(15, 23, 42); // primary color
+      pdf.setGState(new pdf.GState({ opacity: 0.5 }));
+      pdf.rect(0, imageHeight - 80, pageWidth, 80, 'F');
       pdf.setGState(new pdf.GState({ opacity: 1 }));
     } catch (err) {
       console.error('Error loading cover image:', err);
-      // Fondo de respaldo elegante
-      pdf.setFillColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-      pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+      // Fondo azul oscuro de respaldo
+      pdf.setFillColor(15, 23, 42);
+      pdf.rect(0, 0, pageWidth, imageHeight, 'F');
     }
   }
 
-  // Logo del agente en la esquina superior
+  // Logo del agente (esquina superior izquierda)
   if (agent?.watermark_logo) {
     try {
       const logo = await loadImage(agent.watermark_logo);
-      const logoHeight = 18;
+      const logoHeight = 15;
       const logoWidth = (logo.width / logo.height) * logoHeight;
       
-      // Fondo blanco semi-transparente para el logo
+      // Fondo blanco para el logo
       pdf.setFillColor(255, 255, 255);
       pdf.setGState(new pdf.GState({ opacity: 0.95 }));
-      pdf.roundedRect(15, 15, logoWidth + 8, logoHeight + 8, 3, 3, 'F');
+      pdf.roundedRect(margin - 2, margin - 2, logoWidth + 4, logoHeight + 4, 2, 2, 'F');
       pdf.setGState(new pdf.GState({ opacity: 1 }));
       
-      pdf.addImage(logo, 'PNG', 19, 19, logoWidth, logoHeight);
+      pdf.addImage(logo, 'PNG', margin, margin, logoWidth, logoHeight);
     } catch (err) {
       console.error('Error cargando logo:', err);
     }
+  } else {
+    // Texto "Flow Estate AI" como logo
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(255, 255, 255);
+    
+    // Fondo semi-transparente
+    const textWidth = pdf.getTextWidth('FLOW ESTATE AI');
+    pdf.setFillColor(15, 23, 42);
+    pdf.setGState(new pdf.GState({ opacity: 0.8 }));
+    pdf.roundedRect(margin - 2, margin - 2, textWidth + 4, 10, 2, 2, 'F');
+    pdf.setGState(new pdf.GState({ opacity: 1 }));
+    
+    pdf.text('FLOW ESTATE AI', margin, margin + 6);
   }
 
-  // Badge de estado (arriba a la derecha)
-  const badgeY = 25;
+  // Badge de estado (arriba derecha)
   if (property.listing_type) {
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
-    
     const badgeText = property.listing_type === 'sale' ? 'FOR SALE' : 'FOR RENT';
     const badgeColor = property.listing_type === 'sale' ? COLORS.gold : COLORS.accent;
+    
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
     const textWidth = pdf.getTextWidth(badgeText);
     
     pdf.setFillColor(hexToRgb(badgeColor).r, hexToRgb(badgeColor).g, hexToRgb(badgeColor).b);
-    pdf.roundedRect(pageWidth - textWidth - 25, badgeY - 5, textWidth + 10, 8, 2, 2, 'F');
+    pdf.roundedRect(pageWidth - textWidth - 20, margin, textWidth + 10, 8, 2, 2, 'F');
     
     pdf.setTextColor(255, 255, 255);
-    pdf.text(badgeText, pageWidth - textWidth - 20, badgeY);
+    pdf.text(badgeText, pageWidth - textWidth - 15, margin + 5.5);
   }
 
-  // Título principal (centro-inferior de la página)
-  const titleY = pageHeight * 0.7;
-  
-  // Línea decorativa dorada arriba del título
-  pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
-  pdf.setLineWidth(1.5);
-  pdf.line(20, titleY - 15, 70, titleY - 15);
-  
+  // Información sobre la imagen (parte inferior)
+  let overlayY = imageHeight - 60;
+
   // Título
-  pdf.setFontSize(28);
+  pdf.setFontSize(24);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(255, 255, 255);
   const title = property.title.toUpperCase();
-  const splitTitle = pdf.splitTextToSize(title, pageWidth - 40);
-  let currentY = titleY;
+  const splitTitle = pdf.splitTextToSize(title, pageWidth - (margin * 2));
   
-  for (let i = 0; i < Math.min(splitTitle.length, 3); i++) {
-    pdf.text(splitTitle[i], 20, currentY);
-    currentY += 10;
+  for (let i = 0; i < Math.min(splitTitle.length, 2); i++) {
+    pdf.text(splitTitle[i], margin, overlayY);
+    overlayY += 10;
   }
 
-  // Subtítulo de ubicación
+  // Ubicación
   const locationParts = [property.city, property.state].filter(Boolean);
   if (locationParts.length > 0) {
-    pdf.setFontSize(14);
+    pdf.setFontSize(12);
     pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(240, 240, 240);
-    pdf.text(locationParts.join(', '), 20, currentY + 8);
-    currentY += 15;
+    pdf.setTextColor(234, 179, 8); // gold
+    pdf.text(locationParts.join(', '), margin, overlayY + 5);
+    overlayY += 12;
   }
 
-  // Precio en grande y destacado
-  pdf.setFontSize(36);
+  // Precio (grande y destacado)
+  pdf.setFontSize(32);
   pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
+  pdf.setTextColor(234, 179, 8); // gold
   const price = property.price 
     ? `$${property.price.toLocaleString()}`
     : 'Price Upon Request';
-  pdf.text(price, 20, currentY + 8);
+  pdf.text(price, margin, overlayY + 8);
 
-  // Features rápidos en la portada
-  const quickFeatures = [
-    { icon: '🛏️', value: property.bedrooms, label: 'Beds' },
-    { icon: '🚿', value: property.bathrooms, label: 'Baths' },
-    { icon: '📐', value: property.sqft, label: 'sqft' },
-  ].filter(f => f.value > 0);
+  // Features principales (iconos con texto)
+  const features = [
+    { value: property.bedrooms, label: 'Beds', show: property.bedrooms > 0 },
+    { value: property.bathrooms, label: 'Baths', show: property.bathrooms > 0 },
+    { value: property.sqft ? `${property.sqft.toLocaleString()}` : null, label: 'sqft', show: property.sqft > 0 },
+  ].filter(f => f.show);
 
-  if (quickFeatures.length > 0) {
-    let featureX = 20;
-    const featureY = pageHeight - 35;
+  if (features.length > 0) {
+    let featureX = margin;
+    const featureY = imageHeight - 18;
     
-    quickFeatures.forEach(feature => {
-      // Fondo semi-transparente
-      pdf.setFillColor(255, 255, 255);
-      pdf.setGState(new pdf.GState({ opacity: 0.2 }));
-      pdf.roundedRect(featureX - 2, featureY - 8, 35, 12, 2, 2, 'F');
-      pdf.setGState(new pdf.GState({ opacity: 1 }));
-      
-      // Contenido
-      pdf.setFontSize(16);
-      pdf.setTextColor(255, 255, 255);
-      pdf.text(feature.icon, featureX, featureY);
+    features.forEach((feature, index) => {
+      if (index > 0) {
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(12);
+        pdf.text('|', featureX, featureY);
+        featureX += 8;
+      }
       
       pdf.setFontSize(14);
       pdf.setFont('helvetica', 'bold');
-      pdf.text(String(feature.value), featureX + 8, featureY);
+      pdf.setTextColor(255, 255, 255);
+      pdf.text(String(feature.value), featureX, featureY);
       
-      pdf.setFontSize(9);
+      pdf.setFontSize(10);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(feature.label, featureX + 8, featureY + 5);
+      pdf.text(feature.label, featureX + pdf.getTextWidth(String(feature.value)) + 2, featureY);
       
-      featureX += 40;
+      featureX += pdf.getTextWidth(String(feature.value)) + pdf.getTextWidth(feature.label) + 10;
     });
   }
-}
 
-// ============================================
-// PÁGINA 2: OVERVIEW Y HIGHLIGHTS
-// ============================================
-async function createOverviewPage(
-  pdf: jsPDF,
-  property: any,
-  agent: AgentInfo | undefined,
-  pageWidth: number,
-  pageHeight: number,
-  margin: number
-) {
-  await addPageHeader(pdf, agent, 'PROPERTY OVERVIEW', pageWidth, margin);
+  // Sección inferior blanca con información del agente
+  let bottomY = imageHeight + 10;
 
-  let yPos = 45;
-  const contentWidth = pageWidth - (margin * 2);
+  // Línea decorativa dorada
+  pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
+  pdf.setLineWidth(2);
+  pdf.line(margin, bottomY, margin + 40, bottomY);
+  bottomY += 12;
 
-  // Features principales en tarjetas grandes
-  const mainFeatures = [
-    { icon: '🛏️', value: property.bedrooms, label: 'Bedrooms', color: COLORS.primary },
-    { icon: '🚿', value: property.bathrooms, label: 'Bathrooms', color: COLORS.secondary },
-    { icon: '📐', value: property.sqft ? `${property.sqft.toLocaleString()}` : 'N/A', label: 'Square Feet', color: COLORS.accent },
-    { icon: '🏠', value: getPropertyTypeName(property.property_type), label: 'Property Type', color: COLORS.gold, isText: true },
-  ].filter(f => f.value && f.value !== 'N/A' && f.value !== 0);
-
-  if (mainFeatures.length > 0) {
-    const cardWidth = (contentWidth - 15) / 2;
-    const cardHeight = 35;
-    let xPos = margin;
-    let row = 0;
-
-    mainFeatures.forEach((feature, index) => {
-      if (index > 0 && index % 2 === 0) {
-        row++;
-        xPos = margin;
-        yPos += cardHeight + 8;
-      }
-
-      // Tarjeta con sombra
-      pdf.setFillColor(hexToRgb(COLORS.white).r, hexToRgb(COLORS.white).g, hexToRgb(COLORS.white).b);
-      pdf.setDrawColor(hexToRgb(COLORS.border).r, hexToRgb(COLORS.border).g, hexToRgb(COLORS.border).b);
-      pdf.setLineWidth(0.3);
-      pdf.roundedRect(xPos, yPos, cardWidth, cardHeight, 4, 4, 'FD');
-
-      // Barra de color superior
-      pdf.setFillColor(hexToRgb(feature.color).r, hexToRgb(feature.color).g, hexToRgb(feature.color).b);
-      pdf.roundedRect(xPos, yPos, cardWidth, 3, 4, 4, 'F');
-
-      // Icono
-      pdf.setFontSize(24);
-      pdf.text(feature.icon, xPos + 8, yPos + 18);
-
-      // Valor
-      pdf.setFontSize(feature.isText ? 13 : 22);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
-      const valueText = String(feature.value);
-      pdf.text(valueText, xPos + 25, yPos + 18);
-
-      // Label
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(hexToRgb(COLORS.textMuted).r, hexToRgb(COLORS.textMuted).g, hexToRgb(COLORS.textMuted).b);
-      pdf.text(feature.label, xPos + 25, yPos + 26);
-
-      xPos += cardWidth + 5;
-    });
-
-    yPos += cardHeight + 20;
-  }
-
-  // Sección de highlights
-  if (property.description) {
-    pdf.setFontSize(16);
+  // Tipo de propiedad
+  if (property.property_type) {
+    pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-    pdf.text('PROPERTY HIGHLIGHTS', margin, yPos);
+    pdf.text('PROPERTY TYPE:', margin, bottomY);
     
-    yPos += 10;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
+    const propertyTypeName = getPropertyTypeName(property.property_type);
+    pdf.text(propertyTypeName, margin + 42, bottomY);
     
-    // Extracto de la descripción
-    pdf.setFontSize(11);
+    bottomY += 10;
+  }
+
+  // Información del AGENTE (destacada)
+  if (agent && (agent.full_name || agent.name || agent.email || agent.phone)) {
+    console.log('📝 Renderizando información del agente en portada...');
+    
+    // Caja de agente con borde dorado
+    const agentBoxHeight = 32;
+    pdf.setFillColor(hexToRgb(COLORS.background).r, hexToRgb(COLORS.background).g, hexToRgb(COLORS.background).b);
+    pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
+    pdf.setLineWidth(1);
+    pdf.roundedRect(margin, bottomY, pageWidth - (margin * 2), agentBoxHeight, 3, 3, 'FD');
+
+    bottomY += 7;
+
+    // Label "LISTING AGENT" en dorado
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
+    pdf.text('LISTING AGENT', margin + 5, bottomY);
+    
+    bottomY += 6;
+
+    // Nombre del agente
+    const agentName = agent.full_name || agent.name || 'Real Estate Agent';
+    pdf.setFontSize(13);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
+    pdf.text(agentName, margin + 5, bottomY);
+    
+    bottomY += 6;
+
+    // Información de contacto en una línea
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
     
-    const excerpt = property.description.substring(0, 400) + (property.description.length > 400 ? '...' : '');
-    const splitExcerpt = pdf.splitTextToSize(excerpt, contentWidth);
+    const contactParts = [];
+    if (agent.phone) contactParts.push(`Phone: ${agent.phone}`);
+    if (agent.email) contactParts.push(`Email: ${agent.email}`);
     
-    splitExcerpt.slice(0, 8).forEach((line: string) => {
-      pdf.text(line, margin, yPos);
-      yPos += 5.5;
-    });
-  }
+    if (contactParts.length > 0) {
+      const contactText = contactParts.join('  |  ');
+      pdf.text(contactText, margin + 5, bottomY);
+      bottomY += 5;
+    }
 
-  await addPageFooter(pdf, agent, pageWidth, pageHeight);
+    // Brokerage en cursiva
+    if (agent.brokerage) {
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'italic');
+      pdf.setTextColor(hexToRgb(COLORS.textMuted).r, hexToRgb(COLORS.textMuted).g, hexToRgb(COLORS.textMuted).b);
+      pdf.text(agent.brokerage, margin + 5, bottomY);
+    }
+  } else {
+    console.warn('⚠️ NO hay información completa del agente para mostrar');
+    
+    // Mensaje de respaldo
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(hexToRgb(COLORS.textMuted).r, hexToRgb(COLORS.textMuted).g, hexToRgb(COLORS.textMuted).b);
+    pdf.text('Powered by Flow Estate AI', margin, bottomY);
+  }
 }
 
 // ============================================
-// PÁGINA 3: GALERÍA DE FOTOS
+// PÁGINA 2: DETALLES COMPACTOS (TODO EN UNO)
 // ============================================
-async function createPhotoGalleryPage(
+async function createCompactDetailsPage(
   pdf: jsPDF,
   property: any,
   agent: AgentInfo | undefined,
@@ -315,15 +329,200 @@ async function createPhotoGalleryPage(
   pageHeight: number,
   margin: number
 ) {
-  await addPageHeader(pdf, agent, 'PHOTO GALLERY', pageWidth, margin);
+  // Header simple
+  await addCompactHeader(pdf, agent, margin, pageWidth);
 
-  const photos = property.photos.slice(1, 7); // Hasta 6 fotos adicionales
+  let yPos = 35;
+  const contentWidth = pageWidth - (margin * 2);
+  const columnWidth = (contentWidth - 8) / 2;
+
+  // TÍTULO: PROPERTY DETAILS
+  pdf.setFontSize(16);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
+  pdf.text('PROPERTY DETAILS', margin, yPos);
+  
+  // Línea dorada
+  pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
+  pdf.setLineWidth(1.5);
+  pdf.line(margin, yPos + 2, margin + 50, yPos + 2);
+  
+  yPos += 12;
+
+  // Campos personalizados en 2 columnas (COMPACTO)
+  if (property.custom_fields_data && Object.keys(property.custom_fields_data).length > 0) {
+    const customFieldsDefinitions = await loadCustomFieldsDefinitions(
+      property.agent_id,
+      property.property_type,
+      property.listing_type
+    );
+
+    const entries = Object.entries(property.custom_fields_data).filter(([_, value]) => value);
+    
+    for (let i = 0; i < entries.length; i++) {
+      const [key, value] = entries[i];
+      const fieldDef = customFieldsDefinitions.find((f: any) => f.field_key === key);
+      const fieldName = fieldDef?.field_name || key;
+
+      const isLeftColumn = i % 2 === 0;
+      const xPos = isLeftColumn ? margin : margin + columnWidth + 4;
+
+      // Fondo sutil
+      pdf.setFillColor(hexToRgb(COLORS.background).r, hexToRgb(COLORS.background).g, hexToRgb(COLORS.background).b);
+      pdf.roundedRect(xPos, yPos - 3, columnWidth, 10, 1, 1, 'F');
+
+      // Nombre del campo (bold)
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
+      pdf.text(fieldName + ':', xPos + 3, yPos + 3);
+
+      // Valor
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
+      const valueText = String(value);
+      const maxWidth = columnWidth - pdf.getTextWidth(fieldName + ':') - 8;
+      const splitValue = pdf.splitTextToSize(valueText, maxWidth);
+      const valueX = xPos + pdf.getTextWidth(fieldName + ':') + 5;
+      pdf.text(splitValue[0], valueX, yPos + 3);
+
+      if (!isLeftColumn || i === entries.length - 1) {
+        yPos += 12;
+      }
+    }
+
+    yPos += 5;
+  }
+
+  // DESCRIPCIÓN
+  if (property.description && yPos < pageHeight - 80) {
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
+    pdf.text('DESCRIPTION', margin, yPos);
+    
+    pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
+    pdf.setLineWidth(1.5);
+    pdf.line(margin, yPos + 2, margin + 40, yPos + 2);
+    
+    yPos += 10;
+
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
+    
+    const maxLines = Math.floor((pageHeight - yPos - 60) / 5.5);
+    const splitDescription = pdf.splitTextToSize(property.description, contentWidth);
+    
+    for (let i = 0; i < Math.min(splitDescription.length, maxLines); i++) {
+      pdf.text(splitDescription[i], margin, yPos);
+      yPos += 5.5;
+    }
+
+    yPos += 8;
+  }
+
+  // UBICACIÓN + QR CODE (lado a lado)
+  if (yPos < pageHeight - 60) {
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
+    pdf.text('LOCATION', margin, yPos);
+    
+    pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
+    pdf.setLineWidth(1.5);
+    pdf.line(margin, yPos + 2, margin + 30, yPos + 2);
+    
+    yPos += 10;
+
+    // Dirección (lado izquierdo)
+    const locationParts = [
+      property.address,
+      property.city,
+      property.state,
+      property.zip_code
+    ].filter(Boolean);
+
+    if (locationParts.length > 0) {
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
+      
+      const location = locationParts.join(', ');
+      const splitLocation = pdf.splitTextToSize(location, contentWidth - 50);
+      
+      let locY = yPos;
+      splitLocation.forEach((line: string) => {
+        pdf.text(line, margin, locY);
+        locY += 5;
+      });
+    }
+
+    // QR Code (lado derecho)
+    const qrSize = 40;
+    const qrX = pageWidth - margin - qrSize;
+    
+    try {
+      const propertyUrl = `${window.location.origin}/p/${property.slug}`;
+      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(propertyUrl)}`;
+      const qrImg = await loadImage(qrCodeUrl);
+      
+      // Fondo blanco con borde
+      pdf.setFillColor(255, 255, 255);
+      pdf.setDrawColor(hexToRgb(COLORS.border).r, hexToRgb(COLORS.border).g, hexToRgb(COLORS.border).b);
+      pdf.setLineWidth(0.5);
+      pdf.roundedRect(qrX - 2, yPos - 2, qrSize + 4, qrSize + 4, 2, 2, 'FD');
+      
+      pdf.addImage(qrImg, 'PNG', qrX, yPos, qrSize, qrSize);
+      
+      // Texto debajo del QR
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(hexToRgb(COLORS.textMuted).r, hexToRgb(COLORS.textMuted).g, hexToRgb(COLORS.textMuted).b);
+      const qrTextWidth = pdf.getTextWidth('Scan to view online');
+      pdf.text('Scan to view online', qrX + (qrSize - qrTextWidth) / 2, yPos + qrSize + 5);
+    } catch (err) {
+      console.error('Error generando QR:', err);
+    }
+  }
+
+  // Footer
+  await addCompactFooter(pdf, agent, pageWidth, pageHeight);
+}
+
+// ============================================
+// PÁGINA 3: GALERÍA COMPACTA
+// ============================================
+async function createCompactGalleryPage(
+  pdf: jsPDF,
+  property: any,
+  agent: AgentInfo | undefined,
+  pageWidth: number,
+  pageHeight: number,
+  margin: number
+) {
+  await addCompactHeader(pdf, agent, margin, pageWidth);
+
+  let yPos = 35;
+
+  // TÍTULO
+  pdf.setFontSize(16);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
+  pdf.text('PHOTO GALLERY', margin, yPos);
+  
+  pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
+  pdf.setLineWidth(1.5);
+  pdf.line(margin, yPos + 2, margin + 45, yPos + 2);
+  
+  yPos += 12;
+
+  // Grid de fotos 2x3
+  const photos = property.photos.slice(1, 7);
   const spacing = 4;
-  const availableHeight = pageHeight - 60;
   const imageSize = (pageWidth - (margin * 2) - spacing) / 2;
   
   let xPos = margin;
-  let yPos = 45;
   let count = 0;
 
   for (const photoUrl of photos) {
@@ -337,17 +536,11 @@ async function createPhotoGalleryPage(
 
       if (yPos + imageSize > pageHeight - 30) break;
 
-      // Sombra
-      pdf.setFillColor(0, 0, 0);
-      pdf.setGState(new pdf.GState({ opacity: 0.1 }));
-      pdf.roundedRect(xPos + 1, yPos + 1, imageSize, imageSize, 3, 3, 'F');
-      pdf.setGState(new pdf.GState({ opacity: 1 }));
-
-      // Imagen con borde redondeado
+      // Imagen con borde
       pdf.addImage(img, 'JPEG', xPos, yPos, imageSize, imageSize);
       pdf.setDrawColor(hexToRgb(COLORS.border).r, hexToRgb(COLORS.border).g, hexToRgb(COLORS.border).b);
       pdf.setLineWidth(0.5);
-      pdf.roundedRect(xPos, yPos, imageSize, imageSize, 3, 3, 'D');
+      pdf.rect(xPos, yPos, imageSize, imageSize);
 
       xPos += imageSize + spacing;
       count++;
@@ -356,351 +549,75 @@ async function createPhotoGalleryPage(
     }
   }
 
-  await addPageFooter(pdf, agent, pageWidth, pageHeight);
-}
-
-// ============================================
-// PÁGINA 4: DETALLES Y AMENIDADES
-// ============================================
-async function createDetailsAmenitiesPage(
-  pdf: jsPDF,
-  property: any,
-  agent: AgentInfo | undefined,
-  pageWidth: number,
-  pageHeight: number,
-  margin: number
-) {
-  await addPageHeader(pdf, agent, 'DETAILS & AMENITIES', pageWidth, margin);
-
-  let yPos = 45;
-  const contentWidth = pageWidth - (margin * 2);
-
-  // Campos personalizados en diseño de dos columnas
-  if (property.custom_fields_data && Object.keys(property.custom_fields_data).length > 0) {
-    const customFieldsDefinitions = await loadCustomFieldsDefinitions(
-      property.agent_id,
-      property.property_type,
-      property.listing_type
-    );
-
-    const entries = Object.entries(property.custom_fields_data).filter(([_, value]) => value);
-    const columnWidth = (contentWidth - 8) / 2;
-    
-    for (let i = 0; i < entries.length; i++) {
-      const [key, value] = entries[i];
-      const fieldDef = customFieldsDefinitions.find((f: any) => f.field_key === key);
-      const fieldName = fieldDef?.field_name || key;
-      const fieldIcon = fieldDef?.icon || '📌';
-
-      if (yPos > pageHeight - 50) {
-        pdf.addPage();
-        await addPageHeader(pdf, agent, 'DETAILS & AMENITIES (cont.)', pageWidth, margin);
-        yPos = 45;
-      }
-
-      const isLeftColumn = i % 2 === 0;
-      const xPos = isLeftColumn ? margin : margin + columnWidth + 4;
-
-      // Fondo de la tarjeta
-      pdf.setFillColor(hexToRgb(COLORS.background).r, hexToRgb(COLORS.background).g, hexToRgb(COLORS.background).b);
-      pdf.roundedRect(xPos, yPos - 3, columnWidth, 14, 2, 2, 'F');
-
-      // Icono
-      pdf.setFontSize(11);
-      pdf.text(fieldIcon, xPos + 4, yPos + 5);
-
-      // Nombre del campo
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-      pdf.text(fieldName, xPos + 12, yPos + 3);
-
-      // Valor
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
-      const valueText = String(value);
-      const splitValue = pdf.splitTextToSize(valueText, columnWidth - 15);
-      pdf.text(splitValue[0], xPos + 12, yPos + 8);
-
-      if (!isLeftColumn || i === entries.length - 1) {
-        yPos += 17;
-      }
-    }
-  }
-
-  await addPageFooter(pdf, agent, pageWidth, pageHeight);
-}
-
-// ============================================
-// PÁGINA 5: DESCRIPCIÓN Y UBICACIÓN
-// ============================================
-async function createDescriptionLocationPage(
-  pdf: jsPDF,
-  property: any,
-  agent: AgentInfo | undefined,
-  pageWidth: number,
-  pageHeight: number,
-  margin: number
-) {
-  await addPageHeader(pdf, agent, 'DESCRIPTION', pageWidth, margin);
-
-  let yPos = 45;
-  const contentWidth = pageWidth - (margin * 2);
-
-  // Descripción completa
-  if (property.description) {
-    pdf.setFontSize(11);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
-    pdf.setLineHeightFactor(1.6);
-    
-    const splitDescription = pdf.splitTextToSize(property.description, contentWidth);
-    
-    for (const line of splitDescription) {
-      if (yPos > pageHeight - 50) {
-        pdf.addPage();
-        await addPageHeader(pdf, agent, 'DESCRIPTION (cont.)', pageWidth, margin);
-        yPos = 45;
-      }
-      pdf.text(line, margin, yPos);
-      yPos += 6;
-    }
-
-    yPos += 15;
-  }
-
-  // Ubicación
-  const locationParts = [
-    property.address,
-    property.city,
-    property.state,
-    property.zip_code
-  ].filter(Boolean);
-
-  if (locationParts.length > 0 && yPos < pageHeight - 50) {
-    // Título de sección
-    pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-    pdf.text('📍 LOCATION', margin, yPos);
-    
-    yPos += 12;
-
-    // Caja de ubicación
-    const boxHeight = 25;
-    pdf.setFillColor(hexToRgb(COLORS.background).r, hexToRgb(COLORS.background).g, hexToRgb(COLORS.background).b);
-    pdf.setDrawColor(hexToRgb(COLORS.border).r, hexToRgb(COLORS.border).g, hexToRgb(COLORS.border).b);
-    pdf.roundedRect(margin, yPos - 5, contentWidth, boxHeight, 3, 3, 'FD');
-
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
-    const location = locationParts.join(', ');
-    const splitLocation = pdf.splitTextToSize(location, contentWidth - 10);
-    
-    let locY = yPos + 3;
-    splitLocation.forEach((line: string) => {
-      pdf.text(line, margin + 5, locY);
-      locY += 6;
-    });
-  }
-
-  await addPageFooter(pdf, agent, pageWidth, pageHeight);
-}
-
-// ============================================
-// PÁGINA 6: CONTACTO Y CALL TO ACTION
-// ============================================
-async function createContactCTAPage(
-  pdf: jsPDF,
-  property: any,
-  agent: AgentInfo | undefined,
-  pageWidth: number,
-  pageHeight: number
-) {
-  // Fondo elegante
-  pdf.setFillColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-  pdf.rect(0, 0, pageWidth, pageHeight, 'F');
-
-  // Logo grande arriba
-  if (agent?.watermark_logo) {
-    try {
-      const logo = await loadImage(agent.watermark_logo);
-      const logoHeight = 30;
-      const logoWidth = (logo.width / logo.height) * logoHeight;
-      const xPos = (pageWidth - logoWidth) / 2;
-      pdf.addImage(logo, 'PNG', xPos, 40, logoWidth, logoHeight);
-    } catch (err) {
-      console.error('Error loading logo:', err);
-    }
-  }
-
-  let yPos = 85;
-
-  // Título CTA
-  pdf.setFontSize(24);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(255, 255, 255);
-  const ctaText = 'Schedule Your Private Showing';
-  const ctaWidth = pdf.getTextWidth(ctaText);
-  pdf.text(ctaText, (pageWidth - ctaWidth) / 2, yPos);
-
-  yPos += 15;
-
-  // Subtítulo
-  pdf.setFontSize(12);
-  pdf.setFont('helvetica', 'normal');
-  pdf.setTextColor(220, 220, 220);
-  const subtitle = 'Contact us today to learn more about this exceptional property';
-  const subWidth = pdf.getTextWidth(subtitle);
-  pdf.text(subtitle, (pageWidth - subWidth) / 2, yPos);
-
-  yPos += 30;
-
-  // Información del agente en caja blanca
-  if (agent) {
-    const boxWidth = 140;
-    const boxHeight = 70;
-    const boxX = (pageWidth - boxWidth) / 2;
-
-    // Caja principal
-    pdf.setFillColor(255, 255, 255);
-    pdf.roundedRect(boxX, yPos, boxWidth, boxHeight, 5, 5, 'F');
-
-    // Nombre del agente
-    pdf.setFontSize(20);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
-    const agentName = agent.full_name || agent.name || 'Real Estate Agent';
-    const nameWidth = pdf.getTextWidth(agentName);
-    pdf.text(agentName, boxX + (boxWidth - nameWidth) / 2, yPos + 18);
-
-    // Brokerage
-    if (agent.brokerage) {
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'italic');
-      pdf.setTextColor(hexToRgb(COLORS.textMuted).r, hexToRgb(COLORS.textMuted).g, hexToRgb(COLORS.textMuted).b);
-      const brokerWidth = pdf.getTextWidth(agent.brokerage);
-      pdf.text(agent.brokerage, boxX + (boxWidth - brokerWidth) / 2, yPos + 26);
-    }
-
-    // Línea divisoria
-    pdf.setDrawColor(hexToRgb(COLORS.border).r, hexToRgb(COLORS.border).g, hexToRgb(COLORS.border).b);
-    pdf.setLineWidth(0.5);
-    pdf.line(boxX + 15, yPos + 33, boxX + boxWidth - 15, yPos + 33);
-
-    // Contacto
-    let contactY = yPos + 43;
-    pdf.setFontSize(11);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
-
-    if (agent.phone) {
-      const phoneText = `📱 ${agent.phone}`;
-      const phoneWidth = pdf.getTextWidth(phoneText);
-      pdf.text(phoneText, boxX + (boxWidth - phoneWidth) / 2, contactY);
-      contactY += 8;
-    }
-
-    if (agent.email) {
-      const emailText = `✉️ ${agent.email}`;
-      const emailWidth = pdf.getTextWidth(emailText);
-      pdf.text(emailText, boxX + (boxWidth - emailWidth) / 2, contactY);
-    }
-  }
-
-  // QR Code abajo
-  yPos += 95;
-  const qrSize = 50;
-  const qrX = (pageWidth - qrSize) / 2;
-  
-  try {
-    const propertyUrl = `${window.location.origin}/p/${property.slug}`;
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(propertyUrl)}`;
-    const qrImg = await loadImage(qrCodeUrl);
-    
-    // Fondo blanco para el QR
-    pdf.setFillColor(255, 255, 255);
-    pdf.roundedRect(qrX - 3, yPos - 3, qrSize + 6, qrSize + 6, 3, 3, 'F');
-    
-    pdf.addImage(qrImg, 'PNG', qrX, yPos, qrSize, qrSize);
-  } catch (err) {
-    console.error('Error generando QR:', err);
-  }
-
-  // Texto del QR
-  pdf.setFontSize(9);
-  pdf.setFont('helvetica', 'normal');
-  pdf.setTextColor(220, 220, 220);
-  const qrText = 'Scan to view online';
-  const qrTextWidth = pdf.getTextWidth(qrText);
-  pdf.text(qrText, (pageWidth - qrTextWidth) / 2, yPos + qrSize + 8);
+  await addCompactFooter(pdf, agent, pageWidth, pageHeight);
 }
 
 // ============================================
 // COMPONENTES COMPARTIDOS
 // ============================================
 
-async function addPageHeader(
+async function addCompactHeader(
   pdf: jsPDF,
   agent: AgentInfo | undefined,
-  title: string,
-  pageWidth: number,
-  margin: number
+  margin: number,
+  pageWidth: number
 ) {
   // Logo pequeño
   if (agent?.watermark_logo) {
     try {
       const logo = await loadImage(agent.watermark_logo);
-      const logoHeight = 12;
+      const logoHeight = 10;
       const logoWidth = (logo.width / logo.height) * logoHeight;
       pdf.addImage(logo, 'PNG', margin, 12, logoWidth, logoHeight);
     } catch (err) {
       console.error('Error loading header logo:', err);
+      // Texto alternativo
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
+      pdf.text('FLOW ESTATE AI', margin, 18);
     }
+  } else {
+    // Texto por defecto
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
+    pdf.text('FLOW ESTATE AI', margin, 18);
   }
 
-  // Título de la página
-  pdf.setFontSize(16);
-  pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-  const titleWidth = pdf.getTextWidth(title);
-  pdf.text(title, pageWidth - margin - titleWidth, 18);
-
-  // Línea decorativa
+  // Línea decorativa dorada
   pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
-  pdf.setLineWidth(1);
-  pdf.line(margin, 28, pageWidth - margin, 28);
+  pdf.setLineWidth(0.5);
+  pdf.line(margin, 25, pageWidth - margin, 25);
 }
 
-async function addPageFooter(
+async function addCompactFooter(
   pdf: jsPDF,
   agent: AgentInfo | undefined,
   pageWidth: number,
   pageHeight: number
 ) {
-  const footerY = pageHeight - 12;
+  const footerY = pageHeight - 10;
   
-  // Línea superior
   pdf.setDrawColor(hexToRgb(COLORS.border).r, hexToRgb(COLORS.border).g, hexToRgb(COLORS.border).b);
   pdf.setLineWidth(0.3);
-  pdf.line(20, footerY - 5, pageWidth - 20, footerY - 5);
+  pdf.line(15, footerY - 4, pageWidth - 15, footerY - 4);
 
   pdf.setFontSize(7);
   pdf.setFont('helvetica', 'normal');
   pdf.setTextColor(hexToRgb(COLORS.textMuted).r, hexToRgb(COLORS.textMuted).g, hexToRgb(COLORS.textMuted).b);
 
-  if (agent) {
+  if (agent && (agent.full_name || agent.name || agent.email || agent.phone)) {
     const agentName = agent.full_name || agent.name || '';
-    const contactParts = [];
+    const parts = [];
     
-    if (agentName) contactParts.push(agentName);
-    if (agent.phone) contactParts.push(`${agent.phone}`);
-    if (agent.email) contactParts.push(agent.email);
+    if (agentName) parts.push(agentName);
+    if (agent.phone) parts.push(agent.phone);
+    if (agent.email) parts.push(agent.email);
     
-    const contactInfo = contactParts.join('  •  ');
-    const textWidth = pdf.getTextWidth(contactInfo);
-    pdf.text(contactInfo, pageWidth / 2 - textWidth / 2, footerY);
+    const text = parts.join('  |  ');
+    const textWidth = pdf.getTextWidth(text);
+    pdf.text(text, pageWidth / 2 - textWidth / 2, footerY);
   } else {
     const text = 'Powered by Flow Estate AI';
     const textWidth = pdf.getTextWidth(text);
@@ -709,7 +626,7 @@ async function addPageFooter(
 }
 
 // ============================================
-// FUNCIONES DE CARGA DE DATOS
+// UTILIDADES
 // ============================================
 
 async function loadCustomFieldsDefinitions(
@@ -731,17 +648,13 @@ async function loadCustomFieldsDefinitions(
     }
 
     const data = await response.json();
-    console.log('✅ Definiciones de campos personalizados cargadas:', data.fields);
+    console.log('✅ Campos personalizados cargados:', data.fields?.length || 0);
     return data.fields || [];
   } catch (error) {
     console.error('Error al cargar definiciones de campos:', error);
     return [];
   }
 }
-
-// ============================================
-// UTILIDADES
-// ============================================
 
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {

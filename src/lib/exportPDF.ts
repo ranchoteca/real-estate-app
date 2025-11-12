@@ -1,18 +1,16 @@
 import jsPDF from 'jspdf';
 
-// Paleta de colores profesional - Azul oscuro y Amarillo/Dorado
+// Paleta de colores - Dorado y neutros
 const COLORS = {
-  primary: '#0f172a',        // Azul muy oscuro (slate-900)
-  secondary: '#1e3a8a',      // Azul oscuro (blue-900)
-  accent: '#1e40af',         // Azul medio (blue-800)
-  gold: '#eab308',           // Amarillo dorado (yellow-500)
-  goldDark: '#ca8a04',       // Amarillo oscuro (yellow-600)
-  text: '#0f172a',           // Texto oscuro
-  textLight: '#64748b',      // Gris medio
-  textMuted: '#94a3b8',      // Gris claro
-  border: '#e2e8f0',         // Borde claro
-  background: '#f8fafc',     // Fondo muy claro
+  gold: '#eab308',           // Amarillo dorado principal
+  goldDark: '#ca8a04',       // Amarillo oscuro
+  text: '#1f2937',           // Texto principal (gris oscuro)
+  textLight: '#6b7280',      // Gris medio
+  textMuted: '#9ca3af',      // Gris claro
+  border: '#e5e7eb',         // Borde claro
+  background: '#f9fafb',     // Fondo muy claro
   white: '#ffffff',
+  black: '#000000',
 };
 
 interface AgentInfo {
@@ -64,14 +62,14 @@ export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo)
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 15;
 
-  // PÁGINA 1: PORTADA CON INFO PRINCIPAL
+  // PÁGINA 1: PORTADA
   await createCompactCoverPage(pdf, property, agent, pageWidth, pageHeight, margin);
 
-  // PÁGINA 2: DETALLES, AMENIDADES Y DESCRIPCIÓN (TODO EN UNA)
+  // PÁGINA 2: DETALLES Y DESCRIPCIÓN
   pdf.addPage();
   await createCompactDetailsPage(pdf, property, agent, pageWidth, pageHeight, margin);
 
-  // PÁGINA 3: GALERÍA DE FOTOS (Solo si hay fotos)
+  // PÁGINA 3: GALERÍA DE FOTOS (1 portada + 6 galería = 7 total)
   if (property.photos && property.photos.length > 1) {
     pdf.addPage();
     await createCompactGalleryPage(pdf, property, agent, pageWidth, pageHeight, margin);
@@ -104,14 +102,14 @@ async function createCompactCoverPage(
       pdf.addImage(img, 'JPEG', 0, 0, pageWidth, imageHeight);
       
       // Overlay oscuro degradado
-      pdf.setFillColor(15, 23, 42); // primary color
+      pdf.setFillColor(0, 0, 0);
       pdf.setGState(new pdf.GState({ opacity: 0.5 }));
       pdf.rect(0, imageHeight - 80, pageWidth, 80, 'F');
       pdf.setGState(new pdf.GState({ opacity: 1 }));
     } catch (err) {
       console.error('Error loading cover image:', err);
-      // Fondo azul oscuro de respaldo
-      pdf.setFillColor(15, 23, 42);
+      // Fondo oscuro de respaldo
+      pdf.setFillColor(31, 41, 55);
       pdf.rect(0, 0, pageWidth, imageHeight, 'F');
     }
   }
@@ -139,9 +137,8 @@ async function createCompactCoverPage(
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(255, 255, 255);
     
-    // Fondo semi-transparente
     const textWidth = pdf.getTextWidth('FLOW ESTATE AI');
-    pdf.setFillColor(15, 23, 42);
+    pdf.setFillColor(31, 41, 55);
     pdf.setGState(new pdf.GState({ opacity: 0.8 }));
     pdf.roundedRect(margin - 2, margin - 2, textWidth + 4, 10, 2, 2, 'F');
     pdf.setGState(new pdf.GState({ opacity: 1 }));
@@ -151,14 +148,13 @@ async function createCompactCoverPage(
 
   // Badge de estado (arriba derecha)
   if (property.listing_type) {
-    const badgeText = property.listing_type === 'sale' ? 'FOR SALE' : 'FOR RENT';
-    const badgeColor = property.listing_type === 'sale' ? COLORS.gold : COLORS.accent;
+    const badgeText = property.listing_type === 'sale' ? 'EN VENTA' : 'EN ALQUILER';
     
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     const textWidth = pdf.getTextWidth(badgeText);
     
-    pdf.setFillColor(hexToRgb(badgeColor).r, hexToRgb(badgeColor).g, hexToRgb(badgeColor).b);
+    pdf.setFillColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
     pdf.roundedRect(pageWidth - textWidth - 20, margin, textWidth + 10, 8, 2, 2, 'F');
     
     pdf.setTextColor(255, 255, 255);
@@ -196,14 +192,14 @@ async function createCompactCoverPage(
   pdf.setTextColor(234, 179, 8); // gold
   const price = property.price 
     ? `$${property.price.toLocaleString()}`
-    : 'Price Upon Request';
+    : 'Precio a consultar';
   pdf.text(price, margin, overlayY + 8);
 
-  // Features principales (iconos con texto)
+  // Features principales
   const features = [
-    { value: property.bedrooms, label: 'Beds', show: property.bedrooms > 0 },
-    { value: property.bathrooms, label: 'Baths', show: property.bathrooms > 0 },
-    { value: property.sqft ? `${property.sqft.toLocaleString()}` : null, label: 'sqft', show: property.sqft > 0 },
+    { value: property.bedrooms, label: 'Habitaciones', show: property.bedrooms > 0 },
+    { value: property.bathrooms, label: 'Baños', show: property.bathrooms > 0 },
+    { value: property.sqft ? `${property.sqft.toLocaleString()}` : null, label: 'pies²', show: property.sqft > 0 },
   ].filter(f => f.show);
 
   if (features.length > 0) {
@@ -244,65 +240,65 @@ async function createCompactCoverPage(
   if (property.property_type) {
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-    pdf.text('PROPERTY TYPE:', margin, bottomY);
+    pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
+    pdf.text('TIPO DE PROPIEDAD:', margin, bottomY);
     
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
     const propertyTypeName = getPropertyTypeName(property.property_type);
-    pdf.text(propertyTypeName, margin + 42, bottomY);
+    pdf.text(propertyTypeName, margin + 48, bottomY);
     
     bottomY += 10;
   }
 
-  // Información del AGENTE (destacada)
+  // Información del AGENTE (MÁS GRANDE)
   if (agent && (agent.full_name || agent.name || agent.email || agent.phone)) {
     console.log('📝 Renderizando información del agente en portada...');
     
     // Caja de agente con borde dorado
-    const agentBoxHeight = 32;
+    const agentBoxHeight = 35;
     pdf.setFillColor(hexToRgb(COLORS.background).r, hexToRgb(COLORS.background).g, hexToRgb(COLORS.background).b);
     pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
     pdf.setLineWidth(1);
     pdf.roundedRect(margin, bottomY, pageWidth - (margin * 2), agentBoxHeight, 3, 3, 'FD');
 
-    bottomY += 7;
+    bottomY += 8;
 
-    // Label "LISTING AGENT" en dorado
-    pdf.setFontSize(8);
+    // Label "AGENTE INMOBILIARIO" en dorado
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
-    pdf.text('LISTING AGENT', margin + 5, bottomY);
+    pdf.text('AGENTE INMOBILIARIO', margin + 5, bottomY);
     
-    bottomY += 6;
+    bottomY += 7;
 
-    // Nombre del agente
-    const agentName = agent.full_name || agent.name || 'Real Estate Agent';
-    pdf.setFontSize(13);
+    // Nombre del agente (MÁS GRANDE)
+    const agentName = agent.full_name || agent.name || 'Agente Inmobiliario';
+    pdf.setFontSize(15);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
+    pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
     pdf.text(agentName, margin + 5, bottomY);
     
-    bottomY += 6;
+    bottomY += 7;
 
-    // Información de contacto en una línea
-    pdf.setFontSize(9);
+    // Información de contacto (MÁS GRANDE)
+    pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
     
     const contactParts = [];
-    if (agent.phone) contactParts.push(`Phone: ${agent.phone}`);
+    if (agent.phone) contactParts.push(`Tel: ${agent.phone}`);
     if (agent.email) contactParts.push(`Email: ${agent.email}`);
     
     if (contactParts.length > 0) {
       const contactText = contactParts.join('  |  ');
       pdf.text(contactText, margin + 5, bottomY);
-      bottomY += 5;
+      bottomY += 6;
     }
 
-    // Brokerage en cursiva
+    // Brokerage
     if (agent.brokerage) {
-      pdf.setFontSize(8);
+      pdf.setFontSize(9);
       pdf.setFont('helvetica', 'italic');
       pdf.setTextColor(hexToRgb(COLORS.textMuted).r, hexToRgb(COLORS.textMuted).g, hexToRgb(COLORS.textMuted).b);
       pdf.text(agent.brokerage, margin + 5, bottomY);
@@ -310,7 +306,6 @@ async function createCompactCoverPage(
   } else {
     console.warn('⚠️ NO hay información completa del agente para mostrar');
     
-    // Mensaje de respaldo
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(hexToRgb(COLORS.textMuted).r, hexToRgb(COLORS.textMuted).g, hexToRgb(COLORS.textMuted).b);
@@ -319,7 +314,7 @@ async function createCompactCoverPage(
 }
 
 // ============================================
-// PÁGINA 2: DETALLES COMPACTOS (TODO EN UNO)
+// PÁGINA 2: DETALLES COMPACTOS
 // ============================================
 async function createCompactDetailsPage(
   pdf: jsPDF,
@@ -329,27 +324,26 @@ async function createCompactDetailsPage(
   pageHeight: number,
   margin: number
 ) {
-  // Header simple
   await addCompactHeader(pdf, agent, margin, pageWidth);
 
   let yPos = 35;
   const contentWidth = pageWidth - (margin * 2);
   const columnWidth = (contentWidth - 8) / 2;
 
-  // TÍTULO: PROPERTY DETAILS
+  // TÍTULO: CARACTERÍSTICAS DE LA PROPIEDAD
   pdf.setFontSize(16);
   pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-  pdf.text('PROPERTY DETAILS', margin, yPos);
+  pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
+  pdf.text('CARACTERÍSTICAS DE LA PROPIEDAD', margin, yPos);
   
   // Línea dorada
   pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
   pdf.setLineWidth(1.5);
-  pdf.line(margin, yPos + 2, margin + 50, yPos + 2);
+  pdf.line(margin, yPos + 2, margin + 80, yPos + 2);
   
   yPos += 12;
 
-  // Campos personalizados en 2 columnas (COMPACTO)
+  // Campos personalizados en 2 columnas (CON ESPACIADO Y MÁS GRANDES)
   if (property.custom_fields_data && Object.keys(property.custom_fields_data).length > 0) {
     const customFieldsDefinitions = await loadCustomFieldsDefinitions(
       property.agent_id,
@@ -369,37 +363,39 @@ async function createCompactDetailsPage(
 
       // Fondo sutil
       pdf.setFillColor(hexToRgb(COLORS.background).r, hexToRgb(COLORS.background).g, hexToRgb(COLORS.background).b);
-      pdf.roundedRect(xPos, yPos - 3, columnWidth, 10, 1, 1, 'F');
+      pdf.roundedRect(xPos, yPos - 3, columnWidth, 11, 1, 1, 'F');
 
-      // Nombre del campo (bold)
-      pdf.setFontSize(9);
+      // Nombre del campo (MÁS GRANDE Y BOLD)
+      pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-      pdf.text(fieldName + ':', xPos + 3, yPos + 3);
+      pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
+      const fieldLabel = fieldName + ':';
+      pdf.text(fieldLabel, xPos + 3, yPos + 3);
 
-      // Valor
+      // Valor (CON ESPACIADO ADECUADO)
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
       const valueText = String(value);
-      const maxWidth = columnWidth - pdf.getTextWidth(fieldName + ':') - 8;
+      const labelWidth = pdf.getTextWidth(fieldLabel);
+      const maxWidth = columnWidth - labelWidth - 10; // Más espacio
       const splitValue = pdf.splitTextToSize(valueText, maxWidth);
-      const valueX = xPos + pdf.getTextWidth(fieldName + ':') + 5;
+      const valueX = xPos + labelWidth + 5; // +5 para separación
       pdf.text(splitValue[0], valueX, yPos + 3);
 
       if (!isLeftColumn || i === entries.length - 1) {
-        yPos += 12;
+        yPos += 13;
       }
     }
 
     yPos += 5;
   }
 
-  // DESCRIPCIÓN
+  // DESCRIPCIÓN (TEXTO MÁS GRANDE)
   if (property.description && yPos < pageHeight - 80) {
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-    pdf.text('DESCRIPTION', margin, yPos);
+    pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
+    pdf.text('DESCRIPCIÓN', margin, yPos);
     
     pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
     pdf.setLineWidth(1.5);
@@ -407,35 +403,36 @@ async function createCompactDetailsPage(
     
     yPos += 10;
 
-    pdf.setFontSize(10);
+    // Descripción con texto más grande
+    pdf.setFontSize(11);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
     
-    const maxLines = Math.floor((pageHeight - yPos - 60) / 5.5);
+    const maxLines = Math.floor((pageHeight - yPos - 60) / 6);
     const splitDescription = pdf.splitTextToSize(property.description, contentWidth);
     
     for (let i = 0; i < Math.min(splitDescription.length, maxLines); i++) {
       pdf.text(splitDescription[i], margin, yPos);
-      yPos += 5.5;
+      yPos += 6;
     }
 
     yPos += 8;
   }
 
-  // UBICACIÓN + QR CODE (lado a lado)
+  // UBICACIÓN (TEXTO MÁS GRANDE) + QR CODE
   if (yPos < pageHeight - 60) {
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-    pdf.text('LOCATION', margin, yPos);
+    pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
+    pdf.text('UBICACIÓN', margin, yPos);
     
     pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
     pdf.setLineWidth(1.5);
-    pdf.line(margin, yPos + 2, margin + 30, yPos + 2);
+    pdf.line(margin, yPos + 2, margin + 32, yPos + 2);
     
     yPos += 10;
 
-    // Dirección (lado izquierdo)
+    // Dirección con texto más grande
     const locationParts = [
       property.address,
       property.city,
@@ -444,7 +441,7 @@ async function createCompactDetailsPage(
     ].filter(Boolean);
 
     if (locationParts.length > 0) {
-      pdf.setFontSize(10);
+      pdf.setFontSize(11);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
       
@@ -454,7 +451,7 @@ async function createCompactDetailsPage(
       let locY = yPos;
       splitLocation.forEach((line: string) => {
         pdf.text(line, margin, locY);
-        locY += 5;
+        locY += 6;
       });
     }
 
@@ -479,19 +476,19 @@ async function createCompactDetailsPage(
       pdf.setFontSize(7);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(hexToRgb(COLORS.textMuted).r, hexToRgb(COLORS.textMuted).g, hexToRgb(COLORS.textMuted).b);
-      const qrTextWidth = pdf.getTextWidth('Scan to view online');
-      pdf.text('Scan to view online', qrX + (qrSize - qrTextWidth) / 2, yPos + qrSize + 5);
+      const qrTextWidth = pdf.getTextWidth('Escanear para ver');
+      pdf.text('Escanear para ver', qrX + (qrSize - qrTextWidth) / 2, yPos + qrSize + 5);
     } catch (err) {
       console.error('Error generando QR:', err);
     }
   }
 
-  // Footer
+  // Footer con texto más grande
   await addCompactFooter(pdf, agent, pageWidth, pageHeight);
 }
 
 // ============================================
-// PÁGINA 3: GALERÍA COMPACTA
+// PÁGINA 3: GALERÍA (6 FOTOS + 1 PORTADA = 7 TOTAL)
 // ============================================
 async function createCompactGalleryPage(
   pdf: jsPDF,
@@ -508,17 +505,17 @@ async function createCompactGalleryPage(
   // TÍTULO
   pdf.setFontSize(16);
   pdf.setFont('helvetica', 'bold');
-  pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
-  pdf.text('PHOTO GALLERY', margin, yPos);
+  pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
+  pdf.text('GALERÍA DE FOTOS', margin, yPos);
   
   pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
   pdf.setLineWidth(1.5);
-  pdf.line(margin, yPos + 2, margin + 45, yPos + 2);
+  pdf.line(margin, yPos + 2, margin + 52, yPos + 2);
   
   yPos += 12;
 
-  // Grid de fotos 2x3
-  const photos = property.photos.slice(1, 7);
+  // Grid de fotos 2x3 (6 fotos máximo)
+  const photos = property.photos.slice(1, 7); // índices 1 a 6 (6 fotos)
   const spacing = 4;
   const imageSize = (pageWidth - (margin * 2) - spacing) / 2;
   
@@ -574,14 +571,14 @@ async function addCompactHeader(
       // Texto alternativo
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
+      pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
       pdf.text('FLOW ESTATE AI', margin, 18);
     }
   } else {
     // Texto por defecto
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(hexToRgb(COLORS.primary).r, hexToRgb(COLORS.primary).g, hexToRgb(COLORS.primary).b);
+    pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
     pdf.text('FLOW ESTATE AI', margin, 18);
   }
 
@@ -603,7 +600,8 @@ async function addCompactFooter(
   pdf.setLineWidth(0.3);
   pdf.line(15, footerY - 4, pageWidth - 15, footerY - 4);
 
-  pdf.setFontSize(7);
+  // Footer con texto más grande
+  pdf.setFontSize(9);
   pdf.setFont('helvetica', 'normal');
   pdf.setTextColor(hexToRgb(COLORS.textMuted).r, hexToRgb(COLORS.textMuted).g, hexToRgb(COLORS.textMuted).b);
 
@@ -679,12 +677,12 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 
 function getPropertyTypeName(type: string): string {
   const types: { [key: string]: string } = {
-    'house': 'House',
-    'condo': 'Condo',
-    'apartment': 'Apartment',
-    'land': 'Land',
-    'commercial': 'Commercial',
-    'townhouse': 'Townhouse',
+    'house': 'Casa',
+    'condo': 'Condominio',
+    'apartment': 'Apartamento',
+    'land': 'Terreno',
+    'commercial': 'Comercial',
+    'townhouse': 'Casa adosada',
     'villa': 'Villa',
   };
   return types[type] || type.charAt(0).toUpperCase() + type.slice(1);

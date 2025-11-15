@@ -114,24 +114,8 @@ async function createCompactCoverPage(
     }
   }
 
-  // Logo del agente (esquina superior izquierda)
-  if (agent?.watermark_logo) {
-    try {
-      const logo = await loadImage(agent.watermark_logo);
-      const logoHeight = 15;
-      const logoWidth = (logo.width / logo.height) * logoHeight;
-      
-      // Fondo blanco para el logo
-      pdf.setFillColor(255, 255, 255);
-      pdf.setGState(new pdf.GState({ opacity: 0.95 }));
-      pdf.roundedRect(margin - 2, margin - 2, logoWidth + 4, logoHeight + 4, 2, 2, 'F');
-      pdf.setGState(new pdf.GState({ opacity: 1 }));
-      
-      pdf.addImage(logo, 'PNG', margin, margin, logoWidth, logoHeight);
-    } catch (err) {
-      console.error('Error cargando logo:', err);
-    }
-  } else {
+  // Logo del agente (esquina superior izquierda) - SOLO si NO tiene logo propio
+  if (!agent?.watermark_logo) {
     // Texto "Flow Estate AI" como logo
     pdf.setFontSize(12);
     pdf.setFont('helvetica', 'bold');
@@ -472,10 +456,10 @@ async function createCompactDetailsPage(
       
       pdf.addImage(qrImg, 'PNG', qrX, yPos, qrSize, qrSize);
       
-      // Texto debajo del QR
-      pdf.setFontSize(7);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(hexToRgb(COLORS.textMuted).r, hexToRgb(COLORS.textMuted).g, hexToRgb(COLORS.textMuted).b);
+      // Texto debajo del QR (MÁS GRANDE Y OSCURO)
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
       const qrTextWidth = pdf.getTextWidth('Escanear para ver');
       pdf.text('Escanear para ver', qrX + (qrSize - qrTextWidth) / 2, yPos + qrSize + 5);
     } catch (err) {
@@ -524,7 +508,11 @@ async function createCompactGalleryPage(
   console.log(`📸 Fotos en galería: ${photos.length}`, photos);
   
   const spacing = 4;
-  const imageSize = (pageWidth - (margin * 2) - spacing) / 2;
+  const contentHeight = pageHeight - yPos - 30; // Espacio disponible
+  const imageSize = Math.min(
+    (pageWidth - (margin * 2) - spacing) / 2, // Ancho: 2 columnas
+    (contentHeight - (spacing * 2)) / 3 // Alto: 3 filas
+  );
   
   let xPos = margin;
   let count = 0;

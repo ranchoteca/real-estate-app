@@ -165,13 +165,10 @@ export default function CreatePropertyPage() {
     setError(null);
 
     try {
-      // 1. Subir fotos
-      const photoUrls = await uploadPhotos(photos);
-
-      // 2. Transcribir audio
+      // 1. Transcribir audio (ya no subimos fotos aquí)
       const transcription = await transcribeAudio(audioBlob);
 
-      // 3. Generar descripción con GPT-4 (incluyendo campos personalizados)
+      // 2. Generar descripción con GPT-4 (incluyendo campos personalizados)
       const generatedData = await generateDescription(
         transcription, 
         propertyType, 
@@ -179,20 +176,20 @@ export default function CreatePropertyPage() {
         customFields
       );
 
-      // 4. Actualizar estado con datos generados
+      // 3. Actualizar estado con datos generados (SIN fotos todavía)
       setPropertyData({
         ...generatedData,
         property_type: propertyType,
         listing_type: listingType,
         latitude: null,
         longitude: null,
-        plus_code: null, // Se generará en el MapEditor
+        plus_code: null,
         show_map: true,
         custom_fields_data: generatedData.custom_fields_data || {},
       });
 
       setCustomFieldsValues(generatedData.custom_fields_data || {});
-      setTempPhotoUrls(photoUrls);
+      // NO seteamos tempPhotoUrls todavía
 
     } catch (err) {
       console.error('Error al procesar:', err);
@@ -202,7 +199,7 @@ export default function CreatePropertyPage() {
     }
   };
 
-  const uploadPhotos = async (files: File[]): Promise<string[]> => {
+  const uploadPhotosWithSlug = async (files: File[], slug: string): Promise<string[]> => {
     const batchSize = 5;
     const allUrls: string[] = [];
 
@@ -213,6 +210,8 @@ export default function CreatePropertyPage() {
       batch.forEach(file => {
         formData.append('photos', file);
       });
+      
+      formData.append('propertySlug', slug); // ✅ Slug real
 
       const batchNumber = Math.floor(i / batchSize) + 1;
       const totalBatches = Math.ceil(files.length / batchSize);
@@ -303,28 +302,51 @@ export default function CreatePropertyPage() {
     setError(null);
 
     try {
-      const photoUrls = tempPhotoUrls || [];
-      
+      // 1. PRIMERO: Crear la propiedad SIN fotos
       const response = await fetch('/api/property/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...propertyData,
-          photos: photoUrls,
+          photos: [], // ← Sin fotos inicialmente
           custom_fields_data: customFieldsValues,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al publicar la propiedad');
+        throw new Error(errorData.error || 'Error al crear la propiedad');
       }
 
-      const { propertyId } = await response.json();
+      const { propertyId, slug } = await response.json();
+      console.log(`✅ Propiedad creada: ${propertyId}, slug: ${slug}`);
       
+      // 2. SEGUNDO: Subir fotos con el slug real
+      console.log(`📤 Subiendo ${photos.length} fotos a la carpeta ${slug}...`);
+      const photoUrls = await uploadPhotosWithSlug(photos, slug);
+      
+      // 3. TERCERO: Actualizar la propiedad con las URLs de las fotos
+      const updateResponse = await fetch(`/api/property/update/${propertyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          photos: photoUrls 
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        console.error('⚠️ Error actualizando fotos, pero la propiedad fue creada');
+      } else {
+        console.log(`✅ Fotos actualizadas en la propiedad`);
+      }
+      
+      // Limpiar estados
       setTempPhotoUrls([]);
+      setPhotos([]);
       
+      // Redirigir a la propiedad
       router.push(`/p/${propertyId}`);
+      
     } catch (err) {
       console.error('Error al publicar:', err);
       setError(err instanceof Error ? err.message : 'Error al publicar');

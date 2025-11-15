@@ -30,10 +30,18 @@ export async function POST(req: NextRequest) {
     // Obtener los archivos del FormData
     const formData = await req.formData();
     const files = formData.getAll('photos') as File[];
+    const propertySlug = formData.get('propertySlug') as string; // ← NUEVO
 
     if (!files || files.length === 0) {
       return NextResponse.json(
         { error: 'No se proporcionaron fotos' },
+        { status: 400 }
+      );
+    }
+
+    if (!propertySlug) {
+      return NextResponse.json(
+        { error: 'propertySlug es requerido' },
         { status: 400 }
       );
     }
@@ -45,10 +53,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`📤 Subiendo ${files.length} fotos...`);
+    console.log(`📤 Subiendo ${files.length} fotos para ${propertySlug}...`);
 
     const uploadedUrls: string[] = [];
-    const timestamp = Date.now();
 
     // Subir cada foto
     for (let i = 0; i < files.length; i++) {
@@ -60,9 +67,11 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Generar nombre único
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${agent.id}/${timestamp}-${i}.${fileExt}`;
+      // Obtener extensión
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      
+      // ✅ NUEVA ESTRUCTURA: agent-id/property-slug/foto-N.ext
+      const fileName = `${agent.id}/${propertySlug}/foto-${i + 1}.${fileExt}`;
 
       // Convertir File a ArrayBuffer
       const arrayBuffer = await file.arrayBuffer();
@@ -72,9 +81,9 @@ export async function POST(req: NextRequest) {
       const { data, error } = await supabaseAdmin.storage
         .from('property-photos')
         .upload(fileName, buffer, {
-          contentType: file.type,
+          contentType: file.type || `image/${fileExt}`,
           cacheControl: '3600',
-          upsert: false,
+          upsert: true, // ← Cambiar a true para permitir resubir
         });
 
       if (error) {
@@ -88,7 +97,7 @@ export async function POST(req: NextRequest) {
         .getPublicUrl(fileName);
 
       uploadedUrls.push(publicUrlData.publicUrl);
-      console.log(`✅ Foto ${i + 1} subida`);
+      console.log(`✅ Foto ${i + 1} subida: ${fileName}`);
     }
 
     if (uploadedUrls.length === 0) {
@@ -119,7 +128,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Aumentar el límite de tamaño del body para permitir múltiples fotos
 export const config = {
   api: {
     bodyParser: {

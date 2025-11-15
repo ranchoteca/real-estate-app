@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Scripts de migración (solo para uso local)
+scripts/migrar-storage.mjs
+scripts/limpiar-archivos-viejos.mjs

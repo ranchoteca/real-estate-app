@@ -49,6 +49,7 @@ export default function EditPropertyPage() {
   const propertyId = params.id as string;
 
   const [property, setProperty] = useState<PropertyData | null>(null);
+  const [propertySlug, setPropertySlug] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +118,7 @@ export default function EditPropertyPage() {
       
       const data = await response.json();
       setProperty(data.property);
+      setPropertySlug(data.property.slug);
       setExistingPhotos(data.property.photos || []);
       
       // Cargar valores de campos personalizados
@@ -259,6 +261,7 @@ export default function EditPropertyPage() {
       if (newPhotos.length > 0) {
         const formData = new FormData();
         newPhotos.forEach(file => formData.append('photos', file));
+        formData.append('propertySlug', propertySlug);
 
         const uploadResponse = await fetch('/api/property/upload-photos', {
           method: 'POST',

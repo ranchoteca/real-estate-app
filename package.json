@@ -6,13 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "migrate:storage": "node scripts/migrar-storage.mjs",
+    "clean:old-photos": "node scripts/limpiar-archivos-viejos.mjs"
   },
   "dependencies": {
     "@paypal/checkout-server-sdk": "^1.0.3",
     "@supabase/supabase-js": "^2.58.0",
     "browser-image-compression": "^2.0.2",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.3",
     "leaflet": "^1.9.4",

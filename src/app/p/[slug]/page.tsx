@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import GeneratingPDFModal from '@/components/GeneratingPDFModal';
 import MobileLayout from '@/components/MobileLayout';
 import dynamic from 'next/dynamic';
 
@@ -77,6 +78,7 @@ export default function PropertyPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   useEffect(() => {
     if (slug) {
@@ -444,8 +446,16 @@ export default function PropertyPage() {
         <div className="px-4 pb-6">
           <button
             onClick={async () => {
-              const { exportPropertyToPDF } = await import('@/lib/exportPDF');
-              await exportPropertyToPDF(property);
+              setIsGeneratingPDF(true);
+              try {
+                const { exportPropertyToPDF } = await import('@/lib/exportPDF');
+                await exportPropertyToPDF(property);
+              } catch (error) {
+                console.error('Error generando PDF:', error);
+                alert('Error al generar el PDF');
+              } finally {
+                setIsGeneratingPDF(false);
+              }
             }}
             className="w-full py-3 rounded-xl font-bold border-2 shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
             style={{ 
@@ -587,6 +597,8 @@ export default function PropertyPage() {
           onClick={() => setShowShareMenu(false)}
         />
       )}
+      {/* Modal de Generando PDF */}
+      <GeneratingPDFModal isOpen={isGeneratingPDF} />
     </MobileLayout>
   );
 }

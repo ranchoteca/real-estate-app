@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import GeneratingPDFModal from '@/components/GeneratingPDFModal';
 import FacebookPublishModal from '@/components/FacebookPublishModal';
 import MobileLayout from '@/components/MobileLayout';
 import Image from 'next/image';
@@ -59,6 +60,7 @@ export default function DashboardPage() {
   const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [planInfo, setPlanInfo] = useState<{ plan: string; properties_this_month: number } | null>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   // Estados de filtros
   const [filterPropertyType, setFilterPropertyType] = useState('');
@@ -482,8 +484,16 @@ export default function DashboardPage() {
                       onClick={async (e) => {
                         e.stopPropagation();
                         setShowMenu(null);
-                        const { exportPropertyToPDF } = await import('@/lib/exportPDF');
-                        await exportPropertyToPDF(property);
+                        setIsGeneratingPDF(true);
+                        try {
+                          const { exportPropertyToPDF } = await import('@/lib/exportPDF');
+                          await exportPropertyToPDF(property);
+                        } catch (error) {
+                          console.error('Error generando PDF:', error);
+                          alert('Error al generar el PDF');
+                        } finally {
+                          setIsGeneratingPDF(false);
+                        }
                       }}
                       className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
                       style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
@@ -552,6 +562,8 @@ export default function DashboardPage() {
           ))}
         </div>
       )}
+      {/* Modal de Generando PDF */}
+      <GeneratingPDFModal isOpen={isGeneratingPDF} />
       {/* Facebook Publish Modal */}
       <FacebookPublishModal
         isOpen={publishModalOpen}

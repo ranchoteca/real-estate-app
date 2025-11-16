@@ -153,11 +153,9 @@ export default function DigitalCardSettings() {
   if (loading) {
     return (
       <MobileLayout title="Tarjeta Digital" showBack={true} showTabs={true}>
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <div className="text-7xl mb-4">📇</div>
-            <p className="text-lg" style={{ color: '#0F172A' }}>Cargando...</p>
-          </div>
+        <div className="flex flex-col items-center justify-center h-full">
+          <div className="text-8xl mb-4 animate-pulse">📇</div>
+          <p className="text-lg" style={{ color: '#0F172A' }}>Cargando...</p>
         </div>
       </MobileLayout>
     );
@@ -180,7 +178,8 @@ export default function DigitalCardSettings() {
               />
             )}
             <label className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer"
-              style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+              style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+              title="Recomendado: 1200x400px">
               {uploadingCover ? '⏳' : '📷'} {formData.cover_photo ? 'Cambiar' : 'Subir'} portada
               <input
                 type="file"
@@ -190,6 +189,12 @@ export default function DigitalCardSettings() {
                 onChange={(e) => handlePhotoUpload(e, 'cover')}
               />
             </label>
+            {/* Info Icon Cover */}
+            <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-xs"
+              style={{ backgroundColor: 'rgba(255,255,255,0.9)', color: '#2563EB' }}
+              title="Tamaño recomendado: 1200x400px">
+              ℹ️
+            </div>
           </div>
 
           {/* Profile Section */}
@@ -213,7 +218,8 @@ export default function DigitalCardSettings() {
                   )}
                 </div>
                 <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer shadow-lg"
-                  style={{ backgroundColor: '#2563EB' }}>
+                  style={{ backgroundColor: '#2563EB' }}
+                  title="Recomendado: 400x400px">
                   <span className="text-white text-sm">{uploadingProfile ? '⏳' : '📷'}</span>
                   <input
                     type="file"
@@ -223,6 +229,12 @@ export default function DigitalCardSettings() {
                     onChange={(e) => handlePhotoUpload(e, 'profile')}
                   />
                 </label>
+                {/* Info Icon Profile */}
+                <div className="absolute -top-1 -left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs shadow-md"
+                  style={{ backgroundColor: '#FFFFFF', color: '#2563EB' }}
+                  title="Tamaño recomendado: 400x400px">
+                  ℹ️
+                </div>
               </div>
 
               {/* Info Preview */}
@@ -281,8 +293,9 @@ export default function DigitalCardSettings() {
               type="text"
               value={formData.display_name}
               onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-              placeholder="Tu nombre completo"
+              className="w-full px-3 py-2 border rounded-lg text-gray-900"
+              style={{ borderColor: 'rgb(229, 231, 235)', backgroundColor: 'rgb(249, 250, 251)' }}
+              placeholder="Ej: Juan Pérez"
               required
             />
           </div>
@@ -295,8 +308,9 @@ export default function DigitalCardSettings() {
               type="text"
               value={formData.brokerage}
               onChange={(e) => setFormData({ ...formData, brokerage: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-              placeholder="Nombre de tu agencia"
+              className="w-full px-3 py-2 border rounded-lg text-gray-900"
+              style={{ borderColor: 'rgb(229, 231, 235)', backgroundColor: 'rgb(249, 250, 251)' }}
+              placeholder="Ej: RE/MAX Costa Rica"
             />
           </div>
 
@@ -307,8 +321,9 @@ export default function DigitalCardSettings() {
             <textarea
               value={formData.bio}
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 resize-none"
-              placeholder="Cuéntanos sobre ti..."
+              className="w-full px-3 py-2 border rounded-lg text-gray-900 resize-none"
+              style={{ borderColor: 'rgb(229, 231, 235)', backgroundColor: 'rgb(249, 250, 251)' }}
+              placeholder="Ej: Agente inmobiliario con 10 años de experiencia en Guanacaste..."
               rows={4}
               maxLength={500}
             />
@@ -325,7 +340,8 @@ export default function DigitalCardSettings() {
               type="url"
               value={formData.facebook_url}
               onChange={(e) => setFormData({ ...formData, facebook_url: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+              className="w-full px-3 py-2 border rounded-lg text-gray-900"
+              style={{ borderColor: 'rgb(229, 231, 235)', backgroundColor: 'rgb(249, 250, 251)' }}
               placeholder="https://facebook.com/tu-perfil"
             />
           </div>
@@ -338,7 +354,8 @@ export default function DigitalCardSettings() {
               type="url"
               value={formData.instagram_url}
               onChange={(e) => setFormData({ ...formData, instagram_url: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+              className="w-full px-3 py-2 border rounded-lg text-gray-900"
+              style={{ borderColor: 'rgb(229, 231, 235)', backgroundColor: 'rgb(249, 250, 251)' }}
               placeholder="https://instagram.com/tu-usuario"
             />
           </div>
@@ -369,6 +386,14 @@ export default function DigitalCardSettings() {
             {saving ? '⏳ Guardando...' : '💾 Guardar Cambios'}
           </button>
         </div>
+
+        {/* CSS para placeholder gris */}
+        <style jsx>{`
+          input::placeholder,
+          textarea::placeholder {
+            color: rgb(156, 163, 175);
+          }
+        `}</style>
       </form>
     </MobileLayout>
   );

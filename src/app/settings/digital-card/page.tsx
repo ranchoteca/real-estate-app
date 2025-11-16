@@ -167,7 +167,7 @@ export default function DigitalCardSettings() {
 
   return (
     <MobileLayout title="Tarjeta Digital" showBack={true} showTabs={true}>
-      <form onSubmit={handleSubmit} className="p-4 space-y-6" style={{ paddingBottom: '180px' }}>
+      <form onSubmit={handleSubmit} className="p-4 space-y-6" style={{ paddingBottom: '200px' }}>
         
         {/* Preview Card */}
         <div className="rounded-2xl overflow-hidden shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
@@ -192,15 +192,15 @@ export default function DigitalCardSettings() {
               onChange={(e) => handlePhotoUpload(e, 'cover')}
             />
             
-            {/* Botón de portada */}
+            {/* Botón de portada - MÁS GRANDE Y VISIBLE */}
             <button
               type="button"
               onClick={() => coverInputRef.current?.click()}
               disabled={uploadingCover}
-              className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer"
-              style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+              className="absolute bottom-2 right-2 px-4 py-2 rounded-lg text-sm font-bold text-white cursor-pointer shadow-lg"
+              style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
             >
-              {uploadingCover ? '⏳' : '📷'} {formData.cover_photo ? 'Cambiar' : 'Subir'} portada
+              {uploadingCover ? '⏳ Subiendo...' : '📷 ' + (formData.cover_photo ? 'Cambiar portada' : 'Subir portada')}
             </button>
             
             {/* Dimensiones recomendadas portada */}
@@ -208,7 +208,7 @@ export default function DigitalCardSettings() {
               className="absolute top-2 right-2 px-2 py-1 rounded text-xs font-semibold"
               style={{ backgroundColor: 'rgba(255,255,255,0.95)', color: '#2563EB' }}
             >
-              📐 1200×400px
+              📐 1200px × 400px
             </div>
           </div>
 
@@ -259,7 +259,7 @@ export default function DigitalCardSettings() {
                   className="absolute -top-1 -left-1 px-1.5 py-0.5 rounded text-xs font-bold shadow-md"
                   style={{ backgroundColor: '#FFFFFF', color: '#2563EB', fontSize: '9px' }}
                 >
-                  400×400
+                  400px × 400px
                 </div>
               </div>
 
@@ -388,12 +388,12 @@ export default function DigitalCardSettings() {
         </div>
 
         {/* Actions - Botones fijos abajo */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t space-y-2" style={{ borderColor: '#E5E7EB' }}>
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t space-y-2 shadow-2xl" style={{ borderColor: '#E5E7EB', zIndex: 50 }}>
           <button
             type="button"
             onClick={handlePreview}
             disabled={!username}
-            className="w-full py-3 rounded-xl font-bold border-2 active:scale-95 transition-transform"
+            className="w-full py-3.5 rounded-xl font-bold border-2 active:scale-95 transition-transform text-base"
             style={{
               borderColor: '#2563EB',
               color: '#2563EB',
@@ -406,7 +406,7 @@ export default function DigitalCardSettings() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform"
+            className="w-full py-3.5 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform text-base"
             style={{ backgroundColor: '#2563EB' }}
           >
             {saving ? '⏳ Guardando...' : '💾 Guardar Cambios'}

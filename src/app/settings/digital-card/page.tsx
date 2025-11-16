@@ -63,7 +63,6 @@ export default function DigitalCardSettings() {
             cover_photo: data.card.cover_photo || null
           });
         } else {
-          // Si no existe tarjeta, usar nombre del agente por defecto
           setFormData(prev => ({
             ...prev,
             display_name: session?.user?.name || ''
@@ -77,7 +76,10 @@ export default function DigitalCardSettings() {
     }
   };
 
-  const handlePhotoUpload = async (file: File, type: 'profile' | 'cover') => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'cover') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     if (type === 'profile') setUploadingProfile(true);
     else setUploadingCover(true);
 
@@ -150,11 +152,11 @@ export default function DigitalCardSettings() {
 
   if (loading) {
     return (
-      <MobileLayout title="Tarjeta Digital" showBack={true} showTabs={false}>
+      <MobileLayout title="Tarjeta Digital" showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
-            <div className="text-4xl mb-2">📇</div>
-            <p>Cargando...</p>
+            <div className="text-7xl mb-4">📇</div>
+            <p className="text-lg" style={{ color: '#0F172A' }}>Cargando...</p>
           </div>
         </div>
       </MobileLayout>
@@ -162,8 +164,8 @@ export default function DigitalCardSettings() {
   }
 
   return (
-    <MobileLayout title="Tarjeta Digital" showBack={true} showTabs={false}>
-      <form onSubmit={handleSubmit} className="p-4 space-y-6 pb-24">
+    <MobileLayout title="Tarjeta Digital" showBack={true} showTabs={true}>
+      <form onSubmit={handleSubmit} className="p-4 space-y-6 pb-32">
         
         {/* Preview Card */}
         <div className="rounded-2xl overflow-hidden shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
@@ -185,7 +187,7 @@ export default function DigitalCardSettings() {
                 accept="image/*"
                 className="hidden"
                 disabled={uploadingCover}
-                onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0], 'cover')}
+                onChange={(e) => handlePhotoUpload(e, 'cover')}
               />
             </label>
           </div>
@@ -218,7 +220,7 @@ export default function DigitalCardSettings() {
                     accept="image/*"
                     className="hidden"
                     disabled={uploadingProfile}
-                    onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0], 'profile')}
+                    onChange={(e) => handlePhotoUpload(e, 'profile')}
                   />
                 </label>
               </div>
@@ -241,8 +243,33 @@ export default function DigitalCardSettings() {
                 {formData.bio}
               </p>
             )}
+
+            {/* Social Media Preview */}
+            {(formData.facebook_url || formData.instagram_url) && (
+              <div className="mt-4 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>
+                <div className="flex justify-center gap-3">
+                  {formData.facebook_url && (
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-md"
+                      style={{ backgroundColor: '#1877F2' }}>
+                      <span className="text-white">f</span>
+                    </div>
+                  )}
+                  {formData.instagram_url && (
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-md"
+                      style={{ background: 'linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)' }}>
+                      <span className="text-white">📷</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Form Title */}
+        <h2 className="text-xl font-bold pt-2" style={{ color: '#0F172A' }}>
+          Ingresa la información de tu tarjeta
+        </h2>
 
         {/* Form Fields */}
         <div className="space-y-4">
@@ -254,8 +281,7 @@ export default function DigitalCardSettings() {
               type="text"
               value={formData.display_name}
               onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl border-2"
-              style={{ borderColor: '#E5E7EB' }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
               placeholder="Tu nombre completo"
               required
             />
@@ -269,8 +295,7 @@ export default function DigitalCardSettings() {
               type="text"
               value={formData.brokerage}
               onChange={(e) => setFormData({ ...formData, brokerage: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl border-2"
-              style={{ borderColor: '#E5E7EB' }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
               placeholder="Nombre de tu agencia"
             />
           </div>
@@ -282,8 +307,7 @@ export default function DigitalCardSettings() {
             <textarea
               value={formData.bio}
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl border-2 resize-none"
-              style={{ borderColor: '#E5E7EB' }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 resize-none"
               placeholder="Cuéntanos sobre ti..."
               rows={4}
               maxLength={500}
@@ -301,8 +325,7 @@ export default function DigitalCardSettings() {
               type="url"
               value={formData.facebook_url}
               onChange={(e) => setFormData({ ...formData, facebook_url: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl border-2"
-              style={{ borderColor: '#E5E7EB' }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
               placeholder="https://facebook.com/tu-perfil"
             />
           </div>
@@ -315,8 +338,7 @@ export default function DigitalCardSettings() {
               type="url"
               value={formData.instagram_url}
               onChange={(e) => setFormData({ ...formData, instagram_url: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl border-2"
-              style={{ borderColor: '#E5E7EB' }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
               placeholder="https://instagram.com/tu-usuario"
             />
           </div>

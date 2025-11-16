@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
-import MobileLayout from '@/components/MobileLayout';
 
 interface AgentCard {
   display_name: string;
@@ -23,7 +22,6 @@ interface Agent {
 
 export default function AgentCardPage() {
   const params = useParams();
-  const router = useRouter();
   const username = params.username as string;
 
   const [card, setCard] = useState<AgentCard | null>(null);
@@ -67,37 +65,33 @@ export default function AgentCardPage() {
 
   if (loading) {
     return (
-      <MobileLayout title="Cargando..." showBack={false} showTabs={false}>
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <div className="text-5xl mb-4 animate-pulse">📇</div>
-            <p className="text-lg" style={{ color: '#0F172A' }}>Cargando tarjeta...</p>
-          </div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F8FAFC' }}>
+        <div className="text-center">
+          <div className="text-7xl mb-4 animate-pulse">📇</div>
+          <p className="text-lg" style={{ color: '#0F172A' }}>Cargando...</p>
         </div>
-      </MobileLayout>
+      </div>
     );
   }
 
   if (error || !card || !agent) {
     return (
-      <MobileLayout title="Error" showBack={false} showTabs={false}>
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center px-6">
-            <div className="text-5xl mb-4">❌</div>
-            <h1 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
-              {error || 'Tarjeta no disponible'}
-            </h1>
-          </div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F8FAFC' }}>
+        <div className="text-center px-6">
+          <div className="text-5xl mb-4">❌</div>
+          <h1 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
+            {error || 'Tarjeta no disponible'}
+          </h1>
         </div>
-      </MobileLayout>
+      </div>
     );
   }
 
   return (
-    <MobileLayout title="Tarjeta Digital" showBack={false} showTabs={false}>
-      <div className="min-h-screen pb-24" style={{ backgroundColor: '#F8FAFC' }}>
-        {/* Card Container */}
-        <div className="rounded-b-3xl overflow-hidden shadow-2xl" style={{ backgroundColor: '#FFFFFF' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#FFFFFF' }}>
+      {/* Card Container */}
+      <div className="max-w-2xl mx-auto">
+        <div className="overflow-hidden">
           {/* Cover Photo */}
           <div className="relative h-48 bg-gradient-to-br from-blue-500 to-purple-600">
             {card.cover_photo && (
@@ -112,7 +106,7 @@ export default function AgentCardPage() {
           </div>
 
           {/* Profile Section */}
-          <div className="px-6 pb-6">
+          <div className="px-6 pb-6" style={{ backgroundColor: '#FFFFFF' }}>
             <div className="flex flex-col items-center -mt-16">
               {/* Profile Photo */}
               <div className="w-32 h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-xl mb-4">
@@ -227,16 +221,16 @@ export default function AgentCardPage() {
                 </div>
               </div>
             )}
+
+            {/* Branding Footer */}
+            <div className="text-center mt-8 pt-6 border-t" style={{ borderColor: '#E5E7EB' }}>
+              <p className="text-sm opacity-50" style={{ color: '#0F172A' }}>
+                Creado con ❤️ por Flow Estate AI
+              </p>
+            </div>
           </div>
         </div>
-
-        {/* Branding Footer */}
-        <div className="text-center mt-8 px-6 pb-6">
-          <p className="text-sm opacity-50" style={{ color: '#0F172A' }}>
-            Creado con ❤️ por Flow Estate AI
-          </p>
-        </div>
       </div>
-    </MobileLayout>
+    </div>
   );
 }

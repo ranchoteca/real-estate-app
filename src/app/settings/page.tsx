@@ -34,18 +34,25 @@ export default function SettingsPage() {
 
   const settingsOptions = [
     {
-      icon: '🏷️',
-      title: 'Campos Personalizados',
-      description: 'Configura campos para cada tipo de propiedad',
-      href: '/settings/custom-fields',
-      color: '#2563EB',
-    },
-    {
       icon: '🎨',
       title: 'Logo Personalizado',
       description: 'Configura tu marca en las fotos',
       href: '/settings/watermark',
       color: '#8B5CF6',
+    },
+    {
+      icon: '📇',
+      title: 'Tarjeta Digital',
+      description: 'Configura tu tarjeta de presentación',
+      href: '/settings/digital-card',
+      color: '#6366F1',
+    },
+    {
+      icon: '🏷️',
+      title: 'Campos Personalizados',
+      description: 'Configura campos para cada tipo de propiedad',
+      href: '/settings/custom-fields',
+      color: '#2563EB',
     },
     {
       icon: '📘',

@@ -167,7 +167,7 @@ export default function DigitalCardSettings() {
 
   return (
     <MobileLayout title="Tarjeta Digital" showBack={true} showTabs={true}>
-      <form onSubmit={handleSubmit} className="p-4 space-y-6" style={{ paddingBottom: '200px' }}>
+      <form onSubmit={handleSubmit} className="p-4 space-y-6" style={{ paddingBottom: '220px' }}>
         
         {/* Preview Card */}
         <div className="rounded-2xl overflow-hidden shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
@@ -187,18 +187,30 @@ export default function DigitalCardSettings() {
               ref={coverInputRef}
               type="file"
               accept="image/*"
-              className="hidden"
+              style={{ display: 'none' }}
               disabled={uploadingCover}
-              onChange={(e) => handlePhotoUpload(e, 'cover')}
+              onChange={(e) => {
+                console.log('onChange portada activado');
+                console.log('Archivo seleccionado:', e.target.files?.[0]?.name);
+                handlePhotoUpload(e, 'cover');
+              }}
             />
             
             {/* Botón de portada - MÁS GRANDE Y VISIBLE */}
             <button
               type="button"
-              onClick={() => coverInputRef.current?.click()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Click en botón portada');
+                console.log('coverInputRef:', coverInputRef.current);
+                if (coverInputRef.current) {
+                  coverInputRef.current.click();
+                }
+              }}
               disabled={uploadingCover}
               className="absolute bottom-2 right-2 px-4 py-2 rounded-lg text-sm font-bold text-white cursor-pointer shadow-lg"
-              style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+              style={{ backgroundColor: 'rgba(0,0,0,0.7)', touchAction: 'manipulation' }}
             >
               {uploadingCover ? '⏳ Subiendo...' : '📷 ' + (formData.cover_photo ? 'Cambiar portada' : 'Subir portada')}
             </button>
@@ -388,12 +400,12 @@ export default function DigitalCardSettings() {
         </div>
 
         {/* Actions - Botones fijos abajo */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t space-y-2 shadow-2xl" style={{ borderColor: '#E5E7EB', zIndex: 50 }}>
+        <div className="fixed bottom-0 left-0 right-0 p-4 space-y-2 shadow-2xl" style={{ backgroundColor: '#F9FAFB', borderTop: '1px solid #E5E7EB', zIndex: 50 }}>
           <button
             type="button"
             onClick={handlePreview}
             disabled={!username}
-            className="w-full py-3.5 rounded-xl font-bold border-2 active:scale-95 transition-transform text-base"
+            className="w-full py-4 rounded-xl font-bold border-2 active:scale-95 transition-transform text-base"
             style={{
               borderColor: '#2563EB',
               color: '#2563EB',
@@ -406,7 +418,7 @@ export default function DigitalCardSettings() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full py-3.5 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform text-base"
+            className="w-full py-4 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform text-base"
             style={{ backgroundColor: '#2563EB' }}
           >
             {saving ? '⏳ Guardando...' : '💾 Guardar Cambios'}

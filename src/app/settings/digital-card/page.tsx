@@ -163,7 +163,7 @@ export default function DigitalCardSettings() {
 
   return (
     <MobileLayout title="Tarjeta Digital" showBack={true} showTabs={true}>
-      <form onSubmit={handleSubmit} className="p-4 space-y-6 pb-32">
+      <form onSubmit={handleSubmit} className="p-4 space-y-6 pb-40">
         
         {/* Preview Card */}
         <div className="rounded-2xl overflow-hidden shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
@@ -177,9 +177,10 @@ export default function DigitalCardSettings() {
                 className="object-cover"
               />
             )}
-            <label className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer"
+            <label 
+              className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer"
               style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-              title="Recomendado: 1200x400px">
+            >
               {uploadingCover ? '⏳' : '📷'} {formData.cover_photo ? 'Cambiar' : 'Subir'} portada
               <input
                 type="file"
@@ -190,9 +191,11 @@ export default function DigitalCardSettings() {
               />
             </label>
             {/* Info Icon Cover */}
-            <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-xs"
+            <div 
+              className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-sm cursor-help"
               style={{ backgroundColor: 'rgba(255,255,255,0.9)', color: '#2563EB' }}
-              title="Tamaño recomendado: 1200x400px">
+              title="Tamaño recomendado: 1200x400px"
+            >
               ℹ️
             </div>
           </div>
@@ -217,9 +220,10 @@ export default function DigitalCardSettings() {
                     </div>
                   )}
                 </div>
-                <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer shadow-lg"
+                <label 
+                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer shadow-lg"
                   style={{ backgroundColor: '#2563EB' }}
-                  title="Recomendado: 400x400px">
+                >
                   <span className="text-white text-sm">{uploadingProfile ? '⏳' : '📷'}</span>
                   <input
                     type="file"
@@ -230,9 +234,11 @@ export default function DigitalCardSettings() {
                   />
                 </label>
                 {/* Info Icon Profile */}
-                <div className="absolute -top-1 -left-1 w-5 h-5 rounded-full flex items-center justify-center text-xs shadow-md"
+                <div 
+                  className="absolute -top-1 -left-1 w-6 h-6 rounded-full flex items-center justify-center text-sm shadow-md cursor-help"
                   style={{ backgroundColor: '#FFFFFF', color: '#2563EB' }}
-                  title="Tamaño recomendado: 400x400px">
+                  title="Tamaño recomendado: 400x400px"
+                >
                   ℹ️
                 </div>
               </div>
@@ -362,7 +368,7 @@ export default function DigitalCardSettings() {
         </div>
 
         {/* Actions */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t space-y-2">
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t space-y-2" style={{ borderColor: '#E5E7EB' }}>
           <button
             type="button"
             onClick={handlePreview}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import MobileLayout from '@/components/MobileLayout';
@@ -36,6 +36,10 @@ export default function DigitalCardSettings() {
 
   const [uploadingProfile, setUploadingProfile] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+
+  // Referencias para los inputs de archivos
+  const profileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -84,13 +88,13 @@ export default function DigitalCardSettings() {
     else setUploadingCover(true);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', type);
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+      formDataUpload.append('type', type);
 
       const response = await fetch('/api/agent-card/upload-photo', {
         method: 'POST',
-        body: formData
+        body: formDataUpload
       });
 
       if (!response.ok) {
@@ -105,7 +109,7 @@ export default function DigitalCardSettings() {
         [type === 'profile' ? 'profile_photo' : 'cover_photo']: data.url
       }));
 
-      alert(`✅ ${type === 'profile' ? 'Foto de perfil' : 'Foto de portada'} subida`);
+      alert(`✅ ${type === 'profile' ? 'Foto de perfil' : 'Foto de portada'} subida exitosamente`);
     } catch (error: any) {
       alert(`❌ Error: ${error.message}`);
     } finally {
@@ -163,7 +167,7 @@ export default function DigitalCardSettings() {
 
   return (
     <MobileLayout title="Tarjeta Digital" showBack={true} showTabs={true}>
-      <form onSubmit={handleSubmit} className="p-4 space-y-6 pb-40">
+      <form onSubmit={handleSubmit} className="p-4 space-y-6" style={{ paddingBottom: '180px' }}>
         
         {/* Preview Card */}
         <div className="rounded-2xl overflow-hidden shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
@@ -177,26 +181,34 @@ export default function DigitalCardSettings() {
                 className="object-cover"
               />
             )}
-            <label 
+            
+            {/* Input oculto para portada */}
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={uploadingCover}
+              onChange={(e) => handlePhotoUpload(e, 'cover')}
+            />
+            
+            {/* Botón de portada */}
+            <button
+              type="button"
+              onClick={() => coverInputRef.current?.click()}
+              disabled={uploadingCover}
               className="absolute bottom-2 right-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer"
               style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
             >
               {uploadingCover ? '⏳' : '📷'} {formData.cover_photo ? 'Cambiar' : 'Subir'} portada
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={uploadingCover}
-                onChange={(e) => handlePhotoUpload(e, 'cover')}
-              />
-            </label>
-            {/* Info Icon Cover */}
+            </button>
+            
+            {/* Dimensiones recomendadas portada */}
             <div 
-              className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-sm cursor-help"
-              style={{ backgroundColor: 'rgba(255,255,255,0.9)', color: '#2563EB' }}
-              title="Tamaño recomendado: 1200x400px"
+              className="absolute top-2 right-2 px-2 py-1 rounded text-xs font-semibold"
+              style={{ backgroundColor: 'rgba(255,255,255,0.95)', color: '#2563EB' }}
             >
-              ℹ️
+              📐 1200×400px
             </div>
           </div>
 
@@ -220,26 +232,34 @@ export default function DigitalCardSettings() {
                     </div>
                   )}
                 </div>
-                <label 
+                
+                {/* Input oculto para perfil */}
+                <input
+                  ref={profileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploadingProfile}
+                  onChange={(e) => handlePhotoUpload(e, 'profile')}
+                />
+                
+                {/* Botón de perfil */}
+                <button
+                  type="button"
+                  onClick={() => profileInputRef.current?.click()}
+                  disabled={uploadingProfile}
                   className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer shadow-lg"
                   style={{ backgroundColor: '#2563EB' }}
                 >
                   <span className="text-white text-sm">{uploadingProfile ? '⏳' : '📷'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    disabled={uploadingProfile}
-                    onChange={(e) => handlePhotoUpload(e, 'profile')}
-                  />
-                </label>
-                {/* Info Icon Profile */}
+                </button>
+                
+                {/* Dimensiones recomendadas perfil */}
                 <div 
-                  className="absolute -top-1 -left-1 w-6 h-6 rounded-full flex items-center justify-center text-sm shadow-md cursor-help"
-                  style={{ backgroundColor: '#FFFFFF', color: '#2563EB' }}
-                  title="Tamaño recomendado: 400x400px"
+                  className="absolute -top-1 -left-1 px-1.5 py-0.5 rounded text-xs font-bold shadow-md"
+                  style={{ backgroundColor: '#FFFFFF', color: '#2563EB', fontSize: '9px' }}
                 >
-                  ℹ️
+                  400×400
                 </div>
               </div>
 
@@ -367,7 +387,7 @@ export default function DigitalCardSettings() {
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Actions - Botones fijos abajo */}
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t space-y-2" style={{ borderColor: '#E5E7EB' }}>
           <button
             type="button"

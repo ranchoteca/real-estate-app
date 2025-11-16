@@ -610,7 +610,7 @@ export default function CreatePropertyPage() {
                     value={propertyData.price || ''}
                     onChange={(e) => setPropertyData({ ...propertyData, price: Number(e.target.value) || null })}
                     placeholder="Opcional"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-lg"
                   />
                 </div>
 
@@ -624,7 +624,7 @@ export default function CreatePropertyPage() {
                       type="text"
                       value={propertyData.address}
                       onChange={(e) => setPropertyData({ ...propertyData, address: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-lg"
                     />
                   </div>
 
@@ -636,7 +636,7 @@ export default function CreatePropertyPage() {
                       type="text"
                       value={propertyData.city}
                       onChange={(e) => setPropertyData({ ...propertyData, city: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-lg"
                     />
                   </div>
 
@@ -648,7 +648,7 @@ export default function CreatePropertyPage() {
                       type="text"
                       value={propertyData.state}
                       onChange={(e) => setPropertyData({ ...propertyData, state: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-lg"
                     />
                   </div>
 
@@ -660,7 +660,7 @@ export default function CreatePropertyPage() {
                       type="text"
                       value={propertyData.zip_code}
                       onChange={(e) => setPropertyData({ ...propertyData, zip_code: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-lg"
                     />
                   </div>
                 </div>

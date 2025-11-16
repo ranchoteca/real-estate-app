@@ -63,6 +63,36 @@ export default function AgentCardPage() {
     }
   };
 
+  const handleShare = async () => {
+    const url = window.location.href;
+    const text = `Tarjeta digital de ${card?.display_name || 'agente inmobiliario'}`;
+
+    // Intentar usar la API nativa de compartir (móvil)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: text,
+          url: url
+        });
+        return;
+      } catch (err) {
+        // Si el usuario cancela, no hacer nada
+        if ((err as Error).name !== 'AbortError') {
+          console.log('Error sharing:', err);
+        }
+      }
+    }
+
+    // Fallback: copiar al portapapeles
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('✅ Enlace copiado al portapapeles');
+    } catch (err) {
+      console.error('Error copying:', err);
+      alert('❌ No se pudo copiar el enlace');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F8FAFC' }}>
@@ -88,7 +118,7 @@ export default function AgentCardPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FFFFFF' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       {/* Card Container */}
       <div className="max-w-2xl mx-auto">
         <div className="overflow-hidden">
@@ -107,9 +137,9 @@ export default function AgentCardPage() {
 
           {/* Profile Section */}
           <div className="px-6 pb-6" style={{ backgroundColor: '#FFFFFF' }}>
-            <div className="flex flex-col items-center -mt-16">
-              {/* Profile Photo */}
-              <div className="w-32 h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-xl mb-4">
+            <div className="flex flex-col items-center" style={{ marginTop: '-64px' }}>
+              {/* Profile Photo - Con z-index para que esté encima */}
+              <div className="w-32 h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-xl mb-4" style={{ position: 'relative', zIndex: 10 }}>
                 {card.profile_photo ? (
                   <Image
                     src={card.profile_photo}
@@ -187,6 +217,19 @@ export default function AgentCardPage() {
               >
                 🏠 Ver Portafolio
               </a>
+
+              {/* Botón de Compartir */}
+              <button
+                onClick={handleShare}
+                className="w-full py-4 rounded-xl font-bold text-center border-2 shadow-lg active:scale-95 transition-transform text-lg"
+                style={{
+                  borderColor: '#10B981',
+                  color: '#10B981',
+                  backgroundColor: '#FFFFFF'
+                }}
+              >
+                🔗 Compartir enlace
+              </button>
             </div>
 
             {/* Social Media */}

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 // Función para construir el mensaje mejorado de Facebook
 async function buildFacebookMessage(property: any, agent: any, customFieldsMap: Map<string, string>): Promise<string> {
   // 1. Tipo de operación con icono de bombillo
-  const operationType = property.listing_type === 'rent' ? '🚀 ALQUILER' : '🚀 VENTA';
+  const operationType = property.listing_type === 'rent' ? '🎯 ALQUILER' : '🎯 VENTA';
   
   // 2. Descripción corta inteligente (primeras 2 oraciones completas)
   let shortDescription = 'Excelente oportunidad inmobiliaria';

@@ -68,7 +68,7 @@ export default function GeneratingPDFModal({ isOpen }: GeneratingPDFModalProps) 
           className="text-center text-sm opacity-70"
           style={{ color: '#0F172A' }}
         >
-          Por favor espera mientras creamos tu brochure profesional...
+          Por favor espera mientras creamos tu PDF profesional...
         </p>
 
         {/* Barra de progreso animada */}

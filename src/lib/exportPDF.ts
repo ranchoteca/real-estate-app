@@ -76,7 +76,7 @@ export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo)
   }
 
   // Guardar PDF
-  const fileName = `${property.title.replace(/[^a-z0-9]/gi, '_')}_Brochure.pdf`;
+  const fileName = `${property.title.replace(/[^a-z0-9]/gi, '_')}_Detalles.pdf`;
   pdf.save(fileName);
   
   console.log('✅ PDF generado exitosamente:', fileName);

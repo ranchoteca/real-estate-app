@@ -13,6 +13,7 @@ interface Property {
   title: string;
   slug: string;
   price: number | null;
+  currency_id: string | null;
   city: string | null;
   state: string | null;
   property_type: string | null;
@@ -67,6 +68,8 @@ export default function DashboardPage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [currencies, setCurrencies] = useState<any[]>([]);
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -77,6 +80,7 @@ export default function DashboardPage() {
     if (session?.user?.id) {
       loadProperties();
       loadPlanInfo();
+      loadCurrencies();
     }
   }, [session]);
 
@@ -87,6 +91,18 @@ export default function DashboardPage() {
       setPlanInfo(data);
     } catch (error) {
       console.error('Error loading plan:', error);
+    }
+  };
+
+  const loadCurrencies = async () => {
+    try {
+      const response = await fetch('/api/currencies/list');
+      if (response.ok) {
+        const data = await response.json();
+        setCurrencies(data.currencies || []);
+      }
+    } catch (error) {
+      console.error('Error loading currencies:', error);
     }
   };
 
@@ -183,13 +199,17 @@ export default function DashboardPage() {
     return null;
   }
 
-  const formatPrice = (price: number | null) => {
+  const formatPrice = (price: number | null, currencyId: string | null) => {
     if (!price) return 'Precio a consultar';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    
+    const currency = currencies.find(c => c.id === currencyId);
+    const symbol = currency?.symbol || '$';
+    const code = currency?.code || 'USD';
+    
+    return `${symbol}${new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 0,
-    }).format(price);
+      maximumFractionDigits: 0,
+    }).format(price)} ${code}`;
   };
 
   const filteredProperties = getFilteredProperties();
@@ -527,7 +547,7 @@ export default function DashboardPage() {
                 
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xl font-bold" style={{ color: '#2563EB' }}>
-                    {formatPrice(property.price)}
+                    {formatPrice(property.price, property.currency_id)}
                   </span>
                   {property.city && property.state && (
                     <span className="text-sm opacity-70" style={{ color: '#0F172A' }}>

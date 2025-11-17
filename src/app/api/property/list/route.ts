@@ -1,3 +1,4 @@
+/ app/api/property/list/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseAdmin } from '@/lib/supabase';
@@ -27,10 +28,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Obtener propiedades del agente
+    // Obtener propiedades del agente (incluyendo currency_id)
     const { data: properties, error: propertiesError } = await supabaseAdmin
       .from('properties')
-      .select('*')
+      .select('id, title, slug, price, currency_id, city, state, property_type, photos, status, views, created_at, listing_type')
       .eq('agent_id', agent.id)
       .order('created_at', { ascending: false });
 

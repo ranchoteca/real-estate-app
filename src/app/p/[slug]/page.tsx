@@ -22,6 +22,7 @@ interface Property {
   title: string;
   description: string;
   price: number | null;
+  currency_id: string | null;
   address: string | null;
   city: string | null;
   state: string | null;
@@ -80,6 +81,8 @@ export default function PropertyPage() {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
+  const [currency, setCurrency] = useState<any>(null);
+
   useEffect(() => {
     if (slug) {
       loadProperty();
@@ -103,7 +106,12 @@ export default function PropertyPage() {
       const data = await response.json();
       setProperty(data.property);
 
-      // Cargar campos personalizados usando el username del agente
+      // AGREGAR: Cargar divisa si existe currency_id
+      if (data.property.currency_id) {
+        loadCurrency(data.property.currency_id);
+      }
+
+      // Cargar campos personalizados...
       if (data.property.property_type && data.property.listing_type && data.property.agent?.username) {
         loadCustomFields(
           data.property.property_type, 
@@ -116,6 +124,19 @@ export default function PropertyPage() {
       setError('Error al cargar la propiedad');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCurrency = async (currencyId: string) => {
+    try {
+      const response = await fetch('/api/currencies/list');
+      if (response.ok) {
+        const data = await response.json();
+        const foundCurrency = data.currencies.find((c: any) => c.id === currencyId);
+        setCurrency(foundCurrency);
+      }
+    } catch (error) {
+      console.error('Error loading currency:', error);
     }
   };
 
@@ -156,11 +177,14 @@ export default function PropertyPage() {
 
   const formatPrice = (price: number | null) => {
     if (!price) return 'Precio a consultar';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    
+    const symbol = currency?.symbol || '$';
+    const code = currency?.code || 'USD';
+    
+    return `${symbol}${new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 0,
-    }).format(price);
+      maximumFractionDigits: 0,
+    }).format(price)} ${code}`;
   };
 
   const copyLink = () => {

@@ -12,6 +12,7 @@ interface PropertyData {
   title: string;
   description: string;
   price: number | null;
+  currency_id: string | null;
   address: string;
   city: string;
   state: string;
@@ -36,6 +37,14 @@ interface CustomField {
   icon: string;
 }
 
+interface Currency {
+  id: string;
+  code: string;
+  name: string;
+  symbol: string;
+  is_default: boolean;
+}
+
 export default function CreatePropertyPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -50,6 +59,11 @@ export default function CreatePropertyPage() {
   const [listingType, setListingType] = useState<string>('sale');
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
+
+  // Currencies
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
+  const [agentDefaultCurrency, setAgentDefaultCurrency] = useState<string | null>(null);
 
   // Step 3: Voice Recording
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -68,6 +82,15 @@ export default function CreatePropertyPage() {
     }
   }, [status, router]);
 
+  // Cargar divisas y divisa por defecto del agente
+  useEffect(() => {
+    if (session) {
+      loadCurrencies();
+      loadAgentDefaultCurrency();
+      loadWatermarkConfig();
+    }
+  }, [session]);
+
   // Cargar campos personalizados cuando se selecciona tipo de propiedad + listing
   useEffect(() => {
     if (propertyType && listingType) {
@@ -75,11 +98,38 @@ export default function CreatePropertyPage() {
     }
   }, [propertyType, listingType]);
 
-  useEffect(() => {
-    if (session) {
-      loadWatermarkConfig();
+  const loadCurrencies = async () => {
+    try {
+      const response = await fetch('/api/currencies/list');
+      if (response.ok) {
+        const data = await response.json();
+        setCurrencies(data.currencies || []);
+        
+        // Si hay una divisa por defecto del sistema y no tenemos seleccionada
+        if (data.defaultCurrency && !selectedCurrency) {
+          setSelectedCurrency(data.defaultCurrency.id);
+        }
+      }
+    } catch (err) {
+      console.error('Error al cargar divisas:', err);
     }
-  }, [session]);
+  };
+
+  const loadAgentDefaultCurrency = async () => {
+    try {
+      const response = await fetch('/api/agent/profile');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.agent.default_currency_id) {
+          setAgentDefaultCurrency(data.agent.default_currency_id);
+          // Usar la divisa del agente por defecto
+          setSelectedCurrency(data.agent.default_currency_id);
+        }
+      }
+    } catch (err) {
+      console.error('Error al cargar divisa del agente:', err);
+    }
+  };
 
   const loadWatermarkConfig = async () => {
     try {
@@ -96,10 +146,6 @@ export default function CreatePropertyPage() {
       console.error('Error loading watermark config:', err);
     }
   };
-
-  useEffect(() => {
-    console.log('🎨 Watermark Config:', watermarkConfig);
-  }, [watermarkConfig]);
 
   const loadCustomFields = async (propType: string, listType: string) => {
     try {
@@ -165,10 +211,10 @@ export default function CreatePropertyPage() {
     setError(null);
 
     try {
-      // 1. Transcribir audio (ya no subimos fotos aquí)
+      // 1. Transcribir audio
       const transcription = await transcribeAudio(audioBlob);
 
-      // 2. Generar descripción con GPT-4 (incluyendo campos personalizados)
+      // 2. Generar descripción con GPT-4
       const generatedData = await generateDescription(
         transcription, 
         propertyType, 
@@ -176,11 +222,12 @@ export default function CreatePropertyPage() {
         customFields
       );
 
-      // 3. Actualizar estado con datos generados (SIN fotos todavía)
+      // 3. Actualizar estado con datos generados + divisa seleccionada
       setPropertyData({
         ...generatedData,
         property_type: propertyType,
         listing_type: listingType,
+        currency_id: selectedCurrency,
         latitude: null,
         longitude: null,
         plus_code: null,
@@ -189,7 +236,6 @@ export default function CreatePropertyPage() {
       });
 
       setCustomFieldsValues(generatedData.custom_fields_data || {});
-      // NO seteamos tempPhotoUrls todavía
 
     } catch (err) {
       console.error('Error al procesar:', err);
@@ -211,7 +257,7 @@ export default function CreatePropertyPage() {
         formData.append('photos', file);
       });
       
-      formData.append('propertySlug', slug); // ✅ Slug real
+      formData.append('propertySlug', slug);
 
       const batchNumber = Math.floor(i / batchSize) + 1;
       const totalBatches = Math.ceil(files.length / batchSize);
@@ -302,13 +348,13 @@ export default function CreatePropertyPage() {
     setError(null);
 
     try {
-      // 1. PRIMERO: Crear la propiedad SIN fotos
+      // 1. Crear la propiedad SIN fotos
       const response = await fetch('/api/property/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...propertyData,
-          photos: [], // ← Sin fotos inicialmente
+          photos: [],
           custom_fields_data: customFieldsValues,
         }),
       });
@@ -321,11 +367,11 @@ export default function CreatePropertyPage() {
       const { propertyId, slug } = await response.json();
       console.log(`✅ Propiedad creada: ${propertyId}, slug: ${slug}`);
       
-      // 2. SEGUNDO: Subir fotos con el slug real
+      // 2. Subir fotos con el slug real
       console.log(`📤 Subiendo ${photos.length} fotos a la carpeta ${slug}...`);
       const photoUrls = await uploadPhotosWithSlug(photos, slug);
       
-      // 3. TERCERO: Actualizar la propiedad con las URLs de las fotos
+      // 3. Actualizar la propiedad con las URLs de las fotos
       const updateResponse = await fetch(`/api/property/update/${propertyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -368,11 +414,16 @@ export default function CreatePropertyPage() {
 
   const canGenerate = photos.length >= 2 && audioBlob !== null;
 
-  // Validar campos personalizados vacíos
   const emptyCustomFields = customFields.filter(field => {
     const value = customFieldsValues[field.field_key];
     return !value || (typeof value === 'string' && value.trim() === '');
   });
+
+  const getSelectedCurrencySymbol = () => {
+    if (!selectedCurrency) return '$';
+    const currency = currencies.find(c => c.id === selectedCurrency);
+    return currency?.symbol || '$';
+  };
 
   return (
     <MobileLayout title="Crear Propiedad" showBack={true} showTabs={true}>
@@ -444,6 +495,32 @@ export default function CreatePropertyPage() {
                   <option value="sale">Venta</option>
                   <option value="rent">Alquiler</option>
                 </select>
+              </div>
+
+              {/* NUEVO: Selector de Divisa */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  💰 Divisa
+                  {agentDefaultCurrency === selectedCurrency && (
+                    <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-semibold">
+                      Por defecto
+                    </span>
+                  )}
+                </label>
+                <select
+                  value={selectedCurrency || ''}
+                  onChange={(e) => setSelectedCurrency(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-semibold"
+                >
+                  {currencies.map(currency => (
+                    <option key={currency.id} value={currency.id}>
+                      {currency.symbol} {currency.code} - {currency.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 Puedes cambiar tu divisa por defecto en Configuración
+                </p>
               </div>
             </div>
 
@@ -545,11 +622,11 @@ export default function CreatePropertyPage() {
               </h2>
               
               <div className="space-y-4">
-                {/* Property Type and Listing Type (NO EDITABLE) */}
+                {/* Property Type, Listing Type, Currency (NO EDITABLE) */}
                 <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">Tipo de propiedad y listing:</p>
+                      <p className="text-sm text-gray-600 mb-1">Configuración:</p>
                       <p className="font-bold text-gray-900">
                         {propertyType === 'house' ? 'Casa' : 
                          propertyType === 'condo' ? 'Condominio' :
@@ -557,6 +634,8 @@ export default function CreatePropertyPage() {
                          propertyType === 'land' ? 'Terreno' : 'Comercial'}
                         {' → '}
                         {listingType === 'sale' ? 'Venta' : 'Alquiler'}
+                        {' → '}
+                        {getSelectedCurrencySymbol()} {currencies.find(c => c.id === selectedCurrency)?.code}
                       </p>
                     </div>
                     <button
@@ -566,11 +645,11 @@ export default function CreatePropertyPage() {
                       }}
                       className="text-sm text-blue-600 underline font-semibold"
                     >
-                      Cambiar tipo
+                      Cambiar
                     </button>
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    ℹ️ Para cambiar el tipo, debes regenerar el listing
+                    ℹ️ Para cambiar, debes regenerar el listing
                   </p>
                 </div>
 
@@ -600,10 +679,10 @@ export default function CreatePropertyPage() {
                   />
                 </div>
 
-                {/* Price */}
+                {/* Price con símbolo de divisa */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Precio ($)
+                    Precio ({getSelectedCurrencySymbol()})
                   </label>
                   <input
                     type="number"
@@ -665,7 +744,7 @@ export default function CreatePropertyPage() {
                   </div>
                 </div>
 
-                {/* MAP SECTION (CON PLUS CODE) */}
+                {/* MAP SECTION */}
                 <div className="pt-4 border-t border-gray-200">
                   <div className="flex items-center justify-between mb-4">
                     <label className="flex items-center gap-2 cursor-pointer">

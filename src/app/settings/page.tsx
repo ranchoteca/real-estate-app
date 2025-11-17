@@ -34,6 +34,13 @@ export default function SettingsPage() {
 
   const settingsOptions = [
     {
+      icon: '💰',
+      title: 'Divisa por Defecto',
+      description: 'Configura la moneda de tus propiedades',
+      href: '/settings/currency',
+      color: '#F59E0B',
+    },
+    {
       icon: '🎨',
       title: 'Logo Personalizado',
       description: 'Configura tu marca en las fotos',

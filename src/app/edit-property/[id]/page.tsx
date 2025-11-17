@@ -9,10 +9,19 @@ import imageCompression from 'browser-image-compression';
 import { applyWatermark, WatermarkConfig } from '@/lib/watermark';
 import MapEditor from '@/components/property/MapEditor';
 
+interface Currency {
+  id: string;
+  code: string;
+  name: string;
+  symbol: string;
+  is_default: boolean;
+}
+
 interface PropertyData {
   title: string;
   description: string;
   price: number | null;
+  currency_id: string | null;
   address: string;
   city: string;
   state: string;
@@ -66,6 +75,10 @@ export default function EditPropertyPage() {
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
   const [watermarkConfig, setWatermarkConfig] = useState<WatermarkConfig | null>(null);
 
+  // Divisas
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -87,6 +100,7 @@ export default function EditPropertyPage() {
 
   useEffect(() => {
     if (session) {
+      loadCurrencies();
       loadWatermarkConfig();
     }
   }, [session]);
@@ -107,6 +121,18 @@ export default function EditPropertyPage() {
     }
   };
 
+  const loadCurrencies = async () => {
+    try {
+      const response = await fetch('/api/currencies/list');
+      if (response.ok) {
+        const data = await response.json();
+        setCurrencies(data.currencies || []);
+      }
+    } catch (err) {
+      console.error('Error al cargar divisas:', err);
+    }
+  };
+
   const loadProperty = async () => {
     try {
       setLoading(true);
@@ -120,6 +146,7 @@ export default function EditPropertyPage() {
       setProperty(data.property);
       setPropertySlug(data.property.slug);
       setExistingPhotos(data.property.photos || []);
+      setSelectedCurrency(data.property.currency_id); 
       
       // Cargar valores de campos personalizados
       setCustomFieldsValues(data.property.custom_fields_data || {});
@@ -490,7 +517,7 @@ export default function EditPropertyPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                Precio ($)
+                Precio ({currencies.find(c => c.id === (selectedCurrency || property.currency_id))?.symbol || '$'})
               </label>
               <input
                 type="number"
@@ -544,6 +571,35 @@ export default function EditPropertyPage() {
                 <option value="sale">Venta</option>
                 <option value="rent">Alquiler</option>
               </select>
+            </div>
+            {/* NUEVO: Selector de Divisa */}
+            <div className="col-span-2">
+              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+                💰 Divisa
+              </label>
+              <select
+                value={selectedCurrency || property.currency_id || ''}
+                onChange={(e) => {
+                  const newCurrencyId = e.target.value;
+                  setSelectedCurrency(newCurrencyId);
+                  setProperty({ ...property, currency_id: newCurrencyId });
+                }}
+                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none appearance-none"
+                style={{ 
+                  borderColor: '#E5E7EB',
+                  backgroundColor: '#F9FAFB',
+                  color: '#0F172A'
+                }}
+              >
+                {currencies.map(currency => (
+                  <option key={currency.id} value={currency.id}>
+                    {currency.symbol} {currency.code} - {currency.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
+                💡 Puedes cambiar tu divisa por defecto en Configuración
+              </p>
             </div>
           </div>
         </div>

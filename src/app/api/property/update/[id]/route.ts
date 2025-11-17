@@ -62,6 +62,7 @@ export async function PUT(
         title: updates.title,
         description: updates.description,
         price: updates.price,
+        currency_id: updates.currency_id,
         address: updates.address,
         city: updates.city,
         state: updates.state,

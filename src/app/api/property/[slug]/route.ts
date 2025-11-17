@@ -1,3 +1,4 @@
+// app/api/property/[slug]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
@@ -17,7 +18,7 @@ export async function GET(
 
     console.log('🔍 Buscando propiedad:', slug);
 
-    // Obtener la propiedad con datos del agente
+    // Obtener la propiedad con datos del agente (el * incluye currency_id)
     const { data: property, error: propertyError } = await supabaseAdmin
       .from('properties')
       .select(`
@@ -54,6 +55,7 @@ export async function GET(
     }
 
     console.log('✅ Propiedad encontrada:', property.title);
+    console.log('💰 Divisa:', property.currency_id);
 
     // Formatear respuesta
     const formattedProperty = {

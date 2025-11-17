@@ -34,10 +34,10 @@ export async function POST(req: NextRequest) {
 
     console.log('💾 Creando propiedad en Supabase...');
 
-    // 1. Obtener el agente actual
+    // 1. Obtener el agente actual (incluyendo su divisa por defecto)
     const { data: agent, error: agentError } = await supabaseAdmin
       .from('agents')
-      .select('id, credits, plan, properties_this_month')
+      .select('id, credits, plan, properties_this_month, default_currency_id')
       .eq('email', session.user.email)
       .single();
 
@@ -71,10 +71,48 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Generar slug único
+    // 3. Determinar qué divisa usar
+    let currency_id = propertyData.currency_id; // Si viene del frontend
+
+    // Si no viene divisa, usar la del agente por defecto
+    if (!currency_id && agent.default_currency_id) {
+      currency_id = agent.default_currency_id;
+      console.log('📌 Usando divisa por defecto del agente');
+    }
+
+    // Si el agente no tiene divisa por defecto, usar la del sistema
+    if (!currency_id) {
+      const { data: defaultCurrency } = await supabaseAdmin
+        .from('currencies')
+        .select('id')
+        .eq('is_default', true)
+        .single();
+      
+      if (defaultCurrency) {
+        currency_id = defaultCurrency.id;
+        console.log('📌 Usando divisa por defecto del sistema');
+      }
+    }
+
+    // Validar que la divisa existe y está activa
+    if (currency_id) {
+      const { data: currencyCheck } = await supabaseAdmin
+        .from('currencies')
+        .select('id, code')
+        .eq('id', currency_id)
+        .eq('active', true)
+        .single();
+
+      if (!currencyCheck) {
+        console.warn('⚠️ Divisa no válida, usando default del sistema');
+        currency_id = null;
+      }
+    }
+
+    // 4. Generar slug único
     const slug = generateSlug(propertyData.title);
 
-    // 4. Crear propiedad (CON plus_code)
+    // 5. Crear propiedad (CON currency_id)
     const { data: property, error: propertyError } = await supabaseAdmin
       .from('properties')
       .insert({
@@ -82,6 +120,7 @@ export async function POST(req: NextRequest) {
         title: propertyData.title,
         description: propertyData.description,
         price: propertyData.price,
+        currency_id: currency_id, // ← NUEVO
         address: propertyData.address,
         city: propertyData.city,
         state: propertyData.state,
@@ -109,7 +148,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. Incrementar contador de propiedades del mes (si es Pro)
+    // 6. Incrementar contador de propiedades del mes (si es Pro)
     if (agent.plan === 'pro') {
       await supabaseAdmin
         .from('agents')
@@ -122,19 +161,19 @@ export async function POST(req: NextRequest) {
     console.log('✅ Propiedad creada exitosamente');
     console.log('ID:', property.id);
     console.log('Slug:', property.slug);
-    console.log('Ubicación:', property.latitude, property.longitude);
-    console.log('Plus Code:', property.plus_code);
-    console.log('Mostrar mapa:', property.show_map);
-    console.log('Campos personalizados:', Object.keys(property.custom_fields_data || {}).length);
+    console.log('Divisa:', currency_id);
+    console.log('Precio:', property.price);
 
     return NextResponse.json({
       success: true,
       propertyId: property.slug,
+      slug: property.slug, // ← AGREGAR ESTO
       property: {
         id: property.id,
         slug: property.slug,
         title: property.title,
         price: property.price,
+        currency_id: property.currency_id,
       },
     });
 

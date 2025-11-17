@@ -156,18 +156,20 @@ export default function DigitalCardSettings() {
 
   if (loading) {
     return (
-      <MobileLayout title="Tarjeta Digital" showBack={true} showTabs={true}>
-        <div className="flex flex-col items-center justify-center h-full">
-          <div className="text-8xl mb-4 animate-pulse">📇</div>
-          <p className="text-lg" style={{ color: '#0F172A' }}>Cargando...</p>
-        </div>
-      </MobileLayout>
+        <MobileLayout title="Divisa por Defecto" showBack={true} showTabs={true}>
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center py-12">
+              <div className="text-5xl mb-4 animate-pulse">📇</div>
+              <div className="text-lg" style={{ color: '#0F172A' }}>Cargando...</div>
+            </div>
+          </div>
+        </MobileLayout>
     );
   }
 
   return (
     <MobileLayout title="Tarjeta Digital" showBack={true} showTabs={true}>
-      <form onSubmit={handleSubmit} className="p-4 space-y-6" style={{ paddingBottom: '220px' }}>
+      <form onSubmit={handleSubmit} className="p-4 space-y-6">
         
         {/* Preview Card */}
         <div className="rounded-2xl overflow-hidden shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
@@ -400,7 +402,7 @@ export default function DigitalCardSettings() {
         </div>
 
         {/* Actions - Botones fijos abajo */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 space-y-2 shadow-2xl" style={{ backgroundColor: '#F9FAFB', borderTop: '1px solid #E5E7EB', zIndex: 50 }}>
+        <div className="bottom-0 left-0 right-0 p-4 space-y-2">
           <button
             type="button"
             onClick={handlePreview}

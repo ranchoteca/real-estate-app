@@ -100,7 +100,7 @@ export default function CurrencySettingsPage() {
 
   if (loading) {
     return (
-      <MobileLayout title="Divisa por defecto" showBack={true} showTabs={true}>
+      <MobileLayout title="Divisa por Defecto" showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">💰</div>

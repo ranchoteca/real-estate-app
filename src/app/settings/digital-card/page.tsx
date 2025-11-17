@@ -181,7 +181,7 @@ export default function DigitalCardSettings() {
                 alt="Cover"
                 fill
                 className="object-cover"
-                style={{ zIndex: 1 }}
+                style={{ zIndex: 0 }}
               />
             )}
             
@@ -212,7 +212,7 @@ export default function DigitalCardSettings() {
                 }
               }}
               disabled={uploadingCover}
-              className="absolute bottom-2 right-2 px-4 py-2 rounded-lg text-sm font-bold text-white cursor-pointer shadow-lg"
+              className="absolute bottom-2 left-1 top-2 px-4 py-1 rounded-lg text-sm font-bold text-white cursor-pointer shadow-lg"
               style={{ backgroundColor: 'rgba(0,0,0,0.7)', touchAction: 'manipulation', zIndex: 10, position: 'relative' }}
             >
               {uploadingCover ? '⏳ Subiendo...' : '📷 ' + (formData.cover_photo ? 'Cambiar portada' : 'Subir portada')}
@@ -220,8 +220,8 @@ export default function DigitalCardSettings() {
             
             {/* Dimensiones recomendadas portada */}
             <div 
-              className="absolute top-2 right-2 px-2 py-1 rounded text-xs font-semibold"
-              style={{ backgroundColor: 'rgba(255,255,255,0.95)', color: '#2563EB', zIndex: 10, position: 'relative' }}
+              className="absolute top-2 right-1 px-2 py-1 rounded text-xs font-semibold"
+              style={{ backgroundColor: 'rgba(255,255,255,0.95)', color: '#2563EB', zIndex: 10 }}
             >
               📐 1200px × 400px
             </div>

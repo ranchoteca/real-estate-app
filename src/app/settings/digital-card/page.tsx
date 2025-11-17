@@ -189,7 +189,7 @@ export default function DigitalCardSettings() {
               ref={coverInputRef}
               type="file"
               accept="image/*"
-              style={{ display: 'none' }}
+              className="hidden"
               disabled={uploadingCover}
               onChange={(e) => {
                 console.log('onChange portada activado');

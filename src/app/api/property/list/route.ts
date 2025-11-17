@@ -1,4 +1,4 @@
-/ app/api/property/list/route.ts
+// app/api/property/list/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseAdmin } from '@/lib/supabase';

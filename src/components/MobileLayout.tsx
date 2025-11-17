@@ -114,19 +114,19 @@ export default function MobileLayout({
               </span>
             </button>
 
-            {/* Analíticas Tab - NUEVO */}
+            {/* Analíticas Tab */}
             <button
-              onClick={() => {
-                // Por ahora no hace nada, futuro módulo de analíticas
-              }}
-              className="flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all active:scale-95 opacity-50"
+              onClick={() => router.push('/analytics')}
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all active:scale-95 ${
+                pathname === '/analytics' ? '' : 'opacity-50'
+              }`}
             >
-              <svg className="w-6 h-6" fill="#0F172A" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill={pathname === '/analytics' ? '#2563EB' : '#0F172A'} viewBox="0 0 24 24">
                 <path d="M3 13h2v8H3v-8zm4-6h2v14H7V7zm4-4h2v18h-2V3zm4 9h2v9h-2v-9zm4-3h2v12h-2V9z"/>
               </svg>
               <span 
                 className="text-xs font-semibold"
-                style={{ color: '#0F172A' }}
+                style={{ color: pathname === '/analytics' ? '#2563EB' : '#0F172A' }}
               >
                 Analíticas
               </span>

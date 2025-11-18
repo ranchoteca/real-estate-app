@@ -468,7 +468,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Image
-              src="/logo_header.png"
+              src="/logo_footer.png"
               alt="Flow Estate AI"
               width={410}
               height={184}

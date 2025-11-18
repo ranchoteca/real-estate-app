@@ -50,7 +50,7 @@ export default function LandingPage() {
                 alt="Flow Estate AI"
                 width={410}
                 height={184}
-                className="w-[114px] h-[50px] sm:w-[150px] sm:h-auto"
+                className="w-[91px] h-[40px] sm:w-[120px] sm:h-auto"
                 priority
               />
             </div>

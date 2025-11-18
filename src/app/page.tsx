@@ -48,9 +48,9 @@ export default function LandingPage() {
               <Image
                 src="/logo_pwa_bg.png"
                 alt="Flow Estate AI"
-                width={114}
-                height={50}
-                className="w-[102.5px] h-[46px] sm:w-[205px] sm:h-[92px]"
+                width={410}
+                height={184}
+                className="w-[114px] h-[50px] sm:w-[150px] sm:h-auto"
                 priority
               />
             </div>

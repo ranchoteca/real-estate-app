@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function LandingPage() {
   const { data: session, status } = useSession();
@@ -44,8 +45,17 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16 gap-4">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-xl sm:text-2xl">🏠</span>
-              <span className="text-base sm:text-xl font-bold text-white truncate">Flow Estate AI</span>
+              <Image
+                src="/logo.png"
+                alt="Flow Estate AI Logo"
+                width={32}
+                height={32}
+                className="w-6 h-6 sm:w-8 sm:h-8"
+                priority
+              />
+              <span className="text-base sm:text-xl font-bold text-white truncate">
+                Flow Estate AI
+              </span>
             </div>
             
             <Link
@@ -460,7 +470,13 @@ export default function LandingPage() {
       <footer className="py-8 px-4 border-t" style={{ borderColor: '#E5E7EB' }}>
         <div className="max-w-6xl mx-auto text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <span className="text-2xl">🏠</span>
+            <Image
+              src="/logo.png"
+              alt="Flow Estate AI Logo"
+              width={32}
+              height={32}
+              className="w-8 h-8"
+            />
             <span className="text-xl font-bold" style={{ color: '#0F172A' }}>
               Flow Estate AI
             </span>

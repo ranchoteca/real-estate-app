@@ -17,7 +17,7 @@ export async function PUT(
 
     const { data: agent } = await supabaseAdmin
       .from('agents')
-      .select('id')
+      .select('id, default_currency_id')
       .eq('email', session.user.email)
       .single();
 
@@ -35,6 +35,22 @@ export async function PUT(
 
     if (!property) {
       return NextResponse.json({ error: 'No tienes permiso' }, { status: 403 });
+    }
+
+    // Si no viene currency_id, usar la del agente o la por defecto del sistema
+    let currencyId = updates.currency_id;
+    if (!currencyId) {
+      if (agent.default_currency_id) {
+        currencyId = agent.default_currency_id;
+      } else {
+        const { data: defaultCurrency } = await supabaseAdmin
+          .from('currencies')
+          .select('id')
+          .eq('is_default', true)
+          .single();
+        currencyId = defaultCurrency?.id || null;
+      }
+      console.log('📌 Asignando divisa por defecto:', currencyId);
     }
 
     // Eliminar fotos del storage si hay en photosToDelete
@@ -55,14 +71,14 @@ export async function PUT(
       }
     }
 
-    // Actualizar propiedad (INCLUYENDO plus_code)
+    // Actualizar propiedad
     const { error } = await supabaseAdmin
       .from('properties')
       .update({
         title: updates.title,
         description: updates.description,
         price: updates.price,
-        currency_id: updates.currency_id,
+        currency_id: currencyId,
         address: updates.address,
         city: updates.city,
         state: updates.state,
@@ -76,7 +92,7 @@ export async function PUT(
         photos: updates.photos,
         latitude: updates.latitude,
         longitude: updates.longitude,
-        plus_code: updates.plus_code, // 🆕 PLUS CODE
+        plus_code: updates.plus_code,
         show_map: updates.show_map,
         custom_fields_data: updates.custom_fields_data || {},
       })
@@ -88,8 +104,8 @@ export async function PUT(
     }
 
     console.log('✅ Propiedad actualizada:', id);
+    console.log('💰 Divisa:', currencyId);
     console.log('📍 Plus Code:', updates.plus_code);
-    console.log('🗺️ Coordenadas:', updates.latitude, updates.longitude);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

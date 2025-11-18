@@ -46,7 +46,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-between h-16 gap-4">
             <div className="flex items-center gap-2 min-w-0">
               <Image
-                src="/logo.png"
+                src="/logo_pwa_bg.png"
                 alt="Flow Estate AI Logo"
                 width={32}
                 height={32}
@@ -471,7 +471,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Image
-              src="/logo.png"
+              src="/logo_pwa_bg.png"
               alt="Flow Estate AI Logo"
               width={32}
               height={32}

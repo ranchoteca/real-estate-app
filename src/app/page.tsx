@@ -47,15 +47,12 @@ export default function LandingPage() {
             <div className="flex items-center gap-2 min-w-0">
               <Image
                 src="/logo_pwa_bg.png"
-                alt="Flow Estate AI Logo"
-                width={32}
-                height={32}
-                className="w-6 h-6 sm:w-8 sm:h-8"
+                alt="Flow Estate AI"
+                width={205}
+                height={92}
+                className="w-[102.5px] h-[46px] sm:w-[205px] sm:h-[92px]"
                 priority
               />
-              <span className="text-base sm:text-xl font-bold text-white truncate">
-                Flow Estate AI
-              </span>
             </div>
             
             <Link
@@ -472,14 +469,11 @@ export default function LandingPage() {
           <div className="flex items-center justify-center gap-2 mb-4">
             <Image
               src="/logo_pwa_bg.png"
-              alt="Flow Estate AI Logo"
-              width={32}
-              height={32}
-              className="w-8 h-8"
+              alt="Flow Estate AI"
+              width={205}
+              height={92}
+              className="w-[102.5px] h-[46px]"
             />
-            <span className="text-xl font-bold" style={{ color: '#0F172A' }}>
-              Flow Estate AI
-            </span>
           </div>
           <p className="text-sm opacity-60 mb-4" style={{ color: '#0F172A' }}>
             Creando el futuro de los listings inmobiliarios

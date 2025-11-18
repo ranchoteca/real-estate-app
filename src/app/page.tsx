@@ -40,7 +40,7 @@ export default function LandingPage() {
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled ? 'shadow-lg' : ''
         }`}
-        style={{ backgroundColor: isScrolled ? '#0F172A' : 'transparent' }}
+        style={{ backgroundColor: '#0F172A' }}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16 gap-4">
@@ -48,8 +48,8 @@ export default function LandingPage() {
               <Image
                 src="/logo_pwa_bg.png"
                 alt="Flow Estate AI"
-                width={205}
-                height={92}
+                width={114}
+                height={50}
                 className="w-[102.5px] h-[46px] sm:w-[205px] sm:h-[92px]"
                 priority
               />
@@ -470,8 +470,8 @@ export default function LandingPage() {
             <Image
               src="/logo_pwa_bg.png"
               alt="Flow Estate AI"
-              width={205}
-              height={92}
+              width={114}
+              height={50}
               className="w-[102.5px] h-[46px]"
             />
           </div>

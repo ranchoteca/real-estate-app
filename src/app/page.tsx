@@ -46,7 +46,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-between h-16 gap-4">
             <div className="flex items-center gap-2 min-w-0">
               <Image
-                src="/logo_pwa_bg.png"
+                src="/logo_header.png"
                 alt="Flow Estate AI"
                 width={410}
                 height={184}
@@ -468,11 +468,12 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Image
-              src="/logo_pwa_bg.png"
+              src="/logo_header.png"
               alt="Flow Estate AI"
-              width={114}
-              height={50}
-              className="w-[102.5px] h-[46px]"
+              width={410}
+              height={184}
+              className="w-[91px] h-[40px] sm:w-[120px] sm:h-auto"
+              priority
             />
           </div>
           <p className="text-sm opacity-60 mb-4" style={{ color: '#0F172A' }}>

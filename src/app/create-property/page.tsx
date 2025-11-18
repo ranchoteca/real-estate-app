@@ -391,7 +391,7 @@ export default function CreatePropertyPage() {
       setPhotos([]);
       
       // Redirigir a la propiedad
-      router.push(`/p/${propertyId}`);
+      router.push(`/p/${slug}`);
       
     } catch (err) {
       console.error('Error al publicar:', err);

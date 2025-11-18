@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      propertyId: property.slug,
+      propertyId: property.id,
       slug: property.slug, // ← AGREGAR ESTO
       property: {
         id: property.id,

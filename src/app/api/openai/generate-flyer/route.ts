@@ -6,8 +6,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Función auxiliar para descargar y convertir imagen a base64
-async function downloadImageAsBase64(imageUrl: string): Promise<string> {
+// Función auxiliar para descargar imagen desde URL
+async function downloadImage(imageUrl: string): Promise<Buffer> {
   try {
     console.log('📥 Descargando imagen desde:', imageUrl);
     const response = await fetch(imageUrl);
@@ -17,19 +17,19 @@ async function downloadImageAsBase64(imageUrl: string): Promise<string> {
     
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const base64 = buffer.toString('base64');
-    
-    // Detectar el tipo de imagen desde Content-Type
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
     
     console.log('✅ Imagen descargada, tamaño:', buffer.length, 'bytes');
-    console.log('📄 Content-Type:', contentType);
-    
-    return `data:${contentType};base64,${base64}`;
+    return buffer;
   } catch (error) {
     console.error('❌ Error descargando imagen:', error);
     throw error;
   }
+}
+
+// Función para crear un archivo temporal tipo File desde Buffer
+function bufferToFile(buffer: Buffer, filename: string): File {
+  const blob = new Blob([buffer], { type: 'image/png' });
+  return new File([blob], filename, { type: 'image/png' });
 }
 
 export async function POST(req: NextRequest) {
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       logoUrl,
     } = await req.json();
 
-    console.log('🎨 Generando arte digital con gpt-4o para:', property.title);
+    console.log('🎨 Generando flyer para:', property.title);
     console.log('🎨 Template:', template);
     console.log('🎨 Colores:', { colorPrimary, colorSecondary });
     console.log('🏷️ Logo:', logoUrl || 'Sin logo');
@@ -76,16 +76,25 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (!propertyImageUrl) {
-      console.error('❌ Property object:', JSON.stringify(property, null, 2));
-      throw new Error('No hay imagen de propiedad disponible. Se requiere al menos una foto.');
-    }
+    let imageBase64: string;
+    let generationMethod: string;
 
-    console.log('📷 Imagen de propiedad encontrada:', propertyImageUrl);
+    // ========================================
+    // CASO 1: HAY IMAGEN - USAR IMAGE EDIT
+    // ========================================
+    if (propertyImageUrl) {
+      console.log('📷 Imagen de propiedad encontrada:', propertyImageUrl);
+      console.log('🎨 Usando images.edit() para agregar elementos sobre la foto...');
 
-    // 🎨 Prompt optimizado para usar imagen base
-    const prompt = `
-Crea un arte digital profesional para publicidad inmobiliaria en Facebook (formato cuadrado 1024x1024px) usando la imagen de la propiedad proporcionada como base.
+      // Descargar la imagen
+      const imageBuffer = await downloadImage(propertyImageUrl);
+      
+      // Crear un File object desde el buffer
+      const imageFile = bufferToFile(imageBuffer, 'property.png');
+
+      // 🎨 Prompt optimizado para EDITAR imagen existente
+      const editPrompt = `
+Transforma esta fotografía de propiedad inmobiliaria en un flyer profesional para Facebook (1024x1024px) agregando elementos gráficos de marketing.
 
 INFORMACIÓN DE LA PROPIEDAD:
 - Título: ${property.title}
@@ -95,104 +104,134 @@ INFORMACIÓN DE LA PROPIEDAD:
 
 ESTILO VISUAL: ${style}
 
-COLORES DE MARCA (usar exactamente estos colores):
-- Color Principal: ${colorPrimary} - para el título de la propiedad
-- Color Secundario: ${colorSecondary} - para ubicación y elementos decorativos
+COLORES DE MARCA (usar exactamente):
+- Color Principal: ${colorPrimary} - para título y precio
+- Color Secundario: ${colorSecondary} - para ubicación y detalles
 
-REQUISITOS CRÍTICOS DEL DISEÑO:
-1. USA LA IMAGEN PROPORCIONADA como fondo principal - mantenla visible y reconocible
-2. Aplica un overlay oscuro semitransparente (25-35% de opacidad) sobre la imagen para mejorar la legibilidad del texto
-3. Superpón elementos de texto profesionales sobre la imagen:
-   
+INSTRUCCIONES DE EDICIÓN:
+1. MANTÉN la fotografía original visible y reconocible como base
+2. Aplica un overlay oscuro semitransparente (30% opacidad) para legibilidad
+3. AGREGA elementos gráficos profesionales superpuestos:
+
    PARTE SUPERIOR:
-   - ${logoUrl ? 'Reserva esquina superior izquierda (140x140px) completamente limpia y clara para colocar logo después' : 'Área superior limpia'}
-   - Título de la propiedad en tipografía GRANDE, BOLD y moderna (color: ${colorPrimary})
-   - Debe ser el elemento más prominente visualmente
+   ${logoUrl ? '- Espacio limpio superior izquierdo (140x140px) para logo' : ''}
+   - Título: "${property.title}" en tipografía GRANDE, BOLD (color: ${colorPrimary})
+   - Debe ser el elemento más prominente
    
-   PARTE MEDIA:
-   - Ubicación con ícono de pin/ubicación estilizado (color: ${colorSecondary})
-   - Tamaño mediano, claramente visible
+   CENTRO:
+   - Ícono de ubicación + "${property.location || property.city || property.address || 'Ubicación disponible'}"
+   - Tamaño mediano, color: ${colorSecondary}
    
    PARTE INFERIOR:
-   - Precio en tamaño GRANDE y destacado (color: ${colorPrimary})
-   - Puede incluir badge o shape decorativo de fondo
+   - Precio: "${property.price ? `$${Number(property.price).toLocaleString()}` : 'Precio a consultar'}" 
+   - En tamaño GRANDE con badge decorativo (color: ${colorPrimary})
+   - Tipo de propiedad: "${property.property_type || 'Propiedad'}" en pequeño
 
-4. IMPORTANTE: La imagen de la propiedad debe permanecer claramente visible y reconocible a través del overlay
-5. Tipografía moderna, sans-serif, altamente legible
-6. Alto contraste entre texto y fondo para máxima legibilidad
-7. NO incluir personas, caras o figuras humanas
-8. Estética profesional de marketing inmobiliario premium para redes sociales
-9. Los colores de marca (${colorPrimary} y ${colorSecondary}) deben ser elementos visuales dominantes
-10. Composición equilibrada y profesional
+4. Tipografía: Sans-serif moderna, alta legibilidad
+5. Alto contraste texto/fondo
+6. NO agregar personas, caras o figuras humanas
+7. Mantener fotografía original como protagonista
+8. Balance profesional entre foto real y elementos gráficos
+9. Estética de marketing inmobiliario premium
 
-RESULTADO ESPERADO:
-Un diseño que combine profesionalmente la fotografía real de la propiedad con elementos gráficos modernos y texto superpuesto, creando un flyer atractivo y efectivo para Facebook.
-    `.trim();
+RESULTADO: Flyer atractivo que combine la foto real con diseño gráfico profesional para redes sociales.
+      `.trim();
 
-    console.log('🤖 Iniciando generación con Responses API (gpt-4o)...');
+      console.log('📤 Enviando a OpenAI images.edit()...');
 
-    // Descargar y convertir imagen a base64
-    const imageBase64DataUrl = await downloadImageAsBase64(propertyImageUrl);
+      // Llamada a images.edit()
+      const result = await openai.images.edit({
+        model: 'gpt-image-1',
+        image: imageFile as any, // Cast necesario para TypeScript
+        prompt: editPrompt,
+        n: 1,
+        size: '1024x1024',
+        response_format: 'b64_json',
+      });
 
-    // Preparar el content array con la imagen
-    const contentArray = [
-      {
-        type: 'input_text',
-        text: prompt,
-      },
-      {
-        type: 'input_image',
-        image_url: imageBase64DataUrl,
-      },
-    ];
+      imageBase64 = result.data[0].b64_json!;
+      generationMethod = 'images.edit (con foto real)';
+      console.log('✅ Imagen editada correctamente');
 
-    console.log('📤 Enviando request a OpenAI con imagen de referencia...');
+    // ========================================
+    // CASO 2: NO HAY IMAGEN - GENERAR DESDE CERO
+    // ========================================
+    } else {
+      console.log('⚠️ No hay imagen de propiedad disponible');
+      console.log('🎨 Usando images.generate() para crear arte desde cero...');
 
-    // 🚀 Llamada a Responses API con gpt-4o
-    const response = await openai.responses.create({
-      model: 'gpt-4o',
-      input: [
-        {
-          role: 'user',
-          content: contentArray,
-        },
-      ],
-      tools: [
-        {
-          type: 'image_generation',
-          size: '1024x1024',
-          quality: 'high',
-          output_format: 'png',
-          input_fidelity: 'high', // Mantener alta fidelidad de la imagen original
-        }
-      ],
-    });
+      // 🎨 Prompt para GENERAR imagen completamente nueva
+      const generatePrompt = `
+Crea un arte digital profesional para publicidad inmobiliaria en Facebook (1024x1024px) desde cero.
 
-    console.log('📦 Respuesta recibida de OpenAI');
+INFORMACIÓN DE LA PROPIEDAD:
+- Título: ${property.title}
+- Ubicación: ${property.location || property.city || property.address || 'Ubicación disponible'}
+- Precio: ${property.price ? `$${Number(property.price).toLocaleString()}` : 'Precio a consultar'}
+- Tipo: ${property.property_type || 'Propiedad'}
 
-    // Extraer la imagen generada
-    const imageGenerationCalls = response.output.filter(
-      (output: any) => output.type === 'image_generation_call'
-    );
+ESTILO VISUAL: ${style}
 
-    if (!imageGenerationCalls || imageGenerationCalls.length === 0) {
-      console.error('❌ No se generó imagen');
-      console.error('Response output:', JSON.stringify(response.output, null, 2));
-      throw new Error('No se generó imagen en la respuesta');
+COLORES DE MARCA (usar exactamente):
+- Color Principal: ${colorPrimary}
+- Color Secundario: ${colorSecondary}
+
+COMPOSICIÓN DEL DISEÑO:
+1. Fondo: Gradiente suave o textura abstracta relacionada con arquitectura/bienes raíces
+2. ${logoUrl ? 'Espacio superior izquierdo limpio (140x140px) para logo' : 'Área superior elegante'}
+
+3. ELEMENTOS VISUALES:
+   - Ilustración o representación estilizada de ${property.property_type || 'propiedad'}
+   - Puede incluir: silueta de edificio, casa moderna, o elementos arquitectónicos abstractos
+   - Estilo: fotorrealista profesional o ilustración de alta calidad
+
+4. TEXTO SUPERPUESTO:
+   SUPERIOR/CENTRO:
+   - Título: "${property.title}" (GRANDE, BOLD, color: ${colorPrimary})
+   
+   MEDIO:
+   - Ubicación con ícono: "${property.location || property.city || property.address || 'Ubicación'}"
+   - Color: ${colorSecondary}
+   
+   INFERIOR:
+   - Precio destacado: "${property.price ? `$${Number(property.price).toLocaleString()}` : 'Consultar precio'}"
+   - Con badge o elemento gráfico (color: ${colorPrimary})
+   - Tipo: "${property.property_type || 'Propiedad'}"
+
+5. REQUISITOS:
+   - Tipografía moderna sans-serif
+   - Alto contraste y legibilidad perfecta
+   - NO incluir personas, caras ni figuras humanas
+   - Composición balanceada y profesional
+   - Estética premium de marketing inmobiliario
+   - Los colores ${colorPrimary} y ${colorSecondary} deben ser dominantes
+
+RESULTADO: Un diseño atractivo, profesional y efectivo para redes sociales que transmita calidad y profesionalismo.
+      `.trim();
+
+      console.log('📤 Enviando a OpenAI images.generate()...');
+
+      // Llamada a images.generate()
+      const result = await openai.images.generate({
+        model: 'gpt-image-1',
+        prompt: generatePrompt,
+        n: 1,
+        size: '1024x1024',
+        response_format: 'b64_json',
+      });
+
+      imageBase64 = result.data[0].b64_json!;
+      generationMethod = 'images.generate (arte generado)';
+      console.log('✅ Imagen generada correctamente');
     }
 
-    const imageBase64 = imageGenerationCalls[0].result;
-
-    if (!imageBase64) {
-      throw new Error('No se recibió imagen base64');
-    }
-
-    console.log('✅ Imagen generada correctamente por gpt-4o');
+    // ========================================
+    // SUBIR A SUPABASE
+    // ========================================
     console.log('📤 Subiendo a Supabase Storage...');
 
-    // Convertir base64 a buffer (remover el prefijo data:image si existe)
-    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-    const imageBuffer = Buffer.from(base64Data, 'base64');
+    // Convertir base64 a buffer
+    const imageBuffer = Buffer.from(imageBase64, 'base64');
 
     // Obtener agent_id y crear nombre de archivo
     const agentId = property.agent_id || 'default';
@@ -200,7 +239,6 @@ Un diseño que combine profesionalmente la fotografía real de la propiedad con 
     const fileName = `${agentId}/flyers/${Date.now()}-${sanitizedTitle}.png`;
 
     console.log('📁 Ruta de archivo:', fileName);
-    console.log('🗂️ Esto creará: property-photos/' + agentId + '/flyers/');
 
     // Subir a Supabase Storage
     const { data: uploadData, error: uploadError } = await supabaseAdmin
@@ -227,26 +265,26 @@ Un diseño que combine profesionalmente la fotografía real de la propiedad con 
 
     const publicUrl = publicUrlData.publicUrl;
 
-    console.log('✅ Arte digital generado y subido exitosamente');
+    console.log('✅ Flyer generado y subido exitosamente');
     console.log('🔗 URL pública:', publicUrl);
-    console.log('📂 Ubicación: property-photos/' + agentId + '/flyers/');
+    console.log('📂 Método usado:', generationMethod);
 
     return NextResponse.json({
       success: true,
       imageUrl: publicUrl,
-      source: 'gpt-4o-responses-api',
-      model: 'gpt-4o',
+      source: generationMethod,
+      model: 'gpt-image-1',
       template,
       colors: {
         primary: colorPrimary,
         secondary: colorSecondary,
       },
-      hasPropertyImage: true,
+      hasPropertyImage: !!propertyImageUrl,
       filePath: fileName,
     });
 
   } catch (error: any) {
-    console.error('❌ Error generando arte digital:', error);
+    console.error('❌ Error generando flyer:', error);
     
     // Logging detallado del error
     if (error.response) {
@@ -254,17 +292,14 @@ Un diseño que combine profesionalmente la fotografía real de la propiedad con 
     }
     
     if (error.status === 403) {
-      console.error('⚠️ Error 403: No tienes acceso a gpt-4o con Responses API');
-      console.error('💡 Posibles soluciones:');
-      console.error('   1. Verifica tu organización en https://platform.openai.com/settings/organization/general');
-      console.error('   2. Espera 15 minutos después de verificar');
-      console.error('   3. Verifica que tu API key tenga los permisos correctos');
+      console.error('⚠️ Error 403: No tienes acceso a la API de imágenes');
+      console.error('💡 Verifica tu cuenta en https://platform.openai.com');
     }
 
     return NextResponse.json(
       { 
         success: false, 
-        error: error.message || 'Error generando arte digital',
+        error: error.message || 'Error generando flyer',
         details: error.response?.data || null,
         status: error.status || 500,
       },

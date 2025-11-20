@@ -139,16 +139,17 @@ RESULTADO: Flyer atractivo que combine la foto real con diseño gráfico profesi
 
       console.log('📤 Enviando a OpenAI images.edit()...');
 
-      // Llamada a images.edit()
+      // Llamada a images.edit() - NO acepta response_format
       const result = await openai.images.edit({
         model: 'gpt-image-1',
         image: imageFile as any, // Cast necesario para TypeScript
         prompt: editPrompt,
         n: 1,
         size: '1024x1024',
-        response_format: 'b64_json',
+        // ❌ NO usar response_format aquí - no es compatible con images.edit()
       });
 
+      // El resultado viene en b64_json por defecto
       imageBase64 = result.data[0].b64_json!;
       generationMethod = 'images.edit (con foto real)';
       console.log('✅ Imagen editada correctamente');

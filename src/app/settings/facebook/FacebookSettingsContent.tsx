@@ -19,7 +19,6 @@ export default function FacebookSettingsContent() {
     connectedAt: string | null;
   }>({ connected: false, pageName: null, connectedAt: null });
 
-  // ✅ AGREGAR ESTO AQUÍ 👇
   const [aiSettings, setAiSettings] = useState({
     enabled: false,
     colorPrimary: '#1877F2',
@@ -27,7 +26,6 @@ export default function FacebookSettingsContent() {
     template: 'moderna'
   });
   const [savingSettings, setSavingSettings] = useState(false);
-  // ✅ FIN DE LO AGREGADO
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -416,8 +414,9 @@ export default function FacebookSettingsContent() {
               </label>
             </div>
 
+            {/* Opciones de configuración (solo visible si está habilitado) */}
             {aiSettings.enabled && (
-              <div className="space-y-4">
+              <div className="space-y-4 mb-4">
                 {/* Selector de colores */}
                 <div>
                   <p className="font-semibold mb-2" style={{ color: '#0F172A' }}>
@@ -473,18 +472,18 @@ export default function FacebookSettingsContent() {
                     ))}
                   </div>
                 </div>
-
-                {/* Botón guardar */}
-                <button
-                  onClick={handleSaveAISettings}
-                  disabled={savingSettings}
-                  className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
-                  style={{ backgroundColor: '#10B981' }}
-                >
-                  {savingSettings ? 'Guardando...' : '💾 Guardar Configuración'}
-                </button>
               </div>
             )}
+
+            {/* ✅ BOTÓN GUARDAR MOVIDO AQUÍ - SIEMPRE VISIBLE */}
+            <button
+              onClick={handleSaveAISettings}
+              disabled={savingSettings}
+              className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
+              style={{ backgroundColor: '#10B981' }}
+            >
+              {savingSettings ? 'Guardando...' : '💾 Guardar Configuración'}
+            </button>
           </div>
         )}
 

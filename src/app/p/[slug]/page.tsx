@@ -179,12 +179,11 @@ export default function PropertyPage() {
     if (!price) return 'Precio a consultar';
     
     const symbol = currency?.symbol || '$';
-    const code = currency?.code || 'USD';
     
     return `${symbol}${new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(price)} ${code}`;
+    }).format(price)}`;
   };
 
   const copyLink = () => {

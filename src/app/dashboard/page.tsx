@@ -204,12 +204,11 @@ export default function DashboardPage() {
     
     const currency = currencies.find(c => c.id === currencyId);
     const symbol = currency?.symbol || '$';
-    const code = currency?.code || 'USD';
     
     return `${symbol}${new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(price)} ${code}`;
+    }).format(price)}`;
   };
 
   const filteredProperties = getFilteredProperties();

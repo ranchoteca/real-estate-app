@@ -407,13 +407,14 @@ export default function EditPropertyPage() {
                 accept="image/*"
                 onChange={handleAddPhotos}
                 className="hidden"
-                disabled={totalPhotos >= 10}
+                disabled={totalPhotos >= 10 || compressing} // Deshabilitar cuando está comprimiendo
               />
               <span 
                 className="px-4 py-2 rounded-xl font-semibold text-white shadow-lg active:scale-95 transition-transform inline-block"
-                style={{ backgroundColor: totalPhotos >= 10 ? '#9CA3AF' : '#2563EB' }}
+                style={{ backgroundColor: (totalPhotos >= 10 || compressing) ? '#9CA3AF' : '#2563EB' }}
               >
-                ➕ Agregar
+                {/* Mostrar estado de compresión */}
+                {compressing ? '⏳ Comprimiendo...' : '➕ Agregar'}
               </span>
             </label>
           </div>

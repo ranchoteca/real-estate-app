@@ -79,6 +79,9 @@ export default function EditPropertyPage() {
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
 
+  // Compresión
+  const [compressing, setCompressing] = useState(false);
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -222,29 +225,51 @@ export default function EditPropertyPage() {
       return;
     }
 
-    // Comprimir fotos
-    const compressedFiles = await Promise.all(files.map(f => compressImage(f)));
-    
-    // Aplicar watermark
-    const processedFiles: File[] = [];
-    for (const file of compressedFiles) {
-      let finalFile = file;
-      if (watermarkConfig) {
-        try {
-          finalFile = await applyWatermark(file, watermarkConfig);
-          console.log('✅ Watermark aplicado a', file.name);
-        } catch (err) {
-          console.error('Error aplicando watermark:', err);
-          finalFile = file;
+    setCompressing(true);
+
+    try {
+      const processedFiles: File[] = [];
+
+      for (const file of files) {
+        const compressed = await compressImage(file);
+        
+        let finalFile = compressed;
+        if (watermarkConfig) {
+          try {
+            finalFile = await applyWatermark(compressed, watermarkConfig);
+            console.log('✅ Watermark aplicado a', file.name);
+          } catch (err) {
+            console.error('Error aplicando watermark:', err);
+            finalFile = compressed;
+          }
         }
+        
+        processedFiles.push(finalFile);
       }
-      processedFiles.push(finalFile);
+
+      // Crear previews después de que todas estén comprimidas
+      const previews = processedFiles.map(file => {
+        try {
+          return URL.createObjectURL(file);
+        } catch (err) {
+          console.error('Error creando preview:', err);
+          return '';
+        }
+      }).filter(url => url !== '');
+      
+      setNewPhotos([...newPhotos, ...processedFiles]);
+      setNewPhotosPreviews([...newPhotosPreviews, ...previews]);
+    } catch (error) {
+      console.error('Error procesando imágenes:', error);
+      alert('Error al procesar las imágenes. Intenta subirlas de nuevo.');
+    } finally {
+      // Desactivar estado de compresión
+      setCompressing(false);
+      // Reset input
+      if (e.target) {
+        e.target.value = '';
+      }
     }
-    
-    const previews = processedFiles.map(file => URL.createObjectURL(file));
-    
-    setNewPhotos([...newPhotos, ...processedFiles]);
-    setNewPhotosPreviews([...newPhotosPreviews, ...previews]);
   };
 
   const handleDeleteExistingPhoto = (url: string) => {

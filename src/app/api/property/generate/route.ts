@@ -90,9 +90,47 @@ Un agente inmobiliario acaba de describir una propiedad por voz. Tu trabajo es:
   "zip_code": "78701"${customFields.length > 0 ? ',\n  "custom_fields_data": {\n    "campo_ejemplo": "Sí"\n  }' : ''}
 }${customFieldsSection}
 
+REGLAS CRÍTICAS PARA EL PRECIO:
+⚠️ IMPORTANTE: El precio debe ser el número COMPLETO sin símbolos, espacios ni comas.
+
+CONVERSIÓN DE LENGUAJE COLOQUIAL A NÚMEROS:
+1. ✅ "mil" = 1,000 (tres ceros)
+   - "200 mil" → 200000
+   - "500 mil" → 500000
+   - "850 mil" → 850000
+
+2. ✅ "millón/millones" = 1,000,000 (seis ceros)
+   - "2 millones" → 2000000
+   - "3.5 millones" → 3500000
+   - "15 millones" → 15000000
+
+3. ✅ Combinaciones:
+   - "1 millón 200 mil" → 1200000
+   - "2.8 millones" → 2800000
+   - "medio millón" → 500000
+
+4. ✅ Ignora la divisa mencionada (dólares/colones/CRC/USD):
+   - "70 millones de dólares" → 70000000
+   - "3 millones de colones" → 3000000
+   - "400 mil USD" → 400000
+   - "100 millones CRC" → 100000000
+
+5. ✅ Si no menciona precio o dice "a consultar" → usa null
+
+EJEMPLOS DE CONVERSIÓN:
+- "el precio es de 2 millones de dólares" → "price": 2000000
+- "vale 400 mil dólares" → "price": 400000
+- "cuesta 70 millones" → "price": 70000000
+- "3 millones y medio de colones" → "price": 3500000
+- "cien millones de colones" → "price": 100000000
+- "850 mil USD" → "price": 850000
+- "precio a consultar" → "price": null
+- "llamar para precio" → "price": null
+
 REGLAS GENERALES:
 - Si el agente NO mencionó algún dato básico, usa null
-- El precio debe ser número sin símbolos ni comas
+- El precio debe ser número SIN símbolos, comas, espacios ni texto
+- La divisa ya está configurada en el sistema, NO la incluyas en el precio
 - "state" puede ser estado o provincia (son equivalentes)
 - La descripción debe ser fluida, no una lista de características
 - NO inventes información que no fue mencionada

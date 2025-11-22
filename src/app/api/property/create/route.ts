@@ -72,47 +72,55 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Determinar qué divisa usar
-    let currency_id = propertyData.currency_id; // Si viene del frontend
+    let currencyId = propertyData.currency_id;
 
-    // Si no viene divisa, usar la del agente por defecto
-    if (!currency_id && agent.default_currency_id) {
-      currency_id = agent.default_currency_id;
-      console.log('📌 Usando divisa por defecto del agente');
-    }
+    console.log('💰 currency_id recibido:', currencyId);
+    console.log('💰 default_currency_id del agente:', agent.default_currency_id);
 
-    // Si el agente no tiene divisa por defecto, usar la del sistema
-    if (!currency_id) {
-      const { data: defaultCurrency } = await supabaseAdmin
-        .from('currencies')
-        .select('id')
-        .eq('is_default', true)
-        .single();
-      
-      if (defaultCurrency) {
-        currency_id = defaultCurrency.id;
-        console.log('📌 Usando divisa por defecto del sistema');
+    // Solo usar divisa del agente si NO viene del frontend
+    if (!currencyId) {
+      if (agent.default_currency_id) {
+        currencyId = agent.default_currency_id;
+        console.log('📌 Usando divisa por defecto del agente');
+      } else {
+        // Si el agente no tiene divisa por defecto, usar la del sistema
+        const { data: defaultCurrency } = await supabaseAdmin
+          .from('currencies')
+          .select('id')
+          .eq('is_default', true)
+          .single();
+        
+        if (defaultCurrency) {
+          currencyId = defaultCurrency.id;
+          console.log('📌 Usando divisa por defecto del sistema');
+        }
       }
+    } else {
+      console.log('✅ Usando currency_id del frontend:', currencyId);
     }
 
     // Validar que la divisa existe y está activa
-    if (currency_id) {
+    if (currencyId) {
       const { data: currencyCheck } = await supabaseAdmin
         .from('currencies')
         .select('id, code')
-        .eq('id', currency_id)
+        .eq('id', currencyId)
         .eq('active', true)
         .single();
 
       if (!currencyCheck) {
-        console.warn('⚠️ Divisa no válida, usando default del sistema');
-        currency_id = null;
+        console.warn('⚠️ Divisa no válida');
+        currencyId = null;
       }
     }
 
     // 4. Generar slug único
     const slug = generateSlug(propertyData.title);
 
-    // 5. Crear propiedad (CON currency_id)
+    console.log('💾 Guardando con currency_id:', currencyId);
+    console.log('💾 Guardando custom_fields_data:', JSON.stringify(propertyData.custom_fields_data));
+
+    // 5. Crear propiedad
     const { data: property, error: propertyError } = await supabaseAdmin
       .from('properties')
       .insert({
@@ -120,7 +128,7 @@ export async function POST(req: NextRequest) {
         title: propertyData.title,
         description: propertyData.description,
         price: propertyData.price,
-        currency_id: currency_id, // ← NUEVO
+        currency_id: currencyId, // ← Usar la variable correcta
         address: propertyData.address,
         city: propertyData.city,
         state: propertyData.state,

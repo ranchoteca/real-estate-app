@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
     console.log('✅ Propiedad creada exitosamente');
     console.log('ID:', property.id);
     console.log('Slug:', property.slug);
-    console.log('Divisa:', currency_id);
+    console.log('Divisa:', currencyId);
     console.log('Precio:', property.price);
 
     return NextResponse.json({

@@ -125,6 +125,7 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           show_map: boolean | null
+          currency_id: string | null
           custom_fields_data: Json | null
           plus_code: string | null
           location?: string | null // Campo auxiliar para compatibilidad
@@ -152,6 +153,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           show_map?: boolean | null
+          currency_id?: string | null
           custom_fields_data?: Json | null
           plus_code?: string | null
         }
@@ -178,6 +180,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           show_map?: boolean | null
+          currency_id?: string | null
           custom_fields_data?: Json | null
           plus_code?: string | null
         }

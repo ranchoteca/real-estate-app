@@ -348,6 +348,15 @@ export default function CreatePropertyPage() {
     setError(null);
 
     try {
+      console.log('🔍 propertyData COMPLETO:', propertyData);
+      console.log('🔍 customFieldsValues:', customFieldsValues);
+      console.log('🔍 MERGE de custom_fields_data:', {
+        ...propertyData.custom_fields_data,
+        ...customFieldsValues,
+      });
+      console.log('🔍 currency_id seleccionado:', selectedCurrency);
+      console.log('🔍 currency_id en propertyData:', propertyData.currency_id);
+      
       // 1. Crear la propiedad SIN fotos
       const response = await fetch('/api/property/create', {
         method: 'POST',

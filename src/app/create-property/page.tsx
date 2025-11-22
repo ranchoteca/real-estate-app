@@ -355,7 +355,10 @@ export default function CreatePropertyPage() {
         body: JSON.stringify({
           ...propertyData,
           photos: [],
-          custom_fields_data: customFieldsValues,
+          custom_fields_data: {
+            ...propertyData.custom_fields_data,
+            ...customFieldsValues,
+          },
         }),
       });
 

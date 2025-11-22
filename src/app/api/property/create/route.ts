@@ -135,12 +135,19 @@ export async function POST(req: NextRequest) {
     console.log('custom_fields_data:', JSON.stringify(dataToInsert.custom_fields_data));
     console.log('currency_id:', dataToInsert.currency_id);
 
+    // 🚨 NUEVO: Verificar el objeto COMPLETO que se enviará
+    console.log('🚨 dataToInsert COMPLETO:', JSON.stringify(dataToInsert, null, 2));
+
     // 🔍 PASO CRÍTICO 3: Ejecutar INSERT
     const { data: property, error: propertyError } = await supabaseAdmin
       .from('properties')
       .insert(dataToInsert)
       .select()
       .single();
+
+    // 🚨 NUEVO: Ver exactamente qué devolvió
+    console.log('🚨 property COMPLETO:', JSON.stringify(property, null, 2));
+    console.log('🚨 propertyError:', propertyError);
 
     if (propertyError) {
       console.error('Error al crear propiedad:', propertyError);

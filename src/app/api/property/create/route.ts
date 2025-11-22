@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseAdmin } from '@/lib/supabase';
 
-// Función para generar slug único
 function generateSlug(title: string): string {
   const baseSlug = title
     .toLowerCase()
@@ -23,7 +22,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 🔍 PASO CRÍTICO 1: Recibir datos del frontend
     const propertyData = await req.json();
+    
+    console.log('🔍 DATOS RECIBIDOS DEL FRONTEND:');
+    console.log('custom_fields_data:', JSON.stringify(propertyData.custom_fields_data));
+    console.log('currency_id:', propertyData.currency_id);
 
     if (!propertyData.title || !propertyData.description) {
       return NextResponse.json(
@@ -32,9 +36,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('💾 Creando propiedad en Supabase...');
-
-    // 1. Obtener el agente actual (incluyendo su divisa por defecto)
+    // Obtener agente
     const { data: agent, error: agentError } = await supabaseAdmin
       .from('agents')
       .select('id, credits, plan, properties_this_month, default_currency_id')
@@ -42,14 +44,13 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (agentError || !agent) {
-      console.error('Error al obtener agente:', agentError);
       return NextResponse.json(
         { error: 'Agente no encontrado' },
         { status: 404 }
       );
     }
 
-    // 2. Verificar límites según plan
+    // Verificar límites según plan
     if (agent.plan === 'free') {
       const { count } = await supabaseAdmin
         .from('properties')
@@ -71,19 +72,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Determinar qué divisa usar
+    // Determinar divisa
     let currencyId = propertyData.currency_id;
 
-    console.log('💰 currency_id recibido:', currencyId);
-    console.log('💰 default_currency_id del agente:', agent.default_currency_id);
-
-    // Solo usar divisa del agente si NO viene del frontend
     if (!currencyId) {
       if (agent.default_currency_id) {
         currencyId = agent.default_currency_id;
-        console.log('📌 Usando divisa por defecto del agente');
       } else {
-        // Si el agente no tiene divisa por defecto, usar la del sistema
         const { data: defaultCurrency } = await supabaseAdmin
           .from('currencies')
           .select('id')
@@ -92,14 +87,11 @@ export async function POST(req: NextRequest) {
         
         if (defaultCurrency) {
           currencyId = defaultCurrency.id;
-          console.log('📌 Usando divisa por defecto del sistema');
         }
       }
-    } else {
-      console.log('✅ Usando currency_id del frontend:', currencyId);
     }
 
-    // Validar que la divisa existe y está activa
+    // Validar divisa
     if (currencyId) {
       const { data: currencyCheck } = await supabaseAdmin
         .from('currencies')
@@ -109,42 +101,44 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (!currencyCheck) {
-        console.warn('⚠️ Divisa no válida');
         currencyId = null;
       }
     }
 
-    // 4. Generar slug único
     const slug = generateSlug(propertyData.title);
 
-    console.log('💾 Guardando con currency_id:', currencyId);
-    console.log('💾 Guardando custom_fields_data:', JSON.stringify(propertyData.custom_fields_data));
+    // 🔍 PASO CRÍTICO 2: Preparar datos para INSERT
+    const dataToInsert = {
+      agent_id: agent.id,
+      title: propertyData.title,
+      description: propertyData.description,
+      price: propertyData.price,
+      currency_id: currencyId,
+      address: propertyData.address,
+      city: propertyData.city,
+      state: propertyData.state,
+      zip_code: propertyData.zip_code,
+      property_type: propertyData.property_type || 'house',
+      listing_type: propertyData.listing_type || 'sale',
+      photos: propertyData.photos || [],
+      audio_url: propertyData.audio_url || null,
+      status: 'active',
+      slug,
+      latitude: propertyData.latitude || null,
+      longitude: propertyData.longitude || null,
+      plus_code: propertyData.plus_code || null,
+      show_map: propertyData.show_map !== undefined ? propertyData.show_map : true,
+      custom_fields_data: propertyData.custom_fields_data || {},
+    };
 
-    // 5. Crear propiedad
+    console.log('🔍 DATOS PREPARADOS PARA INSERT:');
+    console.log('custom_fields_data:', JSON.stringify(dataToInsert.custom_fields_data));
+    console.log('currency_id:', dataToInsert.currency_id);
+
+    // 🔍 PASO CRÍTICO 3: Ejecutar INSERT
     const { data: property, error: propertyError } = await supabaseAdmin
       .from('properties')
-      .insert({
-        agent_id: agent.id,
-        title: propertyData.title,
-        description: propertyData.description,
-        price: propertyData.price,
-        currency_id: currencyId, // ← Usar la variable correcta
-        address: propertyData.address,
-        city: propertyData.city,
-        state: propertyData.state,
-        zip_code: propertyData.zip_code,
-        property_type: propertyData.property_type || 'house',
-        listing_type: propertyData.listing_type || 'sale',
-        photos: propertyData.photos || [],
-        audio_url: propertyData.audio_url || null,
-        status: 'active',
-        slug,
-        latitude: propertyData.latitude || null,
-        longitude: propertyData.longitude || null,
-        plus_code: propertyData.plus_code || null,
-        show_map: propertyData.show_map !== undefined ? propertyData.show_map : true,
-        custom_fields_data: propertyData.custom_fields_data || {},
-      })
+      .insert(dataToInsert)
       .select()
       .single();
 
@@ -156,7 +150,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 6. Incrementar contador de propiedades del mes (si es Pro)
+    // 🔍 PASO CRÍTICO 4: Verificar qué devolvió Supabase
+    console.log('🔍 DATOS DEVUELTOS POR SUPABASE:');
+    console.log('custom_fields_data:', JSON.stringify(property.custom_fields_data));
+    console.log('currency_id:', property.currency_id);
+
+    // Incrementar contador (si es Pro)
     if (agent.plan === 'pro') {
       await supabaseAdmin
         .from('agents')
@@ -166,16 +165,10 @@ export async function POST(req: NextRequest) {
         .eq('id', agent.id);
     }
 
-    console.log('✅ Propiedad creada exitosamente');
-    console.log('ID:', property.id);
-    console.log('Slug:', property.slug);
-    console.log('Divisa:', currencyId);
-    console.log('Precio:', property.price);
-
     return NextResponse.json({
       success: true,
       propertyId: property.id,
-      slug: property.slug, // ← AGREGAR ESTO
+      slug: property.slug,
       property: {
         id: property.id,
         slug: property.slug,

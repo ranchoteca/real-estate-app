@@ -270,8 +270,9 @@ export default function FacebookSettingsContent() {
           style={{ backgroundColor: '#EFF6FF', borderLeft: '4px solid #1877F2' }}
         >
           <p className="text-sm font-semibold" style={{ color: '#1E40AF' }}>
-            💡 <strong>Tip:</strong> Conecta tu página de Facebook para publicar tus propiedades 
-            automáticamente con un solo click desde el dashboard.
+            🎯<strong>Importante:</strong> Sí desea utilizar esta función por favor comunicarselo
+                a los administradores del proyecto para que incluyan tu perfil de Facebook, porque esta 
+                es una funcionalidad BETA.
           </p>
         </div>
 

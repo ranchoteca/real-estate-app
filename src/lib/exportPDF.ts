@@ -116,6 +116,7 @@ async function createCompactCoverPage(
 
   // Logo del agente (esquina superior izquierda) - SOLO si NO tiene logo propio
   if (!agent?.watermark_logo) {
+    console.log('📝 Mostrando "Flow Estate AI" porque NO hay watermark_logo');
     // Texto "Flow Estate AI" como logo
     pdf.setFontSize(12);
     pdf.setFont('helvetica', 'bold');
@@ -128,6 +129,8 @@ async function createCompactCoverPage(
     pdf.setGState(new pdf.GState({ opacity: 1 }));
     
     pdf.text('FLOW ESTATE AI', margin, margin + 6);
+  }else {
+    console.log('✅ Agente tiene logo, NO se muestra nada (la foto ya tiene marca de agua)');
   }
 
   // Badge de estado (arriba derecha)
@@ -235,6 +238,13 @@ async function createCompactCoverPage(
     bottomY += 10;
   }
 
+  console.log('🔍 Verificando información del agente para mostrar:');
+  console.log('- full_name:', agent?.full_name);
+  console.log('- name:', agent?.name);
+  console.log('- email:', agent?.email);
+  console.log('- phone:', agent?.phone);
+  console.log('- brokerage:', agent?.brokerage);
+
   // Información del AGENTE (MÁS GRANDE)
   if (agent && (agent.full_name || agent.name || agent.email || agent.phone)) {
     console.log('📝 Renderizando información del agente en portada...');
@@ -341,6 +351,8 @@ async function createCompactDetailsPage(
       const [key, value] = entries[i];
       const fieldDef = customFieldsDefinitions.find((f: any) => f.field_key === key);
       const fieldName = fieldDef?.field_name || key;
+
+      console.log(`🔍 Campo: ${key} -> Nombre: ${fieldName} (def encontrada: ${!!fieldDef})`);
 
       const isLeftColumn = i % 2 === 0;
       const xPos = isLeftColumn ? margin : margin + columnWidth + 4;
@@ -645,7 +657,9 @@ async function loadCustomFieldsDefinitions(
       listing_type: listingType,
     });
 
+    console.log(`🔍 Cargando campos para: ${propertyType}, ${listingType}`);
     const response = await fetch(`/api/custom-fields/list?${params.toString()}`);
+    console.log(`📡 Response status: ${response.status}`);
     
     if (!response.ok) {
       console.error('Error al cargar definiciones de campos personalizados');

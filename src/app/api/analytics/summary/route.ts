@@ -10,7 +10,6 @@ export async function GET() {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    // Obtener agente
     const { data: agent, error: agentError } = await supabaseAdmin
       .from('agents')
       .select('id')
@@ -21,25 +20,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Agente no encontrado' }, { status: 404 });
     }
 
-    // Obtener todas las propiedades con su divisa
     const { data: properties, error: propertiesError } = await supabaseAdmin
       .from('properties')
       .select(`
-        id,
-        price,
-        currency_id,
-        property_type,
-        listing_type,
-        status,
-        views,
-        city,
-        state,
-        created_at,
-        updated_at,
-        photos,
-        show_map,
-        latitude,
-        longitude
+        id, slug, title, price, currency_id, property_type, listing_type,
+        status, views, city, state, created_at, updated_at, photos,
+        show_map, latitude, longitude
       `)
       .eq('agent_id', agent.id);
 
@@ -48,20 +34,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Error al cargar datos' }, { status: 500 });
     }
 
-    // Obtener información de divisas
     const { data: currencies } = await supabaseAdmin
       .from('currencies')
       .select('id, code, symbol, name');
 
     const currencyMap = new Map(currencies?.map(c => [c.id, c]) || []);
 
-    // CÁLCULOS
-
     // 1. INVENTARIO GENERAL
     const totalProperties = properties?.length || 0;
     const activeProperties = properties?.filter(p => p.status === 'active').length || 0;
 
-    // Contar por divisa
     const propertiesByCurrency: Record<string, number> = {};
     properties?.forEach(p => {
       if (p.currency_id) {
@@ -70,7 +52,6 @@ export async function GET() {
       }
     });
 
-    // Propiedades agregadas últimos 7 días
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const recentProperties = properties?.filter(p => new Date(p.created_at) >= sevenDaysAgo).length || 0;
@@ -106,14 +87,12 @@ export async function GET() {
       const avg = Math.round(sum / prices.length);
       const min = Math.min(...prices);
       const max = Math.max(...prices);
-      const symbol = currencyMap.get(properties?.find(p => currencyMap.get(p.currency_id!)?.code === code)?.currency_id!)?.symbol || '$';
-      
-      averagePriceByCurrency[code] = { avg, min, max, symbol };
+      const currency = currencies?.find(c => c.code === code);
+      averagePriceByCurrency[code] = { avg, min, max, symbol: currency?.symbol || '$' };
     });
 
     // 5. RANGOS DE PRECIO POR DIVISA
     const priceRangesByCurrency: Record<string, Record<string, number>> = {};
-    
     properties?.forEach(p => {
       if (p.price && p.currency_id) {
         const code = currencyMap.get(p.currency_id)?.code || 'N/A';
@@ -135,7 +114,6 @@ export async function GET() {
         } else {
           range = 'Otro';
         }
-        
         priceRangesByCurrency[code][range] = (priceRangesByCurrency[code][range] || 0) + 1;
       }
     });
@@ -147,17 +125,43 @@ export async function GET() {
       byStatus[status] = (byStatus[status] || 0) + 1;
     });
 
-    // 7. PROPIEDADES QUE NECESITAN ATENCIÓN
+    // 7. PROPIEDADES QUE NECESITAN ATENCIÓN (con datos completos)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
+    const propertiesNotUpdated = properties?.filter(p => new Date(p.updated_at) < thirtyDaysAgo) || [];
+    const propertiesLessThan5Photos = properties?.filter(p => (p.photos?.length || 0) < 5) || [];
+    const propertiesNoMap = properties?.filter(p => p.show_map && (!p.latitude || !p.longitude)) || [];
+
     const needsAttention = {
-      notUpdated30Days: properties?.filter(p => new Date(p.updated_at) < thirtyDaysAgo).length || 0,
-      lessThan5Photos: properties?.filter(p => (p.photos?.length || 0) < 5).length || 0,
-      noMapLocation: properties?.filter(p => p.show_map && (!p.latitude || !p.longitude)).length || 0,
+      notUpdated30Days: propertiesNotUpdated.length,
+      lessThan5Photos: propertiesLessThan5Photos.length,
+      noMapLocation: propertiesNoMap.length,
+      propertiesNotUpdated: propertiesNotUpdated.map(p => ({
+        id: p.id,
+        slug: p.slug,
+        title: p.title,
+        photos: p.photos,
+        updated_at: p.updated_at,
+      })),
+      propertiesLessThan5Photos: propertiesLessThan5Photos.map(p => ({
+        id: p.id,
+        slug: p.slug,
+        title: p.title,
+        photos: p.photos,
+        photosCount: p.photos?.length || 0,
+      })),
+      propertiesNoMap: propertiesNoMap.map(p => ({
+        id: p.id,
+        slug: p.slug,
+        title: p.title,
+        photos: p.photos,
+        city: p.city?.trim(),
+        state: p.state?.trim(),
+      })),
     };
 
-    // 8. ACTIVIDAD RECIENTE (últimos 7 días)
+    // 8. ACTIVIDAD RECIENTE
     const createdLast7Days = properties?.filter(p => new Date(p.created_at) >= sevenDaysAgo).length || 0;
     const updatedLast7Days = properties?.filter(p => 
       new Date(p.updated_at) >= sevenDaysAgo && new Date(p.created_at) < sevenDaysAgo
@@ -169,14 +173,15 @@ export async function GET() {
       p.status === 'rented' && new Date(p.updated_at) >= sevenDaysAgo
     ).length || 0;
 
-    // 9. DISTRIBUCIÓN POR UBICACIÓN
+    // 9. DISTRIBUCIÓN POR UBICACIÓN (Top 5) - CON TRIM
     const byCityState: Record<string, number> = {};
     properties?.forEach(p => {
-      const location = [p.city, p.state].filter(Boolean).join(', ') || 'Sin ubicación';
+      const city = p.city?.trim() || '';
+      const state = p.state?.trim() || '';
+      const location = [city, state].filter(Boolean).join(', ') || 'Sin ubicación';
       byCityState[location] = (byCityState[location] || 0) + 1;
     });
 
-    // Top 5 ubicaciones
     const topLocations = Object.entries(byCityState)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
@@ -186,7 +191,6 @@ export async function GET() {
     const totalViews = properties?.reduce((sum, p) => sum + (p.views || 0), 0) || 0;
     const avgViewsPerProperty = totalProperties > 0 ? Math.round(totalViews / totalProperties) : 0;
 
-    // Respuesta
     return NextResponse.json({
       success: true,
       summary: {
@@ -196,18 +200,12 @@ export async function GET() {
           byCurrency: propertiesByCurrency,
           recentlyAdded: recentProperties,
         },
-        distribution: {
-          byPropertyType,
-          byListingType,
-        },
+        distribution: { byPropertyType, byListingType },
         pricing: {
           averageByCurrency: averagePriceByCurrency,
           rangesByCurrency: priceRangesByCurrency,
         },
-        status: {
-          byStatus,
-          needsAttention,
-        },
+        status: { byStatus, needsAttention },
         activity: {
           last7Days: {
             created: createdLast7Days,
@@ -216,13 +214,11 @@ export async function GET() {
             rented: rentedLast7Days,
           },
         },
-        locations: {
-          topLocations,
-        },
+        locations: { topLocations },
         views: {
           total: totalViews,
           average: avgViewsPerProperty,
-          threshold: 50, // Para desbloquear analytics avanzados
+          threshold: 50,
         },
       },
     });

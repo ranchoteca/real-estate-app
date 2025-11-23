@@ -1,10 +1,21 @@
-// app/analytics/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import MobileLayout from '@/components/MobileLayout';
+import AttentionPropertiesModal from '@/components/AttentionPropertiesModal';
+
+interface PropertyBasic {
+  id: string;
+  slug: string;
+  title: string;
+  photos?: string[] | null;
+  photosCount?: number;
+  city?: string;
+  state?: string;
+  updated_at?: string;
+}
 
 interface AnalyticsSummary {
   inventory: {
@@ -27,6 +38,9 @@ interface AnalyticsSummary {
       notUpdated30Days: number;
       lessThan5Photos: number;
       noMapLocation: number;
+      propertiesNotUpdated: PropertyBasic[];
+      propertiesLessThan5Photos: PropertyBasic[];
+      propertiesNoMap: PropertyBasic[];
     };
   };
   activity: {
@@ -62,11 +76,14 @@ const STATUS_LABELS: Record<string, { label: string; color: string; emoji: strin
   rented: { label: 'Alquiladas', color: '#3B82F6', emoji: '🏠' },
 };
 
+type ModalType = 'lessThan5Photos' | 'noMapLocation' | 'notUpdated30Days' | null;
+
 export default function AnalyticsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
+  const [modalType, setModalType] = useState<ModalType>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -100,6 +117,21 @@ export default function AnalyticsPage() {
 
   const getPercentage = (value: number, total: number) => {
     return total > 0 ? Math.round((value / total) * 100) : 0;
+  };
+
+  const getModalProperties = (): PropertyBasic[] => {
+    if (!summary || !modalType) return [];
+    
+    switch (modalType) {
+      case 'lessThan5Photos':
+        return summary.status.needsAttention.propertiesLessThan5Photos || [];
+      case 'noMapLocation':
+        return summary.status.needsAttention.propertiesNoMap || [];
+      case 'notUpdated30Days':
+        return summary.status.needsAttention.propertiesNotUpdated || [];
+      default:
+        return [];
+    }
   };
 
   if (loading) {
@@ -211,10 +243,7 @@ export default function AnalyticsPage() {
                   <div className="w-full h-2 rounded-full" style={{ backgroundColor: '#E5E7EB' }}>
                     <div 
                       className="h-full rounded-full transition-all"
-                      style={{ 
-                        backgroundColor: '#2563EB',
-                        width: `${percentage}%`
-                      }}
+                      style={{ backgroundColor: '#2563EB', width: `${percentage}%` }}
                     />
                   </div>
                 </div>
@@ -247,9 +276,7 @@ export default function AnalyticsPage() {
             
             {Object.entries(summary.pricing.averageByCurrency).map(([currency, data]) => (
               <div key={currency} className="mb-4 last:mb-0">
-                <p className="text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                  {currency}:
-                </p>
+                <p className="text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>{currency}:</p>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="px-3 py-2 rounded-lg" style={{ backgroundColor: '#F9FAFB' }}>
                     <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>Promedio</p>
@@ -271,12 +298,9 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
 
-                {/* Rangos de precio */}
                 {summary.pricing.rangesByCurrency[currency] && (
                   <div className="mt-3 space-y-2">
-                    <p className="text-xs font-semibold opacity-70" style={{ color: '#0F172A' }}>
-                      Distribución:
-                    </p>
+                    <p className="text-xs font-semibold opacity-70" style={{ color: '#0F172A' }}>Distribución:</p>
                     {Object.entries(summary.pricing.rangesByCurrency[currency]).map(([range, count]) => (
                       <div key={range} className="flex items-center gap-2">
                         <span className="text-xs w-24" style={{ color: '#0F172A' }}>{range}</span>
@@ -289,9 +313,7 @@ export default function AnalyticsPage() {
                             }}
                           />
                         </div>
-                        <span className="text-xs font-bold w-8 text-right" style={{ color: '#2563EB' }}>
-                          {count}
-                        </span>
+                        <span className="text-xs font-bold w-8 text-right" style={{ color: '#2563EB' }}>{count}</span>
                       </div>
                     ))}
                   </div>
@@ -311,11 +333,7 @@ export default function AnalyticsPage() {
             {Object.entries(summary.status.byStatus).map(([status, count]) => {
               const statusInfo = STATUS_LABELS[status] || { label: status, color: '#6B7280', emoji: '●' };
               return (
-                <div 
-                  key={status}
-                  className="px-4 py-3 rounded-xl"
-                  style={{ backgroundColor: `${statusInfo.color}10` }}
-                >
+                <div key={status} className="px-4 py-3 rounded-xl" style={{ backgroundColor: `${statusInfo.color}10` }}>
                   <p className="text-2xl mb-1">{statusInfo.emoji}</p>
                   <p className="text-2xl font-bold" style={{ color: statusInfo.color }}>{count}</p>
                   <p className="text-xs font-semibold" style={{ color: statusInfo.color }}>{statusInfo.label}</p>
@@ -324,7 +342,7 @@ export default function AnalyticsPage() {
             })}
           </div>
 
-          {/* Necesitan atención */}
+          {/* Necesitan atención - CON MODALES */}
           {(summary.status.needsAttention.notUpdated30Days > 0 ||
             summary.status.needsAttention.lessThan5Photos > 0 ||
             summary.status.needsAttention.noMapLocation > 0) && (
@@ -334,28 +352,43 @@ export default function AnalyticsPage() {
               </p>
               <div className="space-y-2">
                 {summary.status.needsAttention.notUpdated30Days > 0 && (
-                  <div className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ backgroundColor: '#FEE2E2' }}>
+                  <button
+                    onClick={() => setModalType('notUpdated30Days')}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg active:scale-98 transition-transform"
+                    style={{ backgroundColor: '#FEE2E2' }}
+                  >
                     <span className="text-sm" style={{ color: '#991B1B' }}>Sin actualizar en 30+ días</span>
-                    <span className="text-sm font-bold" style={{ color: '#DC2626' }}>
+                    <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#DC2626' }}>
                       {summary.status.needsAttention.notUpdated30Days}
+                      <span>→</span>
                     </span>
-                  </div>
+                  </button>
                 )}
                 {summary.status.needsAttention.lessThan5Photos > 0 && (
-                  <div className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ backgroundColor: '#FEF3C7' }}>
+                  <button
+                    onClick={() => setModalType('lessThan5Photos')}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg active:scale-98 transition-transform"
+                    style={{ backgroundColor: '#FEF3C7' }}
+                  >
                     <span className="text-sm" style={{ color: '#78350F' }}>Menos de 5 fotos</span>
-                    <span className="text-sm font-bold" style={{ color: '#F59E0B' }}>
+                    <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#F59E0B' }}>
                       {summary.status.needsAttention.lessThan5Photos}
+                      <span>→</span>
                     </span>
-                  </div>
+                  </button>
                 )}
                 {summary.status.needsAttention.noMapLocation > 0 && (
-                  <div className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ backgroundColor: '#DBEAFE' }}>
+                  <button
+                    onClick={() => setModalType('noMapLocation')}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg active:scale-98 transition-transform"
+                    style={{ backgroundColor: '#DBEAFE' }}
+                  >
                     <span className="text-sm" style={{ color: '#1E40AF' }}>Sin ubicación en mapa</span>
-                    <span className="text-sm font-bold" style={{ color: '#2563EB' }}>
+                    <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#2563EB' }}>
                       {summary.status.needsAttention.noMapLocation}
+                      <span>→</span>
                     </span>
-                  </div>
+                  </button>
                 )}
               </div>
             </div>
@@ -371,39 +404,30 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: '#EFF6FF' }}>
               <p className="text-2xl mb-1">➕</p>
-              <p className="text-2xl font-bold" style={{ color: '#2563EB' }}>
-                {summary.activity.last7Days.created}
-              </p>
+              <p className="text-2xl font-bold" style={{ color: '#2563EB' }}>{summary.activity.last7Days.created}</p>
               <p className="text-xs font-semibold" style={{ color: '#1E40AF' }}>Creadas</p>
             </div>
             <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: '#F0FDF4' }}>
               <p className="text-2xl mb-1">✏️</p>
-              <p className="text-2xl font-bold" style={{ color: '#10B981' }}>
-                {summary.activity.last7Days.updated}
-              </p>
+              <p className="text-2xl font-bold" style={{ color: '#10B981' }}>{summary.activity.last7Days.updated}</p>
               <p className="text-xs font-semibold" style={{ color: '#065F46' }}>Editadas</p>
             </div>
             {summary.activity.last7Days.sold > 0 && (
               <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: '#F3F4F6' }}>
                 <p className="text-2xl mb-1">✔️</p>
-                <p className="text-2xl font-bold" style={{ color: '#6B7280' }}>
-                  {summary.activity.last7Days.sold}
-                </p>
+                <p className="text-2xl font-bold" style={{ color: '#6B7280' }}>{summary.activity.last7Days.sold}</p>
                 <p className="text-xs font-semibold" style={{ color: '#374151' }}>Vendidas</p>
               </div>
             )}
             {summary.activity.last7Days.rented > 0 && (
               <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: '#EFF6FF' }}>
                 <p className="text-2xl mb-1">🏠</p>
-                <p className="text-2xl font-bold" style={{ color: '#3B82F6' }}>
-                  {summary.activity.last7Days.rented}
-                </p>
+                <p className="text-2xl font-bold" style={{ color: '#3B82F6' }}>{summary.activity.last7Days.rented}</p>
                 <p className="text-xs font-semibold" style={{ color: '#1E40AF' }}>Alquiladas</p>
               </div>
             )}
           </div>
 
-          {/* Top ubicaciones */}
           {summary.locations.topLocations.length > 0 && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>
               <p className="text-sm font-semibold mb-3" style={{ color: '#0F172A' }}>
@@ -449,15 +473,11 @@ export default function AnalyticsPage() {
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: '#EFF6FF' }}>
-                    <p className="text-2xl font-bold" style={{ color: '#2563EB' }}>
-                      {summary.views.total}
-                    </p>
+                    <p className="text-2xl font-bold" style={{ color: '#2563EB' }}>{summary.views.total}</p>
                     <p className="text-xs font-semibold" style={{ color: '#1E40AF' }}>Vistas totales</p>
                   </div>
                   <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: '#F0FDF4' }}>
-                    <p className="text-2xl font-bold" style={{ color: '#10B981' }}>
-                      {summary.views.average}
-                    </p>
+                    <p className="text-2xl font-bold" style={{ color: '#10B981' }}>{summary.views.average}</p>
                     <p className="text-xs font-semibold" style={{ color: '#065F46' }}>Promedio</p>
                   </div>
                 </div>
@@ -471,7 +491,6 @@ export default function AnalyticsPage() {
                   Desbloquea métricas de vistas compartiendo más tus propiedades
                 </p>
                 
-                {/* Barra de progreso */}
                 <div className="mb-4">
                   <div className="flex justify-between text-xs mb-1" style={{ color: '#0F172A' }}>
                     <span>Progreso</span>
@@ -480,10 +499,7 @@ export default function AnalyticsPage() {
                   <div className="w-full h-3 rounded-full" style={{ backgroundColor: '#E5E7EB' }}>
                     <div 
                       className="h-full rounded-full transition-all"
-                      style={{ 
-                        backgroundColor: '#2563EB',
-                        width: `${viewsProgress}%`
-                      }}
+                      style={{ backgroundColor: '#2563EB', width: `${viewsProgress}%` }}
                     />
                   </div>
                 </div>
@@ -503,8 +519,17 @@ export default function AnalyticsPage() {
             )}
           </div>
         </div>
-
       </div>
+
+      {/* Modal de propiedades que necesitan atención */}
+      {modalType && (
+        <AttentionPropertiesModal
+          isOpen={!!modalType}
+          onClose={() => setModalType(null)}
+          type={modalType}
+          properties={getModalProperties()}
+        />
+      )}
     </MobileLayout>
   );
 }

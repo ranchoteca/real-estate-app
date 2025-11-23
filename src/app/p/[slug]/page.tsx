@@ -7,7 +7,6 @@ import GeneratingPDFModal from '@/components/GeneratingPDFModal';
 import MobileLayout from '@/components/MobileLayout';
 import dynamic from 'next/dynamic';
 
-// Importar MapEditor dinámicamente
 const MapEditor = dynamic(() => import('@/components/property/MapEditor'), {
   ssr: false,
   loading: () => (
@@ -56,7 +55,6 @@ interface CustomField {
   icon: string;
 }
 
-// Función para traducir tipos de propiedad
 const translatePropertyType = (type: string | null): string => {
   const translations: Record<string, string> = {
     house: 'Casa',
@@ -80,7 +78,6 @@ export default function PropertyPage() {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-
   const [currency, setCurrency] = useState<any>(null);
 
   const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -119,12 +116,10 @@ export default function PropertyPage() {
       const data = await response.json();
       setProperty(data.property);
 
-      // AGREGAR: Cargar divisa si existe currency_id
       if (data.property.currency_id) {
         loadCurrency(data.property.currency_id);
       }
 
-      // Cargar campos personalizados...
       if (data.property.property_type && data.property.listing_type && data.property.agent?.username) {
         loadCustomFields(
           data.property.property_type, 
@@ -153,7 +148,6 @@ export default function PropertyPage() {
     }
   };
 
-  // Cargar definiciones de campos personalizados
   const loadCustomFields = async (propertyType: string, listingType: string, agentUsername: string) => {
     try {
       const response = await fetch(
@@ -171,18 +165,14 @@ export default function PropertyPage() {
         const data = await response.json();
         const fields = data.fields || [];
         setCustomFields(fields);
-        console.log('✅ Campos personalizados cargados:', fields.length, fields);
       } else {
-        console.error('❌ Error HTTP al cargar custom fields:', response.status);
         setCustomFields([]);
       }
     } catch (err) {
-      console.error('❌ Error catch loading custom fields:', err);
       setCustomFields([]);
     }
   };
 
-  // Función para obtener valor de campo personalizado
   const getCustomFieldValue = (fieldKey: string): string | null => {
     if (!property?.custom_fields_data) return null;
     return property.custom_fields_data[fieldKey] || null;
@@ -266,318 +256,324 @@ export default function PropertyPage() {
     ? property.photos 
     : ['https://via.placeholder.com/800x600?text=No+Image'];
 
-  // Filtrar campos personalizados que tienen valor
   const filledCustomFields = customFields.filter(field => {
-    const value = getCustomFieldValue(field.field_key);  // 👈 CAMBIAR A field_key
+    const value = getCustomFieldValue(field.field_key);
     return value !== null && value !== '';
   });
 
   return (
     <MobileLayout title={property.city || 'Propiedad'} showBack={true} showTabs={false}>
-      {/* Photo Gallery */}
-      <div className="relative">
-        <div className="relative aspect-[4/3] bg-gray-200">
-          <Image
-            src={photos[selectedPhotoIndex]}
-            alt={property.title}
-            fill
-            className="object-contain bg-black"
-            priority
-          />
+      {/* DESKTOP: Two Column Layout */}
+      <div className="lg:max-w-7xl lg:mx-auto lg:px-6 lg:py-8">
+        <div className="lg:grid lg:grid-cols-2 lg:gap-8">
           
-          {/* Photo Counter */}
-          {photos.length > 1 && (
-            <div 
-              className="absolute bottom-4 right-4 px-3 py-1.5 rounded-full text-sm font-bold shadow-lg"
-              style={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', color: 'white' }}
-            >
-              {selectedPhotoIndex + 1} / {photos.length}
-            </div>
-          )}
-
-          {/* Navigation Arrows */}
-          {photos.length > 1 && (
-            <>
-              <button
-                onClick={() => setSelectedPhotoIndex(prev => prev > 0 ? prev - 1 : photos.length - 1)}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center shadow-xl active:scale-90 transition-transform"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.95)' }}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="#0F172A" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setSelectedPhotoIndex(prev => prev < photos.length - 1 ? prev + 1 : 0)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center shadow-xl active:scale-90 transition-transform"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.95)' }}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="#0F172A" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Thumbnail Scroll */}
-        {photos.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto px-4 py-3 bg-white">
-            {photos.map((photo, index) => (
-              <button
-                key={index}
-                ref={(el) => { thumbnailRefs.current[index] = el; }}  // ← AGREGAR ESTA LÍNEA
-                onClick={() => setSelectedPhotoIndex(index)}
-                className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all active:scale-95 ${
-                  index === selectedPhotoIndex 
-                    ? 'scale-110 shadow-lg' 
-                    : ''
-                }`}
-                style={{ borderColor: index === selectedPhotoIndex ? '#2563EB' : '#E5E7EB' }}
-              >
+          {/* LEFT COLUMN - Gallery (Desktop) / Full Width (Mobile) */}
+          <div className="lg:sticky lg:top-8 lg:self-start">
+            {/* Photo Gallery */}
+            <div className="relative">
+              <div className="relative aspect-[4/3] lg:aspect-square bg-gray-200 lg:rounded-2xl lg:overflow-hidden">
                 <Image
-                  src={photo}
-                  alt={`Photo ${index + 1}`}
+                  src={photos[selectedPhotoIndex]}
+                  alt={property.title}
                   fill
-                  className="object-cover"
+                  className="object-contain bg-black"
+                  priority
                 />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="px-4 pt-4 pb-24 space-y-4">
-        {/* Price Card */}
-        <div 
-          className="rounded-2xl p-5 shadow-lg"
-          style={{ backgroundColor: '#FFFFFF' }}
-        >
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
-                {property.title}
-              </h1>
-              <p className="text-sm opacity-70 flex items-center gap-1 mb-1" style={{ color: '#0F172A' }}>
-                <span>📍</span>
-                {property.address}
-              </p>
-              {(property.city || property.state || property.zip_code) && (
-                <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                  {[property.city, property.state, property.zip_code].filter(Boolean).join(', ')}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="text-3xl font-bold mb-4" style={{ color: '#2563EB' }}>
-            {formatPrice(property.price)}
-          </div>
-
-          <div className="flex items-center gap-2 mb-4">
-            <div className="text-sm font-semibold px-3 py-1 rounded-full" style={{ 
-              backgroundColor: property.listing_type === 'rent' ? '#F59E0B' : '#10B981',
-              color: '#FFFFFF'
-            }}>
-              {property.listing_type === 'rent' ? '🏠 Para Alquiler' : '💰 En Venta'}
-            </div>
-            
-            {property.property_type && (
-              <div className="text-sm font-semibold px-3 py-1 rounded-full" style={{
-                backgroundColor: '#F5EAD3',
-                color: '#0F172A'
-              }}>
-                🏡 {translatePropertyType(property.property_type)}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* CAMPOS PERSONALIZADOS - Diseño Moderno con Cards */}
-        {filledCustomFields.length > 0 && (
-          <div 
-            className="rounded-2xl p-5 shadow-lg"
-            style={{ backgroundColor: '#FFFFFF' }}
-          >
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
-              <span>✨</span>
-              Características Especiales
-            </h2>
-            
-            <div className="grid grid-cols-2 gap-3">
-              {filledCustomFields.map((field) => {
-                const value = getCustomFieldValue(field.field_key);
-                if (!value) return null;
-
-                return (
-                  <div
-                    key={field.id}
-                    className="rounded-xl p-4 shadow-md"
-                    style={{
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    }}
+                
+                {/* Photo Counter */}
+                {photos.length > 1 && (
+                  <div 
+                    className="absolute bottom-4 right-4 px-3 py-1.5 rounded-full text-sm font-bold shadow-lg"
+                    style={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', color: 'white' }}
                   >
-                    <div className="text-3xl mb-2">{field.icon || '🏷️'}</div>
-                    <div className="text-xs font-semibold mb-1 opacity-90" style={{ color: '#FFFFFF' }}>
-                      {field.field_name}
-                    </div>
-                    <div className="text-sm font-bold" style={{ color: '#FFFFFF' }}>
-                      {value}
-                    </div>
+                    {selectedPhotoIndex + 1} / {photos.length}
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                )}
 
-        {/* Description */}
-        <div 
-          className="rounded-2xl p-5 shadow-lg"
-          style={{ backgroundColor: '#FFFFFF' }}
-        >
-          <h2 className="text-lg font-bold mb-3" style={{ color: '#0F172A' }}>
-            Descripción
-          </h2>
-          <p className="whitespace-pre-line leading-relaxed opacity-90" style={{ color: '#0F172A' }}>
-            {property.description}
-          </p>
-          
-          <div className="mt-4 pt-4 border-t text-sm opacity-60" style={{ color: '#0F172A', borderTopColor: '#E5E7EB' }}>
-            👁️ {property.views} personas vieron esta propiedad
-          </div>
-        </div>
-
-        {/* MAP SECTION */}
-        {property.show_map && property.latitude && property.longitude && (
-          <div 
-            className="rounded-2xl p-5 shadow-lg"
-            style={{ backgroundColor: '#FFFFFF' }}
-          >
-            <h2 className="text-lg font-bold mb-3" style={{ color: '#0F172A' }}>
-              📍 Ubicación
-            </h2>
-            <MapEditor
-              address={property.address || ''}
-              city={property.city || ''}
-              state={property.state || ''}
-              initialLat={property.latitude}
-              initialLng={property.longitude}
-              onLocationChange={() => {}}
-              editable={false}
-            />
-            <p className="text-xs mt-3 opacity-60" style={{ color: '#0F172A' }}>
-              {property.address}
-              {(property.city || property.state || property.zip_code) && (
-                <span>
-                  {', '}
-                  {[property.city, property.state, property.zip_code].filter(Boolean).join(', ')}
-                </span>
-              )}
-            </p>
-          </div>
-        )}
-
-        {/* Export PDF Button */}
-        <div className="px-4 pb-6">
-          <button
-            onClick={async () => {
-              setIsGeneratingPDF(true);
-              try {
-                const { exportPropertyToPDF } = await import('@/lib/exportPDF');
-                await exportPropertyToPDF(property);
-              } catch (error) {
-                console.error('Error generando PDF:', error);
-                alert('Error al generar el PDF');
-              } finally {
-                setIsGeneratingPDF(false);
-              }
-            }}
-            className="w-full py-3 rounded-xl font-bold border-2 shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
-            style={{ 
-              borderColor: '#2563EB',
-              color: '#2563EB',
-              backgroundColor: '#FFFFFF'
-            }}
-          >
-            <span>📄</span> Descargar como PDF
-          </button>
-        </div>
-
-        {/* Agent Card */}
-        <div 
-          className="rounded-2xl p-5 shadow-lg"
-          style={{ backgroundColor: '#FFFFFF' }}
-        >
-          <h3 className="text-lg font-bold mb-4" style={{ color: '#0F172A' }}>
-            Agente
-          </h3>
-
-          <div className="flex items-center gap-4 mb-5">
-            <div 
-              className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-lg"
-              style={{ backgroundColor: '#2563EB' }}
-            >
-              {property.agent.profile_photo ? (
-                <Image
-                  src={property.agent.profile_photo}
-                  alt={property.agent.name || 'Agent'}
-                  width={64}
-                  height={64}
-                  className="rounded-full"
-                />
-              ) : (
-                property.agent.name?.charAt(0).toUpperCase() || '?'
-              )}
-            </div>
-            <div>
-              <div className="font-bold" style={{ color: '#0F172A' }}>
-                {property.agent.full_name || property.agent.name || 'Agente'}
+                {/* Navigation Arrows */}
+                {photos.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setSelectedPhotoIndex(prev => prev > 0 ? prev - 1 : photos.length - 1)}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center shadow-xl active:scale-90 transition-transform hover:scale-110"
+                      style={{ backgroundColor: 'rgba(255, 255, 255, 0.95)' }}
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="#0F172A" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setSelectedPhotoIndex(prev => prev < photos.length - 1 ? prev + 1 : 0)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full flex items-center justify-center shadow-xl active:scale-90 transition-transform hover:scale-110"
+                      style={{ backgroundColor: 'rgba(255, 255, 255, 0.95)' }}
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="#0F172A" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </>
+                )}
               </div>
-              {property.agent.brokerage && (
-                <div className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                  {property.agent.brokerage}
+
+              {/* Thumbnail Scroll */}
+              {photos.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto px-4 lg:px-0 py-3 bg-white lg:bg-transparent lg:mt-4">
+                  {photos.map((photo, index) => (
+                    <button
+                      key={index}
+                      ref={(el) => { thumbnailRefs.current[index] = el; }}
+                      onClick={() => setSelectedPhotoIndex(index)}
+                      className={`relative flex-shrink-0 w-16 h-16 lg:w-20 lg:h-20 rounded-lg overflow-hidden border-2 transition-all active:scale-95 hover:scale-105 ${
+                        index === selectedPhotoIndex 
+                          ? 'scale-110 shadow-lg' 
+                          : ''
+                      }`}
+                      style={{ borderColor: index === selectedPhotoIndex ? '#2563EB' : '#E5E7EB' }}
+                    >
+                      <Image
+                        src={photo}
+                        alt={`Photo ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Contact Buttons */}
-          <div className="space-y-2">
-            {property.agent.phone && (
-              <>
-                <a
-                  href={`tel:${property.agent.phone}`}
-                  className="block w-full py-3 rounded-xl font-bold text-white text-center shadow-lg active:scale-95 transition-transform"
-                  style={{ backgroundColor: '#2563EB' }}
-                >
-                  📞 Llamar
-                </a>
+          {/* RIGHT COLUMN - Content */}
+          <div className="px-4 lg:px-0 pt-4 pb-24 lg:pb-8 space-y-4">
+            {/* Price Card */}
+            <div 
+              className="rounded-2xl p-5 lg:p-6 shadow-lg"
+              style={{ backgroundColor: '#FFFFFF' }}
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <h1 className="text-2xl lg:text-3xl font-bold mb-2" style={{ color: '#0F172A' }}>
+                    {property.title}
+                  </h1>
+                  <p className="text-sm lg:text-base opacity-70 flex items-center gap-1 mb-1" style={{ color: '#0F172A' }}>
+                    <span>📍</span>
+                    {property.address}
+                  </p>
+                  {(property.city || property.state || property.zip_code) && (
+                    <p className="text-sm lg:text-base opacity-70" style={{ color: '#0F172A' }}>
+                      {[property.city, property.state, property.zip_code].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-3xl lg:text-4xl font-bold mb-4" style={{ color: '#2563EB' }}>
+                {formatPrice(property.price)}
+              </div>
+
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
+                <div className="text-sm font-semibold px-3 py-1 rounded-full" style={{ 
+                  backgroundColor: property.listing_type === 'rent' ? '#F59E0B' : '#10B981',
+                  color: '#FFFFFF'
+                }}>
+                  {property.listing_type === 'rent' ? '🏠 Para Alquiler' : '💰 En Venta'}
+                </div>
                 
-                <a
-                  href={`https://wa.me/${property.agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa: ${property.title}`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full py-3 rounded-xl font-bold text-white text-center shadow-lg active:scale-95 transition-transform"
-                  style={{ backgroundColor: '#25D366' }}
-                >
-                  💬 WhatsApp
-                </a>
-              </>
+                {property.property_type && (
+                  <div className="text-sm font-semibold px-3 py-1 rounded-full" style={{
+                    backgroundColor: '#F5EAD3',
+                    color: '#0F172A'
+                  }}>
+                    🏡 {translatePropertyType(property.property_type)}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Custom Fields */}
+            {filledCustomFields.length > 0 && (
+              <div 
+                className="rounded-2xl p-5 lg:p-6 shadow-lg"
+                style={{ backgroundColor: '#FFFFFF' }}
+              >
+                <h2 className="text-lg lg:text-xl font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
+                  <span>✨</span>
+                  Características Especiales
+                </h2>
+                
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                  {filledCustomFields.map((field) => {
+                    const value = getCustomFieldValue(field.field_key);
+                    if (!value) return null;
+
+                    return (
+                      <div
+                        key={field.id}
+                        className="rounded-xl p-4 shadow-md"
+                        style={{
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        }}
+                      >
+                        <div className="text-3xl mb-2">{field.icon || '🏷️'}</div>
+                        <div className="text-xs font-semibold mb-1 opacity-90" style={{ color: '#FFFFFF' }}>
+                          {field.field_name}
+                        </div>
+                        <div className="text-sm font-bold" style={{ color: '#FFFFFF' }}>
+                          {value}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
 
-            <a
-              href={`mailto:${property.agent.email}?subject=${encodeURIComponent(`Consulta: ${property.title}`)}`}
-              className="block w-full py-3 rounded-xl font-bold text-center border-2 shadow-lg active:scale-95 transition-transform"
+            {/* Description */}
+            <div 
+              className="rounded-2xl p-5 lg:p-6 shadow-lg"
+              style={{ backgroundColor: '#FFFFFF' }}
+            >
+              <h2 className="text-lg lg:text-xl font-bold mb-3" style={{ color: '#0F172A' }}>
+                Descripción
+              </h2>
+              <p className="whitespace-pre-line leading-relaxed opacity-90 text-sm lg:text-base" style={{ color: '#0F172A' }}>
+                {property.description}
+              </p>
+              
+              <div className="mt-4 pt-4 border-t text-sm opacity-60" style={{ color: '#0F172A', borderTopColor: '#E5E7EB' }}>
+                👁️ {property.views} personas vieron esta propiedad
+              </div>
+            </div>
+
+            {/* Map */}
+            {property.show_map && property.latitude && property.longitude && (
+              <div 
+                className="rounded-2xl p-5 lg:p-6 shadow-lg"
+                style={{ backgroundColor: '#FFFFFF' }}
+              >
+                <h2 className="text-lg lg:text-xl font-bold mb-3" style={{ color: '#0F172A' }}>
+                  📍 Ubicación
+                </h2>
+                <MapEditor
+                  address={property.address || ''}
+                  city={property.city || ''}
+                  state={property.state || ''}
+                  initialLat={property.latitude}
+                  initialLng={property.longitude}
+                  onLocationChange={() => {}}
+                  editable={false}
+                />
+                <p className="text-xs mt-3 opacity-60" style={{ color: '#0F172A' }}>
+                  {property.address}
+                  {(property.city || property.state || property.zip_code) && (
+                    <span>
+                      {', '}
+                      {[property.city, property.state, property.zip_code].filter(Boolean).join(', ')}
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {/* PDF Button */}
+            <button
+              onClick={async () => {
+                setIsGeneratingPDF(true);
+                try {
+                  const { exportPropertyToPDF } = await import('@/lib/exportPDF');
+                  await exportPropertyToPDF(property);
+                } catch (error) {
+                  console.error('Error generando PDF:', error);
+                  alert('Error al generar el PDF');
+                } finally {
+                  setIsGeneratingPDF(false);
+                }
+              }}
+              className="w-full py-3 rounded-xl font-bold border-2 shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 hover:bg-gray-50"
               style={{ 
                 borderColor: '#2563EB',
                 color: '#2563EB',
                 backgroundColor: '#FFFFFF'
               }}
             >
-              ✉️ Email
-            </a>
+              <span>📄</span> Descargar como PDF
+            </button>
+
+            {/* Agent Card */}
+            <div 
+              className="rounded-2xl p-5 lg:p-6 shadow-lg"
+              style={{ backgroundColor: '#FFFFFF' }}
+            >
+              <h3 className="text-lg lg:text-xl font-bold mb-4" style={{ color: '#0F172A' }}>
+                Agente
+              </h3>
+
+              <div className="flex items-center gap-4 mb-5">
+                <div 
+                  className="w-16 h-16 lg:w-20 lg:h-20 rounded-full flex items-center justify-center text-2xl lg:text-3xl font-bold text-white shadow-lg"
+                  style={{ backgroundColor: '#2563EB' }}
+                >
+                  {property.agent.profile_photo ? (
+                    <Image
+                      src={property.agent.profile_photo}
+                      alt={property.agent.name || 'Agent'}
+                      width={80}
+                      height={80}
+                      className="rounded-full"
+                    />
+                  ) : (
+                    property.agent.name?.charAt(0).toUpperCase() || '?'
+                  )}
+                </div>
+                <div>
+                  <div className="font-bold text-lg lg:text-xl" style={{ color: '#0F172A' }}>
+                    {property.agent.full_name || property.agent.name || 'Agente'}
+                  </div>
+                  {property.agent.brokerage && (
+                    <div className="text-sm lg:text-base opacity-70" style={{ color: '#0F172A' }}>
+                      {property.agent.brokerage}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Contact Buttons */}
+              <div className="space-y-2">
+                {property.agent.phone && (
+                  <>
+                    <a
+                      href={`tel:${property.agent.phone}`}
+                      className="block w-full py-3 rounded-xl font-bold text-white text-center shadow-lg active:scale-95 transition-transform hover:opacity-90"
+                      style={{ backgroundColor: '#2563EB' }}
+                    >
+                      📞 Llamar
+                    </a>
+                    
+                    <a
+                      href={`https://wa.me/${property.agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa: ${property.title}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full py-3 rounded-xl font-bold text-white text-center shadow-lg active:scale-95 transition-transform hover:opacity-90"
+                      style={{ backgroundColor: '#25D366' }}
+                    >
+                      💬 WhatsApp
+                    </a>
+                  </>
+                )}
+
+                <a
+                  href={`mailto:${property.agent.email}?subject=${encodeURIComponent(`Consulta: ${property.title}`)}`}
+                  className="block w-full py-3 rounded-xl font-bold text-center border-2 shadow-lg active:scale-95 transition-transform hover:bg-gray-50"
+                  style={{ 
+                    borderColor: '#2563EB',
+                    color: '#2563EB',
+                    backgroundColor: '#FFFFFF'
+                  }}
+                >
+                  ✉️ Email
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -586,10 +582,10 @@ export default function PropertyPage() {
       <div className="fixed bottom-6 right-4 z-50">
         <button
           onClick={() => setShowShareMenu(!showShareMenu)}
-          className="w-14 h-14 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform"
+          className="w-14 h-14 lg:w-16 lg:h-16 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform hover:scale-110"
           style={{ backgroundColor: '#2563EB' }}
         >
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-6 h-6 lg:w-7 lg:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
           </svg>
         </button>
@@ -597,13 +593,13 @@ export default function PropertyPage() {
         {/* Share Menu */}
         {showShareMenu && (
           <div 
-            className="absolute bottom-16 right-0 rounded-2xl shadow-2xl p-3 min-w-[180px]"
+            className="absolute bottom-16 lg:bottom-20 right-0 rounded-2xl shadow-2xl p-3 min-w-[180px] lg:min-w-[200px]"
             style={{ backgroundColor: '#FFFFFF' }}
           >
             {navigator.share && (
               <button
                 onClick={shareNative}
-                className="w-full px-4 py-3 text-left font-semibold rounded-xl active:bg-gray-100 transition-colors flex items-center gap-3"
+                className="w-full px-4 py-3 text-left font-semibold rounded-xl hover:bg-gray-100 active:bg-gray-100 transition-colors flex items-center gap-3"
                 style={{ color: '#0F172A' }}
               >
                 <span>📱</span> Compartir
@@ -611,14 +607,14 @@ export default function PropertyPage() {
             )}
             <button
               onClick={shareWhatsApp}
-              className="w-full px-4 py-3 text-left font-semibold rounded-xl active:bg-gray-100 transition-colors flex items-center gap-3"
+              className="w-full px-4 py-3 text-left font-semibold rounded-xl hover:bg-gray-100 active:bg-gray-100 transition-colors flex items-center gap-3"
               style={{ color: '#0F172A' }}
             >
               <span>💬</span> WhatsApp
             </button>
             <button
               onClick={copyLink}
-              className="w-full px-4 py-3 text-left font-semibold rounded-xl active:bg-gray-100 transition-colors flex items-center gap-3"
+              className="w-full px-4 py-3 text-left font-semibold rounded-xl hover:bg-gray-100 active:bg-gray-100 transition-colors flex items-center gap-3"
               style={{ color: '#0F172A' }}
             >
               <span>🔗</span> Copiar link
@@ -627,14 +623,14 @@ export default function PropertyPage() {
         )}
       </div>
 
-      {/* Overlay para cerrar menú */}
+      {/* Overlay */}
       {showShareMenu && (
         <div 
           className="fixed inset-0 z-40"
           onClick={() => setShowShareMenu(false)}
         />
       )}
-      {/* Modal de Generando PDF */}
+
       <GeneratingPDFModal isOpen={isGeneratingPDF} />
     </MobileLayout>
   );

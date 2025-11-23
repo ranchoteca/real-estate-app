@@ -31,7 +31,6 @@ interface Property {
   created_at: string;
 }
 
-// 🆕 Función para traducir tipos de propiedad
 const translatePropertyType = (type: string | null): string => {
   const translations: Record<string, string> = {
     house: 'Casa',
@@ -131,7 +130,7 @@ export default function AgentPortfolioPage() {
           </h1>
           <button
             onClick={() => router.push('/')}
-            className="mt-6 px-6 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform"
+            className="mt-6 px-6 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform hover:opacity-90"
             style={{ backgroundColor: '#2563EB' }}
           >
             ← Volver al inicio
@@ -145,7 +144,7 @@ export default function AgentPortfolioPage() {
     <div className="min-h-screen" style={{ backgroundColor: '#F5EAD3' }}>
       {/* Header */}
       <header className="shadow-lg" style={{ backgroundColor: '#0F172A' }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
               <span className="text-2xl">🏠</span>
@@ -161,8 +160,8 @@ export default function AgentPortfolioPage() {
         </div>
       </header>
 
-      {/* Share Button */}
-      <div className="px-4 pt-4">
+      {/* Share Button - Mobile Only */}
+      <div className="px-4 pt-4 lg:hidden">
         <button
           onClick={() => {
             const url = window.location.href;
@@ -177,7 +176,7 @@ export default function AgentPortfolioPage() {
               alert('¡Link copiado!');
             }
           }}
-          className="w-full py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+          className="w-full py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 hover:opacity-90"
           style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}
         >
           <span>📤</span> Compartir Mi Portfolio
@@ -185,16 +184,16 @@ export default function AgentPortfolioPage() {
       </div>
 
       {/* Agent Info Section */}
-      <section className="py-12 px-4">
-        <div className="max-w-4xl mx-auto">
+      <section className="py-8 lg:py-12 px-4">
+        <div className="max-w-6xl mx-auto">
           <div 
-            className="rounded-3xl p-8 shadow-xl"
+            className="rounded-3xl p-6 lg:p-8 shadow-xl"
             style={{ backgroundColor: '#FFFFFF' }}
           >
-            <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+            <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6">
               {/* Avatar */}
               <div 
-                className="w-32 h-32 rounded-full flex items-center justify-center text-5xl font-bold text-white shadow-xl flex-shrink-0"
+                className="w-24 h-24 lg:w-32 lg:h-32 rounded-full flex items-center justify-center text-4xl lg:text-5xl font-bold text-white shadow-xl flex-shrink-0"
                 style={{ backgroundColor: '#2563EB' }}
               >
                 {agent.profile_photo ? (
@@ -211,28 +210,28 @@ export default function AgentPortfolioPage() {
               </div>
 
               {/* Info */}
-              <div className="flex-1 text-center md:text-left">
-                <h1 className="text-3xl font-bold mb-2" style={{ color: '#0F172A' }}>
+              <div className="flex-1 text-center lg:text-left">
+                <h1 className="text-2xl lg:text-3xl font-bold mb-2" style={{ color: '#0F172A' }}>
                   {agent.full_name || agent.name}
                 </h1>
                 {agent.brokerage && (
-                  <p className="text-lg mb-3 opacity-70" style={{ color: '#0F172A' }}>
+                  <p className="text-base lg:text-lg mb-3 opacity-70" style={{ color: '#0F172A' }}>
                     {agent.brokerage}
                   </p>
                 )}
                 {agent.bio && (
-                  <p className="mb-4 opacity-80" style={{ color: '#0F172A' }}>
+                  <p className="mb-4 opacity-80 text-sm lg:text-base" style={{ color: '#0F172A' }}>
                     {agent.bio}
                   </p>
                 )}
                 
                 {/* Contact Buttons */}
-                <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+                <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
                   {agent.phone && (
                     <>
                       <a
                         href={`tel:${agent.phone}`}
-                        className="px-5 py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform"
+                        className="px-4 lg:px-5 py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform hover:opacity-90"
                         style={{ backgroundColor: '#2563EB' }}
                       >
                         📞 Llamar
@@ -241,7 +240,7 @@ export default function AgentPortfolioPage() {
                         href={`https://wa.me/${agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent('Hola, vi tu portfolio y me interesa contactarte')}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-5 py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform"
+                        className="px-4 lg:px-5 py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform hover:opacity-90"
                         style={{ backgroundColor: '#25D366' }}
                       >
                         💬 WhatsApp
@@ -250,7 +249,7 @@ export default function AgentPortfolioPage() {
                   )}
                   <a
                     href={`mailto:${agent.email}?subject=${encodeURIComponent('Consulta desde tu portfolio')}`}
-                    className="px-5 py-2 rounded-xl font-bold border-2 shadow-lg active:scale-95 transition-transform"
+                    className="px-4 lg:px-5 py-2 rounded-xl font-bold border-2 shadow-lg active:scale-95 transition-transform hover:bg-gray-50"
                     style={{ 
                       borderColor: '#2563EB',
                       color: '#2563EB',
@@ -259,49 +258,69 @@ export default function AgentPortfolioPage() {
                   >
                     ✉️ Email
                   </a>
+                  {/* Desktop Share Button */}
+                  <button
+                    onClick={() => {
+                      const url = window.location.href;
+                      if (navigator.share) {
+                        navigator.share({
+                          title: `Portfolio de ${agent.full_name || agent.name}`,
+                          text: `Mira mis propiedades en venta`,
+                          url: url,
+                        });
+                      } else {
+                        navigator.clipboard.writeText(url);
+                        alert('¡Link copiado!');
+                      }
+                    }}
+                    className="hidden lg:inline-flex px-4 lg:px-5 py-2 rounded-xl font-bold shadow-lg active:scale-95 transition-transform hover:opacity-90 items-center gap-2"
+                    style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}
+                  >
+                    <span>📤</span> Compartir Portfolio
+                  </button>
                 </div>
               </div>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t" style={{ borderColor: '#E5E7EB' }}>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8 pt-8 border-t" style={{ borderColor: '#E5E7EB' }}>
               <div className="text-center">
-                <div className="text-3xl font-bold mb-1" style={{ color: '#2563EB' }}>
+                <div className="text-2xl lg:text-3xl font-bold mb-1" style={{ color: '#2563EB' }}>
                   {stats.total}
                 </div>
-                <div className="text-sm opacity-70" style={{ color: '#0F172A' }}>
+                <div className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
                   Propiedades
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold mb-1" style={{ color: '#10B981' }}>
+                <div className="text-2xl lg:text-3xl font-bold mb-1" style={{ color: '#10B981' }}>
                   {stats.active}
                 </div>
-                <div className="text-sm opacity-70" style={{ color: '#0F172A' }}>
+                <div className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
                   Disponibles
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold mb-1" style={{ color: '#6B7280' }}>
+                <div className="text-2xl lg:text-3xl font-bold mb-1" style={{ color: '#6B7280' }}>
                   {stats.sold}
                 </div>
-                <div className="text-sm opacity-70" style={{ color: '#0F172A' }}>
+                <div className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
                   Vendidas
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold mb-1" style={{ color: '#6B7280' }}>
+                <div className="text-2xl lg:text-3xl font-bold mb-1" style={{ color: '#6B7280' }}>
                   {stats.rented}
                 </div>
-                <div className="text-sm opacity-70" style={{ color: '#0F172A' }}>
+                <div className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
                   Alquiladas
                 </div>
               </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold mb-1" style={{ color: '#F59E0B' }}>
+              <div className="text-center col-span-2 md:col-span-1">
+                <div className="text-2xl lg:text-3xl font-bold mb-1" style={{ color: '#F59E0B' }}>
                   {stats.totalViews}
                 </div>
-                <div className="text-sm opacity-70" style={{ color: '#0F172A' }}>
+                <div className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
                   Vistas Totales
                 </div>
               </div>
@@ -314,7 +333,7 @@ export default function AgentPortfolioPage() {
       <section className="pb-12 px-4">
         <div className="max-w-6xl mx-auto">
           {/* Filter Tabs */}
-          <div className="flex gap-2 mb-6 overflow-x-auto">
+          <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide">
             {[
               { key: 'active', label: '🟢 Disponibles', count: stats.active },
               { key: 'all', label: '📋 Todas', count: stats.total },
@@ -324,7 +343,7 @@ export default function AgentPortfolioPage() {
               <button
                 key={tab.key}
                 onClick={() => setFilter(tab.key as any)}
-                className={`px-5 py-3 rounded-xl font-bold whitespace-nowrap transition-all active:scale-95 ${
+                className={`px-4 lg:px-5 py-3 rounded-xl font-bold whitespace-nowrap transition-all active:scale-95 hover:scale-105 ${
                   filter === tab.key ? 'shadow-lg' : ''
                 }`}
                 style={{
@@ -349,12 +368,12 @@ export default function AgentPortfolioPage() {
               </p>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               {filteredProperties.map((property) => (
                 <div
                   key={property.id}
                   onClick={() => router.push(`/p/${property.slug}`)}
-                  className="rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all cursor-pointer active:scale-[0.98]"
+                  className="rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all cursor-pointer active:scale-[0.98] hover:scale-[1.02]"
                   style={{ backgroundColor: '#FFFFFF' }}
                 >
                   {/* Image */}
@@ -384,23 +403,23 @@ export default function AgentPortfolioPage() {
 
                   {/* Content */}
                   <div className="p-4">
-                    <h3 className="font-bold text-lg mb-2 line-clamp-2" style={{ color: '#0F172A' }}>
+                    <h3 className="font-bold text-base lg:text-lg mb-2 line-clamp-2" style={{ color: '#0F172A' }}>
                       {property.title}
                     </h3>
                     
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-xl font-bold" style={{ color: '#2563EB' }}>
+                      <span className="text-lg lg:text-xl font-bold" style={{ color: '#2563EB' }}>
                         {formatPrice(property.price)}
                       </span>
                       {property.city && property.state && (
-                        <span className="text-sm opacity-70" style={{ color: '#0F172A' }}>
+                        <span className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
                           📍 {property.city}
                         </span>
                       )}
                     </div>
 
                     {/* Property Type and Listing Type Badges */}
-                    <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center gap-2 mb-3 flex-wrap">
                       {property.property_type && (
                         <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{
                           backgroundColor: '#F5EAD3',

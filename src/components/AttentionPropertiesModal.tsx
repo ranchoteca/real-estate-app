@@ -59,8 +59,8 @@ export default function AttentionPropertiesModal({
 
   if (!isOpen) return null;
 
-  const handleEditProperty = (slug: string) => {
-    router.push(`/edit-property/${slug}`);
+  const handleEditProperty = (id: string) => {
+    router.push(`/edit-property/${id}`); // ← CAMBIO: usar id en vez de slug
     onClose();
   };
 
@@ -175,7 +175,7 @@ export default function AttentionPropertiesModal({
 
               {/* Botón editar */}
               <button
-                onClick={() => handleEditProperty(property.slug)}
+                onClick={() => handleEditProperty(property.id)}
                 className="px-3 py-2 rounded-lg text-xs font-bold text-white flex-shrink-0"
                 style={{ backgroundColor: config.color }}
               >

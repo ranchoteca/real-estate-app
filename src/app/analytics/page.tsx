@@ -354,40 +354,73 @@ export default function AnalyticsPage() {
                 {summary.status.needsAttention.notUpdated30Days > 0 && (
                   <button
                     onClick={() => setModalType('notUpdated30Days')}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg active:scale-98 transition-transform"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg active:scale-98 transition-all shadow-sm hover:shadow-md"
                     style={{ backgroundColor: '#FEE2E2' }}
                   >
-                    <span className="text-sm" style={{ color: '#991B1B' }}>Sin actualizar en 30+ días</span>
-                    <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#DC2626' }}>
-                      {summary.status.needsAttention.notUpdated30Days}
-                      <span>→</span>
-                    </span>
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: '#FCA5A5' }}>
+                      <span className="text-lg">📅</span>
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-semibold" style={{ color: '#991B1B' }}>Sin actualizar en 30+ días</p>
+                      <p className="text-xs opacity-70" style={{ color: '#991B1B' }}>Toca para ver lista</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-bold px-2 py-1 rounded" style={{ 
+                        backgroundColor: '#DC2626',
+                        color: '#FFFFFF'
+                      }}>
+                        {summary.status.needsAttention.notUpdated30Days}
+                      </span>
+                      <span className="text-xl" style={{ color: '#DC2626' }}>›</span>
+                    </div>
                   </button>
                 )}
                 {summary.status.needsAttention.lessThan5Photos > 0 && (
                   <button
                     onClick={() => setModalType('lessThan5Photos')}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg active:scale-98 transition-transform"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg active:scale-98 transition-all shadow-sm hover:shadow-md"
                     style={{ backgroundColor: '#FEF3C7' }}
                   >
-                    <span className="text-sm" style={{ color: '#78350F' }}>Menos de 5 fotos</span>
-                    <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#F59E0B' }}>
-                      {summary.status.needsAttention.lessThan5Photos}
-                      <span>→</span>
-                    </span>
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: '#FCD34D' }}>
+                      <span className="text-lg">📸</span>
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-semibold" style={{ color: '#78350F' }}>Menos de 5 fotos</p>
+                      <p className="text-xs opacity-70" style={{ color: '#78350F' }}>Toca para ver lista</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-bold px-2 py-1 rounded" style={{ 
+                        backgroundColor: '#F59E0B',
+                        color: '#FFFFFF'
+                      }}>
+                        {summary.status.needsAttention.lessThan5Photos}
+                      </span>
+                      <span className="text-xl" style={{ color: '#F59E0B' }}>›</span>
+                    </div>
                   </button>
                 )}
                 {summary.status.needsAttention.noMapLocation > 0 && (
                   <button
                     onClick={() => setModalType('noMapLocation')}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg active:scale-98 transition-transform"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg active:scale-98 transition-all shadow-sm hover:shadow-md"
                     style={{ backgroundColor: '#DBEAFE' }}
                   >
-                    <span className="text-sm" style={{ color: '#1E40AF' }}>Sin ubicación en mapa</span>
-                    <span className="text-sm font-bold flex items-center gap-1" style={{ color: '#2563EB' }}>
-                      {summary.status.needsAttention.noMapLocation}
-                      <span>→</span>
-                    </span>
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: '#93C5FD' }}>
+                      <span className="text-lg">📍</span>
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-semibold" style={{ color: '#1E40AF' }}>Sin ubicación en mapa</p>
+                      <p className="text-xs opacity-70" style={{ color: '#1E40AF' }}>Toca para ver lista</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-bold px-2 py-1 rounded" style={{ 
+                        backgroundColor: '#2563EB',
+                        color: '#FFFFFF'
+                      }}>
+                        {summary.status.needsAttention.noMapLocation}
+                      </span>
+                      <span className="text-xl" style={{ color: '#2563EB' }}>›</span>
+                    </div>
                   </button>
                 )}
               </div>
@@ -431,7 +464,7 @@ export default function AnalyticsPage() {
           {summary.locations.topLocations.length > 0 && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>
               <p className="text-sm font-semibold mb-3" style={{ color: '#0F172A' }}>
-                📍 Tus ubicaciones principales:
+                📍 Tus ubicaciones principales (Top 5):
               </p>
               <div className="space-y-2">
                 {summary.locations.topLocations.map((loc, index) => (

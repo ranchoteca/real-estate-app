@@ -116,6 +116,7 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
               Tu propiedad ya está en Facebook
             </p>
             <div className="flex gap-2 justify-center">
+              {/*
               {postUrl && (
                 <a
                   href={postUrl}
@@ -126,6 +127,7 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
                   Ver publicación
                 </a>
               )}
+              */}
               <button
                 onClick={onClose}
                 className="px-6 py-2 bg-gray-200 rounded-lg font-semibold"

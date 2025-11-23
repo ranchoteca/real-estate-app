@@ -63,7 +63,7 @@ export default function SettingsPage() {
     },
     {
       icon: '📘',
-      title: 'Facebook',
+      title: 'Facebook (BETA)',
       description: 'Publica automáticamente tus propiedades',
       href: '/settings/facebook',
       color: '#1877F2',

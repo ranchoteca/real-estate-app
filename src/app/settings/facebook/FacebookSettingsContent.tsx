@@ -271,8 +271,7 @@ export default function FacebookSettingsContent() {
         >
           <p className="text-sm font-semibold" style={{ color: '#1E40AF' }}>
             🎯<strong>Importante:</strong> Sí desea utilizar esta función por favor comunicarselo
-                a los administradores del proyecto para que incluyan tu perfil de Facebook, porque esta 
-                es una funcionalidad BETA.
+                a los administradores del proyecto.
           </p>
         </div>
 

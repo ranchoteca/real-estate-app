@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { property_type, listing_type, field_name, field_type, placeholder } = body;
+    const { property_type, listing_type, field_name, field_type, placeholder, icon } = body;
 
     // Validaciones
     if (!property_type || !listing_type || !field_name || !field_type) {
@@ -106,6 +106,7 @@ export async function POST(req: NextRequest) {
         field_name: field_name.trim(),
         field_type,
         placeholder: placeholder?.trim() || `Ej: ${field_name}`,
+        icon: icon || '🏷️', // ✅ AGREGADO: Guardar el icono
         display_order: count || 0,
       })
       .select()

@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { supabaseAdmin } from '@/lib/supabase';
 
+// ✅ DOMINIO PRINCIPAL - Cambiar aquí si usas otro dominio
+const APP_DOMAIN = 'https://flowestateai.com';
+
 export async function GET(req: NextRequest) {
   const propertyId = req.nextUrl.searchParams.get('propertyId');
   
@@ -87,9 +90,9 @@ async function buildFacebookMessage(property: any, agent: any, customFieldsMap: 
     }
   }
   
-  // 6. Links
-  const propertyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/p/${property.slug}`;
-  const agentPortfolioUrl = `${process.env.NEXT_PUBLIC_APP_URL}/agent/${agent.username}`;
+  // 6. Links - ✅ USANDO DOMINIO PERSONALIZADO
+  const propertyUrl = `${APP_DOMAIN}/p/${property.slug}`;
+  const agentPortfolioUrl = `${APP_DOMAIN}/agent/${agent.username}`;
   
   // 7. Nombre del agente y teléfono
   const agentName = agent.full_name || agent.name || 'Agente inmobiliario';
@@ -240,7 +243,8 @@ function handlePublish(propertyId: string) {
             firstPhoto: property.photos?.[0] || 'none',
           });
 
-          const flyerResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/openai/generate-flyer`, {
+          // ✅ USANDO DOMINIO PERSONALIZADO PARA LA API DE FLYER
+          const flyerResponse = await fetch(`${APP_DOMAIN}/api/openai/generate-flyer`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

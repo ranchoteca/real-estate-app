@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import GeneratingPDFModal from '@/components/GeneratingPDFModal';
@@ -83,11 +83,24 @@ export default function PropertyPage() {
 
   const [currency, setCurrency] = useState<any>(null);
 
+  const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
   useEffect(() => {
     if (slug) {
       loadProperty();
     }
   }, [slug]);
+
+  useEffect(() => {
+    const thumbnail = thumbnailRefs.current[selectedPhotoIndex];
+    if (thumbnail) {
+      thumbnail.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      });
+    }
+  }, [selectedPhotoIndex]);
 
   const loadProperty = async () => {
     try {
@@ -313,6 +326,7 @@ export default function PropertyPage() {
             {photos.map((photo, index) => (
               <button
                 key={index}
+                ref={(el) => { thumbnailRefs.current[index] = el; }}  // ← AGREGAR ESTA LÍNEA
                 onClick={() => setSelectedPhotoIndex(index)}
                 className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all active:scale-95 ${
                   index === selectedPhotoIndex 

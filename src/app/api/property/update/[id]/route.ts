@@ -37,22 +37,6 @@ export async function PUT(
       return NextResponse.json({ error: 'No tienes permiso' }, { status: 403 });
     }
 
-    // Si no viene currency_id, usar la del agente o la por defecto del sistema
-    let currencyId = updates.currency_id;
-    if (!currencyId) {
-      if (agent.default_currency_id) {
-        currencyId = agent.default_currency_id;
-      } else {
-        const { data: defaultCurrency } = await supabaseAdmin
-          .from('currencies')
-          .select('id')
-          .eq('is_default', true)
-          .single();
-        currencyId = defaultCurrency?.id || null;
-      }
-      console.log('📌 Asignando divisa por defecto:', currencyId);
-    }
-
     // Eliminar fotos del storage si hay en photosToDelete
     if (updates.photosToDelete && updates.photosToDelete.length > 0) {
       for (const photoUrl of updates.photosToDelete) {
@@ -71,31 +55,32 @@ export async function PUT(
       }
     }
 
-    // Actualizar propiedad
+    // ✅ Construir objeto SOLO con campos que vienen definidos
+    const allowedFields = [
+      'title', 'description', 'price', 'currency_id', 'address', 'city', 
+      'state', 'zip_code', 'property_type', 'listing_type', 'status', 
+      'photos', 'latitude', 'longitude', 'plus_code', 'show_map', 
+      'custom_fields_data'
+    ];
+
+    const updateData: Record<string, any> = {};
+    
+    for (const field of allowedFields) {
+      if (updates[field] !== undefined) {
+        updateData[field] = updates[field];
+      }
+    }
+
+    // Solo actualizar si hay algo que actualizar
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ success: true, message: 'Nada que actualizar' });
+    }
+
+    console.log('📝 Campos a actualizar:', Object.keys(updateData));
+
     const { error } = await supabaseAdmin
       .from('properties')
-      .update({
-        title: updates.title,
-        description: updates.description,
-        price: updates.price,
-        currency_id: currencyId,
-        address: updates.address,
-        city: updates.city,
-        state: updates.state,
-        zip_code: updates.zip_code,
-        bedrooms: updates.bedrooms,
-        bathrooms: updates.bathrooms,
-        sqft: updates.sqft,
-        property_type: updates.property_type,
-        listing_type: updates.listing_type,
-        status: updates.status,
-        photos: updates.photos,
-        latitude: updates.latitude,
-        longitude: updates.longitude,
-        plus_code: updates.plus_code,
-        show_map: updates.show_map,
-        custom_fields_data: updates.custom_fields_data || {},
-      })
+      .update(updateData)
       .eq('id', id);
 
     if (error) {
@@ -104,8 +89,6 @@ export async function PUT(
     }
 
     console.log('✅ Propiedad actualizada:', id);
-    console.log('💰 Divisa:', currencyId);
-    console.log('📍 Plus Code:', updates.plus_code);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

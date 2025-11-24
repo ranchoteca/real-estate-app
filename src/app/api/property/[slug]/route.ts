@@ -30,7 +30,10 @@ export async function GET(
           email,
           brokerage,
           profile_photo,
-          username
+          username,
+          watermark_logo,
+          watermark_position,
+          watermark_size
         )
       `)
       .eq('slug', slug)

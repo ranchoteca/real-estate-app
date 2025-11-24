@@ -26,29 +26,15 @@ interface AgentInfo {
   watermark_size?: 'small' | 'medium' | 'large';
 }
 
-export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo) {
+export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo, customFieldsDefinitions?: any[]) {
   console.log('🚀 Iniciando exportación de PDF...');
   console.log('📦 Propiedad:', property.title);
   console.log('👤 Agente (parámetro):', agentParam);
 
   // Cargar información del agente desde la API
-  let agent: AgentInfo | undefined = agentParam;
-  
-  if (!agent || !agent.full_name) {
-    console.log('⚠️ Información de agente incompleta, cargando desde API...');
-    try {
-      const response = await fetch('/api/agent/profile');
-      if (response.ok) {
-        const data = await response.json();
-        agent = data.agent;
-        console.log('✅ Agente cargado desde API:', agent);
-      } else {
-        console.warn('⚠️ No se pudo cargar la información del agente');
-      }
-    } catch (error) {
-      console.error('❌ Error cargando información del agente:', error);
-    }
-  }
+  let agent: AgentInfo | undefined = agentParam || property.agent;
+
+  console.log('✅ Usando agente desde parámetros/propiedad');
 
   console.log('📋 Agente final a usar:', {
     nombre: agent?.full_name || agent?.name || 'NO DISPONIBLE',
@@ -339,17 +325,15 @@ async function createCompactDetailsPage(
 
   // Campos personalizados en 2 columnas (CON ESPACIADO Y MÁS GRANDES)
   if (property.custom_fields_data && Object.keys(property.custom_fields_data).length > 0) {
-    const customFieldsDefinitions = await loadCustomFieldsDefinitions(
-      property.agent_id,
-      property.property_type,
-      property.listing_type
-    );
+    // Usar campos personalizados pasados como parámetro
+    const fieldsToUse = customFieldsDefinitions || [];
+    console.log('📋 Campos personalizados disponibles:', fieldsToUse.length);
 
     const entries = Object.entries(property.custom_fields_data).filter(([_, value]) => value);
     
     for (let i = 0; i < entries.length; i++) {
       const [key, value] = entries[i];
-      const fieldDef = customFieldsDefinitions.find((f: any) => f.field_key === key);
+      const fieldDef = fieldsToUse.find((f: any) => f.field_key === key);
       const fieldName = fieldDef?.field_name || key;
 
       console.log(`🔍 Campo: ${key} -> Nombre: ${fieldName} (def encontrada: ${!!fieldDef})`);
@@ -645,35 +629,6 @@ async function addCompactFooter(
 // ============================================
 // UTILIDADES
 // ============================================
-
-async function loadCustomFieldsDefinitions(
-  agentId: string,
-  propertyType: string,
-  listingType: string
-): Promise<any[]> {
-  try {
-    const params = new URLSearchParams({
-      property_type: propertyType,
-      listing_type: listingType,
-    });
-
-    console.log(`🔍 Cargando campos para: ${propertyType}, ${listingType}`);
-    const response = await fetch(`/api/custom-fields/list?${params.toString()}`);
-    console.log(`📡 Response status: ${response.status}`);
-    
-    if (!response.ok) {
-      console.error('Error al cargar definiciones de campos personalizados');
-      return [];
-    }
-
-    const data = await response.json();
-    console.log('✅ Campos personalizados cargados:', data.fields?.length || 0);
-    return data.fields || [];
-  } catch (error) {
-    console.error('Error al cargar definiciones de campos:', error);
-    return [];
-  }
-}
 
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {

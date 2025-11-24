@@ -475,13 +475,17 @@ export default function PropertyPage() {
               </div>
             )}
 
-            {/* PDF Button */}
             <button
               onClick={async () => {
                 setIsGeneratingPDF(true);
                 try {
+                  // Cargar campos personalizados (ya tenemos customFields en el estado)
                   const { exportPropertyToPDF } = await import('@/lib/exportPDF');
-                  await exportPropertyToPDF(property);
+                  await exportPropertyToPDF(
+                    property,
+                    property.agent,
+                    customFields // ⬅️ Ya están cargados en el estado
+                  );
                 } catch (error) {
                   console.error('Error generando PDF:', error);
                   alert('Error al generar el PDF');

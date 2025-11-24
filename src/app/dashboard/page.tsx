@@ -505,8 +505,39 @@ export default function DashboardPage() {
                         setShowMenu(null);
                         setIsGeneratingPDF(true);
                         try {
+                          // Cargar campos personalizados primero
+                          let customFields = [];
+                          if (property.property_type && property.listing_type) {
+                            try {
+                              const params = new URLSearchParams({
+                                property_type: property.property_type,
+                                listing_type: property.listing_type,
+                              });
+                              const response = await fetch(`/api/custom-fields/list?${params.toString()}`);
+                              if (response.ok) {
+                                const data = await response.json();
+                                customFields = data.fields || [];
+                              }
+                            } catch (err) {
+                              console.warn('No se pudieron cargar campos personalizados');
+                            }
+                          }
+
+                          // Cargar info del agente
+                          let agentData = null;
+                          try {
+                            const response = await fetch('/api/agent/profile');
+                            if (response.ok) {
+                              const data = await response.json();
+                              agentData = data.agent;
+                            }
+                          } catch (err) {
+                            console.warn('No se pudo cargar info del agente');
+                          }
+
+                          // Generar PDF con toda la info
                           const { exportPropertyToPDF } = await import('@/lib/exportPDF');
-                          await exportPropertyToPDF(property);
+                          await exportPropertyToPDF(property, agentData, customFields);
                         } catch (error) {
                           console.error('Error generando PDF:', error);
                           alert('Error al generar el PDF');

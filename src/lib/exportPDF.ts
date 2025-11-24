@@ -101,9 +101,12 @@ async function createCompactCoverPage(
     }
   }
 
-  // Logo del agente (esquina superior izquierda) - SOLO si NO tiene logo propio
-  if (!agent?.watermark_logo) {
-    console.log('📝 Mostrando "Flow Estate AI" porque NO hay watermark_logo');
+  const hasCustomLogo = agent?.watermark_logo && agent.watermark_logo.trim() !== '';
+
+  if (!hasCustomLogo) {
+    console.log('📝 Mostrando "Flow Estate AI" porque NO hay watermark_logo personalizado');
+    console.log('📝 watermark_logo value:', agent?.watermark_logo);
+    
     // Texto "Flow Estate AI" como logo
     pdf.setFontSize(12);
     pdf.setFont('helvetica', 'bold');
@@ -116,8 +119,10 @@ async function createCompactCoverPage(
     pdf.setGState(new pdf.GState({ opacity: 1 }));
     
     pdf.text('FLOW ESTATE AI', margin, margin + 6);
-  }else {
-    console.log('✅ Agente tiene logo, NO se muestra nada (la foto ya tiene marca de agua)');
+  } else {
+    console.log('✅ Agente tiene logo personalizado, NO se muestra nada en la esquina');
+    console.log('✅ Logo URL:', agent.watermark_logo);
+    console.log('✅ La foto de portada ya tiene la marca de agua aplicada');
   }
 
   // Badge de estado (arriba derecha)

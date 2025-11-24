@@ -83,6 +83,7 @@ export default function SettingsPage() {
       action: 'export',
       color: '#F59E0B',
     },
+    {/*
     {
       icon: '💳',
       title: 'Plan y Facturación',
@@ -90,6 +91,7 @@ export default function SettingsPage() {
       href: '/pricing',
       color: '#EC4899',
     },
+    */}
   ];
 
   const handleExport = async () => {

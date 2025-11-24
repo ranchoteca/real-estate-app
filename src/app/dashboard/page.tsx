@@ -505,13 +505,25 @@ export default function DashboardPage() {
                         setShowMenu(null);
                         setIsGeneratingPDF(true);
                         try {
-                          // Cargar campos personalizados primero
+                          // Cargar la propiedad COMPLETA con datos del agente
+                          const propertyResponse = await fetch(`/api/property/${property.slug}`);
+                          if (!propertyResponse.ok) {
+                            throw new Error('No se pudo cargar la propiedad completa');
+                          }
+                          
+                          const propertyData = await propertyResponse.json();
+                          const fullProperty = propertyData.property;
+                          
+                          console.log('✅ Propiedad completa cargada:', fullProperty);
+                          console.log('✅ Agente con watermark:', fullProperty.agent?.watermark_logo);
+
+                          // Cargar campos personalizados
                           let customFields = [];
-                          if (property.property_type && property.listing_type) {
+                          if (fullProperty.property_type && fullProperty.listing_type) {
                             try {
                               const params = new URLSearchParams({
-                                property_type: property.property_type,
-                                listing_type: property.listing_type,
+                                property_type: fullProperty.property_type,
+                                listing_type: fullProperty.listing_type,
                               });
                               const response = await fetch(`/api/custom-fields/list?${params.toString()}`);
                               if (response.ok) {
@@ -523,21 +535,9 @@ export default function DashboardPage() {
                             }
                           }
 
-                          // Cargar info del agente
-                          let agentData = null;
-                          try {
-                            const response = await fetch('/api/agent/profile');
-                            if (response.ok) {
-                              const data = await response.json();
-                              agentData = data.agent;
-                            }
-                          } catch (err) {
-                            console.warn('No se pudo cargar info del agente');
-                          }
-
                           // Generar PDF con toda la info
                           const { exportPropertyToPDF } = await import('@/lib/exportPDF');
-                          await exportPropertyToPDF(property, agentData, customFields);
+                          await exportPropertyToPDF(fullProperty, fullProperty.agent, customFields);
                         } catch (error) {
                           console.error('Error generando PDF:', error);
                           alert('Error al generar el PDF');

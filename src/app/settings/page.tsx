@@ -82,16 +82,16 @@ export default function SettingsPage() {
       description: 'Descarga tus propiedades en CSV',
       action: 'export',
       color: '#F59E0B',
-    },
-    {/*
-    {
+    }
+    /*
+    ,{
       icon: '💳',
       title: 'Plan y Facturación',
       description: 'Administrar suscripción',
       href: '/pricing',
       color: '#EC4899',
-    },
-    */}
+    }
+    */
   ];
 
   const handleExport = async () => {

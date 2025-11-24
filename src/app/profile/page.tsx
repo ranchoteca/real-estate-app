@@ -244,17 +244,19 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* 
         <div className="space-y-3">
           {session.user.plan === 'free' && (
             <button
               onClick={() => router.push('/pricing')}
-              className="w-full py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 text-white"
+              className="w-full py-3 rounded-xl font-bold shadow-lg active-scale-95 transition-transform flex items-center justify-center gap-2 text-white"
               style={{ backgroundColor: '#2563EB' }}
             >
               <span>⭐</span> Actualizar a Pro
             </button>
           )}
         </div>
+        */}
 
         <button
           onClick={handleLogout}

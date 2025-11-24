@@ -53,7 +53,8 @@ export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo,
 
   // PÁGINA 2: DETALLES Y DESCRIPCIÓN
   pdf.addPage();
-  await createCompactDetailsPage(pdf, property, agent, pageWidth, pageHeight, margin);
+  // DESPUÉS:
+  await createCompactDetailsPage(pdf, property, agent, pageWidth, pageHeight, margin, customFieldsDefinitions);
 
   // PÁGINA 3: GALERÍA DE FOTOS (1 portada + 6 galería = 7 total)
   if (property.photos && property.photos.length > 1) {
@@ -302,7 +303,8 @@ async function createCompactDetailsPage(
   agent: AgentInfo | undefined,
   pageWidth: number,
   pageHeight: number,
-  margin: number
+  margin: number,
+  customFieldsDefinitions?: any[]
 ) {
   await addCompactHeader(pdf, agent, margin, pageWidth);
 

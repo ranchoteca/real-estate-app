@@ -36,14 +36,15 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Logo & Hero */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl shadow-2xl mb-6 animate-bounce"
+            <div className="inline-flex items-center justify-center rounded-3xl shadow-2xl mb-6 animate-bounce p-2"
                  style={{ backgroundColor: '#FFFFFF' }}>
               <Image
                 src="/favicon.ico"
                 alt="Flow Estate AI"
-                width={48}
-                height={48}
+                width={64}
+                height={64}
                 priority
+                style={{ width: '64px', height: '64px' }}
               />
             </div>
             

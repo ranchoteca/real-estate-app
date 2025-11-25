@@ -2,6 +2,7 @@
 
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -36,8 +37,15 @@ export default function LoginPage() {
           {/* Logo & Hero */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl shadow-2xl mb-6 animate-bounce"
-                 style={{ backgroundColor: '#2563EB' }}>
-              <span className="text-5xl">🏠</span>
+                 style={{ backgroundColor: '#FFFFFF' }}>
+              <Image
+                src="/favicon-32x32.png"
+                alt="Flow Estate AI"
+                width={32}
+                height={32}
+                className="w-12 h-12"
+                priority
+              />
             </div>
             
             <h1 className="text-4xl font-bold mb-3" style={{ color: '#0F172A' }}>
@@ -64,7 +72,7 @@ export default function LoginPage() {
                 { emoji: '✨', text: 'Genera descripciones con IA' },
                 { emoji: '📸', text: 'Sube fotos desde tu móvil' },
                 { emoji: '⚡', text: 'Publica en menos de 1 minuto' },
-                { emoji: '🎁', text: '3 propiedades gratis al registrarte' }
+                { emoji: '🌐', text: 'Tu portafolio profesional público' }
               ].map((benefit, index) => (
                 <div key={index} className="flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
                   <span className="text-2xl">{benefit.emoji}</span>
@@ -126,32 +134,41 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Bottom Stats */}
+      {/* Bottom Features */}
       <div className="relative py-8 px-4 border-t" style={{ borderColor: '#E5E7EB', backgroundColor: 'rgba(255,255,255,0.5)' }}>
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-wrap justify-center gap-8 text-center">
             <div>
-              <div className="text-2xl font-bold mb-1" style={{ color: '#2563EB' }}>
-                500+
+              <div className="text-3xl mb-2">
+                🤖
               </div>
-              <div className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                Agentes confían en nosotros
+              <div className="text-sm font-semibold mb-1" style={{ color: '#0F172A' }}>
+                IA Avanzada
               </div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold mb-1" style={{ color: '#2563EB' }}>
-                2,400+
-              </div>
-              <div className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                Propiedades creadas
+              <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                Genera textos profesionales
               </div>
             </div>
             <div>
-              <div className="text-2xl font-bold mb-1" style={{ color: '#2563EB' }}>
-                98%
+              <div className="text-3xl mb-2">
+                📱
               </div>
-              <div className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                Satisfacción del cliente
+              <div className="text-sm font-semibold mb-1" style={{ color: '#0F172A' }}>
+                App Móvil
+              </div>
+              <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                Funciona en cualquier dispositivo
+              </div>
+            </div>
+            <div>
+              <div className="text-3xl mb-2">
+                🔒
+              </div>
+              <div className="text-sm font-semibold mb-1" style={{ color: '#0F172A' }}>
+                100% Seguro
+              </div>
+              <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                Tus datos protegidos
               </div>
             </div>
           </div>

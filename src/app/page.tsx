@@ -185,7 +185,7 @@ export default function LandingPage() {
               3 Pasos Simples
             </h2>
             <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>
-              Tan fácil que tu abuela podría hacerlo
+              Comienza a organizar tu trabajo hoy
             </p>
           </div>
 

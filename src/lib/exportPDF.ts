@@ -80,38 +80,39 @@ export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo,
 
   // Manejo especial para navegadores in-app
   if (isInAppBrowser()) {
-    console.log('⚠️ Detectado navegador in-app, usando Share API');
+    console.log('⚠️ Detectado navegador in-app');
     
-    const pdfBlob = pdf.output('blob');
-    const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
-    
-    // Verificar si el navegador soporta compartir archivos
-    if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-      try {
+    try {
+      const pdfBlob = pdf.output('blob');
+      const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+      
+      // Verificar si el navegador soporta compartir archivos
+      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
         await navigator.share({
           files: [pdfFile],
           title: property.title,
           text: 'PDF de propiedad'
         });
-        console.log('✅ PDF compartido exitosamente');
-      } catch (error: any) {
-        if (error.name !== 'AbortError') {
-          console.error('❌ Error compartiendo:', error);
-          alert('No se pudo compartir el PDF. Intenta abrir este enlace en tu navegador Chrome o Safari.');
-        }
+      } else {
+        // Fallback: intentar descarga tradicional
+        pdf.save(fileName);
       }
-    } else {
-      // Fallback si no soporta Share API
-      console.log('⚠️ Share API no disponible, usando descarga tradicional');
-      pdf.save(fileName);
+    } catch (error: any) {
+      // Si el usuario cancela, no hacer nada
+      if (error.name === 'AbortError') {
+        console.log('Usuario canceló');
+      } else {
+        // Si hay otro error, intentar descarga normal
+        pdf.save(fileName);
+      }
     }
   } else {
-    console.log('✅ Navegador estándar, descargando');
+    // Descarga normal para navegadores estándar
     pdf.save(fileName);
   }
-    
-    console.log('✅ PDF generado exitosamente:', fileName);
-  }
+
+  console.log('✅ PDF generado exitosamente:', fileName);
+}
 
 // ============================================
 // PÁGINA 1: PORTADA COMPACTA

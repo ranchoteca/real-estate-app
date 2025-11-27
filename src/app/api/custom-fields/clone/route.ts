@@ -96,11 +96,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ✅ CLAVE: Generar un field_key único para el campo clonado
+    const uniqueFieldKey = `cf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     // Clonar campo
     const { data: clonedField, error: cloneError } = await supabaseAdmin
       .from('custom_fields')
       .insert({
         agent_id: agent.id,
+        field_key: uniqueFieldKey, // ✅ AGREGADO: Campo requerido
         property_type: target_property_type,
         listing_type: target_listing_type,
         field_name: originalField.field_name,

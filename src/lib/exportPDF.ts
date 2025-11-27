@@ -26,112 +26,6 @@ interface AgentInfo {
   watermark_size?: 'small' | 'medium' | 'large';
 }
 
-// Función para mostrar instrucciones al usuario
-const showInAppBrowserInstructions = (pdfDataUri: string, fileName: string) => {
-  const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.9);
-    z-index: 999999;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  `;
-
-  const content = document.createElement('div');
-  content.style.cssText = `
-    background: white;
-    border-radius: 12px;
-    padding: 24px;
-    max-width: 400px;
-    width: 100%;
-    text-align: center;
-  `;
-
-  content.innerHTML = `
-    <div style="font-size: 48px; margin-bottom: 16px;">📄</div>
-    <h2 style="margin: 0 0 12px 0; color: #1f2937; font-size: 20px;">PDF Listo</h2>
-    <p style="color: #6b7280; margin: 0 0 20px 0; font-size: 14px; line-height: 1.5;">
-      Para descargar el PDF, abre esta página en tu navegador.
-    </p>
-    
-    <div style="background: #f9fafb; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-      <p style="color: #1f2937; margin: 0 0 8px 0; font-size: 13px; font-weight: 600;">
-        Instrucciones:
-      </p>
-      <ol style="color: #6b7280; margin: 0; padding-left: 20px; text-align: left; font-size: 13px;">
-        <li>Toca los 3 puntos (⋯) arriba</li>
-        <li>Selecciona "Abrir en navegador"</li>
-        <li>El PDF se descargará automáticamente</li>
-      </ol>
-    </div>
-
-    <button id="tryDownloadBtn" style="
-      background: #eab308;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 12px 24px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
-      margin-bottom: 12px;
-    ">
-      Intentar Descargar
-    </button>
-
-    <button id="closeBtn" style="
-      background: transparent;
-      color: #6b7280;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 12px 24px;
-      font-size: 14px;
-      cursor: pointer;
-      width: 100%;
-    ">
-      Cerrar
-    </button>
-  `;
-
-  overlay.appendChild(content);
-  document.body.appendChild(overlay);
-
-  const tryBtn = content.querySelector('#tryDownloadBtn');
-  if (tryBtn) {
-    tryBtn.addEventListener('click', () => {
-      const link = document.createElement('a');
-      link.href = pdfDataUri;
-      link.download = fileName;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    });
-  }
-
-  const closeBtn = content.querySelector('#closeBtn');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
-      document.body.removeChild(overlay);
-    });
-  }
-
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) {
-      document.body.removeChild(overlay);
-    }
-  });
-};
-
 export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo, customFieldsDefinitions?: any[]) {
   console.log('🚀 Iniciando exportación de PDF...');
   console.log('📦 Propiedad:', property.title);
@@ -186,9 +80,31 @@ export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo,
 
   // Manejo especial para navegadores in-app
   if (isInAppBrowser()) {
-    console.log('⚠️ Detectado navegador in-app');
-    const pdfDataUri = pdf.output('datauristring');
-    showInAppBrowserInstructions(pdfDataUri, fileName);
+    console.log('⚠️ Detectado navegador in-app, usando Share API');
+    
+    const pdfBlob = pdf.output('blob');
+    const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+    
+    // Verificar si el navegador soporta compartir archivos
+    if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      try {
+        await navigator.share({
+          files: [pdfFile],
+          title: property.title,
+          text: 'PDF de propiedad'
+        });
+        console.log('✅ PDF compartido exitosamente');
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('❌ Error compartiendo:', error);
+          alert('No se pudo compartir el PDF. Intenta abrir este enlace en tu navegador Chrome o Safari.');
+        }
+      }
+    } else {
+      // Fallback si no soporta Share API
+      console.log('⚠️ Share API no disponible, usando descarga tradicional');
+      pdf.save(fileName);
+    }
   } else {
     console.log('✅ Navegador estándar, descargando');
     pdf.save(fileName);

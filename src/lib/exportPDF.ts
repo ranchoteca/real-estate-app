@@ -26,6 +26,112 @@ interface AgentInfo {
   watermark_size?: 'small' | 'medium' | 'large';
 }
 
+// Función para mostrar instrucciones al usuario
+const showInAppBrowserInstructions = (pdfDataUri: string, fileName: string) => {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  `;
+
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+  `;
+
+  content.innerHTML = `
+    <div style="font-size: 48px; margin-bottom: 16px;">📄</div>
+    <h2 style="margin: 0 0 12px 0; color: #1f2937; font-size: 20px;">PDF Listo</h2>
+    <p style="color: #6b7280; margin: 0 0 20px 0; font-size: 14px; line-height: 1.5;">
+      Para descargar el PDF, abre esta página en tu navegador.
+    </p>
+    
+    <div style="background: #f9fafb; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+      <p style="color: #1f2937; margin: 0 0 8px 0; font-size: 13px; font-weight: 600;">
+        Instrucciones:
+      </p>
+      <ol style="color: #6b7280; margin: 0; padding-left: 20px; text-align: left; font-size: 13px;">
+        <li>Toca los 3 puntos (⋯) arriba</li>
+        <li>Selecciona "Abrir en navegador"</li>
+        <li>El PDF se descargará automáticamente</li>
+      </ol>
+    </div>
+
+    <button id="tryDownloadBtn" style="
+      background: #eab308;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 12px;
+    ">
+      Intentar Descargar
+    </button>
+
+    <button id="closeBtn" style="
+      background: transparent;
+      color: #6b7280;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 14px;
+      cursor: pointer;
+      width: 100%;
+    ">
+      Cerrar
+    </button>
+  `;
+
+  overlay.appendChild(content);
+  document.body.appendChild(overlay);
+
+  const tryBtn = content.querySelector('#tryDownloadBtn');
+  if (tryBtn) {
+    tryBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.href = pdfDataUri;
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  }
+
+  const closeBtn = content.querySelector('#closeBtn');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      document.body.removeChild(overlay);
+    });
+  }
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      document.body.removeChild(overlay);
+    }
+  });
+};
+
 export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo, customFieldsDefinitions?: any[]) {
   console.log('🚀 Iniciando exportación de PDF...');
   console.log('📦 Propiedad:', property.title);
@@ -72,25 +178,24 @@ export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo,
       ua.indexOf('FBAN') > -1 || 
       ua.indexOf('FBAV') > -1 || 
       ua.indexOf('Instagram') > -1 || 
-      ua.indexOf('WhatsApp') > -1
+      ua.indexOf('WhatsApp') > -1 ||
+      ua.indexOf('FB_IAB') > -1 ||
+      ua.indexOf('FBIOS') > -1
     );
   };
 
-  // Si está en in-app browser, abrir en nueva pestaña
+  // Manejo especial para navegadores in-app
   if (isInAppBrowser()) {
-    const pdfOutput = pdf.output('blob');
-    const pdfUrl = URL.createObjectURL(pdfOutput);
-    window.open(pdfUrl, '_blank');
-    
-    // Limpiar después de 1 minuto
-    setTimeout(() => URL.revokeObjectURL(pdfUrl), 60000);
+    console.log('⚠️ Detectado navegador in-app');
+    const pdfDataUri = pdf.output('datauristring');
+    showInAppBrowserInstructions(pdfDataUri, fileName);
   } else {
-    // Descarga normal para navegadores estándar
+    console.log('✅ Navegador estándar, descargando');
     pdf.save(fileName);
   }
-  
-  console.log('✅ PDF generado exitosamente:', fileName);
-}
+    
+    console.log('✅ PDF generado exitosamente:', fileName);
+  }
 
 // ============================================
 // PÁGINA 1: PORTADA COMPACTA

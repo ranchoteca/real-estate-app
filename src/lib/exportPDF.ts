@@ -64,7 +64,30 @@ export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo,
 
   // Guardar PDF
   const fileName = `${property.title.replace(/[^a-z0-9]/gi, '_')}_Detalles.pdf`;
-  pdf.save(fileName);
+
+  // Detectar si está en navegador in-app
+  const isInAppBrowser = () => {
+    const ua = navigator.userAgent || navigator.vendor;
+    return (
+      ua.indexOf('FBAN') > -1 || 
+      ua.indexOf('FBAV') > -1 || 
+      ua.indexOf('Instagram') > -1 || 
+      ua.indexOf('WhatsApp') > -1
+    );
+  };
+
+  // Si está en in-app browser, abrir en nueva pestaña
+  if (isInAppBrowser()) {
+    const pdfOutput = pdf.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfOutput);
+    window.open(pdfUrl, '_blank');
+    
+    // Limpiar después de 1 minuto
+    setTimeout(() => URL.revokeObjectURL(pdfUrl), 60000);
+  } else {
+    // Descarga normal para navegadores estándar
+    pdf.save(fileName);
+  }
   
   console.log('✅ PDF generado exitosamente:', fileName);
 }

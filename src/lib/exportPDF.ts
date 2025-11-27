@@ -80,37 +80,42 @@ export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo,
 
   // Manejo especial para navegadores in-app
   if (isInAppBrowser()) {
-    console.log('⚠️ Detectado navegador in-app');
+    console.log('⚠️ Detectado navegador in-app, mostrando instrucciones');
     
-    try {
-      const pdfBlob = pdf.output('blob');
-      const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
-      
-      // Verificar si el navegador soporta compartir archivos
-      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-        await navigator.share({
-          files: [pdfFile],
-          title: property.title,
-          text: 'PDF de propiedad'
-        });
-      } else {
-        // Fallback: intentar descarga tradicional
-        pdf.save(fileName);
-      }
-    } catch (error: any) {
-      // Si el usuario cancela, no hacer nada
-      if (error.name === 'AbortError') {
-        console.log('Usuario canceló');
-      } else {
-        // Si hay otro error, intentar descarga normal
-        pdf.save(fileName);
-      }
-    }
-  } else {
-    // Descarga normal para navegadores estándar
-    pdf.save(fileName);
+    // Mostrar modal con instrucciones
+    const modal = document.createElement('div');
+    modal.innerHTML = `
+      <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+        <div style="background:white;border-radius:16px;padding:32px;max-width:420px;text-align:center;">
+          <div style="font-size:48px;margin-bottom:16px;">📱</div>
+          <h2 style="margin:0 0 12px;font-size:22px;color:#1f2937;font-weight:700;">Para descargar el PDF</h2>
+          
+          <div style="background:#f9fafb;border-radius:12px;padding:20px;margin:20px 0;text-align:left;">
+            <p style="margin:0 0 12px;font-size:15px;color:#1f2937;font-weight:600;">Sigue estos pasos:</p>
+            <ol style="margin:0;padding-left:20px;color:#6b7280;font-size:14px;line-height:1.8;">
+              <li>Toca el menú (⋯) en la parte superior</li>
+              <li>Selecciona <strong style="color:#1f2937;">"Abrir en navegador externo"</strong></li>
+              <li>Elige el navegador que prefieras usar</li>
+              <li>La página se cargará nuevamente en ese navegador</li>
+              <li>Ve al botón <strong style="color:#1f2937;">"Descargar PDF"</strong> y da clic</li>
+              <li>¡La descarga iniciará exitosamente! ✅</li>
+            </ol>
+          </div>
+
+          <button onclick="this.parentElement.parentElement.remove()" style="background:#eab308;color:white;border:none;border-radius:8px;padding:14px 28px;font-size:16px;font-weight:600;width:100%;cursor:pointer;">
+            Entendido
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    return; // Detener ejecución
   }
 
+  // Descarga normal para navegadores estándar
+  pdf.save(fileName);
+  
   console.log('✅ PDF generado exitosamente:', fileName);
 }
 

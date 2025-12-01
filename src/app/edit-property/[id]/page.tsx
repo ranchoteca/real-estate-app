@@ -7,7 +7,7 @@ import MobileLayout from '@/components/MobileLayout';
 import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
 import { applyWatermark, WatermarkConfig } from '@/lib/watermark';
-import MapEditor from '@/components/property/MapEditor';
+import GoogleMapEditor from '@/components/property/GoogleMapEditor';
 
 interface Currency {
   id: string;
@@ -727,7 +727,7 @@ export default function EditPropertyPage() {
             </label>
 
             {property.show_map && (
-              <MapEditor
+              <GoogleMapEditor
                 address={property.address}
                 city={property.city}
                 state={property.state}

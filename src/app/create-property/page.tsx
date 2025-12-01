@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import PhotoUploader from '@/components/property/PhotoUploader';
 import VoiceRecorder from '@/components/property/VoiceRecorder';
-import MapEditor from '@/components/property/MapEditor';
+import GoogleMapEditor from '@/components/property/GoogleMapEditor';
 import MobileLayout from '@/components/MobileLayout';
 
 interface PropertyData {
@@ -776,7 +776,7 @@ export default function CreatePropertyPage() {
                   </div>
 
                   {propertyData.show_map && (
-                    <MapEditor
+                    <GoogleMapEditor
                       address={propertyData.address}
                       city={propertyData.city}
                       state={propertyData.state}

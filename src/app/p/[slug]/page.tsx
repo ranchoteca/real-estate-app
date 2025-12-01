@@ -7,7 +7,7 @@ import GeneratingPDFModal from '@/components/GeneratingPDFModal';
 import MobileLayout from '@/components/MobileLayout';
 import dynamic from 'next/dynamic';
 
-const MapEditor = dynamic(() => import('@/components/property/MapEditor'), {
+const GoogleMapEditor = dynamic(() => import('@/components/property/GoogleMapEditor'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-64 bg-gray-100 rounded-xl flex items-center justify-center">
@@ -454,7 +454,7 @@ export default function PropertyPage() {
                 <h2 className="text-lg lg:text-xl font-bold mb-3" style={{ color: '#0F172A' }}>
                   📍 Ubicación
                 </h2>
-                <MapEditor
+                <GoogleMapEditor
                   address={property.address || ''}
                   city={property.city || ''}
                   state={property.state || ''}

@@ -535,9 +535,15 @@ export default function LandingPage() {
             Creando el futuro de los listings inmobiliarios
           </p>
           <div className="flex justify-center gap-6 text-sm" style={{ color: '#0F172A' }}>
-            <a href="#" className="hover:opacity-60">Términos</a>
-            <a href="#" className="hover:opacity-60">Privacidad</a>
-            <a href="#" className="hover:opacity-60">Contacto</a>
+            <Link href="/terms" className="hover:opacity-60 transition-opacity">
+              Términos y Condiciones
+            </Link>
+            <Link href="/privacy" className="hover:opacity-60 transition-opacity">
+              Política de Privacidad
+            </Link>
+            <a href="mailto:support@flowestateai.com" className="hover:opacity-60 transition-opacity">
+              Contacto
+            </a>
           </div>
           <p className="text-xs mt-4 opacity-40" style={{ color: '#0F172A' }}>
             © 2025 Flow Estate AI. Todos los derechos reservados.

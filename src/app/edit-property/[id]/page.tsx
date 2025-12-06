@@ -737,7 +737,7 @@ export default function EditPropertyPage() {
               <select
                 value={selectedCountry}
                 onChange={(e) => setSelectedCountry(e.target.value as CountryCode)}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-base font-semibold"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-base text-gray-900 font-semibold"
               >
                 {SUPPORTED_COUNTRIES.map((country) => (
                   <option key={country.code} value={country.code}>

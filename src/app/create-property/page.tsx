@@ -8,6 +8,8 @@ import VoiceRecorder from '@/components/property/VoiceRecorder';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
 import MobileLayout from '@/components/MobileLayout';
 
+import { SUPPORTED_COUNTRIES, CountryCode } from '@/lib/google-maps-config';
+
 interface PropertyData {
   title: string;
   description: string;
@@ -75,6 +77,9 @@ export default function CreatePropertyPage() {
   // UI States
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Dropdown del país
+  const [selectedCountry, setSelectedCountry] = useState<CountryCode>('CR'); // Default Costa Rica
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -145,6 +150,28 @@ export default function CreatePropertyPage() {
     } catch (err) {
       console.error('Error loading watermark config:', err);
     }
+  };
+
+  // Detectar país basado en geolocalización
+  const detectCountryFromLocation = async (lat: number, lng: number) => {
+    // Verificar cada país por sus límites geográficos
+    for (const country of SUPPORTED_COUNTRIES) {
+      const { bounds } = country;
+      if (
+        lat >= bounds.south &&
+        lat <= bounds.north &&
+        lng >= bounds.west &&
+        lng <= bounds.east
+      ) {
+        console.log(`📍 País detectado automáticamente: ${country.name}`);
+        setSelectedCountry(country.code);
+        return country.code;
+      }
+    }
+    
+    // Si no se encuentra, dejar el default (CR)
+    console.log('📍 No se detectó país, usando default: Costa Rica');
+    return 'CR';
   };
 
   const loadCustomFields = async (propType: string, listType: string) => {
@@ -223,20 +250,63 @@ export default function CreatePropertyPage() {
       );
 
       // 3. Actualizar estado con datos generados + divisa seleccionada
-      setPropertyData({
-        ...generatedData,
-        property_type: propertyType,
-        listing_type: listingType,
-        currency_id: selectedCurrency,
-        latitude: null,
-        longitude: null,
-        plus_code: null,
-        show_map: true,
-        custom_fields_data: generatedData.custom_fields_data || {},
-      });
-
-      setCustomFieldsValues(generatedData.custom_fields_data || {});
-
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            
+            // Detectar país automáticamente
+            await detectCountryFromLocation(latitude, longitude);
+            
+            setPropertyData({
+              ...generatedData,
+              property_type: propertyType,
+              listing_type: listingType,
+              currency_id: selectedCurrency,
+              latitude: latitude,
+              longitude: longitude,
+              plus_code: null,
+              show_map: true,
+              custom_fields_data: generatedData.custom_fields_data || {},
+            });
+            
+            setCustomFieldsValues(generatedData.custom_fields_data || {});
+          },
+          (error) => {
+            console.log('GPS no disponible:', error);
+            
+            // Sin GPS, usar datos generados sin coordenadas
+            setPropertyData({
+              ...generatedData,
+              property_type: propertyType,
+              listing_type: listingType,
+              currency_id: selectedCurrency,
+              latitude: null,
+              longitude: null,
+              plus_code: null,
+              show_map: true,
+              custom_fields_data: generatedData.custom_fields_data || {},
+            });
+            
+            setCustomFieldsValues(generatedData.custom_fields_data || {});
+          }
+        );
+      } else {
+        // Navegador no soporta geolocalización
+        setPropertyData({
+          ...generatedData,
+          property_type: propertyType,
+          listing_type: listingType,
+          currency_id: selectedCurrency,
+          latitude: null,
+          longitude: null,
+          plus_code: null,
+          show_map: true,
+          custom_fields_data: generatedData.custom_fields_data || {},
+        });
+        
+        setCustomFieldsValues(generatedData.custom_fields_data || {});
+      }
     } catch (err) {
       console.error('Error al procesar:', err);
       setError(err instanceof Error ? err.message : 'Error al procesar la propiedad');
@@ -775,11 +845,35 @@ export default function CreatePropertyPage() {
                     </label>
                   </div>
 
+                  {/* Dropdown de País */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      🌎 País de la propiedad
+                    </label>
+                    <select
+                      value={selectedCountry}
+                      onChange={(e) => setSelectedCountry(e.target.value as CountryCode)}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-base text-gray-900 bg-white font-semibold"
+                    >
+                      {SUPPORTED_COUNTRIES.map((country) => (
+                        <option key={country.code} value={country.code}>
+                          {country.flag} {country.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {propertyData?.latitude && propertyData?.longitude 
+                        ? '📍 País detectado automáticamente por tu ubicación. Cámbialo si la propiedad está en otro país.'
+                        : 'Selecciona el país antes de pegar el Plus Code'}
+                    </p>
+                  </div>
+
                   {propertyData.show_map && (
                     <GoogleMapEditor
                       address={propertyData.address}
                       city={propertyData.city}
                       state={propertyData.state}
+                      selectedCountry={selectedCountry}
                       initialLat={propertyData.latitude}
                       initialLng={propertyData.longitude}
                       initialPlusCode={propertyData.plus_code}

@@ -458,6 +458,7 @@ export default function PropertyPage() {
                   address={property.address || ''}
                   city={property.city || ''}
                   state={property.state || ''}
+                  selectedCountry="CR"
                   initialLat={property.latitude}
                   initialLng={property.longitude}
                   onLocationChange={() => {}}

@@ -52,7 +52,17 @@
         "selectTitle": "Selecciona tu idioma preferido",
         "spanish": "🇪🇸 Español",
         "english": "🇺🇸 English",
-        "saved": "✅ Idioma actualizado exitosamente"
+        "saved": "✅ Idioma actualizado exitosamente",
+        "infoTitle": "¿Qué es el idioma de la interfaz?",
+        "infoDescription": "Este será el idioma en que se mostrará toda la aplicación. Los textos, menús y mensajes aparecerán en el idioma seleccionado.",
+        "currentLanguage": "Idioma actual",
+        "yourDefault": "Tu idioma",
+        "important": "Importante",
+        "note1": "Esta configuración solo afecta la interfaz de la app",
+        "note2": "Puedes cambiar el idioma en cualquier momento",
+        "note3": "El idioma de tus propiedades se configura por separado",
+        "saveButton": "Guardar idioma preferido",
+        "alreadySelected": "Este ya es tu idioma seleccionado"
       }
     },
     "alerts": {

@@ -52,7 +52,17 @@
         "selectTitle": "Select your preferred language",
         "spanish": "🇪🇸 Español",
         "english": "🇺🇸 English",
-        "saved": "✅ Language updated successfully"
+        "saved": "✅ Language updated successfully",
+        "infoTitle": "What is the interface language?",
+        "infoDescription": "This will be the language in which the entire application is displayed. Texts, menus and messages will appear in the selected language.",
+        "currentLanguage": "Current language",
+        "yourDefault": "Your language",
+        "important": "Important",
+        "note1": "This setting only affects the app interface",
+        "note2": "You can change the language at any time",
+        "note3": "The language of your properties is configured separately",
+        "saveButton": "Save preferred language",
+        "alreadySelected": "This is already your selected language"
       }
     },
     "alerts": {

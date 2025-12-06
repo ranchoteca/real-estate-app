@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Update user language preference in Supabase
+    // Update agent language preference in Supabase
     const { error } = await supabase
       .from('agents')
       .update({ preferred_language: language })
@@ -44,7 +44,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ 
       success: true,
-      language 
+      language,
+      message: language === 'es' 
+        ? 'Idioma actualizado exitosamente' 
+        : 'Language updated successfully'
     });
 
   } catch (error) {

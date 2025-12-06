@@ -12,8 +12,6 @@ export default function SettingsPage() {
   const router = useRouter();
   const { t } = useTranslation();
   const { language, setLanguage } = useI18nStore();
-  const [showLanguageModal, setShowLanguageModal] = useState(false);
-  const [savingLanguage, setSavingLanguage] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -59,7 +57,7 @@ export default function SettingsPage() {
       icon: '🌐',
       title: t('settings.options.language.title'),
       description: t('settings.options.language.description'),
-      action: 'language',
+      href: '/settings/language',
       color: '#10B981',
     },
     {
@@ -135,36 +133,9 @@ export default function SettingsPage() {
     }
   };
 
-  const handleLanguageChange = async (newLang: 'es' | 'en') => {
-    setSavingLanguage(true);
-    try {
-      // Update locally first for instant feedback
-      setLanguage(newLang);
-      
-      // Save to Supabase
-      const response = await fetch('/api/user/language', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: newLang }),
-      });
-
-      if (!response.ok) throw new Error('Failed to save language');
-      
-      setShowLanguageModal(false);
-      alert(t('settings.options.language.saved'));
-    } catch (error) {
-      console.error('Error saving language:', error);
-      alert(t('common.error'));
-    } finally {
-      setSavingLanguage(false);
-    }
-  };
-
   const handleOptionClick = (option: typeof settingsOptions[0]) => {
     if (option.action === 'export') {
       handleExport();
-    } else if (option.action === 'language') {
-      setShowLanguageModal(true);
     } else if (option.href) {
       if (option.disabled) {
         alert(t('settings.alerts.configureUsername'));
@@ -259,80 +230,6 @@ export default function SettingsPage() {
           ))}
         </div>
       </div>
-
-      {/* Language Selection Modal */}
-      {showLanguageModal && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={() => !savingLanguage && setShowLanguageModal(false)}
-        >
-          <div 
-            className="rounded-2xl p-6 max-w-sm w-full shadow-xl"
-            style={{ backgroundColor: '#FFFFFF' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-xl font-bold mb-4" style={{ color: '#0F172A' }}>
-              {t('settings.options.language.selectTitle')}
-            </h3>
-            
-            <div className="space-y-3">
-              <button
-                onClick={() => handleLanguageChange('es')}
-                disabled={savingLanguage}
-                className="w-full p-4 rounded-xl border-2 transition-all disabled:opacity-50"
-                style={{
-                  borderColor: language === 'es' ? '#10B981' : '#E5E7EB',
-                  backgroundColor: language === 'es' ? '#10B98110' : '#FFFFFF',
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">🇪🇸</span>
-                  <div className="flex-1 text-left">
-                    <div className="font-bold" style={{ color: '#0F172A' }}>
-                      Español
-                    </div>
-                  </div>
-                  {language === 'es' && (
-                    <svg className="w-6 h-6" fill="#10B981" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </div>
-              </button>
-
-              <button
-                onClick={() => handleLanguageChange('en')}
-                disabled={savingLanguage}
-                className="w-full p-4 rounded-xl border-2 transition-all disabled:opacity-50"
-                style={{
-                  borderColor: language === 'en' ? '#10B981' : '#E5E7EB',
-                  backgroundColor: language === 'en' ? '#10B98110' : '#FFFFFF',
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">🇺🇸</span>
-                  <div className="flex-1 text-left">
-                    <div className="font-bold" style={{ color: '#0F172A' }}>
-                      English
-                    </div>
-                  </div>
-                  {language === 'en' && (
-                    <svg className="w-6 h-6" fill="#10B981" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </div>
-              </button>
-            </div>
-
-            {savingLanguage && (
-              <div className="mt-4 text-center text-sm" style={{ color: '#6B7280' }}>
-                {t('common.loading')}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </MobileLayout>
   );
 }

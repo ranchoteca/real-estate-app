@@ -42,7 +42,7 @@ export default function PrivacyPage() {
               1.1. Información que tú proporcionas
             </h3>
             <ul className="list-disc pl-6 mb-4 space-y-2" style={{ color: '#0F172A' }}>
-              <li><strong>Registro y perfil:</strong> nombre, correo electrónico, foto de perfil (cuando te registras con email, Google o Facebook).</li>
+              <li><strong>Registro y perfil:</strong> nombre, correo electrónico, foto de perfil (cuando te registras con Google).</li>
               <li><strong>Contenido de propiedades:</strong> fotos, descripciones de voz (audio), textos y cualquier información que subas sobre propiedades inmobiliarias.</li>
               <li><strong>Información opcional:</strong> logo personal o empresarial, número de teléfono, título profesional, descripción de perfil.</li>
             </ul>

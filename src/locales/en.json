@@ -1,0 +1,64 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "confirm": "Confirm",
+    "success": "Success",
+    "error": "Error"
+  },
+  "settings": {
+    "title": "Settings",
+    "userInfo": {
+      "planPro": "⭐ Pro Plan",
+      "planFree": "🆓 Free Plan"
+    },
+    "options": {
+      "currency": {
+        "title": "Default Currency",
+        "description": "Configure your properties currency"
+      },
+      "watermark": {
+        "title": "Custom Logo",
+        "description": "Set up your brand on photos"
+      },
+      "digitalCard": {
+        "title": "Digital Card",
+        "description": "Configure your business card"
+      },
+      "customFields": {
+        "title": "Custom Fields",
+        "description": "Configure fields for each property type"
+      },
+      "facebook": {
+        "title": "Facebook (BETA)",
+        "description": "Automatically publish your properties"
+      },
+      "portfolio": {
+        "title": "My Portfolio",
+        "description": "View your public portfolio",
+        "requireUsername": "(Set up username)"
+      },
+      "export": {
+        "title": "Export Properties",
+        "description": "Download your properties as CSV"
+      },
+      "language": {
+        "title": "Language / Idioma",
+        "description": "English or Español",
+        "selectTitle": "Select your preferred language",
+        "spanish": "🇪🇸 Español",
+        "english": "🇺🇸 English",
+        "saved": "✅ Language updated successfully"
+      }
+    },
+    "alerts": {
+      "configureUsername": "⚠️ First set up your username in your profile",
+      "exportSuccess": "✅ Properties exported successfully",
+      "exportError": "Error exporting. Please try again."
+    }
+  }
+}

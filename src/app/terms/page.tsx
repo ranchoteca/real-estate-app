@@ -59,9 +59,7 @@ export default function TermsPage() {
               Para utilizar Flow Estate AI, puedes crear una cuenta mediante:
             </p>
             <ul className="list-disc pl-6 mb-4 space-y-2" style={{ color: '#0F172A' }}>
-              <li>Email y contraseña</li>
               <li>Inicio de sesión con Google</li>
-              <li>Inicio de sesión con Facebook</li>
             </ul>
             <p className="mb-4" style={{ color: '#0F172A' }}>
               Eres responsable de:

@@ -2,12 +2,20 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
-import { GOOGLE_MAPS_CONFIG, MAP_STYLES, MAP_OPTIONS } from '@/lib/google-maps-config';
+import { 
+  GOOGLE_MAPS_CONFIG, 
+  MAP_STYLES, 
+  MAP_OPTIONS,
+  CountryCode,
+  getCountryByCode,
+  isLocationInCountry
+} from '@/lib/google-maps-config';
 
 interface GoogleMapEditorProps {
   address: string;
   city: string;
   state: string;
+  selectedCountry: CountryCode; // 🆕 País seleccionado del dropdown
   initialLat?: number | null;
   initialLng?: number | null;
   initialPlusCode?: string | null;
@@ -19,6 +27,7 @@ export default function GoogleMapEditor({
   address,
   city,
   state,
+  selectedCountry, // 🆕
   initialLat,
   initialLng,
   initialPlusCode,
@@ -31,6 +40,7 @@ export default function GoogleMapEditor({
   const [plusCode, setPlusCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null); // 🆕 Para advertencias de país
   const [gpsUsed, setGpsUsed] = useState(false);
   const [coordsSuccess, setCoordsSuccess] = useState(false);
   const [coordsError, setCoordsError] = useState(false);
@@ -44,7 +54,7 @@ export default function GoogleMapEditor({
     libraries: GOOGLE_MAPS_CONFIG.libraries,
   });
 
-  // 🆕 Generar Plus Code REAL usando Google Maps Geocoder
+  // Generar Plus Code REAL usando Google Maps Geocoder
   const generatePlusCode = useCallback(async (lat: number, lng: number): Promise<string> => {
     try {
       if (!isLoaded) {
@@ -57,7 +67,6 @@ export default function GoogleMapEditor({
       });
 
       if (result.results && result.results.length > 0) {
-        // Buscar el Plus Code en los resultados
         for (const res of result.results) {
           if (res.plus_code?.global_code) {
             return res.plus_code.global_code;
@@ -65,7 +74,6 @@ export default function GoogleMapEditor({
         }
       }
 
-      // Fallback: usar coordenadas como "plus code"
       return `${lat.toFixed(6)},${lng.toFixed(6)}`;
     } catch (err) {
       console.error('Error generando Plus Code:', err);
@@ -73,7 +81,24 @@ export default function GoogleMapEditor({
     }
   }, [isLoaded]);
 
-  // 🆕 Decodificar Plus Code usando Google Maps Geocoder
+  // 🆕 Validar si las coordenadas están en el país correcto
+  const validateCountry = useCallback((lat: number, lng: number): boolean => {
+    const isValid = isLocationInCountry(lat, lng, selectedCountry);
+    
+    if (!isValid) {
+      const country = getCountryByCode(selectedCountry);
+      setWarning(
+        `⚠️ Esta ubicación parece estar fuera de ${country?.name}. ` +
+        `Verifica el país seleccionado o el Plus Code ingresado.`
+      );
+    } else {
+      setWarning(null);
+    }
+    
+    return isValid;
+  }, [selectedCountry]);
+
+  // 🆕 Decodificar Plus Code con restricción de país
   const decodePlusCode = useCallback(async (code: string): Promise<google.maps.LatLngLiteral | null> => {
     try {
       // Si es un formato de coordenadas (fallback de versiones anteriores)
@@ -84,30 +109,32 @@ export default function GoogleMapEditor({
         }
       }
 
-      // Intentar decodificar como Plus Code real
       if (!isLoaded) return null;
 
       const geocoder = new google.maps.Geocoder();
       
-      // Limpiar el Plus Code (quitar nombre de ciudad si existe)
-      let cleanCode = code.trim().toUpperCase();
-      
-      // Si tiene formato "XXXX+XX NombreCiudad", extraer solo el código
-      const codeMatch = cleanCode.match(/[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,}/);
-      if (codeMatch) {
-        cleanCode = codeMatch[0];
-      }
+      // Limpiar el Plus Code (usar tal cual viene)
+      const cleanCode = code.trim();
 
+      // 🆕 Geocodificar con restricción de país
       const result = await geocoder.geocode({ 
-        address: cleanCode 
+        address: cleanCode,
+        componentRestrictions: { 
+          country: selectedCountry // 🔑 CLAVE: restricción por país
+        }
       });
 
       if (result.results && result.results.length > 0) {
         const location = result.results[0].geometry.location;
-        return {
+        const coords = {
           lat: location.lat(),
           lng: location.lng()
         };
+        
+        // 🆕 Validar que esté en el país correcto
+        validateCountry(coords.lat, coords.lng);
+        
+        return coords;
       }
 
       return null;
@@ -115,9 +142,9 @@ export default function GoogleMapEditor({
       console.error('Error decodificando Plus Code:', err);
       return null;
     }
-  }, [isLoaded]);
+  }, [isLoaded, selectedCountry, validateCountry]);
 
-  // Geocoding usando Google Maps API
+  // Geocoding usando Google Maps API con restricción de país
   const geocodeAddress = useCallback(async (
     address: string,
     city: string,
@@ -130,14 +157,24 @@ export default function GoogleMapEditor({
       if (!query || query === ', , ') return null;
 
       const geocoder = new google.maps.Geocoder();
-      const result = await geocoder.geocode({ address: query });
+      const result = await geocoder.geocode({ 
+        address: query,
+        componentRestrictions: { 
+          country: selectedCountry // 🆕 Restricción por país
+        }
+      });
 
       if (result.results && result.results.length > 0) {
         const location = result.results[0].geometry.location;
-        return {
+        const coords = {
           lat: location.lat(),
           lng: location.lng()
         };
+        
+        // 🆕 Validar país
+        validateCountry(coords.lat, coords.lng);
+        
+        return coords;
       }
 
       return null;
@@ -145,7 +182,7 @@ export default function GoogleMapEditor({
       console.error('Error en geocoding:', error);
       return null;
     }
-  }, [isLoaded]);
+  }, [isLoaded, selectedCountry, validateCountry]);
 
   // Calcular distancia entre dos puntos
   const calculateDistance = useCallback((
@@ -165,6 +202,16 @@ export default function GoogleMapEditor({
     return R * c;
   }, []);
 
+  // 🆕 Centrar mapa en el país seleccionado cuando cambia
+  useEffect(() => {
+    if (!mapRef.current || !isLoaded) return;
+    
+    const country = getCountryByCode(selectedCountry);
+    if (country && !position) {
+      mapRef.current.panTo(country.center);
+    }
+  }, [selectedCountry, isLoaded, position]);
+
   // Inicializar ubicación
   useEffect(() => {
     if (!isLoaded) return;
@@ -172,6 +219,7 @@ export default function GoogleMapEditor({
     const initializeLocation = async () => {
       setLoading(true);
       setError(null);
+      setWarning(null);
 
       // Si hay coordenadas iniciales, usarlas
       if (initialLat && initialLng) {
@@ -182,6 +230,7 @@ export default function GoogleMapEditor({
         setManualLat(initialLat.toFixed(6));
         setManualLng(initialLng.toFixed(6));
         setPlusCode(code);
+        validateCountry(initialLat, initialLng); // 🆕 Validar país
         setLoading(false);
         return;
       }
@@ -232,6 +281,7 @@ export default function GoogleMapEditor({
             setManualLng(gpsCoords.lng.toFixed(6));
             setPlusCode(code);
             onLocationChange(gpsCoords.lat, gpsCoords.lng, code);
+            validateCountry(gpsCoords.lat, gpsCoords.lng); // 🆕
           } else {
             setPosition(gpsCoords);
             setManualLat(gpsCoords.lat.toFixed(6));
@@ -239,6 +289,7 @@ export default function GoogleMapEditor({
             setPlusCode(code);
             onLocationChange(gpsCoords.lat, gpsCoords.lng, code);
             setGpsUsed(true);
+            validateCountry(gpsCoords.lat, gpsCoords.lng); // 🆕
           }
 
           setLoading(false);
@@ -259,7 +310,9 @@ export default function GoogleMapEditor({
         onLocationChange(coords.lat, coords.lng, code);
         setError('📍 Ubicación aproximada. Ajusta usando el Plus Code o arrastra el pin.');
       } else {
-        const defaultCoords = GOOGLE_MAPS_CONFIG.defaultCenter;
+        // 🆕 Usar centro del país seleccionado como default
+        const country = getCountryByCode(selectedCountry);
+        const defaultCoords = country?.center || GOOGLE_MAPS_CONFIG.defaultCenter;
         const code = await generatePlusCode(defaultCoords.lat, defaultCoords.lng);
         setPosition(defaultCoords);
         setManualLat(defaultCoords.lat.toFixed(6));
@@ -272,7 +325,7 @@ export default function GoogleMapEditor({
     };
 
     initializeLocation();
-  }, [isLoaded, address, city, state, initialLat, initialLng, initialPlusCode, editable, geocodeAddress, generatePlusCode, decodePlusCode, calculateDistance, onLocationChange]);
+  }, [isLoaded, address, city, state, selectedCountry, initialLat, initialLng, initialPlusCode, editable, geocodeAddress, generatePlusCode, decodePlusCode, calculateDistance, onLocationChange, validateCountry]);
 
   const handleMapClick = useCallback(async (e: google.maps.MapMouseEvent) => {
     if (!editable || !e.latLng) return;
@@ -288,7 +341,8 @@ export default function GoogleMapEditor({
     setPlusCode(code);
     onLocationChange(lat, lng, code);
     setError(null);
-  }, [editable, generatePlusCode, onLocationChange]);
+    validateCountry(lat, lng); // 🆕
+  }, [editable, generatePlusCode, onLocationChange, validateCountry]);
 
   const handleMarkerDragEnd = useCallback(async (e: google.maps.MapMouseEvent) => {
     if (!editable || !e.latLng) return;
@@ -303,7 +357,8 @@ export default function GoogleMapEditor({
     setManualLng(lng.toFixed(6));
     setPlusCode(code);
     onLocationChange(lat, lng, code);
-  }, [editable, generatePlusCode, onLocationChange]);
+    validateCountry(lat, lng); // 🆕
+  }, [editable, generatePlusCode, onLocationChange, validateCountry]);
 
   const handleManualUpdate = useCallback(async () => {
     const lat = parseFloat(manualLat);
@@ -320,6 +375,7 @@ export default function GoogleMapEditor({
       setPlusCode(code);
       onLocationChange(lat, lng, code);
       setError(null);
+      validateCountry(lat, lng); // 🆕
       
       setCoordsSuccess(true);
       setTimeout(() => setCoordsSuccess(false), 3000);
@@ -327,7 +383,7 @@ export default function GoogleMapEditor({
       setCoordsError(true);
       setTimeout(() => setCoordsError(false), 3000);
     }
-  }, [manualLat, manualLng, generatePlusCode, onLocationChange]);
+  }, [manualLat, manualLng, generatePlusCode, onLocationChange, validateCountry]);
 
   const handlePlusCodeUpdate = useCallback(async () => {
     setPlusCodeSuccess(false);
@@ -367,6 +423,9 @@ export default function GoogleMapEditor({
     mapRef.current = map;
   }, []);
 
+  // 🆕 Obtener país actual para mostrar en UI
+  const currentCountry = getCountryByCode(selectedCountry);
+
   if (loadError) {
     return (
       <div className="w-full h-64 bg-red-50 rounded-xl flex items-center justify-center">
@@ -403,12 +462,35 @@ export default function GoogleMapEditor({
 
   return (
     <div className="space-y-3">
+      {/* 🆕 Indicador de país seleccionado */}
+      {currentCountry && editable && (
+        <div className="px-3 py-2 rounded-lg bg-blue-50 border border-blue-200 flex items-center gap-2">
+          <span className="text-2xl">{currentCountry.flag}</span>
+          <div>
+            <div className="text-sm font-bold text-blue-900">
+              Buscando en: {currentCountry.name}
+            </div>
+            <div className="text-xs text-blue-700">
+              El Plus Code se buscará en este país
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mensajes globales */}
-      {gpsUsed && !error && (
+      {gpsUsed && !error && !warning && (
         <div className="px-3 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
           ✅ Ubicación detectada con GPS
         </div>
       )}
+      
+      {/* 🆕 Advertencia de país */}
+      {warning && (
+        <div className="px-3 py-2 rounded-lg bg-orange-50 border border-orange-300 text-orange-800 text-sm">
+          {warning}
+        </div>
+      )}
+      
       {error && (
         <div className="px-3 py-2 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 text-sm">
           {error}
@@ -449,16 +531,16 @@ export default function GoogleMapEditor({
               <strong>¿Te enviaron la ubicación por WhatsApp?</strong><br />
               1️⃣ Toca la ubicación para abrir Google Maps<br />
               2️⃣ Toca el pin o panel inferior<br />
-              3️⃣ Copia el Plus Code (ej: <code className="bg-blue-100 px-1 rounded">856V+75F</code>)<br />
-              4️⃣ Pégalo aquí abajo 👇
+              3️⃣ Copia el Plus Code completo (ej: <code className="bg-blue-100 px-1 rounded">856V+75F San José</code>)<br />
+              4️⃣ Pégalo aquí abajo 👇 (incluyendo la ciudad si viene)
             </p>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={plusCode}
-                onChange={(e) => setPlusCode(e.target.value.toUpperCase())}
-                placeholder="856V+75F o 856V+75F San José"
-                className="flex-1 px-3 py-2 border-2 border-blue-300 rounded-lg text-sm text-gray-900 font-mono font-bold bg-white"
+                onChange={(e) => setPlusCode(e.target.value)}
+                placeholder={`Ej: 856V+75F ${currentCountry?.name || ''}`}
+                className="flex-1 px-3 py-2 border-2 border-blue-300 rounded-lg text-sm text-gray-900 font-mono bg-white"
               />
               <button
                 onClick={handlePlusCodeUpdate}

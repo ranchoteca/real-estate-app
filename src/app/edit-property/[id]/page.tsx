@@ -8,6 +8,7 @@ import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
 import { applyWatermark, WatermarkConfig } from '@/lib/watermark';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
+import { SUPPORTED_COUNTRIES, CountryCode } from '@/lib/google-maps-config';
 
 interface Currency {
   id: string;
@@ -81,6 +82,9 @@ export default function EditPropertyPage() {
 
   // Compresión
   const [compressing, setCompressing] = useState(false);
+
+  // País de la ubicación
+  const [selectedCountry, setSelectedCountry] = useState<CountryCode>('CR'); // Default Costa Rica
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -726,11 +730,32 @@ export default function EditPropertyPage() {
               </span>
             </label>
 
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-2 text-gray-700">
+                🌎 País de la propiedad
+              </label>
+              <select
+                value={selectedCountry}
+                onChange={(e) => setSelectedCountry(e.target.value as CountryCode)}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-base font-semibold"
+              >
+                {SUPPORTED_COUNTRIES.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.flag} {country.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-600 mt-1">
+                Selecciona el país donde se encuentra la propiedad antes de pegar el Plus Code
+              </p>
+            </div>
+
             {property.show_map && (
               <GoogleMapEditor
                 address={property.address}
                 city={property.city}
                 state={property.state}
+                selectedCountry={selectedCountry}
                 initialLat={property.latitude}
                 initialLng={property.longitude}
                 initialPlusCode={property.plus_code}

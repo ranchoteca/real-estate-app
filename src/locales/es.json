@@ -34,7 +34,7 @@
         "description": "Configura campos para cada tipo de propiedad"
       },
       "facebook": {
-        "title": "Facebook (BETA)",
+        "title": "Facebook",
         "description": "Publica automáticamente tus propiedades"
       },
       "portfolio": {

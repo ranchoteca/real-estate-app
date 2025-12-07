@@ -4,11 +4,13 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import MobileLayout from '@/components/MobileLayout';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function FacebookSettingsContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
 
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -45,20 +47,20 @@ export default function FacebookSettingsContent() {
     const error = searchParams.get('error');
 
     if (success === 'true') {
-      alert('✅ Facebook conectado exitosamente');
+      alert(t('facebook.connectedSuccess'));
       loadFacebookData();
       router.replace('/settings/facebook');
     } else if (error) {
       const errorMessages: Record<string, string> = {
-        denied: 'Acceso denegado. Por favor acepta los permisos.',
-        invalid: 'Error de autenticación. Intenta de nuevo.',
-        no_pages: 'No tienes páginas de Facebook. Crea una página primero.',
-        server: 'Error del servidor. Intenta más tarde.',
+        denied: t('facebook.errorDenied'),
+        invalid: t('facebook.errorAuth'),
+        no_pages: t('facebook.errorNoPages'),
+        server: t('facebook.errorServer'),
       };
-      alert(`❌ ${errorMessages[error] || 'Error desconocido'}`);
+      alert(`❌ ${errorMessages[error] || t('common.error')}`);
       router.replace('/settings/facebook');
     }
-  }, [searchParams]);
+  }, [searchParams, t, router]);
 
   const loadFacebookData = async () => {
     try {
@@ -112,7 +114,7 @@ export default function FacebookSettingsContent() {
       );
 
       if (!popup) {
-        alert('⚠️ Por favor permite ventanas emergentes para conectar con Facebook');
+        alert(t('facebook.allowPopups'));
         setConnecting(false);
         return;
       }
@@ -123,7 +125,7 @@ export default function FacebookSettingsContent() {
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-            <title>Conectando...</title>
+            <title>${t('facebook.connecting')}</title>
             <style>
               * {
                 margin: 0;
@@ -171,8 +173,8 @@ export default function FacebookSettingsContent() {
             <div class="container">
               <div style="font-size: 4rem; margin-bottom: 1rem;">📘</div>
               <div class="spinner"></div>
-              <h2>Conectando con Facebook...</h2>
-              <p>Por favor espera</p>
+              <h2>${t('facebook.connecting')}</h2>
+              <p>${t('common.loading')}</p>
             </div>
           </body>
         </html>
@@ -183,7 +185,7 @@ export default function FacebookSettingsContent() {
       
       if (!response.ok || !data.authUrl) {
         popup.close();
-        throw new Error('Error al obtener URL de autenticación');
+        throw new Error(t('facebook.errorAuth'));
       }
 
       popup.location.href = data.authUrl;
@@ -200,13 +202,13 @@ export default function FacebookSettingsContent() {
 
     } catch (error: any) {
       console.error('Error connecting to Facebook:', error);
-      alert(`❌ Error: ${error.message}`);
+      alert(`❌ ${t('common.error')}: ${error.message}`);
       setConnecting(false);
     }
   };
 
   const handleDisconnect = async () => {
-    if (!confirm('¿Desvincular tu página de Facebook?')) return;
+    if (!confirm(t('facebook.confirmDisconnect'))) return;
 
     setDisconnecting(true);
     try {
@@ -214,9 +216,9 @@ export default function FacebookSettingsContent() {
         method: 'POST',
       });
 
-      if (!response.ok) throw new Error('Error al desvincular');
+      if (!response.ok) throw new Error(t('common.error'));
 
-      alert('✅ Página desvinculada');
+      alert(t('facebook.disconnectedSuccess'));
       loadFacebookData();
     } catch (err: any) {
       alert(`❌ ${err.message}`);
@@ -235,9 +237,9 @@ export default function FacebookSettingsContent() {
       });
 
       if (response.ok) {
-        alert('✅ Configuración guardada');
+        alert(t('facebook.configSaved'));
       } else {
-        throw new Error('Error al guardar');
+        throw new Error(t('common.error'));
       }
     } catch (err: any) {
       alert(`❌ ${err.message}`);
@@ -248,11 +250,13 @@ export default function FacebookSettingsContent() {
 
   if (status === 'loading' || loading) {
     return (
-      <MobileLayout title="Facebook" showBack={true} showTabs={true}>
+      <MobileLayout title={t('facebook.title')} showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">📘</div>
-            <div className="text-lg" style={{ color: '#0F172A' }}>Cargando...</div>
+            <div className="text-lg" style={{ color: '#0F172A' }}>
+              {t('facebook.loading')}
+            </div>
           </div>
         </div>
       </MobileLayout>
@@ -261,8 +265,15 @@ export default function FacebookSettingsContent() {
 
   if (!session) return null;
 
+  const templateOptions = [
+    { value: 'moderna', label: t('facebook.modern') },
+    { value: 'elegante', label: t('facebook.elegant') },
+    { value: 'minimalista', label: t('facebook.minimalist') },
+    { value: 'vibrante', label: t('facebook.vibrant') }
+  ];
+
   return (
-    <MobileLayout title="Facebook" showBack={true} showTabs={true}>
+    <MobileLayout title={t('facebook.title')} showBack={true} showTabs={true}>
       <div className="px-4 pt-4 pb-24 space-y-4">
         {/* Info Card */}
         <div 
@@ -270,8 +281,7 @@ export default function FacebookSettingsContent() {
           style={{ backgroundColor: '#EFF6FF', borderLeft: '4px solid #1877F2' }}
         >
           <p className="text-sm font-semibold" style={{ color: '#1E40AF' }}>
-            🎯<strong>Importante:</strong> Sí desea utilizar esta función por favor comunicarselo
-                a los administradores del proyecto.
+            🎯<strong>{t('currency.important')}:</strong> {t('facebook.importantNote')}
           </p>
         </div>
 
@@ -281,7 +291,7 @@ export default function FacebookSettingsContent() {
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <h3 className="font-bold text-lg mb-4" style={{ color: '#0F172A' }}>
-            📘 Estado de Conexión
+            📘 {t('facebook.connectionStatus')}
           </h3>
 
           {facebookData.connected ? (
@@ -295,14 +305,14 @@ export default function FacebookSettingsContent() {
                   <span className="text-3xl">✅</span>
                   <div className="flex-1">
                     <p className="font-bold mb-1" style={{ color: '#065F46' }}>
-                      Conectado
+                      {t('facebook.connected')}
                     </p>
                     <p className="text-sm font-semibold" style={{ color: '#065F46' }}>
-                      Página: {facebookData.pageName}
+                      {t('facebook.page')}: {facebookData.pageName}
                     </p>
                     {facebookData.connectedAt && (
                       <p className="text-xs mt-1 opacity-70" style={{ color: '#065F46' }}>
-                        Conectado el {new Date(facebookData.connectedAt).toLocaleDateString('es-ES', {
+                        {t('facebook.connectedOn')} {new Date(facebookData.connectedAt).toLocaleDateString('es-ES', {
                           day: 'numeric',
                           month: 'long',
                           year: 'numeric'
@@ -318,11 +328,11 @@ export default function FacebookSettingsContent() {
                 className="p-3 rounded-xl text-sm"
                 style={{ backgroundColor: '#F0F9FF', color: '#0369A1' }}
               >
-                <p className="font-semibold mb-1">📌 Cómo publicar:</p>
+                <p className="font-semibold mb-1">📌 {t('facebook.howToPublish')}:</p>
                 <ul className="space-y-1 text-xs ml-4 list-disc">
-                  <li>Ve al Dashboard</li>
-                  <li>Click en el botón de Facebook en cualquier propiedad</li>
-                  <li>¡Tu propiedad se publicará automáticamente!</li>
+                  <li>{t('facebook.step1')}</li>
+                  <li>{t('facebook.step2')}</li>
+                  <li>{t('facebook.step3')}</li>
                 </ul>
               </div>
 
@@ -337,7 +347,7 @@ export default function FacebookSettingsContent() {
                   backgroundColor: '#FFFFFF'
                 }}
               >
-                {disconnecting ? 'Desvinculando...' : '🔌 Desvincular Facebook'}
+                {disconnecting ? t('facebook.disconnecting') : `🔌 ${t('facebook.disconnect')}`}
               </button>
             </div>
           ) : (
@@ -349,10 +359,10 @@ export default function FacebookSettingsContent() {
               >
                 <div className="text-5xl mb-3">📘</div>
                 <p className="font-bold mb-1" style={{ color: '#92400E' }}>
-                  No conectado
+                  {t('facebook.notConnected')}
                 </p>
                 <p className="text-sm opacity-80" style={{ color: '#92400E' }}>
-                  Conecta tu página de Facebook para empezar a publicar
+                  {t('facebook.notConnectedDesc')}
                 </p>
               </div>
 
@@ -361,11 +371,11 @@ export default function FacebookSettingsContent() {
                 className="p-3 rounded-xl text-sm"
                 style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}
               >
-                <p className="font-semibold mb-2">📋 Requisitos:</p>
+                <p className="font-semibold mb-2">📋 {t('facebook.requirements')}:</p>
                 <ul className="space-y-1 text-xs ml-4 list-disc">
-                  <li>Tener una Página de Facebook (no perfil personal)</li>
-                  <li>Ser administrador de la página</li>
-                  <li>Aceptar los permisos solicitados</li>
+                  <li>{t('facebook.req1')}</li>
+                  <li>{t('facebook.req2')}</li>
+                  <li>{t('facebook.req3')}</li>
                 </ul>
               </div>
 
@@ -379,7 +389,7 @@ export default function FacebookSettingsContent() {
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                 </svg>
-                {connecting ? 'Abriendo Facebook...' : 'Conectar con Facebook'}
+                {connecting ? t('facebook.connecting') : t('facebook.connectButton')}
               </button>
             </div>
           )}
@@ -391,7 +401,7 @@ export default function FacebookSettingsContent() {
             style={{ backgroundColor: '#FFFFFF' }}
           >
             <h3 className="font-bold text-lg mb-4" style={{ color: '#0F172A' }}>
-              ✨ Mejora tus Publicaciones con IA
+              ✨ {t('facebook.aiTitle')}
             </h3>
 
             {/* Toggle para activar IA */}
@@ -405,10 +415,10 @@ export default function FacebookSettingsContent() {
                 />
                 <div>
                   <p className="font-semibold" style={{ color: '#0F172A' }}>
-                    Generar diseños automáticos
+                    {t('facebook.aiToggleTitle')}
                   </p>
                   <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                    La primera imagen se convertirá en un flyer profesional con tu marca
+                    {t('facebook.aiToggleDesc')}
                   </p>
                 </div>
               </label>
@@ -420,12 +430,12 @@ export default function FacebookSettingsContent() {
                 {/* Selector de colores */}
                 <div>
                   <p className="font-semibold mb-2" style={{ color: '#0F172A' }}>
-                    🎨 Colores de tu marca
+                    🎨 {t('facebook.brandColors')}
                   </p>
                   <div className="flex gap-3">
                     <div className="flex-1">
                       <label className="text-xs opacity-70 block mb-1" style={{ color: '#0F172A' }}>
-                        Color principal
+                        {t('facebook.primaryColor')}
                       </label>
                       <input
                         type="color"
@@ -436,7 +446,7 @@ export default function FacebookSettingsContent() {
                     </div>
                     <div className="flex-1">
                       <label className="text-xs opacity-70 block mb-1" style={{ color: '#0F172A' }}>
-                        Color secundario
+                        {t('facebook.secondaryColor')}
                       </label>
                       <input
                         type="color"
@@ -451,23 +461,23 @@ export default function FacebookSettingsContent() {
                 {/* Selector de plantilla */}
                 <div>
                   <p className="font-semibold mb-2" style={{ color: '#0F172A' }}>
-                    📐 Estilo de diseño
+                    📐 {t('facebook.designStyle')}
                   </p>
                   <div className="grid grid-cols-2 gap-2">
-                    {['moderna', 'elegante', 'minimalista', 'vibrante'].map((template) => (
+                    {templateOptions.map((template) => (
                       <button
-                        key={template}
-                        onClick={() => setAiSettings({ ...aiSettings, template })}
+                        key={template.value}
+                        onClick={() => setAiSettings({ ...aiSettings, template: template.value })}
                         className={`p-3 rounded-lg border-2 text-sm font-semibold transition-all ${
-                          aiSettings.template === template
+                          aiSettings.template === template.value
                             ? 'border-blue-600 bg-blue-50'
                             : 'border-gray-200 bg-white'
                         }`}
                         style={{
-                          color: aiSettings.template === template ? '#1E40AF' : '#0F172A'
+                          color: aiSettings.template === template.value ? '#1E40AF' : '#0F172A'
                         }}
                       >
-                        {template.charAt(0).toUpperCase() + template.slice(1)}
+                        {template.label}
                       </button>
                     ))}
                   </div>
@@ -475,14 +485,14 @@ export default function FacebookSettingsContent() {
               </div>
             )}
 
-            {/* ✅ BOTÓN GUARDAR MOVIDO AQUÍ - SIEMPRE VISIBLE */}
+            {/* Botón Guardar */}
             <button
               onClick={handleSaveAISettings}
               disabled={savingSettings}
               className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
               style={{ backgroundColor: '#10B981' }}
             >
-              {savingSettings ? 'Guardando...' : '💾 Guardar Configuración'}
+              {savingSettings ? t('watermark.saving') : `💾 ${t('facebook.saveConfig')}`}
             </button>
           </div>
         )}
@@ -493,36 +503,34 @@ export default function FacebookSettingsContent() {
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <h3 className="font-bold text-lg mb-3" style={{ color: '#0F172A' }}>
-            ❓ Preguntas Frecuentes
+            ❓ {t('facebook.faqTitle')}
           </h3>
 
           <div className="space-y-3 text-sm">
             <div>
               <p className="font-semibold mb-1" style={{ color: '#0F172A' }}>
-                ¿Qué tipo de cuenta necesito?
+                {t('facebook.faqQ1')}
               </p>
               <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                Necesitas una <strong>Página de Facebook</strong>, no un perfil personal. 
-                Las páginas son para negocios y profesionales.
+                {t('facebook.faqA1')}
               </p>
             </div>
 
             <div>
               <p className="font-semibold mb-1" style={{ color: '#0F172A' }}>
-                ¿Es seguro conectar mi página?
+                {t('facebook.faqQ2')}
               </p>
               <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                Sí, solo solicitamos permisos para publicar. No podemos ver mensajes 
-                privados ni información personal.
+                {t('facebook.faqA2')}
               </p>
             </div>
 
             <div>
               <p className="font-semibold mb-1" style={{ color: '#0F172A' }}>
-                ¿Puedo cambiar de página?
+                {t('facebook.faqQ3')}
               </p>
               <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                Sí, desvincula la actual y conecta otra página cuando quieras.
+                {t('facebook.faqA3')}
               </p>
             </div>
           </div>

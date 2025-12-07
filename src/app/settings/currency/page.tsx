@@ -1,10 +1,10 @@
-// app/settings/currency/page.tsx
 'use client';
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import MobileLayout from '@/components/MobileLayout';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface Currency {
   id: string;
@@ -17,6 +17,7 @@ interface Currency {
 export default function CurrencySettingsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
@@ -54,7 +55,7 @@ export default function CurrencySettingsPage() {
 
     } catch (error) {
       console.error('Error al cargar configuración:', error);
-      alert('Error al cargar la configuración');
+      alert(t('currency.errorLoading'));
     } finally {
       setLoading(false);
     }
@@ -62,12 +63,12 @@ export default function CurrencySettingsPage() {
 
   const handleSave = async () => {
     if (!selectedCurrency) {
-      alert('Debes seleccionar una divisa');
+      alert(t('currency.mustSelect'));
       return;
     }
 
     if (selectedCurrency === agentDefaultCurrency) {
-      alert('Esta ya es tu divisa por defecto');
+      alert(t('currency.alreadyDefault'));
       return;
     }
 
@@ -82,7 +83,7 @@ export default function CurrencySettingsPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Error al actualizar');
+        throw new Error(data.error || t('common.error'));
       }
 
       const data = await response.json();
@@ -92,7 +93,7 @@ export default function CurrencySettingsPage() {
       router.back();
 
     } catch (error: any) {
-      alert(`❌ Error: ${error.message}`);
+      alert(`❌ ${t('common.error')}: ${error.message}`);
     } finally {
       setSaving(false);
     }
@@ -100,11 +101,13 @@ export default function CurrencySettingsPage() {
 
   if (loading) {
     return (
-      <MobileLayout title="Divisa por Defecto" showBack={true} showTabs={true}>
+      <MobileLayout title={t('currency.title')} showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">💰</div>
-            <div className="text-lg" style={{ color: '#0F172A' }}>Cargando...</div>
+            <div className="text-lg" style={{ color: '#0F172A' }}>
+              {t('currency.loading')}
+            </div>
           </div>
         </div>
       </MobileLayout>
@@ -114,7 +117,7 @@ export default function CurrencySettingsPage() {
   const selectedCurrencyData = currencies.find(c => c.id === selectedCurrency);
 
   return (
-    <MobileLayout title="Divisa por Defecto" showBack={true} showTabs={true}>
+    <MobileLayout title={t('currency.title')} showBack={true} showTabs={true}>
       <div className="px-4 py-6 space-y-6">
         
         {/* Info Banner */}
@@ -129,11 +132,10 @@ export default function CurrencySettingsPage() {
             <span className="text-3xl">💡</span>
             <div className="flex-1">
               <h3 className="font-bold mb-1" style={{ color: '#1E40AF' }}>
-                ¿Qué es la divisa por defecto?
+                {t('currency.infoTitle')}
               </h3>
               <p className="text-sm" style={{ color: '#1E40AF' }}>
-                Esta será la divisa que aparecerá preseleccionada cuando crees nuevas propiedades. 
-                Puedes cambiarla en cualquier momento para cada propiedad individual.
+                {t('currency.infoDescription')}
               </p>
             </div>
           </div>
@@ -161,7 +163,7 @@ export default function CurrencySettingsPage() {
                     className="inline-block px-3 py-1 rounded-full text-xs font-bold"
                     style={{ backgroundColor: '#10B981', color: '#FFFFFF' }}
                   >
-                    ✓ Divisa actual
+                    ✓ {t('currency.currentCurrency')}
                   </span>
                 </div>
               )}
@@ -172,7 +174,7 @@ export default function CurrencySettingsPage() {
         {/* Currency Options */}
         <div className="space-y-3">
           <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>
-            Selecciona tu divisa
+            {t('currency.selectCurrency')}
           </h3>
           
           {currencies.map((currency) => (
@@ -205,7 +207,7 @@ export default function CurrencySettingsPage() {
                         className="text-xs px-2 py-0.5 rounded-full font-bold"
                         style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}
                       >
-                        Sistema
+                        {t('currency.system')}
                       </span>
                     )}
                     {currency.id === agentDefaultCurrency && (
@@ -213,7 +215,7 @@ export default function CurrencySettingsPage() {
                         className="text-xs px-2 py-0.5 rounded-full font-bold"
                         style={{ backgroundColor: '#D1FAE5', color: '#065F46' }}
                       >
-                        Tu default
+                        {t('currency.yourDefault')}
                       </span>
                     )}
                   </div>
@@ -242,12 +244,12 @@ export default function CurrencySettingsPage() {
           className="rounded-xl p-4 text-sm"
           style={{ backgroundColor: '#F0FDFA', color: '#134E4A' }}
         >
-          <p className="font-semibold mb-1">📊 Importante:</p>
+          <p className="font-semibold mb-1">📊 {t('currency.important')}:</p>
           <ul className="space-y-1 text-xs opacity-90">
-            <li>• Esta configuración solo afecta nuevas propiedades</li>
-            <li>• Las propiedades existentes mantienen su divisa original</li>
-            <li>• Puedes cambiar la divisa al crear o editar cada propiedad</li>
-            <li>• No hay conversión automática de precios</li>
+            <li>• {t('currency.note1')}</li>
+            <li>• {t('currency.note2')}</li>
+            <li>• {t('currency.note3')}</li>
+            <li>• {t('currency.note4')}</li>
           </ul>
         </div>
 
@@ -259,7 +261,7 @@ export default function CurrencySettingsPage() {
             className="w-full py-4 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: '#2563EB' }}
           >
-            {saving ? '⏳ Guardando...' : '💾 Guardar divisa por defecto'}
+            {saving ? `⏳ ${t('currency.saving')}` : `💾 ${t('currency.saveButton')}`}
           </button>
         </div>
 

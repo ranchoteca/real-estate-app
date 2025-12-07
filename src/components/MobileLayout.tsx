@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface MobileLayoutProps {
   children: ReactNode;
@@ -20,6 +21,7 @@ export default function MobileLayout({
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   const isActive = (path: string) => pathname === path;
 
@@ -62,14 +64,14 @@ export default function MobileLayout({
                     className="px-3 py-1.5 rounded-full text-sm font-semibold text-white"
                     style={{ backgroundColor: '#2563EB' }}
                   >
-                    {session.user.plan === 'pro' ? 'Pro' : 'Free'}
+                    {session.user.plan === 'pro' ? t('mobileLayout.pro') : t('mobileLayout.free')}
                   </div>
                   {session.user.plan === 'free' && (
                     <button
                       onClick={() => router.push('/pricing')}
                       className="text-white text-sm font-semibold hover:opacity-80 transition-opacity"
                     >
-                      Upgrade
+                      {t('mobileLayout.upgrade')}
                     </button>
                   )}
                 </>
@@ -110,7 +112,7 @@ export default function MobileLayout({
                 className="text-xs font-semibold"
                 style={{ color: isActive('/dashboard') ? '#2563EB' : '#0F172A' }}
               >
-                Inicio
+                {t('mobileLayout.inicio')}
               </span>
             </button>
 
@@ -128,7 +130,7 @@ export default function MobileLayout({
                 className="text-xs font-semibold"
                 style={{ color: pathname === '/analytics' ? '#2563EB' : '#0F172A' }}
               >
-                Analíticas
+                {t('mobileLayout.analiticas')}
               </span>
             </button>
 
@@ -162,7 +164,7 @@ export default function MobileLayout({
                 className="text-xs font-semibold"
                 style={{ color: isActive('/settings') ? '#2563EB' : '#0F172A' }}
               >
-                Ajustes
+                {t('mobileLayout.ajustes')}
               </span>
             </button>
 
@@ -180,7 +182,7 @@ export default function MobileLayout({
                 className="text-xs font-semibold"
                 style={{ color: isActive('/profile') ? '#2563EB' : '#0F172A' }}
               >
-                Perfil
+                {t('mobileLayout.perfil')}
               </span>
             </button>
           </div>

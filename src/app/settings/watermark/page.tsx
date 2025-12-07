@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import MobileLayout from '@/components/MobileLayout';
 import Image from 'next/image';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function WatermarkSettingsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [position, setPosition] = useState<string>('bottom-right');
@@ -16,7 +18,6 @@ export default function WatermarkSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -53,12 +54,12 @@ export default function WatermarkSettingsPage() {
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert('La imagen es muy grande. Máximo 2MB.');
+      alert(t('watermark.imageTooLarge'));
       return;
     }
 
     if (!file.type.startsWith('image/')) {
-      alert('Solo se permiten imágenes PNG o JPG.');
+      alert(t('watermark.onlyImages'));
       return;
     }
 
@@ -75,13 +76,13 @@ export default function WatermarkSettingsPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Error al subir logo');
+        throw new Error(data.error || t('watermark.errorUpload'));
       }
 
       const data = await response.json();
       setLogoUrl(data.logoUrl);
       await loadSettings();
-      alert('✅ Logo subido correctamente');
+      alert(t('watermark.logoUploaded'));
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -93,17 +94,17 @@ export default function WatermarkSettingsPage() {
   };
 
   const handleDeleteLogo = async () => {
-    if (!confirm('¿Eliminar logo personalizado? Se usará el texto por defecto.')) return;
+    if (!confirm(t('watermark.confirmDelete'))) return;
 
     try {
       const response = await fetch('/api/watermark/delete', {
         method: 'DELETE',
       });
 
-      if (!response.ok) throw new Error('Error al eliminar logo');
+      if (!response.ok) throw new Error(t('watermark.errorDelete'));
 
       setLogoUrl(null);
-      alert('✅ Logo eliminado');
+      alert(t('watermark.logoDeleted'));
     } catch (err: any) {
       alert(err.message);
     }
@@ -119,9 +120,9 @@ export default function WatermarkSettingsPage() {
         body: JSON.stringify({ position, size }),
       });
 
-      if (!response.ok) throw new Error('Error al guardar configuración');
+      if (!response.ok) throw new Error(t('watermark.errorSave'));
 
-      alert('✅ Configuración guardada');
+      alert(t('watermark.settingsSaved'));
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -131,11 +132,13 @@ export default function WatermarkSettingsPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <MobileLayout title="Logo" showBack={true} showTabs={true}>
+      <MobileLayout title={t('watermark.title')} showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">🎨</div>
-            <div className="text-lg" style={{ color: '#0F172A' }}>Cargando...</div>
+            <div className="text-lg" style={{ color: '#0F172A' }}>
+              {t('watermark.loading')}
+            </div>
           </div>
         </div>
       </MobileLayout>
@@ -144,8 +147,21 @@ export default function WatermarkSettingsPage() {
 
   if (!session) return null;
 
+  const positionOptions = [
+    { value: 'top-left', label: `↖️ ${t('watermark.topLeft')}` },
+    { value: 'top-right', label: `↗️ ${t('watermark.topRight')}` },
+    { value: 'bottom-left', label: `↙️ ${t('watermark.bottomLeft')}` },
+    { value: 'bottom-right', label: `↘️ ${t('watermark.bottomRight')}` },
+  ];
+
+  const sizeOptions = [
+    { value: 'small', label: `🔹 ${t('watermark.small')}` },
+    { value: 'medium', label: `🔸 ${t('watermark.medium')}` },
+    { value: 'large', label: `🔶 ${t('watermark.large')}` },
+  ];
+
   return (
-    <MobileLayout title="Logo" showBack={true} showTabs={true}>
+    <MobileLayout title={t('watermark.title')} showBack={true} showTabs={true}>
       <div className="px-4 pt-4 pb-24 space-y-4">
         {/* Info Card */}
         <div 
@@ -153,8 +169,7 @@ export default function WatermarkSettingsPage() {
           style={{ backgroundColor: '#EFF6FF', borderLeft: '4px solid #2563EB' }}
         >
           <p className="text-sm font-semibold" style={{ color: '#1E40AF' }}>
-            💡 <strong>Tip:</strong> Sube un logo para que aparezca automáticamente en todas las fotos de tus propiedades. 
-            Si no subes logo, se usará el texto "Flow Estate AI".
+            💡 <strong>Tip:</strong> {t('watermark.infoTip')}
           </p>
         </div>
 
@@ -164,7 +179,7 @@ export default function WatermarkSettingsPage() {
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <h3 className="font-bold text-lg mb-4" style={{ color: '#0F172A' }}>
-            🎨 Tu Logo
+            🎨 {t('watermark.yourLogo')}
           </h3>
 
           {logoUrl ? (
@@ -197,7 +212,7 @@ export default function WatermarkSettingsPage() {
                       backgroundColor: '#FFFFFF'
                     }}
                   >
-                    {uploading ? 'Subiendo...' : '🔄 Cambiar Logo'}
+                    {uploading ? t('watermark.uploading') : `🔄 ${t('watermark.changeLogo')}`}
                   </span>
                 </label>
 
@@ -206,7 +221,7 @@ export default function WatermarkSettingsPage() {
                   className="px-6 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform"
                   style={{ backgroundColor: '#DC2626' }}
                 >
-                  🗑️ Eliminar
+                  🗑️ {t('watermark.delete')}
                 </button>
               </div>
             </div>
@@ -218,10 +233,10 @@ export default function WatermarkSettingsPage() {
               >
                 <div className="text-5xl mb-3">🎨</div>
                 <p className="font-semibold mb-1" style={{ color: '#0F172A' }}>
-                  Sin logo personalizado
+                  {t('watermark.noCustomLogo')}
                 </p>
                 <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                  Se usará el texto "FlowEstate AI" por defecto
+                  {t('watermark.defaultText')}
                 </p>
               </div>
 
@@ -238,7 +253,7 @@ export default function WatermarkSettingsPage() {
                   className="block w-full py-3 rounded-xl font-bold text-white text-center shadow-lg active:scale-95 transition-transform"
                   style={{ backgroundColor: uploading ? '#9CA3AF' : '#2563EB' }}
                 >
-                  {uploading ? 'Subiendo...' : '📤 Subir Logo'}
+                  {uploading ? t('watermark.uploading') : `📤 ${t('watermark.uploadLogo')}`}
                 </span>
               </label>
 
@@ -246,12 +261,12 @@ export default function WatermarkSettingsPage() {
                 className="p-3 rounded-xl text-xs"
                 style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}
               >
-                <strong>Recomendaciones:</strong>
+                <strong>{t('watermark.recommendations')}:</strong>
                 <ul className="mt-1 space-y-1 ml-4 list-disc">
-                  <li>Tamaño recomendado: 200x200 píxeles</li>
-                  <li>Formato: PNG (con fondo transparente) o JPG</li>
-                  <li>Tamaño máximo: 2 MB</li>
-                  <li>Logo cuadrado funciona mejor</li>
+                  <li>{t('watermark.recSize')}</li>
+                  <li>{t('watermark.recFormat')}</li>
+                  <li>{t('watermark.recMaxSize')}</li>
+                  <li>{t('watermark.recSquare')}</li>
                 </ul>
               </div>
             </div>
@@ -264,21 +279,16 @@ export default function WatermarkSettingsPage() {
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>
-            ⚙️ Configuración del Logo
+            ⚙️ {t('watermark.settings')}
           </h3>
 
           {/* Posición */}
           <div>
             <label className="block text-sm font-bold mb-3" style={{ color: '#0F172A' }}>
-              📍 Posición en la Foto
+              📍 {t('watermark.position')}
             </label>
             <div className="grid grid-cols-2 gap-3">
-              {[
-                { value: 'top-left', label: '↖️ Superior Izq.' },
-                { value: 'top-right', label: '↗️ Superior Der.' },
-                { value: 'bottom-left', label: '↙️ Inferior Izq.' },
-                { value: 'bottom-right', label: '↘️ Inferior Der.' },
-              ].map((opt) => (
+              {positionOptions.map((opt) => (
                 <button
                   key={opt.value}
                   onClick={() => setPosition(opt.value)}
@@ -294,7 +304,7 @@ export default function WatermarkSettingsPage() {
             </div>
             {!logoUrl && (
               <p className="text-xs mt-2 opacity-70" style={{ color: '#0F172A' }}>
-                ℹ️ El texto "FlowEstate AI" siempre aparece en inferior izquierda
+                ℹ️ {t('watermark.positionNote')}
               </p>
             )}
           </div>
@@ -302,14 +312,10 @@ export default function WatermarkSettingsPage() {
           {/* Tamaño */}
           <div>
             <label className="block text-sm font-bold mb-3" style={{ color: '#0F172A' }}>
-              📏 Tamaño del Logo
+              📏 {t('watermark.size')}
             </label>
             <div className="grid grid-cols-3 gap-3">
-              {[
-                { value: 'small', label: '🔹 Pequeño' },
-                { value: 'medium', label: '🔸 Mediano' },
-                { value: 'large', label: '🔶 Grande' },
-              ].map((opt) => (
+              {sizeOptions.map((opt) => (
                 <button
                   key={opt.value}
                   onClick={() => setSize(opt.value)}
@@ -332,7 +338,7 @@ export default function WatermarkSettingsPage() {
             className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
             style={{ backgroundColor: '#10B981' }}
           >
-            {saving ? 'Guardando...' : '💾 Guardar Configuración'}
+            {saving ? t('watermark.saving') : `💾 ${t('watermark.saveSettings')}`}
           </button>
         </div>
 
@@ -342,10 +348,10 @@ export default function WatermarkSettingsPage() {
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <h3 className="font-bold text-lg mb-3" style={{ color: '#0F172A' }}>
-            👁️ Vista Previa
+            👁️ {t('watermark.preview')}
           </h3>
           <p className="text-sm mb-4 opacity-70" style={{ color: '#0F172A' }}>
-            El logo se aplicará automáticamente a todas las fotos que subas
+            {t('watermark.previewNote')}
           </p>
           <div 
             className="relative w-full aspect-video rounded-xl overflow-hidden"

@@ -4,10 +4,12 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import MobileLayout from '@/components/MobileLayout';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -31,11 +33,13 @@ export default function ProfilePage() {
 
   if (status === 'loading') {
     return (
-      <MobileLayout title="Perfil" showTabs={true}>
+      <MobileLayout title={t('profile.title')} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">👤</div>
-            <div className="text-lg" style={{ color: '#0F172A' }}>Cargando...</div>
+            <div className="text-lg" style={{ color: '#0F172A' }}>
+              {t('profile.loading')}
+            </div>
           </div>
         </div>
       </MobileLayout>
@@ -62,10 +66,10 @@ export default function ProfilePage() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Error al guardar');
+        throw new Error(data.error || t('common.error'));
       }
 
-      alert('✅ Perfil actualizado');
+      alert(t('profile.profileUpdated'));
       
       window.location.reload();
     } catch (error: any) {
@@ -76,13 +80,13 @@ export default function ProfilePage() {
   };
 
   const handleLogout = () => {
-    if (confirm('¿Cerrar sesión?')) {
+    if (confirm(t('profile.confirmLogout'))) {
       signOut({ callbackUrl: '/login' });
     }
   };
 
   return (
-    <MobileLayout title="Mi Perfil" showTabs={true}>
+    <MobileLayout title={t('profile.title')} showTabs={true}>
       <div className="px-4 pt-4 pb-6 space-y-4">
         <div 
           className="rounded-2xl p-6 text-center shadow-lg"
@@ -111,22 +115,22 @@ export default function ProfilePage() {
           <div className="grid grid-cols-3 gap-4 items-center">
             <div className="text-center">
               <p className="text-xs font-semibold mb-3 opacity-70" style={{ color: '#0F172A' }}>
-                Tu Plan
+                {t('profile.yourPlan')}
               </p>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl" style={{ backgroundColor: session.user.plan === 'pro' ? '#2563EB' : '#F5EAD3' }}>
                 <span className="text-2xl">{session.user.plan === 'pro' ? '⭐' : '🆓'}</span>
                 <div className="text-left">
                   <p className="text-lg font-bold" style={{ color: session.user.plan === 'pro' ? '#FFFFFF' : '#0F172A' }}>
-                    {session.user.plan === 'pro' ? 'Pro' : 'Free'}
+                    {session.user.plan === 'pro' ? t('profile.pro') : t('profile.free')}
                   </p>
                   <p className="text-xs opacity-80" style={{ color: session.user.plan === 'pro' ? '#FFFFFF' : '#0F172A' }}>
-                    {session.user.plan === 'pro' ? '30/mes' : '3 total'}
+                    {session.user.plan === 'pro' ? t('profile.perMonth') : t('profile.total')}
                   </p>
                 </div>
               </div>
               {session.user.plan === 'pro' && (
                 <p className="text-xs mt-2 opacity-70" style={{ color: '#0F172A' }}>
-                  {session.user.properties_this_month}/30 este mes
+                  {session.user.properties_this_month}/30 {t('profile.thisMonth')}
                 </p>
               )}
             </div>
@@ -137,13 +141,13 @@ export default function ProfilePage() {
 
             <div className="text-center">
               <p className="text-xs font-semibold mb-3 opacity-70" style={{ color: '#0F172A' }}>
-                Username
+                {t('profile.username')}
               </p>
               <p className="text-4xl font-bold mb-2" style={{ color: '#2563EB' }}>
                 {username ? '✓' : '○'}
               </p>
               <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                {username ? 'Configurado' : 'No configurado'}
+                {username ? t('profile.configured') : t('profile.notConfigured')}
               </p>
             </div>
           </div>
@@ -154,13 +158,13 @@ export default function ProfilePage() {
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <h3 className="font-bold mb-4 text-lg" style={{ color: '#0F172A' }}>
-            Información del Agente
+            {t('profile.agentInfo')}
           </h3>
 
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                Username único
+                {t('profile.uniqueUsername')}
               </label>
               <input
                 type="text"
@@ -175,13 +179,13 @@ export default function ProfilePage() {
                 }}
               />
               <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
-                {username && `Tu portfolio: /agent/${username}`}
+                {username && `${t('profile.yourPortfolio')}: /agent/${username}`}
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                Nombre completo
+                {t('profile.fullName')}
               </label>
               <input
                 type="text"
@@ -199,7 +203,7 @@ export default function ProfilePage() {
 
             <div>
               <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                Teléfono
+                {t('profile.phone')}
               </label>
               <input
                 type="tel"
@@ -217,7 +221,7 @@ export default function ProfilePage() {
 
             <div>
               <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                Inmobiliaria
+                {t('profile.brokerage')}
               </label>
               <input
                 type="text"
@@ -239,7 +243,7 @@ export default function ProfilePage() {
               className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
               style={{ backgroundColor: '#2563EB' }}
             >
-              {saving ? 'Guardando...' : '💾 Guardar Cambios'}
+              {saving ? t('profile.saving') : `💾 ${t('profile.saveChanges')}`}
             </button>
           </div>
         </div>
@@ -252,7 +256,7 @@ export default function ProfilePage() {
               className="w-full py-3 rounded-xl font-bold shadow-lg active-scale-95 transition-transform flex items-center justify-center gap-2 text-white"
               style={{ backgroundColor: '#2563EB' }}
             >
-              <span>⭐</span> Actualizar a Pro
+              <span>⭐</span> {t('profile.upgradeToPro')}
             </button>
           )}
         </div>
@@ -267,12 +271,12 @@ export default function ProfilePage() {
             backgroundColor: '#FFFFFF'
           }}
         >
-          🚪 Cerrar Sesión
+          🚪 {t('profile.logout')}
         </button>
 
         <div className="text-center pt-6 pb-4 opacity-50">
           <p className="text-xs" style={{ color: '#0F172A' }}>
-            Flow Estate AI • v1.0.0
+            {t('profile.version')}
           </p>
         </div>
       </div>

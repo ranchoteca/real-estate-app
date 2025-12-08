@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import MobileLayout from '@/components/MobileLayout';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface CustomField {
   id: string;
@@ -11,6 +12,7 @@ interface CustomField {
   listing_type: string;
   field_key: string;   
   field_name: string;
+  field_name_en: string | null;
   field_type: 'text' | 'number';
   placeholder: string;
   display_order: number;
@@ -48,6 +50,7 @@ const MAX_FIELDS_PER_COMBO = 5;
 export default function CustomFieldsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [fields, setFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +65,7 @@ export default function CustomFieldsPage() {
   const [selectedPropertyType, setSelectedPropertyType] = useState('house');
   const [selectedListingType, setSelectedListingType] = useState('sale');
   const [fieldName, setFieldName] = useState('');
+  const [fieldNameEn, setFieldNameEn] = useState('');
   const [fieldType, setFieldType] = useState<'text' | 'number'>('text');
   const [placeholder, setPlaceholder] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('🏷️');
@@ -132,6 +136,7 @@ export default function CustomFieldsPage() {
           property_type: selectedPropertyType,
           listing_type: selectedListingType,
           field_name: fieldName.trim(),
+          field_name_en: fieldNameEn.trim() || fieldName.trim(),
           field_type: fieldType,
           placeholder: placeholder.trim() || `Ej: ${fieldName}`,
           icon: selectedIcon,
@@ -145,6 +150,7 @@ export default function CustomFieldsPage() {
 
       await loadFields();
       setFieldName('');
+      setFieldNameEn('');
       setPlaceholder('');
       setSelectedIcon('🏷️');
       setShowAddForm(false);
@@ -177,6 +183,7 @@ export default function CustomFieldsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           field_name: fieldName.trim(),
+          field_name_en: fieldNameEn.trim() || fieldName.trim(),
           field_type: fieldType,
           placeholder: placeholder.trim() || `Ej: ${fieldName}`,
           icon: selectedIcon,
@@ -191,6 +198,7 @@ export default function CustomFieldsPage() {
       await loadFields();
       setEditingField(null);
       setFieldName('');
+      setFieldNameEn('');
       setPlaceholder('');
       setSelectedIcon('🏷️');
       setShowAddForm(false);
@@ -275,11 +283,11 @@ export default function CustomFieldsPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <MobileLayout title="Campos" showBack={true} showTabs={true}>
+      <MobileLayout title={t('customFields.title')} showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">🏷️</div>
-            <div className="text-lg" style={{ color: '#0F172A' }}>Cargando...</div>
+            <div className="text-lg" style={{ color: '#0F172A' }}>{t('common.loading')}</div>
           </div>
         </div>
       </MobileLayout>
@@ -291,7 +299,7 @@ export default function CustomFieldsPage() {
   const filteredFields = getFilteredFields();
 
   return (
-    <MobileLayout title="Campos" showBack={true} showTabs={true}>
+    <MobileLayout title={t('customFields.title')} showBack={true} showTabs={true}>
       <div className="px-4 pt-4 pb-24 space-y-4">
         {/* Info Card */}
         <div 
@@ -299,8 +307,7 @@ export default function CustomFieldsPage() {
           style={{ backgroundColor: '#EFF6FF', borderLeft: '4px solid #2563EB' }}
         >
           <p className="text-sm font-semibold" style={{ color: '#1E40AF' }}>
-            💡 <strong>Tip:</strong> Crea campos personalizados para cada tipo de propiedad. 
-            Estos campos aparecerán al crear/editar propiedades de ese tipo.
+            💡 <strong>Tip:</strong> {t('customFields.tip')}
           </p>
         </div>
 
@@ -312,7 +319,7 @@ export default function CustomFieldsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                Total de campos creados
+                {t('customFields.totalFields')}
               </p>
               <p className="text-3xl font-bold" style={{ color: '#2563EB' }}>
                 {getTotalFieldsCount()}
@@ -343,7 +350,7 @@ export default function CustomFieldsPage() {
             className="w-full rounded-2xl p-4 shadow-lg active:scale-98 transition-transform font-bold text-white"
             style={{ backgroundColor: '#2563EB' }}
           >
-            ➕ Crear Nuevo Campo
+            ➕ {t('customFields.createNew')}
           </button>
         )}
 
@@ -354,14 +361,14 @@ export default function CustomFieldsPage() {
             style={{ backgroundColor: '#FFFFFF' }}
           >
             <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>
-              {editingField ? '✏️ Editar Campo' : '➕ Nuevo Campo Personalizado'}
+              {editingField ? `✏️ ${t('customFields.editField')}` : `➕ ${t('customFields.newField')}`}
             </h3>
 
             {!editingField && (
               <>
                 <div>
                   <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                    Tipo de Propiedad
+                    {t('customFields.propertyType')}
                   </label>
                   <select
                     value={selectedPropertyType}
@@ -377,7 +384,7 @@ export default function CustomFieldsPage() {
 
                 <div>
                   <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                    Estado del Listing
+                    {t('customFields.listingType')}
                   </label>
                   <select
                     value={selectedListingType}
@@ -402,7 +409,7 @@ export default function CustomFieldsPage() {
                       : '#15803D'
                   }}
                 >
-                  <strong>{getFieldsCount(selectedPropertyType, selectedListingType)}/{MAX_FIELDS_PER_COMBO}</strong> campos en esta combinación
+                  <strong>{getFieldsCount(selectedPropertyType, selectedListingType)}/{MAX_FIELDS_PER_COMBO}</strong> {t('customFields.fieldsInCombo')}
                 </div>
               </>
             )}
@@ -412,13 +419,13 @@ export default function CustomFieldsPage() {
                 className="px-3 py-2 rounded-lg text-sm"
                 style={{ backgroundColor: '#F0F9FF', color: '#0369A1' }}
               >
-                📌 Editando campo de: <strong>{PROPERTY_TYPES.find(t => t.value === editingField.property_type)?.label} → {LISTING_TYPES.find(t => t.value === editingField.listing_type)?.label}</strong>
+                📌 {t('customFields.editingFor')}: <strong>{PROPERTY_TYPES.find(t => t.value === editingField.property_type)?.label} → {LISTING_TYPES.find(t => t.value === editingField.listing_type)?.label}</strong>
               </div>
             )}
 
             <div>
               <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                Icono del Campo
+                {t('customFields.fieldIcon')}
               </label>
               <div className="flex items-center gap-3">
                 <button
@@ -431,10 +438,10 @@ export default function CustomFieldsPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>
-                    Icono seleccionado
+                    {t('customFields.iconSelected')}
                   </p>
                   <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                    Click para cambiar
+                    {t('customFields.clickToChange')}
                   </p>
                 </div>
               </div>

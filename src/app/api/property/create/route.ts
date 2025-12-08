@@ -28,10 +28,20 @@ export async function POST(req: NextRequest) {
     console.log('🔍 DATOS RECIBIDOS DEL FRONTEND:');
     console.log('custom_fields_data:', JSON.stringify(propertyData.custom_fields_data));
     console.log('currency_id:', propertyData.currency_id);
+    console.log('language:', propertyData.language);
 
     if (!propertyData.title || !propertyData.description) {
       return NextResponse.json(
         { error: 'Faltan campos requeridos: title y description' },
+        { status: 400 }
+      );
+    }
+
+    // Validar language
+    const language = propertyData.language || 'es';
+    if (!['es', 'en'].includes(language)) {
+      return NextResponse.json(
+        { error: 'El idioma debe ser "es" o "en"' },
         { status: 400 }
       );
     }
@@ -120,6 +130,7 @@ export async function POST(req: NextRequest) {
       zip_code: propertyData.zip_code,
       property_type: propertyData.property_type || 'house',
       listing_type: propertyData.listing_type || 'sale',
+      language: language,
       photos: propertyData.photos || [],
       audio_url: propertyData.audio_url || null,
       status: 'active',
@@ -134,6 +145,7 @@ export async function POST(req: NextRequest) {
     console.log('🔍 DATOS PREPARADOS PARA INSERT:');
     console.log('custom_fields_data:', JSON.stringify(dataToInsert.custom_fields_data));
     console.log('currency_id:', dataToInsert.currency_id);
+    console.log('language:', dataToInsert.language);
 
     // 🚨 NUEVO: Verificar el objeto COMPLETO que se enviará
     console.log('🚨 dataToInsert COMPLETO:', JSON.stringify(dataToInsert, null, 2));

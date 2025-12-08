@@ -7,6 +7,7 @@ import PhotoUploader from '@/components/property/PhotoUploader';
 import VoiceRecorder from '@/components/property/VoiceRecorder';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
 import MobileLayout from '@/components/MobileLayout';
+import { useTranslation } from '@/hooks/useTranslation';
 
 import { SUPPORTED_COUNTRIES, CountryCode } from '@/lib/google-maps-config';
 
@@ -21,6 +22,7 @@ interface PropertyData {
   zip_code: string;
   property_type: string;
   listing_type: string;
+  language: 'es' | 'en';
   latitude: number | null;
   longitude: number | null;
   plus_code: string | null;
@@ -34,6 +36,7 @@ interface CustomField {
   listing_type: string;
   field_key: string;   
   field_name: string;
+  field_name_en: string | null;
   field_type: 'text' | 'number';
   placeholder: string;
   icon: string;
@@ -50,6 +53,7 @@ interface Currency {
 export default function CreatePropertyPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useTranslation();
 
   // Step 1: Photos
   const [photos, setPhotos] = useState<File[]>([]);
@@ -59,6 +63,7 @@ export default function CreatePropertyPage() {
   // Step 2: Property Configuration
   const [propertyType, setPropertyType] = useState<string>('house');
   const [listingType, setListingType] = useState<string>('sale');
+  const [propertyLanguage, setPropertyLanguage] = useState<'es' | 'en'>('es');
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
 
@@ -200,11 +205,11 @@ export default function CreatePropertyPage() {
 
   if (status === 'loading') {
     return (
-      <MobileLayout title="Crear Propiedad" showBack={true} showTabs={true}>
+      <MobileLayout title={t('createProperty.title')} showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">🏠</div>
-            <div className="text-lg" style={{ color: '#0F172A' }}>Cargando...</div>
+            <div className="text-lg" style={{ color: '#0F172A' }}>{t('common.loading')}</div>
           </div>
         </div>
       </MobileLayout>
@@ -246,6 +251,7 @@ export default function CreatePropertyPage() {
         transcription, 
         propertyType, 
         listingType,
+        propertyLanguage,
         customFields
       );
 
@@ -262,6 +268,7 @@ export default function CreatePropertyPage() {
               ...generatedData,
               property_type: propertyType,
               listing_type: listingType,
+              language: propertyLanguage,
               currency_id: selectedCurrency,
               latitude: latitude,
               longitude: longitude,
@@ -280,6 +287,7 @@ export default function CreatePropertyPage() {
               ...generatedData,
               property_type: propertyType,
               listing_type: listingType,
+              language: propertyLanguage,
               currency_id: selectedCurrency,
               latitude: null,
               longitude: null,
@@ -297,6 +305,7 @@ export default function CreatePropertyPage() {
           ...generatedData,
           property_type: propertyType,
           listing_type: listingType,
+          language: propertyLanguage,
           currency_id: selectedCurrency,
           latitude: null,
           longitude: null,
@@ -378,6 +387,7 @@ export default function CreatePropertyPage() {
     transcription: string,
     propType: string,
     listType: string,
+    language: 'es' | 'en',
     fields: CustomField[]
   ): Promise<PropertyData> => {
     const response = await fetch('/api/property/generate', {
@@ -387,6 +397,7 @@ export default function CreatePropertyPage() {
         transcription,
         property_type: propType,
         listing_type: listType,
+        language: language,
         custom_fields: fields,
       }),
     });
@@ -494,6 +505,13 @@ export default function CreatePropertyPage() {
     return customFieldsValues[fieldKey] || '';
   };
 
+  const getFieldName = (field: CustomField): string => {
+    if (propertyLanguage === 'en' && field.field_name_en) {
+      return field.field_name_en;
+    }
+    return field.field_name;
+  };
+
   const canGenerate = photos.length >= 2 && audioBlob !== null;
 
   const emptyCustomFields = customFields.filter(field => {
@@ -507,15 +525,30 @@ export default function CreatePropertyPage() {
     return currency?.symbol || '$';
   };
 
+  const getPropertyTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      house: t('createProperty.house'),
+      condo: t('createProperty.condo'),
+      apartment: t('createProperty.apartment'),
+      land: t('createProperty.land'),
+      commercial: t('createProperty.commercial'),
+    };
+    return labels[type] || type;
+  };
+
+  const getListingTypeLabel = (type: string) => {
+    return type === 'sale' ? t('createProperty.sale') : t('createProperty.rent');
+  };
+
   return (
-    <MobileLayout title="Crear Propiedad" showBack={true} showTabs={true}>
+    <MobileLayout title={t('createProperty.title')} showBack={true} showTabs={true}>
       <div className="px-4 py-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
-            Crear nueva propiedad
+            {t('createProperty.title')}
           </h1>
           <p className="text-sm" style={{ color: '#64748B' }}>
-            Sube fotos, configura el tipo de propiedad y describe por voz. La IA generará el listing completo.
+            {t('createProperty.description')}
           </p>
         </div>
 
@@ -531,7 +564,7 @@ export default function CreatePropertyPage() {
           {/* Section 1: Photos */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <span>📸</span> Paso 1: Fotos de la Propiedad
+              <span>📸</span> {t('createProperty.step1')}
             </h2>
             <PhotoUploader 
               onPhotosChange={handlePhotosChange}
@@ -544,48 +577,66 @@ export default function CreatePropertyPage() {
           {/* Section 2: Property Configuration */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <span>🏷️</span> Paso 2: Configuración de Propiedad
+              <span>🏷️</span> {t('createProperty.step2')}
             </h2>
             
             <div className="grid grid-cols-1 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tipo de propiedad
+                  {t('createProperty.propertyType')}
                 </label>
                 <select
                   value={propertyType}
                   onChange={(e) => setPropertyType(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-semibold"
                 >
-                  <option value="house">Casa</option>
-                  <option value="condo">Condominio</option>
-                  <option value="apartment">Apartamento</option>
-                  <option value="land">Terreno</option>
-                  <option value="commercial">Comercial</option>
+                  <option value="house">{t('createProperty.house')}</option>
+                  <option value="condo">{t('createProperty.condo')}</option>
+                  <option value="apartment">{t('createProperty.apartment')}</option>
+                  <option value="land">{t('createProperty.land')}</option>
+                  <option value="commercial">{t('createProperty.commercial')}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tipo de Listing
+                  {t('createProperty.listingType')}
                 </label>
                 <select
                   value={listingType}
                   onChange={(e) => setListingType(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-semibold"
                 >
-                  <option value="sale">Venta</option>
-                  <option value="rent">Alquiler</option>
+                  <option value="sale">{t('createProperty.sale')}</option>
+                  <option value="rent">{t('createProperty.rent')}</option>
                 </select>
+              </div>
+
+              {/* Selector de idioma de la propiedad */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  🌐 {t('createProperty.propertyLanguage')}
+                </label>
+                <select
+                  value={propertyLanguage}
+                  onChange={(e) => setPropertyLanguage(e.target.value as 'es' | 'en')}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 font-semibold"
+                >
+                  <option value="es">🇪🇸 {t('createProperty.spanish')}</option>
+                  <option value="en">🇺🇸 {t('createProperty.english')}</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 {t('createProperty.propertyLanguageTip')}
+                </p>
               </div>
 
               {/* NUEVO: Selector de Divisa */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  💰 Divisa
+                  💰 {t('createProperty.currency')}
                   {agentDefaultCurrency === selectedCurrency && (
                     <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-semibold">
-                      Por defecto
+                      {t('createProperty.defaultCurrency')}
                     </span>
                   )}
                 </label>
@@ -601,7 +652,7 @@ export default function CreatePropertyPage() {
                   ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  💡 Puedes cambiar tu divisa por defecto en Configuración
+                  💡 {t('createProperty.currencyTip')}
                 </p>
               </div>
             </div>
@@ -610,7 +661,7 @@ export default function CreatePropertyPage() {
             {loadingCustomFields ? (
               <div className="bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 text-center">
                 <div className="text-2xl mb-2 animate-pulse">⏳</div>
-                <p className="text-sm text-gray-600">Cargando campos personalizados...</p>
+                <p className="text-sm text-gray-600">{t('common.loading')}...</p>
               </div>
             ) : customFields.length > 0 ? (
               <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4">
@@ -618,10 +669,10 @@ export default function CreatePropertyPage() {
                   <span className="text-2xl">💡</span>
                   <div>
                     <h3 className="font-bold text-blue-900 mb-1">
-                      Campos a mencionar en tu grabación:
+                      {t('createProperty.customFieldsHint')}:
                     </h3>
                     <p className="text-sm text-blue-700">
-                      Menciona estos detalles para que la IA los complete automáticamente
+                      {t('createProperty.customFieldsHintDesc')}
                     </p>
                   </div>
                 </div>
@@ -630,7 +681,7 @@ export default function CreatePropertyPage() {
                   {customFields.map(field => (
                     <div key={field.id} className="flex items-center gap-2 text-sm font-semibold text-blue-900">
                       <span className="text-lg">{field.icon}</span>
-                      <span>{field.field_name}</span>
+                      <span>{getFieldName(field)}</span>
                     </div>
                   ))}
                 </div>
@@ -641,13 +692,13 @@ export default function CreatePropertyPage() {
                   <span className="text-2xl">ℹ️</span>
                   <div>
                     <p className="text-sm text-yellow-800 font-semibold mb-1">
-                      No hay campos personalizados para esta combinación
+                      {t('createProperty.noCustomFields')}
                     </p>
                     <button
                       onClick={() => router.push('/settings/custom-fields')}
                       className="text-sm text-blue-600 underline font-semibold"
                     >
-                      Crear campos personalizados
+                      {t('createProperty.createCustomFields')}
                     </button>
                   </div>
                 </div>
@@ -658,10 +709,10 @@ export default function CreatePropertyPage() {
           {/* Section 3: Voice Recording */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <span>🎤</span> Paso 3: Descripción por Voz
+              <span>🎤</span> {t('createProperty.step3')}
             </h2>
             <p className="text-sm text-gray-600 mb-4">
-              Describe la propiedad: ubicación, precio, características especiales{customFields.length > 0 && ', y los campos personalizados mencionados arriba'}.
+              {t('createProperty.voiceDescription')}{customFields.length > 0 && ', y los campos personalizados mencionados arriba'}.
             </p>
             <VoiceRecorder 
               onRecordingComplete={handleRecordingComplete}
@@ -684,12 +735,12 @@ export default function CreatePropertyPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    Generando con IA...
+                    {t('createProperty.generating')}
                   </>
                 ) : (
                   <>
                     <span>✨</span>
-                    Generar Descripción con IA
+                    {t('createProperty.generateWithAI')}
                   </>
                 )}
               </button>
@@ -700,7 +751,7 @@ export default function CreatePropertyPage() {
           {propertyData && (
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <span>✅</span> Paso 4: Revisar y Publicar
+                <span>✅</span> {t('createProperty.step4')}
               </h2>
               
               <div className="space-y-4">
@@ -708,16 +759,15 @@ export default function CreatePropertyPage() {
                 <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">Configuración:</p>
+                      <p className="text-sm text-gray-600 mb-1">{t('createProperty.configuration')}:</p>
                       <p className="font-bold text-gray-900">
-                        {propertyType === 'house' ? 'Casa' : 
-                         propertyType === 'condo' ? 'Condominio' :
-                         propertyType === 'apartment' ? 'Apartamento' :
-                         propertyType === 'land' ? 'Terreno' : 'Comercial'}
+                        {getPropertyTypeLabel(propertyType)}
                         {' → '}
-                        {listingType === 'sale' ? 'Venta' : 'Alquiler'}
+                        {getListingTypeLabel(listingType)}
                         {' → '}
                         {getSelectedCurrencySymbol()} {currencies.find(c => c.id === selectedCurrency)?.code}
+                        {' → '}
+                        {propertyLanguage === 'es' ? '🇪🇸 Español' : '🇺🇸 English'}
                       </p>
                     </div>
                     <button
@@ -727,18 +777,18 @@ export default function CreatePropertyPage() {
                       }}
                       className="text-sm text-blue-600 underline font-semibold"
                     >
-                      Cambiar
+                      {t('createProperty.changeConfig')}
                     </button>
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    ℹ️ Para cambiar, debes regenerar el listing
+                    ℹ️ {t('createProperty.changeConfigTip')}
                   </p>
                 </div>
 
                 {/* Title */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Título
+                    {t('createProperty.title')}
                   </label>
                   <input
                     type="text"
@@ -751,7 +801,7 @@ export default function CreatePropertyPage() {
                 {/* Description */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Descripción
+                    {t('createProperty.description')}
                   </label>
                   <textarea
                     value={propertyData.description}
@@ -764,13 +814,13 @@ export default function CreatePropertyPage() {
                 {/* Price con símbolo de divisa */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Precio ({getSelectedCurrencySymbol()})
+                    {t('createProperty.price')} ({getSelectedCurrencySymbol()})
                   </label>
                   <input
                     type="number"
                     value={propertyData.price || ''}
                     onChange={(e) => setPropertyData({ ...propertyData, price: Number(e.target.value) || null })}
-                    placeholder="Opcional"
+                    placeholder={t('createProperty.optional')}
                     className="w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-lg"
                   />
                 </div>
@@ -779,7 +829,7 @@ export default function CreatePropertyPage() {
                 <div className="grid grid-cols-1 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Dirección
+                      {t('createProperty.address')}
                     </label>
                     <input
                       type="text"
@@ -791,7 +841,7 @@ export default function CreatePropertyPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Ciudad
+                      {t('createProperty.city')}
                     </label>
                     <input
                       type="text"
@@ -803,7 +853,7 @@ export default function CreatePropertyPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Estado / Provincia
+                      {t('createProperty.state')}
                     </label>
                     <input
                       type="text"
@@ -815,7 +865,7 @@ export default function CreatePropertyPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Código Postal
+                      {t('createProperty.zipCode')}
                     </label>
                     <input
                       type="text"
@@ -840,7 +890,7 @@ export default function CreatePropertyPage() {
                         className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="text-sm font-medium text-gray-700">
-                        🗺️ Mostrar ubicación en mapa
+                        🗺️ {t('createProperty.showOnMap')}
                       </span>
                     </label>
                   </div>
@@ -848,7 +898,7 @@ export default function CreatePropertyPage() {
                   {/* Dropdown de País */}
                   <div className="mb-4">
                     <label className="block text-sm font-semibold mb-2 text-gray-700">
-                      🌎 País de la propiedad
+                      🌎 {t('createProperty.propertyCountry')}
                     </label>
                     <select
                       value={selectedCountry}
@@ -863,8 +913,8 @@ export default function CreatePropertyPage() {
                     </select>
                     <p className="text-xs text-gray-600 mt-1">
                       {propertyData?.latitude && propertyData?.longitude 
-                        ? '📍 País detectado automáticamente por tu ubicación. Cámbialo si la propiedad está en otro país.'
-                        : 'Selecciona el país antes de pegar el Plus Code'}
+                        ? `📍 ${t('createProperty.countryDetected')}`
+                        : t('createProperty.selectCountry')}
                     </p>
                   </div>
 
@@ -895,7 +945,7 @@ export default function CreatePropertyPage() {
                   <div className="pt-4 border-t border-gray-200">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
                       <span>🏷️</span>
-                      Campos Personalizados
+                      {t('createProperty.customFields')}
                     </h3>
 
                     <div className="space-y-3">
@@ -903,7 +953,7 @@ export default function CreatePropertyPage() {
                         <div key={field.id}>
                           <label className="block text-sm font-semibold mb-2 flex items-center gap-2 text-gray-700">
                             <span className="text-lg">{field.icon || '🏷️'}</span>
-                            {field.field_name}
+                            {getFieldName(field)}
                           </label>
                           <input
                             type={field.field_type === 'number' ? 'number' : 'text'}
@@ -928,15 +978,15 @@ export default function CreatePropertyPage() {
                           <span className="text-xl">⚠️</span>
                           <div>
                             <p className="text-sm font-semibold text-yellow-800 mb-1">
-                              Algunos campos personalizados están vacíos:
+                              {t('createProperty.emptyFieldsWarning')}:
                             </p>
                             <ul className="text-xs text-yellow-700 space-y-1">
                               {emptyCustomFields.map(field => (
-                                <li key={field.id}>• {field.icon} {field.field_name}</li>
+                                <li key={field.id}>• {field.icon} {getFieldName(field)}</li>
                               ))}
                             </ul>
                             <p className="text-xs text-yellow-600 mt-2">
-                              Puedes publicar de todas formas, pero te recomendamos llenarlos para una mejor presentación.
+                              {t('createProperty.emptyFieldsTip')}
                             </p>
                           </div>
                         </div>
@@ -954,14 +1004,14 @@ export default function CreatePropertyPage() {
                     }}
                     className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50"
                   >
-                    Cancelar
+                    {t('createProperty.cancel')}
                   </button>
                   <button
                     onClick={handlePublish}
                     disabled={isProcessing}
                     className="flex-1 px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 disabled:opacity-50"
                   >
-                    {isProcessing ? 'Publicando...' : '🚀 Publicar Propiedad'}
+                    {isProcessing ? t('createProperty.publishing') : `🚀 ${t('createProperty.publishProperty')}`}
                   </button>
                 </div>
               </div>

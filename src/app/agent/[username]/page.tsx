@@ -29,6 +29,7 @@ interface Property {
   status: string;
   views: number;
   created_at: string;
+  language: 'es' | 'en';
 }
 
 const translatePropertyType = (type: string | null): string => {
@@ -52,6 +53,7 @@ export default function AgentPortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'sold' | 'rented'>('active');
+  const [languageFilter, setLanguageFilter] = useState<'all' | 'es' | 'en'>('all');
 
   useEffect(() => {
     if (username) {
@@ -94,10 +96,14 @@ export default function AgentPortfolioPage() {
   };
 
   const filteredProperties = properties.filter(p => {
-    if (filter === 'all') return true;
-    if (filter === 'active') return p.status === 'active';
-    if (filter === 'sold') return p.status === 'sold';
-    if (filter === 'rented') return p.status === 'rented';
+    // Filtro por estado
+    if (filter === 'active' && p.status !== 'active') return false;
+    if (filter === 'sold' && p.status !== 'sold') return false;
+    if (filter === 'rented' && p.status !== 'rented') return false;
+    
+    // Filtro por idioma
+    if (languageFilter !== 'all' && p.language !== languageFilter) return false;
+    
     return true;
   });
 
@@ -349,6 +355,29 @@ export default function AgentPortfolioPage() {
                 style={{
                   backgroundColor: filter === tab.key ? '#2563EB' : '#FFFFFF',
                   color: filter === tab.key ? '#FFFFFF' : '#0F172A',
+                }}
+              >
+                {tab.label} ({tab.count})
+              </button>
+            ))}
+          </div>
+
+          {/* Language Filter Tabs */}
+          <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide">
+            {[
+              { key: 'all', label: '🌐 Todos', count: properties.length },
+              { key: 'es', label: '🇪🇸 Español', count: properties.filter(p => p.language === 'es').length },
+              { key: 'en', label: '🇺🇸 English', count: properties.filter(p => p.language === 'en').length },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setLanguageFilter(tab.key as any)}
+                className={`px-4 lg:px-5 py-2.5 rounded-xl font-bold whitespace-nowrap transition-all active:scale-95 hover:scale-105 ${
+                  languageFilter === tab.key ? 'shadow-lg' : ''
+                }`}
+                style={{
+                  backgroundColor: languageFilter === tab.key ? '#10B981' : '#FFFFFF',
+                  color: languageFilter === tab.key ? '#FFFFFF' : '#0F172A',
                 }}
               >
                 {tab.label} ({tab.count})

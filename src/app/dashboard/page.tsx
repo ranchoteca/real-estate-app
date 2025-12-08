@@ -22,6 +22,7 @@ interface Property {
   views: number;
   created_at: string;
   listing_type: 'rent' | 'sale';
+  language: 'es' | 'en';
 }
 
 const translatePropertyType = (type: string | null): string => {
@@ -52,6 +53,12 @@ const STATUS_OPTIONS = [
   { value: 'sold', label: '● Vendida' },
 ];
 
+const LANGUAGE_OPTIONS = [
+  { value: '', label: 'Todos los idiomas' },
+  { value: 'es', label: '🇪🇸 Español' },
+  { value: 'en', label: '🇺🇸 English' },
+];
+
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -65,6 +72,7 @@ export default function DashboardPage() {
 
   // Estados de filtros
   const [filterPropertyType, setFilterPropertyType] = useState('');
+  const [filterLanguage, setFilterLanguage] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -158,6 +166,11 @@ export default function DashboardPage() {
         return false;
       }
 
+      // Filtro por idioma
+      if (filterLanguage && property.language !== filterLanguage) {
+        return false;
+      }
+
       // Filtro por búsqueda de texto
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
@@ -177,10 +190,11 @@ export default function DashboardPage() {
   const clearFilters = () => {
     setFilterPropertyType('');
     setFilterStatus('');
+    setFilterLanguage('');
     setSearchQuery('');
   };
 
-  const hasActiveFilters = filterPropertyType || filterStatus || searchQuery.trim();
+  const hasActiveFilters = filterPropertyType || filterStatus || filterLanguage || searchQuery.trim();
 
   if (status === 'loading' || loading) {
     return (
@@ -287,7 +301,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Filter Selects */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <select
               value={filterPropertyType}
               onChange={(e) => setFilterPropertyType(e.target.value)}
@@ -315,6 +329,21 @@ export default function DashboardPage() {
             >
               {STATUS_OPTIONS.map(status => (
                 <option key={status.value} value={status.value}>{status.label}</option>
+              ))}
+            </select>
+
+            <select
+              value={filterLanguage}
+              onChange={(e) => setFilterLanguage(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold"
+              style={{ 
+                borderColor: '#E5E7EB',
+                backgroundColor: '#F9FAFB',
+                color: '#0F172A'
+              }}
+            >
+              {LANGUAGE_OPTIONS.map(lang => (
+                <option key={lang.value} value={lang.value}>{lang.label}</option>
               ))}
             </select>
           </div>

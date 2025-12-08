@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import es from '@/locales/es.json';
 import en from '@/locales/en.json';
@@ -32,7 +32,6 @@ const translations = { es, en };
 export default function AgentCardPage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const router = useRouter();
   const username = params.username as string;
 
   const [card, setCard] = useState<AgentCard | null>(null);
@@ -40,7 +39,6 @@ export default function AgentCardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Idioma: primero intenta leer de URL, si no, detecta del navegador
   const urlLang = searchParams.get('lang') as Language | null;
   const browserLang = typeof navigator !== 'undefined' 
     ? (navigator.language.split('-')[0] === 'en' ? 'en' : 'es') 
@@ -66,7 +64,6 @@ export default function AgentCardPage() {
     }
   }, [username]);
 
-  // Actualizar URL cuando cambia el idioma
   useEffect(() => {
     if (!loading && card) {
       const url = new URL(window.location.href);
@@ -136,7 +133,6 @@ export default function AgentCardPage() {
     setLanguage(prev => prev === 'es' ? 'en' : 'es');
   };
 
-  // Obtener datos en el idioma seleccionado
   const getDisplayName = () => {
     if (language === 'en' && card?.display_name_en) {
       return card.display_name_en;
@@ -188,7 +184,6 @@ export default function AgentCardPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
-      {/* Language Toggle - Fixed Top Right */}
       <button
         onClick={toggleLanguage}
         className="fixed top-4 right-4 z-50 px-4 py-2 rounded-full shadow-lg font-bold flex items-center gap-2 active:scale-95 transition-transform"
@@ -198,10 +193,8 @@ export default function AgentCardPage() {
         <span className="text-sm">{language === 'es' ? 'ES' : 'EN'}</span>
       </button>
 
-      {/* Card Container */}
       <div className="max-w-2xl mx-auto">
         <div className="overflow-hidden">
-          {/* Cover Photo */}
           <div className="relative h-48 bg-gradient-to-br from-blue-500 to-purple-600">
             {card.cover_photo && (
               <Image
@@ -214,10 +207,8 @@ export default function AgentCardPage() {
             )}
           </div>
 
-          {/* Profile Section */}
           <div className="px-6 pb-6" style={{ backgroundColor: '#FFFFFF' }}>
             <div className="flex flex-col items-center" style={{ marginTop: '-64px' }}>
-              {/* Profile Photo */}
               <div className="w-32 h-32 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-xl mb-4" style={{ position: 'relative', zIndex: 10 }}>
                 {card.profile_photo ? (
                   <Image
@@ -234,7 +225,6 @@ export default function AgentCardPage() {
                 )}
               </div>
 
-              {/* Name and Brokerage */}
               <h1 className="text-3xl font-bold text-center mb-1" style={{ color: '#0F172A' }}>
                 {displayName}
               </h1>
@@ -245,7 +235,6 @@ export default function AgentCardPage() {
                 </p>
               )}
 
-              {/* Bio */}
               {bio && (
                 <p className="text-center opacity-80 leading-relaxed mb-6" style={{ color: '#0F172A' }}>
                   {bio}
@@ -253,7 +242,6 @@ export default function AgentCardPage() {
               )}
             </div>
 
-            {/* Contact Buttons */}
             <div className="space-y-3">
               {agent.phone && (
                 <>
@@ -299,7 +287,6 @@ export default function AgentCardPage() {
                 🏠 {t('agentCard.viewPortfolio')}
               </a>
 
-              {/* Share Button */}
               <button
                 onClick={handleShare}
                 className="w-full py-4 rounded-xl font-bold text-center border-2 shadow-lg active:scale-95 transition-transform text-lg"
@@ -313,7 +300,6 @@ export default function AgentCardPage() {
               </button>
             </div>
 
-            {/* Social Media */}
             {(card.facebook_url || card.instagram_url) && (
               <div className="mt-6 pt-6 border-t" style={{ borderColor: '#E5E7EB' }}>
                 <p className="text-sm font-semibold mb-3 text-center opacity-70" style={{ color: '#0F172A' }}>
@@ -340,13 +326,12 @@ export default function AgentCardPage() {
                       style={{ background: 'linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)' }}
                     >
                       <span className="text-white">📷</span>
-                    </div>
+                    </a>
                   )}
                 </div>
               </div>
             )}
 
-            {/* Branding Footer */}
             <div className="text-center mt-8 pt-6 border-t" style={{ borderColor: '#E5E7EB' }}>
               <p className="text-sm opacity-50" style={{ color: '#0F172A' }}>
                 {t('agentCard.createdWith')}

@@ -17,6 +17,9 @@ export async function POST(req: NextRequest) {
       display_name,
       brokerage,
       bio,
+      display_name_en,
+      brokerage_en,
+      bio_en,
       facebook_url,
       instagram_url,
       profile_photo,
@@ -34,6 +37,13 @@ export async function POST(req: NextRequest) {
     if (bio && bio.length > 500) {
       return NextResponse.json(
         { error: 'La biografía no puede exceder 500 caracteres' },
+        { status: 400 }
+      );
+    }
+
+    if (bio_en && bio_en.length > 500) {
+      return NextResponse.json(
+        { error: 'La biografía en inglés no puede exceder 500 caracteres' },
         { status: 400 }
       );
     }
@@ -64,6 +74,9 @@ export async function POST(req: NextRequest) {
       display_name: display_name.trim(),
       brokerage: brokerage?.trim() || null,
       bio: bio?.trim() || null,
+      display_name_en: display_name_en?.trim() || null,
+      brokerage_en: brokerage_en?.trim() || null,
+      bio_en: bio_en?.trim() || null,
       facebook_url: facebook_url?.trim() || null,
       instagram_url: instagram_url?.trim() || null,
       profile_photo: profile_photo || null,

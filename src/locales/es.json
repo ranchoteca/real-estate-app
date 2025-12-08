@@ -306,5 +306,23 @@
     "brokerEnglish": "Broker / Agency (English)",
     "bioEnglish": "Bio (English)",
     "bioEnglishPlaceholder": "Ex: Real estate agent with 10 years of experience in Guanacaste..."
+  },
+  "agentCard": {
+    "loading": "Cargando...",
+    "notFound": "Agente no encontrado",
+    "notConfigured": "Este agente aún no ha configurado su tarjeta digital",
+    "cardNotAvailable": "Tarjeta no disponible",
+    "errorLoading": "Error al cargar la tarjeta",
+    "call": "Llamar",
+    "whatsapp": "WhatsApp",
+    "email": "Email",
+    "viewPortfolio": "Ver Portafolio",
+    "shareLink": "Compartir enlace",
+    "linkCopied": "✅ Enlace copiado al portapapeles",
+    "linkCopyError": "❌ No se pudo copiar el enlace",
+    "followMe": "Sígueme en redes",
+    "createdWith": "Creado con ❤️ por Flow Estate AI",
+    "whatsappMessage": "Hola {name}, vi tu tarjeta digital y me gustaría contactarte",
+    "contactSubject": "Contacto desde tarjeta digital"
   }
 }

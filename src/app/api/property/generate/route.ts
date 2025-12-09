@@ -263,6 +263,7 @@ REGLAS GENERALES:
 
 Transcripción del agente:`;
   }
+}
 
 export async function POST(req: NextRequest) {
   try {

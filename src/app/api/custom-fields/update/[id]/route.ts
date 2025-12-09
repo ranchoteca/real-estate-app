@@ -17,7 +17,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await req.json();
-    const { field_name, field_type, placeholder, icon } = body;
+    const { field_name, field_name_en, field_type, placeholder, icon } = body;
 
     // Validaciones
     if (!field_name || !field_type) {
@@ -89,10 +89,12 @@ export async function PUT(
     }
 
     // Actualizar campo
+    // Actualizar campo
     const { data: updatedField, error: updateError } = await supabaseAdmin
       .from('custom_fields')
       .update({
         field_name: field_name.trim(),
+        field_name_en: field_name_en?.trim() || field_name.trim(),
         field_type,
         placeholder: placeholder?.trim() || `Ej: ${field_name}`,
         icon: icon || '🏷️',

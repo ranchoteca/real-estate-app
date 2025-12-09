@@ -475,47 +475,64 @@ export default function CustomFieldsPage() {
 
             <div>
               <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                Nombre del Campo
+                {t('customFields.fieldName')}
               </label>
               <input
                 type="text"
                 value={fieldName}
                 onChange={(e) => setFieldName(e.target.value)}
-                placeholder="Ej: Frente al mar"
+                placeholder={t('customFields.fieldNamePlaceholder')}
                 maxLength={30}
                 className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
                 style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
               />
               <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
-                ⚠️ Máximo 30 caracteres para evitar que se vea agolpado
+                ⚠️ {t('customFields.maxChars')}
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                Tipo de Campo
+                {t('customFields.fieldNameEn')}
               </label>
-              <select
-                value={fieldType}
-                onChange={(e) => setFieldType(e.target.value as 'text' | 'number')}
+              <input
+                type="text"
+                value={fieldNameEn}
+                onChange={(e) => setFieldNameEn(e.target.value)}
+                placeholder={t('customFields.fieldNameEnPlaceholder')}
+                maxLength={30}
                 className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
                 style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-              >
-                {FIELD_TYPES.map(type => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
-                ))}
-              </select>
+              />
+              <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
+                💡 {t('customFields.bilingualTip')}
+              </p>
             </div>
 
             <div>
+                <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
+                  {t('customFields.fieldType')}
+                </label>
+                <select
+                    value={fieldType}
+                    onChange={(e) => setFieldType(e.target.value as 'text' | 'number')}
+                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
+                    style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
+                >
+                    <option value="text">📝 {t('customFields.text')}</option>
+                    <option value="number">🔢 {t('customFields.number')}</option>
+                </select>
+              </div>
+
+            <div>
               <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                Placeholder (opcional)
+                {t('customFields.placeholder')}
               </label>
               <input
                 type="text"
                 value={placeholder}
                 onChange={(e) => setPlaceholder(e.target.value)}
-                placeholder="Texto de ayuda"
+                placeholder={t('customFields.placeholderText')}
                 maxLength={50}
                 className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
                 style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
@@ -528,6 +545,7 @@ export default function CustomFieldsPage() {
                   setShowAddForm(false);
                   setEditingField(null);
                   setFieldName('');
+                  setFieldNameEn('');
                   setPlaceholder('');
                   setSelectedIcon('🏷️');
                   setError(null);
@@ -539,7 +557,7 @@ export default function CustomFieldsPage() {
                   backgroundColor: '#FFFFFF'
                 }}
               >
-                Cancelar
+                {t('common.cancel')}
               </button>
               <button
                 onClick={editingField ? handleEditField : handleAddField}
@@ -547,7 +565,7 @@ export default function CustomFieldsPage() {
                 className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
                 style={{ backgroundColor: editingField ? '#2563EB' : '#10B981' }}
               >
-                {saving ? 'Guardando...' : (editingField ? '💾 Actualizar' : '✅ Guardar')}
+                {saving ? t('customFields.saving') : (editingField ? `💾 ${t('customFields.update')}` : `✅ ${t('customFields.save')}`)}
               </button>
             </div>
           </div>
@@ -559,7 +577,7 @@ export default function CustomFieldsPage() {
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <h3 className="font-bold" style={{ color: '#0F172A' }}>
-            🔍 Filtrar Campos
+            🔍 {t('customFields.filterFields')}
           </h3>
           
           <div className="grid grid-cols-2 gap-3">
@@ -569,7 +587,7 @@ export default function CustomFieldsPage() {
               className="w-full px-3 py-2 rounded-xl border-2 focus:outline-none text-sm text-gray-900 font-semibold"
               style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
             >
-              <option value="">Todos los tipos</option>
+              <option value="">{t('customFields.allTypes')}</option>
               {PROPERTY_TYPES.map(type => (
                 <option key={type.value} value={type.value}>{type.label}</option>
               ))}
@@ -581,7 +599,7 @@ export default function CustomFieldsPage() {
               className="w-full px-3 py-2 rounded-xl border-2 focus:outline-none text-sm text-gray-900 font-semibold"
               style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
             >
-              <option value="">Todos los estados</option>
+              <option value="">{t('customFields.allStates')}</option>
               {LISTING_TYPES.map(type => (
                 <option key={type.value} value={type.value}>{type.label}</option>
               ))}
@@ -597,7 +615,7 @@ export default function CustomFieldsPage() {
               className="text-sm font-semibold underline"
               style={{ color: '#2563EB' }}
             >
-              Limpiar filtros
+              {t('customFields.clearFilters')}
             </button>
           )}
         </div>
@@ -605,7 +623,7 @@ export default function CustomFieldsPage() {
         {/* Fields List */}
         <div className="space-y-3">
           <h3 className="font-bold px-2" style={{ color: '#0F172A' }}>
-            Campos Creados ({filteredFields.length})
+            {t('customFields.fieldsCreated')} ({filteredFields.length})
           </h3>
 
           {filteredFields.length === 0 ? (
@@ -615,10 +633,10 @@ export default function CustomFieldsPage() {
             >
               <div className="text-5xl mb-3">📝</div>
               <p className="font-semibold" style={{ color: '#0F172A' }}>
-                No hay campos personalizados
+                {t('customFields.noFields')}
               </p>
               <p className="text-sm opacity-70 mt-1" style={{ color: '#0F172A' }}>
-                Crea tu primer campo para empezar
+                {t('customFields.createFirst')}
               </p>
             </div>
           ) : (
@@ -676,6 +694,7 @@ export default function CustomFieldsPage() {
                         onClick={() => {
                           setEditingField(field);
                           setFieldName(field.field_name);
+                          setFieldNameEn(field.field_name_en || '');
                           setFieldType(field.field_type);
                           setPlaceholder(field.placeholder);
                           setSelectedIcon(field.icon || '🏷️');
@@ -732,13 +751,12 @@ export default function CustomFieldsPage() {
             />
 
             <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-md mx-auto">
-              <div 
-                className="rounded-2xl p-6 shadow-2xl space-y-4"
+              <div className="rounded-2xl p-6 shadow-2xl space-y-4"
                 style={{ backgroundColor: '#FFFFFF' }}
               >
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>
-                    🔄 Clonar Campo
+                    🔄 {t('customFields.cloneField')}
                   </h3>
                   <button
                     onClick={() => {
@@ -759,7 +777,7 @@ export default function CustomFieldsPage() {
                   style={{ backgroundColor: '#F0F9FF' }}
                 >
                   <p className="text-sm font-semibold mb-1" style={{ color: '#0369A1' }}>
-                    Campo a clonar:
+                    {t('customFields.fieldToClone')}:
                   </p>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{fieldToClone.icon || '🏷️'}</span>
@@ -768,13 +786,13 @@ export default function CustomFieldsPage() {
                     </span>
                   </div>
                   <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
-                    Desde: {PROPERTY_TYPES.find(t => t.value === fieldToClone.property_type)?.label} → {LISTING_TYPES.find(t => t.value === fieldToClone.listing_type)?.label}
+                    {t('customFields.from')}: {PROPERTY_TYPES.find(t => t.value === fieldToClone.property_type)?.label} → {LISTING_TYPES.find(t => t.value === fieldToClone.listing_type)?.label}
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                    Clonar hacia:
+                    {t('customFields.cloneTo')}:
                   </label>
                   
                   <div className="space-y-3">
@@ -812,7 +830,7 @@ export default function CustomFieldsPage() {
                         : '#15803D'
                     }}
                   >
-                    <strong>{getFieldsCount(clonePropertyType, cloneListingType)}/{MAX_FIELDS_PER_COMBO}</strong> campos en el destino
+                    <strong>{getFieldsCount(clonePropertyType, cloneListingType)}/{MAX_FIELDS_PER_COMBO}</strong> {t('customFields.fieldsInDestination')}
                   </div>
                 </div>
 
@@ -829,7 +847,7 @@ export default function CustomFieldsPage() {
                       backgroundColor: '#FFFFFF'
                     }}
                   >
-                    Cancelar
+                    {t('common.cancel')}
                   </button>
                   <button
                     onClick={handleCloneField}
@@ -837,7 +855,7 @@ export default function CustomFieldsPage() {
                     className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
                     style={{ backgroundColor: '#8B5CF6' }}
                   >
-                    {saving ? 'Clonando...' : '🔄 Clonar'}
+                    {saving ? t('customFields.cloning') : `🔄 ${t('customFields.clone')}`}
                   </button>
                 </div>
               </div>
@@ -866,7 +884,7 @@ export default function CustomFieldsPage() {
               >
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>
-                    ✏️ Editar Campo
+                    ✏️ {t('customFields.editField')}
                   </h3>
                   <button
                     onClick={() => {
@@ -903,7 +921,7 @@ export default function CustomFieldsPage() {
                   style={{ backgroundColor: '#F0F9FF' }}
                 >
                   <p className="text-sm font-semibold mb-1" style={{ color: '#0369A1' }}>
-                    Campo de:
+                    {t('customFields.editingFor')}:
                   </p>
                   <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
                     {PROPERTY_TYPES.find(t => t.value === editingField.property_type)?.label} → {LISTING_TYPES.find(t => t.value === editingField.listing_type)?.label}
@@ -913,7 +931,7 @@ export default function CustomFieldsPage() {
                 {/* Icono */}
                 <div>
                   <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                    Icono del Campo
+                    {t('customFields.fieldIcon')}
                   </label>
                   <div className="flex items-center gap-3">
                     <button
@@ -926,10 +944,10 @@ export default function CustomFieldsPage() {
                     </button>
                     <div className="flex-1">
                       <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>
-                        Icono seleccionado
+                        {t('customFields.iconSelected')}
                       </p>
                       <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                        Click para cambiar
+                        {t('customFields.clickToChange')}
                       </p>
                     </div>
                   </div>
@@ -964,26 +982,41 @@ export default function CustomFieldsPage() {
                 {/* Nombre */}
                 <div>
                   <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                    Nombre del Campo
+                    {t('customFields.fieldName')}
                   </label>
                   <input
                     type="text"
                     value={fieldName}
                     onChange={(e) => setFieldName(e.target.value)}
-                    placeholder="Ej: Frente al mar"
+                    placeholder={t('customFields.fieldNamePlaceholder')}
                     maxLength={30}
                     className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
                     style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
                   />
                   <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
-                    {fieldName.length}/30 caracteres
+                    {fieldName.length}/30 {t('customFields.maxChars')}
                   </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
+                    {t('customFields.fieldNameEn')}
+                  </label>
+                  <input
+                    type="text"
+                    value={fieldNameEn}
+                    onChange={(e) => setFieldNameEn(e.target.value)}
+                    placeholder={t('customFields.fieldNameEnPlaceholder')}
+                    maxLength={30}
+                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
+                    style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
+                  />
                 </div>
 
                 {/* Tipo */}
                 <div>
                   <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                    Tipo de Campo
+                    {t('customFields.fieldType')}
                   </label>
                   <select
                     value={fieldType}
@@ -991,22 +1024,21 @@ export default function CustomFieldsPage() {
                     className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
                     style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
                   >
-                    {FIELD_TYPES.map(type => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
-                    ))}
+                    <option value="text">📝 {t('customFields.text')}</option>
+                    <option value="number">🔢 {t('customFields.number')}</option>
                   </select>
                 </div>
 
                 {/* Placeholder */}
                 <div>
                   <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                    Placeholder (opcional)
+                    {t('customFields.placeholder')}
                   </label>
                   <input
                     type="text"
                     value={placeholder}
                     onChange={(e) => setPlaceholder(e.target.value)}
-                    placeholder="Texto de ayuda"
+                    placeholder={t('customFields.placeholderText')}
                     maxLength={50}
                     className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
                     style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
@@ -1019,6 +1051,7 @@ export default function CustomFieldsPage() {
                     onClick={() => {
                       setEditingField(null);
                       setFieldName('');
+                      setFieldNameEn('');
                       setPlaceholder('');
                       setSelectedIcon('🏷️');
                       setError(null);
@@ -1030,7 +1063,7 @@ export default function CustomFieldsPage() {
                       backgroundColor: '#FFFFFF'
                     }}
                   >
-                    Cancelar
+                    {t('common.cancel')}
                   </button>
                   <button
                     onClick={handleEditField}
@@ -1038,7 +1071,7 @@ export default function CustomFieldsPage() {
                     className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
                     style={{ backgroundColor: '#2563EB' }}
                   >
-                    {saving ? 'Guardando...' : '💾 Actualizar'}
+                    {saving ? t('customFields.saving') : `💾 ${t('customFields.update')}`}
                   </button>
                 </div>
               </div>

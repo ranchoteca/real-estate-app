@@ -326,8 +326,8 @@
     "contactSubject": "Contacto desde tarjeta digital"
   },
   "createProperty": {
-    "title": "Crear Propiedad",
-    "description": "Sube fotos, configura el tipo de propiedad y describe por voz",
+    "introText": "Completa los siguientes pasos para generar tu propiedad en segundos",
+    "createTitle": "Crear",
     "step1": "Paso 1: Fotos de la Propiedad",
     "step2": "Paso 2: Configuración de Propiedad",
     "step3": "Paso 3: Descripción por Voz",
@@ -423,5 +423,13 @@
     "cloning": "Clonando...",
     "text": "Texto",
     "number": "Número"
+  },
+  "photoUploader": {
+    "clickToUpload": "Click para subir fotos",
+    "minMaxPhotos": "Mínimo {{min}} fotos • Máximo {{max}} fotos",
+    "autoCompress": "Se comprimen automáticamente",
+    "principal": "Principal",
+    "new": "Nueva",
+    "minRequired": "Mínimo {{min}} fotos requeridas"
   }
 }

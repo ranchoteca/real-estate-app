@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Image from 'next/image';
+import { useTranslation } from '@/hooks/useTranslation';
 import imageCompression from 'browser-image-compression';
 import { applyWatermark, WatermarkConfig } from '@/lib/watermark';
 
@@ -19,6 +20,7 @@ export default function PhotoUploader({
   watermarkConfig = null
 }: PhotoUploaderProps) {
   const [previews, setPreviews] = useState<string[]>([]);
+  const { t } = useTranslation();
   const [files, setFiles] = useState<File[]>([]);
   const [compressing, setCompressing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -136,7 +138,7 @@ export default function PhotoUploader({
       {/* Contador y botón */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-gray-900">
-          Fotos ({files.length}/{maxPhotos})
+          {t('customFields.photosCount')} ({files.length}/{maxPhotos})
         </h3>
         <label className="cursor-pointer">
           <input
@@ -153,7 +155,7 @@ export default function PhotoUploader({
               files.length >= maxPhotos || compressing ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600'
             }`}
           >
-            {compressing ? '⏳ Comprimiendo...' : '➕ Agregar'}
+            {compressing ? '⏳ Comprimiendo...' : `➕ ${t('customFields.addButton')}`}
           </span>
         </label>
       </div>
@@ -162,7 +164,7 @@ export default function PhotoUploader({
       {previews.length > 0 ? (
         <div>
           <p className="text-xs mb-2 opacity-70 text-gray-900">
-            Fotos nuevas:
+            {t('photoUploader.new')}:
           </p>
           <div className="grid grid-cols-3 gap-2">
             {previews.map((preview, index) => (
@@ -190,11 +192,11 @@ export default function PhotoUploader({
                     className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-xs font-bold text-white"
                     style={{ backgroundColor: '#2563EB' }}
                   >
-                    Principal
+                    {t('photoUploader.principal')}
                   </div>
                 ) : (
                   <div className="absolute bottom-1 right-1 px-2 py-0.5 rounded text-xs font-bold text-white bg-green-500">
-                    Nueva
+                    {t('photoUploader.new')}
                   </div>
                 )}
               </div>
@@ -204,7 +206,7 @@ export default function PhotoUploader({
           {/* Advertencia si no hay suficientes fotos */}
           {files.length < minPhotos && (
             <p className="text-xs mt-2 text-red-600">
-              ⚠️ Mínimo {minPhotos} fotos requeridas
+              ⚠️ {t('photoUploader.minRequired', { min: minPhotos })}
             </p>
           )}
         </div>
@@ -220,13 +222,13 @@ export default function PhotoUploader({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <p className="text-sm text-gray-600 font-semibold">
-              Click para subir fotos
+              {t('photoUploader.clickToUpload')}
             </p>
             <p className="text-xs text-gray-400">
-              Mínimo {minPhotos} fotos • Máximo {maxPhotos} fotos
+              {t('photoUploader.minMaxPhotos', { min: minPhotos, max: maxPhotos })}
             </p>
             <p className="text-xs text-gray-400">
-              Se comprimen automáticamente
+              {t('photoUploader.autoCompress')}
             </p>
           </div>
         </div>

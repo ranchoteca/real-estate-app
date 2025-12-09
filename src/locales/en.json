@@ -326,8 +326,8 @@
     "contactSubject": "Contact from digital card"
   },
   "createProperty": {
-    "title": "Create Property",
-    "description": "Upload photos, configure property type and describe by voice",
+    "introText": "Complete the following steps to generate your property in seconds",
+    "createTitle": "Create",
     "step1": "Step 1: Property Photos",
     "step2": "Step 2: Property Configuration",
     "step3": "Step 3: Voice Description",
@@ -423,5 +423,13 @@
     "cloning": "Cloning...",
     "text": "Text",
     "number": "Number"
+  },
+  "photoUploader": {
+    "clickToUpload": "Click to upload photos",
+    "minMaxPhotos": "Minimum {{min}} photos • Maximum {{max}} photos",
+    "autoCompress": "Automatically compressed",
+    "principal": "Main",
+    "new": "New",
+    "minRequired": "Minimum {{min}} photos required"
   }
 }

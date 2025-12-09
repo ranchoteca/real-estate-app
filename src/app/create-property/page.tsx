@@ -63,7 +63,9 @@ export default function CreatePropertyPage() {
   // Step 2: Property Configuration
   const [propertyType, setPropertyType] = useState<string>('house');
   const [listingType, setListingType] = useState<string>('sale');
-  const [propertyLanguage, setPropertyLanguage] = useState<'es' | 'en'>('es');
+  const [propertyLanguage, setPropertyLanguage] = useState<'es' | 'en'>(
+    typeof window !== 'undefined' ? (localStorage.getItem('language') as 'es' | 'en') || 'es' : 'es'
+  );
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
 
@@ -541,14 +543,11 @@ export default function CreatePropertyPage() {
   };
 
   return (
-    <MobileLayout title={t('createProperty.title')} showBack={true} showTabs={true}>
+    <MobileLayout title={t('createProperty.createTitle')} showBack={true} showTabs={true}>
       <div className="px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
-            {t('createProperty.title')}
-          </h1>
-          <p className="text-sm" style={{ color: '#64748B' }}>
-            {t('createProperty.description')}
+        <div className="mb-6 text-center">
+          <p className="text-lg font-semibold" style={{ color: '#0F172A' }}>
+            {t('createProperty.introText')}
           </p>
         </div>
 

@@ -660,7 +660,7 @@ export default function CustomFieldsPage() {
 
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-lg mb-1" style={{ color: '#0F172A' }}>
-                        {field.field_name}
+                        {t('common.language') === 'en' && field.field_name_en ? field.field_name_en : field.field_name}
                       </h4>
                       <div className="flex flex-wrap gap-2 mb-2">
                         <span 
@@ -679,7 +679,7 @@ export default function CustomFieldsPage() {
                           className="px-2 py-1 rounded-lg text-xs font-bold"
                           style={{ backgroundColor: '#F3E8FF', color: '#6B21A8' }}
                         >
-                          {field.field_type === 'text' ? '📝 Texto' : '🔢 Número'}
+                          {field.field_type === 'text' ? `📝 ${t('customFields.text')}` : `🔢 ${t('customFields.number')}`}
                         </span>
                       </div>
                       {field.placeholder && (

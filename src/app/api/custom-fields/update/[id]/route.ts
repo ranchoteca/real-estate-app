@@ -89,7 +89,6 @@ export async function PUT(
     }
 
     // Actualizar campo
-    // Actualizar campo
     const { data: updatedField, error: updateError } = await supabaseAdmin
       .from('custom_fields')
       .update({

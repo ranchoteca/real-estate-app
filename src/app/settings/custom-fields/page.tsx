@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import MobileLayout from '@/components/MobileLayout';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useI18nStore } from '@/lib/i18n-store';
 
 interface CustomField {
   id: string;
@@ -51,7 +52,7 @@ export default function CustomFieldsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { t } = useTranslation();
-  const currentLanguage = typeof window !== 'undefined' ? localStorage.getItem('language') || 'es' : 'es';
+  const { language: currentLanguage } = useI18nStore();
 
   const [fields, setFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(true);

@@ -21,6 +21,7 @@ export default function PhotoUploader({
 }: PhotoUploaderProps) {
   const [previews, setPreviews] = useState<string[]>([]);
   const { t } = useTranslation();
+  const currentLanguage = typeof window !== 'undefined' ? localStorage.getItem('language') || 'es' : 'es';
   const [files, setFiles] = useState<File[]>([]);
   const [compressing, setCompressing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -138,7 +139,7 @@ export default function PhotoUploader({
       {/* Contador y botón */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-gray-900">
-          {t('customFields.photosCount')} ({files.length}/{maxPhotos})
+          {t('photoUploader.photosCount')} ({files.length}/{maxPhotos})
         </h3>
         <label className="cursor-pointer">
           <input
@@ -155,7 +156,7 @@ export default function PhotoUploader({
               files.length >= maxPhotos || compressing ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600'
             }`}
           >
-            {compressing ? '⏳ Comprimiendo...' : `➕ ${t('customFields.addButton')}`}
+            {compressing ? `⏳ ${currentLanguage === 'en' ? 'Compressing...' : 'Comprimiendo...'}` : `➕ ${t('photoUploader.addButton')}`}
           </span>
         </label>
       </div>
@@ -206,7 +207,7 @@ export default function PhotoUploader({
           {/* Advertencia si no hay suficientes fotos */}
           {files.length < minPhotos && (
             <p className="text-xs mt-2 text-red-600">
-              ⚠️ {t('photoUploader.minRequired', { min: minPhotos })}
+              ⚠️ {currentLanguage === 'en' ? `Minimum ${minPhotos} photos required` : `Mínimo ${minPhotos} fotos requeridas`}
             </p>
           )}
         </div>
@@ -225,7 +226,7 @@ export default function PhotoUploader({
               {t('photoUploader.clickToUpload')}
             </p>
             <p className="text-xs text-gray-400">
-              {t('photoUploader.minMaxPhotos', { min: minPhotos, max: maxPhotos })}
+              {currentLanguage === 'en' ? `Minimum ${minPhotos} photos • Maximum ${maxPhotos} photos` : `Mínimo ${minPhotos} fotos • Máximo ${maxPhotos} fotos`}
             </p>
             <p className="text-xs text-gray-400">
               {t('photoUploader.autoCompress')}

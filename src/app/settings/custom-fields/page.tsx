@@ -51,6 +51,7 @@ export default function CustomFieldsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { t } = useTranslation();
+  const currentLanguage = typeof window !== 'undefined' ? localStorage.getItem('language') || 'es' : 'es';
 
   const [fields, setFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(true);
@@ -660,7 +661,7 @@ export default function CustomFieldsPage() {
 
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-lg mb-1" style={{ color: '#0F172A' }}>
-                        {t('common.language') === 'en' && field.field_name_en ? field.field_name_en : field.field_name}
+                        {currentLanguage === 'en' && field.field_name_en ? field.field_name_en : field.field_name}
                       </h4>
                       <div className="flex flex-wrap gap-2 mb-2">
                         <span 

@@ -425,6 +425,8 @@
     "number": "Número"
   },
   "photoUploader": {
+    "photosCount": "Fotos",
+    "addButton": "Agregar",
     "clickToUpload": "Click para subir fotos",
     "minMaxPhotos": "Mínimo {{min}} fotos • Máximo {{max}} fotos",
     "autoCompress": "Se comprimen automáticamente",

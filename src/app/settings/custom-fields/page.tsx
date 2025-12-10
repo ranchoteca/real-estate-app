@@ -282,6 +282,25 @@ export default function CustomFieldsPage() {
 
   const getTotalFieldsCount = () => fields.length;
 
+  const getPropertyTypeLabel = (value: string) => {
+    const labels: Record<string, { es: string; en: string }> = {
+      house: { es: '🏠 Casa', en: '🏠 House' },
+      condo: { es: '🏢 Condominio', en: '🏢 Condo' },
+      apartment: { es: '🏘️ Apartamento', en: '🏘️ Apartment' },
+      land: { es: '🌳 Terreno', en: '🌳 Land' },
+      commercial: { es: '🏪 Comercial', en: '🏪 Commercial' },
+    };
+    return labels[value][currentLanguage] || labels[value].es;
+  };
+
+  const getListingTypeLabel = (value: string) => {
+    const labels: Record<string, { es: string; en: string }> = {
+      sale: { es: '💰 Venta', en: '💰 Sale' },
+      rent: { es: '🏠 Alquiler', en: '🏠 Rent' },
+    };
+    return labels[value][currentLanguage] || labels[value].es;
+  };
+
   if (status === 'loading' || loading) {
     return (
       <MobileLayout title={t('customFields.title')} showBack={true} showTabs={true}>
@@ -378,7 +397,7 @@ export default function CustomFieldsPage() {
                     style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
                   >
                     {PROPERTY_TYPES.map(type => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
+                      <option key={type.value} value={type.value}>{getPropertyTypeLabel(type.value)}</option>
                     ))}
                   </select>
                 </div>
@@ -394,7 +413,7 @@ export default function CustomFieldsPage() {
                     style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
                   >
                     {LISTING_TYPES.map(type => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
+                      <option key={type.value} value={type.value}>{getListingTypeLabel(type.value)}</option>
                     ))}
                   </select>
                 </div>
@@ -420,7 +439,7 @@ export default function CustomFieldsPage() {
                 className="px-3 py-2 rounded-lg text-sm"
                 style={{ backgroundColor: '#F0F9FF', color: '#0369A1' }}
               >
-                📌 {t('customFields.editingFor')}: <strong>{PROPERTY_TYPES.find(t => t.value === editingField.property_type)?.label} → {LISTING_TYPES.find(t => t.value === editingField.listing_type)?.label}</strong>
+                📌 {t('customFields.editingFor')}: <strong>{getPropertyTypeLabel(editingField.property_type)} → {getListingTypeLabel(editingField.listing_type)}</strong>
               </div>
             )}
 
@@ -590,7 +609,7 @@ export default function CustomFieldsPage() {
             >
               <option value="">{t('customFields.allTypes')}</option>
               {PROPERTY_TYPES.map(type => (
-                <option key={type.value} value={type.value}>{type.label}</option>
+                <option key={type.value} value={type.value}>{getPropertyTypeLabel(type.value)}</option>
               ))}
             </select>
 
@@ -602,7 +621,7 @@ export default function CustomFieldsPage() {
             >
               <option value="">{t('customFields.allStates')}</option>
               {LISTING_TYPES.map(type => (
-                <option key={type.value} value={type.value}>{type.label}</option>
+                <option key={type.value} value={type.value}>{getListingTypeLabel(type.value)}</option>
               ))}
             </select>
           </div>
@@ -642,8 +661,8 @@ export default function CustomFieldsPage() {
             </div>
           ) : (
             filteredFields.map(field => {
-              const propertyTypeLabel = PROPERTY_TYPES.find(t => t.value === field.property_type)?.label || field.property_type;
-              const listingTypeLabel = LISTING_TYPES.find(t => t.value === field.listing_type)?.label || field.listing_type;
+              const propertyTypeLabel = getPropertyTypeLabel(field.property_type);
+              const listingTypeLabel = getListingTypeLabel(field.listing_type);
 
               return (
                 <div 
@@ -787,7 +806,7 @@ export default function CustomFieldsPage() {
                     </span>
                   </div>
                   <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
-                    {t('customFields.from')}: {PROPERTY_TYPES.find(t => t.value === fieldToClone.property_type)?.label} → {LISTING_TYPES.find(t => t.value === fieldToClone.listing_type)?.label}
+                    {t('customFields.from')}: {getPropertyTypeLabel(fieldToClone.property_type)} → {getListingTypeLabel(fieldToClone.listing_type)}
                   </p>
                 </div>
 
@@ -804,7 +823,7 @@ export default function CustomFieldsPage() {
                       style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
                     >
                       {PROPERTY_TYPES.map(type => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
+                        <option key={type.value} value={type.value}>{getPropertyTypeLabel(type.value)}</option>
                       ))}
                     </select>
 
@@ -815,7 +834,7 @@ export default function CustomFieldsPage() {
                       style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
                     >
                       {LISTING_TYPES.map(type => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
+                        <option key={type.value} value={type.value}>{getListingTypeLabel(type.value)}</option>
                       ))}
                     </select>
                   </div>
@@ -925,7 +944,7 @@ export default function CustomFieldsPage() {
                     {t('customFields.editingFor')}:
                   </p>
                   <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                    {PROPERTY_TYPES.find(t => t.value === editingField.property_type)?.label} → {LISTING_TYPES.find(t => t.value === editingField.listing_type)?.label}
+                    {getPropertyTypeLabel(editingField.property_type)} → {getListingTypeLabel(editingField.listing_type)}
                   </p>
                 </div>
 

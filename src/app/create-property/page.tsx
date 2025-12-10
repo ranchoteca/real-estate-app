@@ -63,9 +63,7 @@ export default function CreatePropertyPage() {
   // Step 2: Property Configuration
   const [propertyType, setPropertyType] = useState<string>('house');
   const [listingType, setListingType] = useState<string>('sale');
-  const [propertyLanguage, setPropertyLanguage] = useState<'es' | 'en'>(
-    typeof window !== 'undefined' ? (localStorage.getItem('language') as 'es' | 'en') || 'es' : 'es'
-  );
+  const [propertyLanguage, setPropertyLanguage] = useState<'es' | 'en'>('es');
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
 
@@ -93,6 +91,11 @@ export default function CreatePropertyPage() {
       router.push('/login');
     }
   }, [status, router]);
+
+  useEffect(() => {
+    const currentLang = (localStorage.getItem('language') as 'es' | 'en') || 'es';
+    setPropertyLanguage(currentLang);
+  }, []);
 
   // Cargar divisas y divisa por defecto del agente
   useEffect(() => {

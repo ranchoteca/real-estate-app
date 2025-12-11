@@ -720,9 +720,6 @@ export default function CreatePropertyPage() {
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <span>🎤</span> {t('createProperty.step3')}
             </h2>
-            <p className="text-sm text-gray-600 mb-4">
-              {t('createProperty.voiceDescription')}{customFields.length > 0 && ', y los campos personalizados mencionados arriba'}.
-            </p>
             <VoiceRecorder 
               onRecordingComplete={handleRecordingComplete}
               minDuration={10}

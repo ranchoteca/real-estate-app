@@ -436,7 +436,7 @@
   },
   "voiceRecorder": {
     "instructionsTitle": "Recording instructions",
-    "instructionsText": "Describe the property with all details: location, bedrooms, special features, amenities, property condition, price, and any relevant information. Speak clearly and in detail so the AI can generate the best possible description.",
+    "instructionsText": "Describe the property with all details: location also remember to mention the custom fields if needed and any relevant information. Speak clearly and in detail so the AI can generate the best possible description.",
     "microphoneError": "Could not access microphone. Check permissions.",
     "tapToRecord": "Tap to record",
     "pause": "Pause",

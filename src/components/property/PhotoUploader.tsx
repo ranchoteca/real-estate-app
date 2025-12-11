@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useI18nStore } from '@/lib/i18n-store';
 import imageCompression from 'browser-image-compression';
 import { applyWatermark, WatermarkConfig } from '@/lib/watermark';
 
@@ -21,7 +22,7 @@ export default function PhotoUploader({
 }: PhotoUploaderProps) {
   const [previews, setPreviews] = useState<string[]>([]);
   const { t } = useTranslation();
-  const currentLanguage = typeof window !== 'undefined' ? localStorage.getItem('language') || 'es' : 'es';
+  const { language } = useI18nStore();
   const [files, setFiles] = useState<File[]>([]);
   const [compressing, setCompressing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,7 +55,10 @@ export default function PhotoUploader({
     const selectedFiles = Array.from(e.target.files || []);
     
     if (files.length + selectedFiles.length > maxPhotos) {
-      alert(`Máximo ${maxPhotos} fotos permitidas`);
+      alert(language === 'en' 
+        ? `Maximum ${maxPhotos} photos allowed` 
+        : `Máximo ${maxPhotos} fotos permitidas`
+      );
       return;
     }
 
@@ -62,7 +66,10 @@ export default function PhotoUploader({
       const isImage = file.type.startsWith('image/');
       
       if (!isImage) {
-        alert(`${file.name} no es una imagen válida`);
+        alert(language === 'en'
+          ? `${file.name} is not a valid image`
+          : `${file.name} no es una imagen válida`
+        );
         return false;
       }
       return true;
@@ -113,7 +120,10 @@ export default function PhotoUploader({
       onPhotosChange(updatedFiles);
     } catch (error) {
       console.error('Error procesando imágenes:', error);
-      alert('Error al procesar las imágenes. Intenta subirlas de nuevo.');
+      alert(language === 'en'
+        ? 'Error processing images. Please try again.'
+        : 'Error al procesar las imágenes. Intenta subirlas de nuevo.'
+      );
     } finally {
       setCompressing(false);
       // Reset input
@@ -156,7 +166,10 @@ export default function PhotoUploader({
               files.length >= maxPhotos || compressing ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600'
             }`}
           >
-            {compressing ? `⏳ ${currentLanguage === 'en' ? 'Compressing...' : 'Comprimiendo...'}` : `➕ ${t('photoUploader.addButton')}`}
+            {compressing 
+              ? `⏳ ${language === 'en' ? 'Compressing...' : 'Comprimiendo...'}` 
+              : `➕ ${t('photoUploader.addButton')}`
+            }
           </span>
         </label>
       </div>
@@ -207,7 +220,10 @@ export default function PhotoUploader({
           {/* Advertencia si no hay suficientes fotos */}
           {files.length < minPhotos && (
             <p className="text-xs mt-2 text-red-600">
-              ⚠️ {currentLanguage === 'en' ? `Minimum ${minPhotos} photos required` : `Mínimo ${minPhotos} fotos requeridas`}
+              ⚠️ {language === 'en' 
+                ? `Minimum ${minPhotos} photos required` 
+                : `Mínimo ${minPhotos} fotos requeridas`
+              }
             </p>
           )}
         </div>
@@ -226,7 +242,10 @@ export default function PhotoUploader({
               {t('photoUploader.clickToUpload')}
             </p>
             <p className="text-xs text-gray-400">
-              {currentLanguage === 'en' ? `Minimum ${minPhotos} photos • Maximum ${maxPhotos} photos` : `Mínimo ${minPhotos} fotos • Máximo ${maxPhotos} fotos`}
+              {language === 'en' 
+                ? `Minimum ${minPhotos} photos • Maximum ${maxPhotos} photos` 
+                : `Mínimo ${minPhotos} fotos • Máximo ${maxPhotos} fotos`
+              }
             </p>
             <p className="text-xs text-gray-400">
               {t('photoUploader.autoCompress')}

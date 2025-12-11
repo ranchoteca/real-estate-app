@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useI18nStore } from '@/lib/i18n-store';
 
 interface VoiceRecorderProps {
   onRecordingComplete: (audioBlob: Blob) => void;
@@ -13,6 +15,8 @@ export default function VoiceRecorder({
   minDuration = 10,
   maxDuration = 120 
 }: VoiceRecorderProps) {
+  const { t } = useTranslation();
+  const { language } = useI18nStore();
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -87,7 +91,7 @@ export default function VoiceRecorder({
 
     } catch (err) {
       console.error('Error al acceder al micrófono:', err);
-      setError('No se pudo acceder al micrófono. Verifica los permisos.');
+      setError(t('voiceRecorder.microphoneError'));
     }
   };
 
@@ -141,6 +145,21 @@ export default function VoiceRecorder({
 
   return (
     <div className="w-full">
+      {/* Descripción unificada arriba */}
+      <div className="mb-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl">💡</span>
+          <div>
+            <h4 className="font-bold text-blue-900 mb-1">
+              {t('voiceRecorder.instructionsTitle')}
+            </h4>
+            <p className="text-sm text-blue-700">
+              {t('voiceRecorder.instructionsText')}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-lg border-2 border-gray-200 p-6">
         {/* Error message */}
         {error && (
@@ -159,9 +178,12 @@ export default function VoiceRecorder({
                 <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
               </svg>
             </div>
-            <p className="text-gray-600 font-medium">Toca para grabar</p>
+            <p className="text-gray-600 font-medium">{t('voiceRecorder.tapToRecord')}</p>
             <p className="text-sm text-gray-400">
-              Mínimo {minDuration}s • Máximo {maxDuration}s
+              {language === 'en' 
+                ? `Minimum ${minDuration}s • Maximum ${maxDuration}s`
+                : `Mínimo ${minDuration}s • Máximo ${maxDuration}s`
+              }
             </p>
           </div>
         )}
@@ -198,31 +220,34 @@ export default function VoiceRecorder({
               {!isPaused ? (
                 <button
                   onClick={pauseRecording}
-                  className="px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
+                  className="px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-semibold"
                 >
-                  ⏸ Pausar
+                  ⏸ {t('voiceRecorder.pause')}
                 </button>
               ) : (
                 <button
                   onClick={resumeRecording}
-                  className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                  className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-semibold"
                 >
-                  ▶ Continuar
+                  ▶ {t('voiceRecorder.continue')}
                 </button>
               )}
               
               <button
                 onClick={stopRecording}
                 disabled={recordingTime < minDuration}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
               >
-                ⏹ Detener
+                ⏹ {t('voiceRecorder.stop')}
               </button>
             </div>
 
             {recordingTime < minDuration && (
-              <p className="text-sm text-amber-600">
-                Graba al menos {minDuration} segundos
+              <p className="text-sm text-amber-600 font-semibold">
+                {language === 'en'
+                  ? `Record at least ${minDuration} seconds`
+                  : `Graba al menos ${minDuration} segundos`
+                }
               </p>
             )}
           </div>
@@ -235,32 +260,27 @@ export default function VoiceRecorder({
               <audio controls src={audioURL} className="w-full" />
             </div>
             
-            <div className="text-sm text-gray-600">
-              Duración: {formatTime(recordingTime)}
+            <div className="text-sm text-gray-600 font-semibold">
+              {t('voiceRecorder.duration')}: {formatTime(recordingTime)}
             </div>
 
             <div className="flex gap-3">
               <button
                 onClick={deleteRecording}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-semibold"
               >
-                🗑️ Eliminar
+                🗑️ {t('voiceRecorder.delete')}
               </button>
               <button
                 onClick={startRecording}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold"
               >
-                🔄 Volver a grabar
+                🔄 {t('voiceRecorder.recordAgain')}
               </button>
             </div>
           </div>
         )}
       </div>
-
-      {/* Info adicional */}
-      <p className="mt-3 text-xs text-gray-500 text-center">
-        💡 Describe la propiedad con todos los detalles: ubicación, habitaciones, características especiales, precio, etc.
-      </p>
     </div>
   );
 }

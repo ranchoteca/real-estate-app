@@ -433,5 +433,17 @@
     "principal": "Main",
     "new": "New",
     "minRequired": "Minimum {{min}} photos required"
+  },
+  "voiceRecorder": {
+    "instructionsTitle": "Recording instructions",
+    "instructionsText": "Describe the property with all details: location, bedrooms, special features, amenities, property condition, price, and any relevant information. Speak clearly and in detail so the AI can generate the best possible description.",
+    "microphoneError": "Could not access microphone. Check permissions.",
+    "tapToRecord": "Tap to record",
+    "pause": "Pause",
+    "continue": "Continue",
+    "stop": "Stop",
+    "duration": "Duration",
+    "delete": "Delete",
+    "recordAgain": "Record again"
   }
 }

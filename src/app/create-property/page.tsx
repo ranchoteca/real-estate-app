@@ -8,6 +8,7 @@ import VoiceRecorder from '@/components/property/VoiceRecorder';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
 import MobileLayout from '@/components/MobileLayout';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useI18nStore } from '@/lib/i18n-store';
 
 import { SUPPORTED_COUNTRIES, CountryCode } from '@/lib/google-maps-config';
 
@@ -54,6 +55,7 @@ export default function CreatePropertyPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { t } = useTranslation();
+  const { language } = useI18nStore();
 
   // Step 1: Photos
   const [photos, setPhotos] = useState<File[]>([]);
@@ -63,7 +65,7 @@ export default function CreatePropertyPage() {
   // Step 2: Property Configuration
   const [propertyType, setPropertyType] = useState<string>('house');
   const [listingType, setListingType] = useState<string>('sale');
-  const [propertyLanguage, setPropertyLanguage] = useState<'es' | 'en'>('es');
+  const [propertyLanguage, setPropertyLanguage] = useState<'es' | 'en'>(language);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
 
@@ -92,10 +94,10 @@ export default function CreatePropertyPage() {
     }
   }, [status, router]);
 
+  // Sincronizar propertyLanguage con el idioma de la interfaz
   useEffect(() => {
-    const currentLang = (localStorage.getItem('language') as 'es' | 'en') || 'es';
-    setPropertyLanguage(currentLang);
-  }, []);
+    setPropertyLanguage(language);
+  }, [language]);
 
   // Cargar divisas y divisa por defecto del agente
   useEffect(() => {
@@ -511,7 +513,7 @@ export default function CreatePropertyPage() {
   };
 
   const getFieldName = (field: CustomField): string => {
-    if (propertyLanguage === 'en' && field.field_name_en) {
+    if (language === 'en' && field.field_name_en) {
       return field.field_name_en;
     }
     return field.field_name;
@@ -616,8 +618,13 @@ export default function CreatePropertyPage() {
 
               {/* Selector de idioma de la propiedad */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   🌐 {t('createProperty.propertyLanguage')}
+                  {propertyLanguage === language && (
+                    <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-semibold">
+                      Default
+                    </span>
+                  )}
                 </label>
                 <select
                   value={propertyLanguage}

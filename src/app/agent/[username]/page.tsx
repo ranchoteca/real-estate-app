@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useI18nStore } from '@/lib/i18n-store';
 
 interface Agent {
   id: string;
@@ -32,21 +34,23 @@ interface Property {
   language: 'es' | 'en';
 }
 
-const translatePropertyType = (type: string | null): string => {
-  const translations: Record<string, string> = {
-    house: 'Casa',
-    condo: 'Condominio',
-    apartment: 'Apartamento',
-    land: 'Terreno',
-    commercial: 'Comercial',
+const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string => {
+  const translations: Record<string, Record<'es' | 'en', string>> = {
+    house: { es: 'Casa', en: 'House' },
+    condo: { es: 'Condominio', en: 'Condo' },
+    apartment: { es: 'Apartamento', en: 'Apartment' },
+    land: { es: 'Terreno', en: 'Land' },
+    commercial: { es: 'Comercial', en: 'Commercial' },
   };
-  return type ? translations[type] || type : 'Propiedad';
+  return type ? (translations[type]?.[lang] || type) : (lang === 'en' ? 'Property' : 'Propiedad');
 };
 
 export default function AgentPortfolioPage() {
   const params = useParams();
   const router = useRouter();
   const username = params.username as string;
+  const { t } = useTranslation();
+  const { language } = useI18nStore();
 
   const [agent, setAgent] = useState<Agent | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -68,9 +72,9 @@ export default function AgentPortfolioPage() {
       
       if (!response.ok) {
         if (response.status === 404) {
-          setError('Agente no encontrado');
+          setError(language === 'en' ? 'Agent not found' : 'Agente no encontrado');
         } else {
-          setError('Error al cargar el portfolio');
+          setError(language === 'en' ? 'Error loading portfolio' : 'Error al cargar el portfolio');
         }
         return;
       }
@@ -80,14 +84,14 @@ export default function AgentPortfolioPage() {
       setProperties(data.properties);
     } catch (err) {
       console.error('Error loading portfolio:', err);
-      setError('Error al cargar el portfolio');
+      setError(language === 'en' ? 'Error loading portfolio' : 'Error al cargar el portfolio');
     } finally {
       setLoading(false);
     }
   };
 
   const formatPrice = (price: number | null) => {
-    if (!price) return 'Precio a consultar';
+    if (!price) return language === 'en' ? 'Price upon request' : 'Precio a consultar';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -120,7 +124,9 @@ export default function AgentPortfolioPage() {
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5EAD3' }}>
         <div className="text-center">
           <div className="text-5xl mb-4 animate-pulse">👤</div>
-          <div className="text-xl" style={{ color: '#0F172A' }}>Cargando portfolio...</div>
+          <div className="text-xl" style={{ color: '#0F172A' }}>
+            {language === 'en' ? 'Loading portfolio...' : 'Cargando portfolio...'}
+          </div>
         </div>
       </div>
     );
@@ -132,14 +138,14 @@ export default function AgentPortfolioPage() {
         <div className="text-center px-6">
           <div className="text-5xl mb-4">❌</div>
           <h1 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
-            {error || 'Agente no encontrado'}
+            {error || (language === 'en' ? 'Agent not found' : 'Agente no encontrado')}
           </h1>
           <button
             onClick={() => router.push('/')}
             className="mt-6 px-6 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform hover:opacity-90"
             style={{ backgroundColor: '#2563EB' }}
           >
-            ← Volver al inicio
+            ← {language === 'en' ? 'Back to home' : 'Volver al inicio'}
           </button>
         </div>
       </div>
@@ -160,7 +166,7 @@ export default function AgentPortfolioPage() {
               onClick={() => router.push('/')}
               className="text-white hover:opacity-80 font-semibold transition-opacity"
             >
-              Inicio
+              {language === 'en' ? 'Home' : 'Inicio'}
             </button>
           </div>
         </div>
@@ -173,19 +179,19 @@ export default function AgentPortfolioPage() {
             const url = window.location.href;
             if (navigator.share) {
               navigator.share({
-                title: `Portfolio de ${agent.full_name || agent.name}`,
-                text: `Mira mis propiedades en venta`,
+                title: `Portfolio ${language === 'en' ? 'of' : 'de'} ${agent.full_name || agent.name}`,
+                text: language === 'en' ? 'Check out my properties for sale' : 'Mira mis propiedades en venta',
                 url: url,
               });
             } else {
               navigator.clipboard.writeText(url);
-              alert('¡Link copiado!');
+              alert(language === 'en' ? 'Link copied!' : '¡Link copiado!');
             }
           }}
           className="w-full py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 hover:opacity-90"
           style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}
         >
-          <span>📤</span> Compartir Mi Portfolio
+          <span>📤</span> {language === 'en' ? 'Share My Portfolio' : 'Compartir Mi Portfolio'}
         </button>
       </div>
 
@@ -240,10 +246,10 @@ export default function AgentPortfolioPage() {
                         className="px-4 lg:px-5 py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform hover:opacity-90"
                         style={{ backgroundColor: '#2563EB' }}
                       >
-                        📞 Llamar
+                        📞 {language === 'en' ? 'Call' : 'Llamar'}
                       </a>
                       <a
-                        href={`https://wa.me/${agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent('Hola, vi tu portfolio y me interesa contactarte')}`}
+                        href={`https://wa.me/${agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(language === 'en' ? 'Hi, I saw your portfolio and I\'m interested in contacting you' : 'Hola, vi tu portfolio y me interesa contactarte')}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-4 lg:px-5 py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform hover:opacity-90"
@@ -254,7 +260,7 @@ export default function AgentPortfolioPage() {
                     </>
                   )}
                   <a
-                    href={`mailto:${agent.email}?subject=${encodeURIComponent('Consulta desde tu portfolio')}`}
+                    href={`mailto:${agent.email}?subject=${encodeURIComponent(language === 'en' ? 'Inquiry from your portfolio' : 'Consulta desde tu portfolio')}`}
                     className="px-4 lg:px-5 py-2 rounded-xl font-bold border-2 shadow-lg active:scale-95 transition-transform hover:bg-gray-50"
                     style={{ 
                       borderColor: '#2563EB',
@@ -270,19 +276,19 @@ export default function AgentPortfolioPage() {
                       const url = window.location.href;
                       if (navigator.share) {
                         navigator.share({
-                          title: `Portfolio de ${agent.full_name || agent.name}`,
-                          text: `Mira mis propiedades en venta`,
+                          title: `Portfolio ${language === 'en' ? 'of' : 'de'} ${agent.full_name || agent.name}`,
+                          text: language === 'en' ? 'Check out my properties for sale' : 'Mira mis propiedades en venta',
                           url: url,
                         });
                       } else {
                         navigator.clipboard.writeText(url);
-                        alert('¡Link copiado!');
+                        alert(language === 'en' ? 'Link copied!' : '¡Link copiado!');
                       }
                     }}
                     className="hidden lg:inline-flex px-4 lg:px-5 py-2 rounded-xl font-bold shadow-lg active:scale-95 transition-transform hover:opacity-90 items-center gap-2"
                     style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}
                   >
-                    <span>📤</span> Compartir Portfolio
+                    <span>📤</span> {language === 'en' ? 'Share Portfolio' : 'Compartir Portfolio'}
                   </button>
                 </div>
               </div>
@@ -295,7 +301,7 @@ export default function AgentPortfolioPage() {
                   {stats.total}
                 </div>
                 <div className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
-                  Propiedades
+                  {language === 'en' ? 'Properties' : 'Propiedades'}
                 </div>
               </div>
               <div className="text-center">
@@ -303,7 +309,7 @@ export default function AgentPortfolioPage() {
                   {stats.active}
                 </div>
                 <div className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
-                  Disponibles
+                  {language === 'en' ? 'Available' : 'Disponibles'}
                 </div>
               </div>
               <div className="text-center">
@@ -311,7 +317,7 @@ export default function AgentPortfolioPage() {
                   {stats.sold}
                 </div>
                 <div className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
-                  Vendidas
+                  {language === 'en' ? 'Sold' : 'Vendidas'}
                 </div>
               </div>
               <div className="text-center">
@@ -319,7 +325,7 @@ export default function AgentPortfolioPage() {
                   {stats.rented}
                 </div>
                 <div className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
-                  Alquiladas
+                  {language === 'en' ? 'Rented' : 'Alquiladas'}
                 </div>
               </div>
               <div className="text-center col-span-2 md:col-span-1">
@@ -327,7 +333,7 @@ export default function AgentPortfolioPage() {
                   {stats.totalViews}
                 </div>
                 <div className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
-                  Vistas Totales
+                  {language === 'en' ? 'Total Views' : 'Vistas Totales'}
                 </div>
               </div>
             </div>
@@ -341,10 +347,10 @@ export default function AgentPortfolioPage() {
           {/* Filter Tabs */}
           <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide">
             {[
-              { key: 'active', label: '🟢 Disponibles', count: stats.active },
-              { key: 'all', label: '📋 Todas', count: stats.total },
-              { key: 'sold', label: '✅ Vendidas', count: stats.sold },
-              { key: 'rented', label: '🔑 Alquiladas', count: stats.rented },
+              { key: 'active', label: language === 'en' ? '🟢 Available' : '🟢 Disponibles', count: stats.active },
+              { key: 'all', label: language === 'en' ? '📋 All' : '📋 Todas', count: stats.total },
+              { key: 'sold', label: language === 'en' ? '✅ Sold' : '✅ Vendidas', count: stats.sold },
+              { key: 'rented', label: language === 'en' ? '🔑 Rented' : '🔑 Alquiladas', count: stats.rented },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -365,7 +371,7 @@ export default function AgentPortfolioPage() {
           {/* Language Filter Tabs */}
           <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide">
             {[
-              { key: 'all', label: '🌐 Todos', count: properties.length },
+              { key: 'all', label: language === 'en' ? '🌐 All' : '🌐 Todos', count: properties.length },
               { key: 'es', label: '🇪🇸 Español', count: properties.filter(p => p.language === 'es').length },
               { key: 'en', label: '🇺🇸 English', count: properties.filter(p => p.language === 'en').length },
             ].map((tab) => (
@@ -393,7 +399,10 @@ export default function AgentPortfolioPage() {
             >
               <div className="text-5xl mb-4">🏘️</div>
               <p className="text-lg" style={{ color: '#0F172A' }}>
-                No hay propiedades {filter === 'active' ? 'disponibles' : filter === 'sold' ? 'vendidas' : filter === 'rented' ? 'alquiladas' : ''} aún
+                {language === 'en' 
+                  ? `No ${filter === 'active' ? 'available' : filter === 'sold' ? 'sold' : filter === 'rented' ? 'rented' : ''} properties yet`
+                  : `No hay propiedades ${filter === 'active' ? 'disponibles' : filter === 'sold' ? 'vendidas' : filter === 'rented' ? 'alquiladas' : ''} aún`
+                }
               </p>
             </div>
           ) : (
@@ -425,7 +434,12 @@ export default function AgentPortfolioPage() {
                       <span className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg ${
                         property.status === 'active' ? 'bg-green-500' : property.status === 'rented' ? 'bg-blue-500' : 'bg-gray-500'
                       }`}>
-                        {property.status === 'active' ? '● Disponible' : property.status === 'rented' ? '● Alquilada' : '● Vendida'}
+                        {property.status === 'active' 
+                          ? (language === 'en' ? '● Available' : '● Disponible')
+                          : property.status === 'rented' 
+                            ? (language === 'en' ? '● Rented' : '● Alquilada')
+                            : (language === 'en' ? '● Sold' : '● Vendida')
+                        }
                       </span>
                     </div>
                   </div>
@@ -454,7 +468,7 @@ export default function AgentPortfolioPage() {
                           backgroundColor: '#F5EAD3',
                           color: '#0F172A'
                         }}>
-                          🏡 {translatePropertyType(property.property_type)}
+                          🏡 {translatePropertyType(property.property_type, language)}
                         </span>
                       )}
                       {property.listing_type && (
@@ -462,15 +476,18 @@ export default function AgentPortfolioPage() {
                           backgroundColor: property.listing_type === 'rent' ? '#FEF3C7' : '#D1FAE5',
                           color: property.listing_type === 'rent' ? '#92400E' : '#065F46'
                         }}>
-                          {property.listing_type === 'rent' ? 'Alquiler' : 'Venta'}
+                          {property.listing_type === 'rent' 
+                            ? (language === 'en' ? 'Rent' : 'Alquiler')
+                            : (language === 'en' ? 'Sale' : 'Venta')
+                          }
                         </span>
                       )}
                     </div>
 
                     {/* Footer */}
                     <div className="flex justify-between items-center text-xs pt-3 border-t opacity-60" style={{ color: '#0F172A', borderTopColor: '#E5E7EB' }}>
-                      <span>👁️ {property.views} vistas</span>
-                      <span>{new Date(property.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</span>
+                      <span>👁️ {property.views} {language === 'en' ? 'views' : 'vistas'}</span>
+                      <span>{new Date(property.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'es-ES', { day: 'numeric', month: 'short' })}</span>
                     </div>
                   </div>
                 </div>
@@ -490,14 +507,20 @@ export default function AgentPortfolioPage() {
             </span>
           </div>
           <p className="text-sm opacity-60 mb-3" style={{ color: '#0F172A' }}>
-            Portfolio creado con Flow Estate AI
+            {language === 'en' 
+              ? 'Portfolio created with Flow Estate AI'
+              : 'Portfolio creado con Flow Estate AI'
+            }
           </p>
           <a
             href="/"
             className="text-sm font-semibold hover:opacity-70 transition-opacity"
             style={{ color: '#2563EB' }}
           >
-            Crea tu propio portfolio →
+            {language === 'en' 
+              ? 'Create your own portfolio →'
+              : 'Crea tu propio portfolio →'
+            }
           </a>
         </div>
       </footer>

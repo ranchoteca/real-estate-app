@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useI18nStore } from '@/lib/i18n-store';
 
 interface Agent {
   id: string;
@@ -45,12 +44,23 @@ const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string =
   return type ? (translations[type]?.[lang] || type) : (lang === 'en' ? 'Property' : 'Propiedad');
 };
 
+const detectBrowserLanguage = (): 'es' | 'en' => {
+  if (typeof window === 'undefined') return 'es';
+  const browserLang = navigator.language.toLowerCase();
+  return browserLang.startsWith('es') ? 'es' : 'en';
+};
+
 export default function AgentPortfolioPage() {
   const params = useParams();
   const router = useRouter();
   const username = params.username as string;
   const { t } = useTranslation();
-  const { language } = useI18nStore();
+  const [language, setLanguage] = useState<'es' | 'en'>('es');
+
+  // Detectar idioma del navegador al montar
+  useEffect(() => {
+    setLanguage(detectBrowserLanguage());
+  }, []);
 
   const [agent, setAgent] = useState<Agent | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -372,8 +382,8 @@ export default function AgentPortfolioPage() {
           <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide">
             {[
               { key: 'all', label: language === 'en' ? '🌐 All' : '🌐 Todos', count: properties.length },
-              { key: 'es', label: '🇪🇸 Español', count: properties.filter(p => p.language === 'es').length },
-              { key: 'en', label: '🇺🇸 English', count: properties.filter(p => p.language === 'en').length },
+              { key: 'es', label: '🇪🇸 ES • Español', count: properties.filter(p => p.language === 'es').length },
+              { key: 'en', label: '🇺🇸 EN • English', count: properties.filter(p => p.language === 'en').length },
             ].map((tab) => (
               <button
                 key={tab.key}

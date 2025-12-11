@@ -32,6 +32,7 @@ interface Property {
   views: number;
   created_at: string;
   listing_type: 'rent' | 'sale';
+  language: 'es' | 'en'; // ⬅️ IMPORTANTE: idioma de la propiedad
   latitude: number | null;
   longitude: number | null;
   show_map: boolean;
@@ -51,25 +52,36 @@ interface CustomField {
   id: string;
   field_key: string;   
   field_name: string;
+  field_name_en: string | null; // ⬅️ Agregado para bilingüe
   field_type: 'text' | 'number';
   icon: string;
 }
 
-const translatePropertyType = (type: string | null): string => {
-  const translations: Record<string, string> = {
-    house: 'Casa',
-    condo: 'Condominio',
-    apartment: 'Apartamento',
-    land: 'Terreno',
-    commercial: 'Comercial',
+// Detectar idioma del navegador del visitante
+const detectBrowserLanguage = (): 'es' | 'en' => {
+  if (typeof window === 'undefined') return 'es';
+  const browserLang = navigator.language.toLowerCase();
+  return browserLang.startsWith('es') ? 'es' : 'en';
+};
+
+const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string => {
+  const translations: Record<string, Record<'es' | 'en', string>> = {
+    house: { es: 'Casa', en: 'House' },
+    condo: { es: 'Condominio', en: 'Condo' },
+    apartment: { es: 'Apartamento', en: 'Apartment' },
+    land: { es: 'Terreno', en: 'Land' },
+    commercial: { es: 'Comercial', en: 'Commercial' },
   };
-  return type ? translations[type] || type : 'Propiedad';
+  return type ? (translations[type]?.[lang] || type) : (lang === 'en' ? 'Property' : 'Propiedad');
 };
 
 export default function PropertyPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
+
+  // Detectar idioma del navegador del visitante (NO de la propiedad)
+  const [interfaceLang, setInterfaceLang] = useState<'es' | 'en'>('es');
 
   const [property, setProperty] = useState<Property | null>(null);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
@@ -81,6 +93,11 @@ export default function PropertyPage() {
   const [currency, setCurrency] = useState<any>(null);
 
   const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Detectar idioma del navegador al montar
+  useEffect(() => {
+    setInterfaceLang(detectBrowserLanguage());
+  }, []);
 
   useEffect(() => {
     if (slug) {
@@ -106,9 +123,9 @@ export default function PropertyPage() {
       
       if (!response.ok) {
         if (response.status === 404) {
-          setError('Propiedad no encontrada');
+          setError(interfaceLang === 'en' ? 'Property not found' : 'Propiedad no encontrada');
         } else {
-          setError('Error al cargar la propiedad');
+          setError(interfaceLang === 'en' ? 'Error loading property' : 'Error al cargar la propiedad');
         }
         return;
       }
@@ -129,7 +146,7 @@ export default function PropertyPage() {
       }
     } catch (err) {
       console.error('Error loading property:', err);
-      setError('Error al cargar la propiedad');
+      setError(interfaceLang === 'en' ? 'Error loading property' : 'Error al cargar la propiedad');
     } finally {
       setLoading(false);
     }
@@ -178,8 +195,18 @@ export default function PropertyPage() {
     return property.custom_fields_data[fieldKey] || null;
   };
 
+  const getCustomFieldName = (field: CustomField): string => {
+    // Los campos personalizados se muestran según el idioma de la PROPIEDAD
+    if (property?.language === 'en' && field.field_name_en) {
+      return field.field_name_en;
+    }
+    return field.field_name;
+  };
+
   const formatPrice = (price: number | null) => {
-    if (!price) return 'Precio a consultar';
+    if (!price) {
+      return interfaceLang === 'en' ? 'Price upon request' : 'Precio a consultar';
+    }
     
     const symbol = currency?.symbol || '$';
     
@@ -191,7 +218,7 @@ export default function PropertyPage() {
 
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
-    alert('¡Link copiado!');
+    alert(interfaceLang === 'en' ? 'Link copied!' : '¡Link copiado!');
     setShowShareMenu(false);
   };
 
@@ -219,11 +246,17 @@ export default function PropertyPage() {
 
   if (loading) {
     return (
-      <MobileLayout title="Cargando..." showBack={true} showTabs={false}>
+      <MobileLayout 
+        title={interfaceLang === 'en' ? 'Loading...' : 'Cargando...'} 
+        showBack={true} 
+        showTabs={false}
+      >
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">🏠</div>
-            <div className="text-lg" style={{ color: '#0F172A' }}>Cargando propiedad...</div>
+            <div className="text-lg" style={{ color: '#0F172A' }}>
+              {interfaceLang === 'en' ? 'Loading property...' : 'Cargando propiedad...'}
+            </div>
           </div>
         </div>
       </MobileLayout>
@@ -237,14 +270,14 @@ export default function PropertyPage() {
           <div className="text-center px-6">
             <div className="text-5xl mb-4">❌</div>
             <h1 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
-              {error || 'Propiedad no encontrada'}
+              {error || (interfaceLang === 'en' ? 'Property not found' : 'Propiedad no encontrada')}
             </h1>
             <button
               onClick={() => router.push('/')}
               className="mt-6 px-6 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform"
               style={{ backgroundColor: '#2563EB' }}
             >
-              ← Volver al inicio
+              ← {interfaceLang === 'en' ? 'Back to home' : 'Volver al inicio'}
             </button>
           </div>
         </div>
@@ -262,7 +295,7 @@ export default function PropertyPage() {
   });
 
   return (
-    <MobileLayout title={property.city || 'Propiedad'} showBack={true} showTabs={false}>
+    <MobileLayout title={property.city || (interfaceLang === 'en' ? 'Property' : 'Propiedad')} showBack={true} showTabs={false}>
       {/* DESKTOP: Two Column Layout */}
       <div className="lg:max-w-7xl lg:mx-auto lg:px-6 lg:py-8">
         <div className="lg:grid lg:grid-cols-2 lg:gap-8">
@@ -376,7 +409,10 @@ export default function PropertyPage() {
                   backgroundColor: property.listing_type === 'rent' ? '#F59E0B' : '#10B981',
                   color: '#FFFFFF'
                 }}>
-                  {property.listing_type === 'rent' ? '🏠 Para Alquiler' : '💰 En Venta'}
+                  {property.listing_type === 'rent' 
+                    ? (interfaceLang === 'en' ? '🏠 For Rent' : '🏠 Para Alquiler')
+                    : (interfaceLang === 'en' ? '💰 For Sale' : '💰 En Venta')
+                  }
                 </div>
                 
                 {property.property_type && (
@@ -384,9 +420,17 @@ export default function PropertyPage() {
                     backgroundColor: '#F5EAD3',
                     color: '#0F172A'
                   }}>
-                    🏡 {translatePropertyType(property.property_type)}
+                    🏡 {translatePropertyType(property.property_type, interfaceLang)}
                   </div>
                 )}
+
+                {/* Badge de idioma de la propiedad */}
+                <div className="text-sm font-semibold px-3 py-1 rounded-full" style={{
+                  backgroundColor: '#DBEAFE',
+                  color: '#1E40AF'
+                }}>
+                  {property.language === 'es' ? '🇪🇸 Español' : '🇺🇸 English'}
+                </div>
               </div>
             </div>
 
@@ -398,7 +442,7 @@ export default function PropertyPage() {
               >
                 <h2 className="text-lg lg:text-xl font-bold mb-4 flex items-center gap-2" style={{ color: '#0F172A' }}>
                   <span>✨</span>
-                  Características Especiales
+                  {interfaceLang === 'en' ? 'Special Features' : 'Características Especiales'}
                 </h2>
                 
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
@@ -416,7 +460,7 @@ export default function PropertyPage() {
                       >
                         <div className="text-3xl mb-2">{field.icon || '🏷️'}</div>
                         <div className="text-xs font-semibold mb-1 opacity-90" style={{ color: '#FFFFFF' }}>
-                          {field.field_name}
+                          {getCustomFieldName(field)}
                         </div>
                         <div className="text-sm font-bold" style={{ color: '#FFFFFF' }}>
                           {value}
@@ -434,14 +478,17 @@ export default function PropertyPage() {
               style={{ backgroundColor: '#FFFFFF' }}
             >
               <h2 className="text-lg lg:text-xl font-bold mb-3" style={{ color: '#0F172A' }}>
-                Descripción
+                {interfaceLang === 'en' ? 'Description' : 'Descripción'}
               </h2>
               <p className="whitespace-pre-line leading-relaxed opacity-90 text-sm lg:text-base" style={{ color: '#0F172A' }}>
                 {property.description}
               </p>
               
               <div className="mt-4 pt-4 border-t text-sm opacity-60" style={{ color: '#0F172A', borderTopColor: '#E5E7EB' }}>
-                👁️ {property.views} personas vieron esta propiedad
+                👁️ {property.views} {interfaceLang === 'en' 
+                  ? (property.views === 1 ? 'person viewed this property' : 'people viewed this property')
+                  : (property.views === 1 ? 'persona vio esta propiedad' : 'personas vieron esta propiedad')
+                }
               </div>
             </div>
 
@@ -452,7 +499,7 @@ export default function PropertyPage() {
                 style={{ backgroundColor: '#FFFFFF' }}
               >
                 <h2 className="text-lg lg:text-xl font-bold mb-3" style={{ color: '#0F172A' }}>
-                  📍 Ubicación
+                  📍 {interfaceLang === 'en' ? 'Location' : 'Ubicación'}
                 </h2>
                 <GoogleMapEditor
                   address={property.address || ''}
@@ -480,16 +527,15 @@ export default function PropertyPage() {
               onClick={async () => {
                 setIsGeneratingPDF(true);
                 try {
-                  // Cargar campos personalizados (ya tenemos customFields en el estado)
                   const { exportPropertyToPDF } = await import('@/lib/exportPDF');
                   await exportPropertyToPDF(
                     property,
                     property.agent,
-                    customFields // ⬅️ Ya están cargados en el estado
+                    customFields
                   );
                 } catch (error) {
                   console.error('Error generando PDF:', error);
-                  alert('Error al generar el PDF');
+                  alert(interfaceLang === 'en' ? 'Error generating PDF' : 'Error al generar el PDF');
                 } finally {
                   setIsGeneratingPDF(false);
                 }
@@ -501,7 +547,7 @@ export default function PropertyPage() {
                 backgroundColor: '#FFFFFF'
               }}
             >
-              <span>📄</span> Descargar como PDF
+              <span>📄</span> {interfaceLang === 'en' ? 'Download as PDF' : 'Descargar como PDF'}
             </button>
 
             {/* Agent Card */}
@@ -510,7 +556,7 @@ export default function PropertyPage() {
               style={{ backgroundColor: '#FFFFFF' }}
             >
               <h3 className="text-lg lg:text-xl font-bold mb-4" style={{ color: '#0F172A' }}>
-                Agente
+                {interfaceLang === 'en' ? 'Agent' : 'Agente'}
               </h3>
 
               <div className="flex items-center gap-4 mb-5">
@@ -532,7 +578,7 @@ export default function PropertyPage() {
                 </div>
                 <div>
                   <div className="font-bold text-lg lg:text-xl" style={{ color: '#0F172A' }}>
-                    {property.agent.full_name || property.agent.name || 'Agente'}
+                    {property.agent.full_name || property.agent.name || (interfaceLang === 'en' ? 'Agent' : 'Agente')}
                   </div>
                   {property.agent.brokerage && (
                     <div className="text-sm lg:text-base opacity-70" style={{ color: '#0F172A' }}>
@@ -551,11 +597,15 @@ export default function PropertyPage() {
                       className="block w-full py-3 rounded-xl font-bold text-white text-center shadow-lg active:scale-95 transition-transform hover:opacity-90"
                       style={{ backgroundColor: '#2563EB' }}
                     >
-                      📞 Llamar
+                      📞 {interfaceLang === 'en' ? 'Call' : 'Llamar'}
                     </a>
                     
                     <a
-                      href={`https://wa.me/${property.agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa: ${property.title}`)}`}
+                      href={`https://wa.me/${property.agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                        interfaceLang === 'en' 
+                          ? `Hi, I'm interested in: ${property.title}`
+                          : `Hola, me interesa: ${property.title}`
+                      )}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="block w-full py-3 rounded-xl font-bold text-white text-center shadow-lg active:scale-95 transition-transform hover:opacity-90"
@@ -567,7 +617,11 @@ export default function PropertyPage() {
                 )}
 
                 <a
-                  href={`mailto:${property.agent.email}?subject=${encodeURIComponent(`Consulta: ${property.title}`)}`}
+                  href={`mailto:${property.agent.email}?subject=${encodeURIComponent(
+                    interfaceLang === 'en'
+                      ? `Inquiry: ${property.title}`
+                      : `Consulta: ${property.title}`
+                  )}`}
                   className="block w-full py-3 rounded-xl font-bold text-center border-2 shadow-lg active:scale-95 transition-transform hover:bg-gray-50"
                   style={{ 
                     borderColor: '#2563EB',
@@ -607,7 +661,7 @@ export default function PropertyPage() {
                 className="w-full px-4 py-3 text-left font-semibold rounded-xl hover:bg-gray-100 active:bg-gray-100 transition-colors flex items-center gap-3"
                 style={{ color: '#0F172A' }}
               >
-                <span>📱</span> Compartir
+                <span>📱</span> {interfaceLang === 'en' ? 'Share' : 'Compartir'}
               </button>
             )}
             <button
@@ -622,7 +676,7 @@ export default function PropertyPage() {
               className="w-full px-4 py-3 text-left font-semibold rounded-xl hover:bg-gray-100 active:bg-gray-100 transition-colors flex items-center gap-3"
               style={{ color: '#0F172A' }}
             >
-              <span>🔗</span> Copiar link
+              <span>🔗</span> {interfaceLang === 'en' ? 'Copy link' : 'Copiar link'}
             </button>
           </div>
         )}

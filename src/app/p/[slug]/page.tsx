@@ -6,6 +6,7 @@ import Image from 'next/image';
 import GeneratingPDFModal from '@/components/GeneratingPDFModal';
 import MobileLayout from '@/components/MobileLayout';
 import dynamic from 'next/dynamic';
+import { useI18nStore } from '@/lib/i18n-store';
 
 const GoogleMapEditor = dynamic(() => import('@/components/property/GoogleMapEditor'), {
   ssr: false,
@@ -80,9 +81,9 @@ export default function PropertyPage() {
   const router = useRouter();
   const slug = params.slug as string;
 
-  // Detectar idioma del navegador del visitante (NO de la propiedad)
+  const { language: pwaLanguage } = useI18nStore();
   const [interfaceLang, setInterfaceLang] = useState<'es' | 'en'>('es');
-
+  const [isInPWA, setIsInPWA] = useState(false);
   const [property, setProperty] = useState<Property | null>(null);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,10 +95,21 @@ export default function PropertyPage() {
 
   const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  // Detectar idioma del navegador al montar
   useEffect(() => {
-    setInterfaceLang(detectBrowserLanguage());
-  }, []);
+    // Detectar si es PWA instalada
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                  (window.navigator as any).standalone === true;
+    
+    setIsInPWA(isPWA);
+    
+    if (isPWA) {
+      // Si es PWA, usar el idioma configurado en la interfaz
+      setInterfaceLang(pwaLanguage);
+    } else {
+      // Si es navegador, detectar idioma del navegador
+      setInterfaceLang(detectBrowserLanguage());
+    }
+  }, [pwaLanguage]);
 
   useEffect(() => {
     if (slug) {

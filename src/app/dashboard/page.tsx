@@ -7,6 +7,8 @@ import GeneratingPDFModal from '@/components/GeneratingPDFModal';
 import FacebookPublishModal from '@/components/FacebookPublishModal';
 import MobileLayout from '@/components/MobileLayout';
 import Image from 'next/image';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useI18nStore } from '@/lib/i18n-store';
 
 interface Property {
   id: string;
@@ -25,43 +27,46 @@ interface Property {
   language: 'es' | 'en';
 }
 
-const translatePropertyType = (type: string | null): string => {
-  const translations: Record<string, string> = {
-    house: 'Casa',
-    condo: 'Condominio',
-    apartment: 'Apartamento',
-    land: 'Terreno',
-    commercial: 'Comercial',
+const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string => {
+  const translations: Record<string, Record<'es' | 'en', string>> = {
+    house: { es: 'Casa', en: 'House' },
+    condo: { es: 'Condominio', en: 'Condo' },
+    apartment: { es: 'Apartamento', en: 'Apartment' },
+    land: { es: 'Terreno', en: 'Land' },
+    commercial: { es: 'Comercial', en: 'Commercial' },
   };
-  return type ? translations[type] || type : 'Propiedad';
+  return type ? (translations[type]?.[lang] || type) : (lang === 'en' ? 'Property' : 'Propiedad');
 };
-
-const PROPERTY_TYPES = [
-  { value: '', label: 'Todos los tipos' },
-  { value: 'house', label: '🏠 Casa' },
-  { value: 'condo', label: '🏢 Condominio' },
-  { value: 'apartment', label: '🏘️ Apartamento' },
-  { value: 'land', label: '🌳 Terreno' },
-  { value: 'commercial', label: '🏪 Comercial' },
-];
-
-const STATUS_OPTIONS = [
-  { value: '', label: 'Todos los estados' },
-  { value: 'active', label: '● Disponible' },
-  { value: 'pending', label: '● Pendiente' },
-  { value: 'rented', label: '● Alquilada' },
-  { value: 'sold', label: '● Vendida' },
-];
-
-const LANGUAGE_OPTIONS = [
-  { value: '', label: 'Todos los idiomas' },
-  { value: 'es', label: '🇪🇸 Español' },
-  { value: 'en', label: '🇺🇸 English' },
-];
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useTranslation();
+  const { language } = useI18nStore();
+
+  const PROPERTY_TYPES = [
+    { value: '', label: language === 'en' ? 'All types' : 'Todos los tipos' },
+    { value: 'house', label: '🏠 ' + (language === 'en' ? 'House' : 'Casa') },
+    { value: 'condo', label: '🏢 ' + (language === 'en' ? 'Condo' : 'Condominio') },
+    { value: 'apartment', label: '🏘️ ' + (language === 'en' ? 'Apartment' : 'Apartamento') },
+    { value: 'land', label: '🌳 ' + (language === 'en' ? 'Land' : 'Terreno') },
+    { value: 'commercial', label: '🏪 ' + (language === 'en' ? 'Commercial' : 'Comercial') },
+  ];
+
+  const STATUS_OPTIONS = [
+    { value: '', label: language === 'en' ? 'All statuses' : 'Todos los estados' },
+    { value: 'active', label: '● ' + (language === 'en' ? 'Available' : 'Disponible') },
+    { value: 'pending', label: '● ' + (language === 'en' ? 'Pending' : 'Pendiente') },
+    { value: 'rented', label: '● ' + (language === 'en' ? 'Rented' : 'Alquilada') },
+    { value: 'sold', label: '● ' + (language === 'en' ? 'Sold' : 'Vendida') },
+  ];
+
+  const LANGUAGE_OPTIONS = [
+    { value: '', label: language === 'en' ? 'All languages' : 'Todos los idiomas' },
+    { value: 'es', label: '🇪🇸 Español' },
+    { value: 'en', label: '🇺🇸 English' },
+  ];
+
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState<string | null>(null);
@@ -135,7 +140,10 @@ export default function DashboardPage() {
   const handleDeleteProperty = async (propertyId: string) => {
     setShowMenu(null);
     
-    if (!confirm('¿Eliminar esta propiedad?')) return;
+    if (!confirm(language === 'en' 
+      ? 'Delete this property?' 
+      : '¿Eliminar esta propiedad?'
+    )) return;
 
     try {
       const response = await fetch(`/api/property/delete/${propertyId}`, {
@@ -149,7 +157,10 @@ export default function DashboardPage() {
       loadProperties();
     } catch (error) {
       console.error('Error deleting property:', error);
-      alert('Error al eliminar la propiedad');
+      alert(language === 'en' 
+        ? 'Error deleting property'
+        : 'Error al eliminar la propiedad'
+      );
     }
   };
 
@@ -198,11 +209,13 @@ export default function DashboardPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <MobileLayout title="Mis Propiedades" showTabs={false}>
+      <MobileLayout title={language === 'en' ? 'My Properties' : 'Mis Propiedades'} showTabs={false}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">🏠</div>
-            <div className="text-lg" style={{ color: '#0F172A' }}>Cargando...</div>
+            <div className="text-lg" style={{ color: '#0F172A' }}>
+              {language === 'en' ? 'Loading...' : 'Cargando...'}
+            </div>
           </div>
         </div>
       </MobileLayout>
@@ -214,7 +227,7 @@ export default function DashboardPage() {
   }
 
   const formatPrice = (price: number | null, currencyId: string | null) => {
-    if (!price) return 'Precio a consultar';
+    if (!price) return language === 'en' ? 'Price upon request' : 'Precio a consultar';
     
     const currency = currencies.find(c => c.id === currencyId);
     const symbol = currency?.symbol || '$';
@@ -228,27 +241,30 @@ export default function DashboardPage() {
   const filteredProperties = getFilteredProperties();
 
   return (
-    <MobileLayout title="Mis Propiedades" showTabs={true}>
+    <MobileLayout title={language === 'en' ? 'My Properties' : 'Mis Propiedades'} showTabs={true}>
       {/* Stats Card */}
-      <div className="px-4 pt-4 pb-2">
+      <div className="px-4 pt-3 pb-2">
         <div 
-          className="rounded-2xl p-5 shadow-lg"
+          className="rounded-xl p-3 shadow-md"
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                Total propiedades
+              <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                {language === 'en' ? 'Total properties' : 'Total propiedades'}
               </p>
-              <p className="text-3xl font-bold mt-1" style={{ color: '#2563EB' }}>
+              <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>
                 {properties.length}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                {planInfo?.plan === 'free' ? 'Límite' : 'Este mes'}
+              <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                {planInfo?.plan === 'free' 
+                  ? (language === 'en' ? 'Limit' : 'Límite')
+                  : (language === 'en' ? 'This month' : 'Este mes')
+                }
               </p>
-              <p className="text-3xl font-bold mt-1" style={{ color: '#2563EB' }}>
+              <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>
                 {planInfo?.plan === 'free' 
                   ? `${properties.length} / 20`
                   : `${planInfo?.properties_this_month || 0} / 30`
@@ -260,14 +276,17 @@ export default function DashboardPage() {
           {planInfo?.plan === 'free' && properties.length >= 20 && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>
               <p className="text-sm mb-3" style={{ color: '#DC2626' }}>
-                ⚠️ Has alcanzado el límite. Elimina una propiedad o actualiza a Pro.
+                ⚠️ {language === 'en' 
+                  ? 'You have reached the limit. Delete a property or upgrade to Pro.'
+                  : 'Has alcanzado el límite. Elimina una propiedad o actualiza a Pro.'
+                }
               </p>
               <button
                 onClick={() => router.push('/pricing')}
                 className="w-full py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform"
                 style={{ backgroundColor: '#2563EB' }}
               >
-                Actualizar a Pro
+                {language === 'en' ? 'Upgrade to Pro' : 'Actualizar a Pro'}
               </button>
             </div>
           )}
@@ -281,7 +300,7 @@ export default function DashboardPage() {
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <h3 className="font-bold text-sm" style={{ color: '#0F172A' }}>
-            🔍 Filtrar Propiedades
+            🔍 {language === 'en' ? 'Filter Properties' : 'Filtrar Propiedades'}
           </h3>
 
           {/* Search Input */}
@@ -290,7 +309,7 @@ export default function DashboardPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por título, ciudad o estado..."
+              placeholder={language === 'en' ? 'Search by title, city or state...' : 'Buscar por título, ciudad o estado...'}
               className="w-full px-4 py-2.5 rounded-xl border-2 focus:outline-none text-sm"
               style={{ 
                 borderColor: '#E5E7EB',
@@ -301,7 +320,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Filter Selects */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-2">
             <select
               value={filterPropertyType}
               onChange={(e) => setFilterPropertyType(e.target.value)}
@@ -355,7 +374,7 @@ export default function DashboardPage() {
               className="text-sm font-semibold underline"
               style={{ color: '#2563EB' }}
             >
-              Limpiar filtros
+              {language === 'en' ? 'Clear filters' : 'Limpiar filtros'}
             </button>
           )}
 
@@ -369,8 +388,8 @@ export default function DashboardPage() {
               }}
             >
               {filteredProperties.length === 0 
-                ? '❌ No hay coincidencias' 
-                : `✓ ${filteredProperties.length} ${filteredProperties.length === 1 ? 'resultado' : 'resultados'}`
+                ? (language === 'en' ? '❌ No matches' : '❌ No hay coincidencias')
+                : `✓ ${filteredProperties.length} ${language === 'en' ? (filteredProperties.length === 1 ? 'result' : 'results') : (filteredProperties.length === 1 ? 'resultado' : 'resultados')}`
               }
             </div>
           )}
@@ -391,17 +410,20 @@ export default function DashboardPage() {
               <span className="text-2xl">⚠️</span>
               <div className="flex-1">
                 <p className="font-semibold mb-1" style={{ color: '#0F172A' }}>
-                  Sin créditos
+                  {language === 'en' ? 'No credits' : 'Sin créditos'}
                 </p>
                 <p className="text-sm mb-3 opacity-80" style={{ color: '#0F172A' }}>
-                  Compra más créditos para crear listings
+                  {language === 'en' 
+                    ? 'Buy more credits to create listings'
+                    : 'Compra más créditos para crear listings'
+                  }
                 </p>
                 <button
                   onClick={() => router.push('/credits')}
                   className="w-full py-2.5 rounded-xl font-semibold text-white shadow-md active:scale-95 transition-transform"
                   style={{ backgroundColor: '#F59E0B' }}
                 >
-                  Comprar Créditos
+                  {language === 'en' ? 'Buy Credits' : 'Comprar Créditos'}
                 </button>
               </div>
             </div>
@@ -420,12 +442,19 @@ export default function DashboardPage() {
               {hasActiveFilters ? '🔍' : '🏘️'}
             </div>
             <h3 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>
-              {hasActiveFilters ? 'Sin coincidencias' : 'Sin propiedades'}
+              {hasActiveFilters 
+                ? (language === 'en' ? 'No matches' : 'Sin coincidencias')
+                : (language === 'en' ? 'No properties' : 'Sin propiedades')
+              }
             </h3>
             <p className="opacity-70 mb-6" style={{ color: '#0F172A' }}>
               {hasActiveFilters 
-                ? 'No se encontraron propiedades con los filtros seleccionados'
-                : 'Crea tu primera propiedad con IA'
+                ? (language === 'en' 
+                    ? 'No properties found with the selected filters'
+                    : 'No se encontraron propiedades con los filtros seleccionados')
+                : (language === 'en'
+                    ? 'Create your first property with AI'
+                    : 'Crea tu primera propiedad con IA')
               }
             </p>
             {hasActiveFilters ? (
@@ -438,7 +467,7 @@ export default function DashboardPage() {
                   backgroundColor: '#FFFFFF'
                 }}
               >
-                Limpiar filtros
+                {language === 'en' ? 'Clear filters' : 'Limpiar filtros'}
               </button>
             ) : (
               <button
@@ -447,7 +476,7 @@ export default function DashboardPage() {
                 className="w-full py-3 rounded-xl font-semibold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
                 style={{ backgroundColor: '#2563EB' }}
               >
-                ➕ Crear Propiedad
+                ➕ {language === 'en' ? 'Create Property' : 'Crear Propiedad'}
               </button>
             )}
           </div>
@@ -483,7 +512,12 @@ export default function DashboardPage() {
                   <span className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg ${
                       property.status === 'active' ? 'bg-green-500' : property.status === 'rented' ? 'bg-blue-500' : 'bg-gray-500'
                     }`}>
-                    {property.status === 'active' ? '● Disponible' : property.status === 'rented' ? '● Alquilada' : '● Vendida'}
+                    {property.status === 'active' 
+                      ? (language === 'en' ? '● Available' : '● Disponible')
+                      : property.status === 'rented' 
+                        ? (language === 'en' ? '● Rented' : '● Alquilada')
+                        : (language === 'en' ? '● Sold' : '● Vendida')
+                    }
                   </span>
                 </div>
 
@@ -516,7 +550,7 @@ export default function DashboardPage() {
                       className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2"
                       style={{ color: '#0F172A' }}
                     >
-                      <span>✏️</span> Editar
+                      <span>✏️</span> {language === 'en' ? 'Edit' : 'Editar'}
                     </button>
                     <button
                       onClick={(e) => {
@@ -526,7 +560,7 @@ export default function DashboardPage() {
                       className="w-full px-4 py-3 text-left font-semibold active:bg-red-50 transition-colors flex items-center gap-2 border-t"
                       style={{ color: '#DC2626', borderTopColor: '#F3F4F6' }}
                     >
-                      <span>🗑️</span> Eliminar
+                      <span>🗑️</span> {language === 'en' ? 'Delete' : 'Eliminar'}
                     </button>
                     <button
                       onClick={async (e) => {
@@ -577,7 +611,7 @@ export default function DashboardPage() {
                       className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
                       style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
                     >
-                      <span>📄</span> Exportar PDF
+                      <span>📄</span> {language === 'en' ? 'Export PDF' : 'Exportar PDF'}
                     </button>
                     <button
                       onClick={(e) => {
@@ -589,7 +623,7 @@ export default function DashboardPage() {
                       className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
                       style={{ color: '#1877F2', borderTopColor: '#F3F4F6' }}
                     >
-                      <span>📘</span> Publicar en Facebook
+                      <span>📘</span> {language === 'en' ? 'Publish on Facebook' : 'Publicar en Facebook'}
                     </button>
                   </div>
                 )}
@@ -621,19 +655,28 @@ export default function DashboardPage() {
                     backgroundColor: '#F5EAD3',
                     color: '#0F172A'
                   }}>
-                    🏡 {translatePropertyType(property.property_type)}
+                    🏡 {translatePropertyType(property.property_type, language)}
                   </span>
                   <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{
                     backgroundColor: property.listing_type === 'rent' ? '#FEF3C7' : '#D1FAE5',
                     color: property.listing_type === 'rent' ? '#92400E' : '#065F46'
                   }}>
-                    {property.listing_type === 'rent' ? 'Alquiler' : 'Venta'}
+                    {property.listing_type === 'rent' 
+                      ? (language === 'en' ? 'Rent' : 'Alquiler')
+                      : (language === 'en' ? 'Sale' : 'Venta')
+                    }
+                  </span>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{
+                    backgroundColor: '#DBEAFE',
+                    color: '#1E40AF'
+                  }}>
+                    {property.language === 'es' ? '🇪🇸' : '🇺🇸'}
                   </span>
                 </div>
 
                 {/* Footer */}
                 <div className="flex justify-between items-center text-xs pt-3 border-t opacity-60" style={{ color: '#0F172A', borderTopColor: '#E5E7EB' }}>
-                  <span>👁️ {property.views} vistas</span>
+                  <span>👁️ {property.views} {language === 'en' ? 'views' : 'vistas'}</span>
                   <span>{new Date(property.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</span>
                 </div>
               </div>

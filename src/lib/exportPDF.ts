@@ -26,13 +26,17 @@ interface AgentInfo {
   watermark_size?: 'small' | 'medium' | 'large';
 }
 
-export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo, customFieldsDefinitions?: any[]) {
+export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo, customFieldsDefinitions?: any[], propertyLanguage?: 'es' | 'en') {
   console.log('🚀 Iniciando exportación de PDF...');
   console.log('📦 Propiedad:', property.title);
   console.log('👤 Agente (parámetro):', agentParam);
 
   // Cargar información del agente desde la API
   let agent: AgentInfo | undefined = agentParam || property.agent;
+
+  // Detectar idioma de la propiedad
+  const lang = propertyLanguage || property.language || 'es';
+  console.log('🌐 Idioma del PDF:', lang);
 
   console.log('✅ Usando agente desde parámetros/propiedad');
 
@@ -43,23 +47,64 @@ export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo,
     brokerage: agent?.brokerage || 'NO DISPONIBLE',
   });
 
+  // Traducciones
+  const translations = {
+    es: {
+      forSale: 'EN VENTA',
+      forRent: 'EN ALQUILER',
+      priceOnRequest: 'Precio a consultar',
+      bedrooms: 'Habitaciones',
+      bathrooms: 'Baños',
+      sqft: 'pies²',
+      propertyType: 'TIPO DE PROPIEDAD:',
+      realEstateAgent: 'AGENTE INMOBILIARIO',
+      poweredBy: 'Powered by Flow Estate AI',
+      propertyFeatures: 'CARACTERÍSTICAS DE LA PROPIEDAD',
+      description: 'DESCRIPCIÓN',
+      location: 'UBICACIÓN',
+      scanToView: 'Escanear para ver',
+      photoGallery: 'GALERÍA DE FOTOS',
+      tel: 'Tel',
+      email: 'Email',
+    },
+    en: {
+      forSale: 'FOR SALE',
+      forRent: 'FOR RENT',
+      priceOnRequest: 'Price upon request',
+      bedrooms: 'Bedrooms',
+      bathrooms: 'Bathrooms',
+      sqft: 'sqft',
+      propertyType: 'PROPERTY TYPE:',
+      realEstateAgent: 'REAL ESTATE AGENT',
+      poweredBy: 'Powered by Flow Estate AI',
+      propertyFeatures: 'PROPERTY FEATURES',
+      description: 'DESCRIPTION',
+      location: 'LOCATION',
+      scanToView: 'Scan to view',
+      photoGallery: 'PHOTO GALLERY',
+      tel: 'Tel',
+      email: 'Email',
+    }
+  };
+
+  const t = translations[lang as keyof typeof translations];
+
   const pdf = new jsPDF('p', 'mm', 'a4');
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = 15;
 
   // PÁGINA 1: PORTADA
-  await createCompactCoverPage(pdf, property, agent, pageWidth, pageHeight, margin);
+  await createCompactCoverPage(pdf, property, agent, pageWidth, pageHeight, margin, t, lang);
 
   // PÁGINA 2: DETALLES Y DESCRIPCIÓN
   pdf.addPage();
-  // DESPUÉS:
-  await createCompactDetailsPage(pdf, property, agent, pageWidth, pageHeight, margin, customFieldsDefinitions);
+  await createCompactDetailsPage(pdf, property, agent, pageWidth, pageHeight, margin, customFieldsDefinitions, t);
 
   // PÁGINA 3: GALERÍA DE FOTOS (1 portada + 6 galería = 7 total)
   if (property.photos && property.photos.length > 1) {
     pdf.addPage();
-    await createCompactGalleryPage(pdf, property, agent, pageWidth, pageHeight, margin);
+    await createCompactGalleryPage(pdf, property, agent, pageWidth, pageHeight, margin, t);
   }
 
   // Guardar PDF
@@ -128,7 +173,9 @@ async function createCompactCoverPage(
   agent: AgentInfo | undefined,
   pageWidth: number,
   pageHeight: number,
-  margin: number
+  margin: number,
+  t: any,
+  lang: 'es' | 'en'
 ) {
   // Imagen principal (2/3 superior de la página)
   const imageHeight = pageHeight * 0.65;
@@ -140,9 +187,9 @@ async function createCompactCoverPage(
       
       // Overlay oscuro degradado
       pdf.setFillColor(0, 0, 0);
-      pdf.setGState(new pdf.GState({ opacity: 0.5 }));
+      pdf.setGState(new (pdf as any).GState({ opacity: 0.5 }));
       pdf.rect(0, imageHeight - 80, pageWidth, 80, 'F');
-      pdf.setGState(new pdf.GState({ opacity: 1 }));
+      pdf.setGState(new (pdf as any).GState({ opacity: 1 }));
     } catch (err) {
       console.error('Error loading cover image:', err);
       // Fondo oscuro de respaldo
@@ -164,9 +211,9 @@ async function createCompactCoverPage(
     
     const textWidth = pdf.getTextWidth('FLOW ESTATE AI');
     pdf.setFillColor(31, 41, 55);
-    pdf.setGState(new pdf.GState({ opacity: 0.8 }));
+    pdf.setGState(new (pdf as any).GState({ opacity: 0.8 }));
     pdf.roundedRect(margin - 2, margin - 2, textWidth + 4, 10, 2, 2, 'F');
-    pdf.setGState(new pdf.GState({ opacity: 1 }));
+    pdf.setGState(new (pdf as any).GState({ opacity: 1 }));
     
     pdf.text('FLOW ESTATE AI', margin, margin + 6);
   } else {
@@ -177,7 +224,7 @@ async function createCompactCoverPage(
 
   // Badge de estado (arriba derecha)
   if (property.listing_type) {
-    const badgeText = property.listing_type === 'sale' ? 'EN VENTA' : 'EN ALQUILER';
+    const badgeText = property.listing_type === 'sale' ? t.forSale : t.forRent;
     
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
@@ -221,14 +268,14 @@ async function createCompactCoverPage(
   pdf.setTextColor(234, 179, 8); // gold
   const price = property.price 
     ? `$${property.price.toLocaleString()}`
-    : 'Precio a consultar';
+    : t.priceOnRequest;
   pdf.text(price, margin, overlayY + 8);
 
   // Features principales
   const features = [
-    { value: property.bedrooms, label: 'Habitaciones', show: property.bedrooms > 0 },
-    { value: property.bathrooms, label: 'Baños', show: property.bathrooms > 0 },
-    { value: property.sqft ? `${property.sqft.toLocaleString()}` : null, label: 'pies²', show: property.sqft > 0 },
+    { value: property.bedrooms, label: t.bedrooms, show: property.bedrooms > 0 },
+    { value: property.bathrooms, label: t.bathrooms, show: property.bathrooms > 0 },
+    { value: property.sqft ? `${property.sqft.toLocaleString()}` : null, label: t.sqft, show: property.sqft > 0 },
   ].filter(f => f.show);
 
   if (features.length > 0) {
@@ -270,11 +317,11 @@ async function createCompactCoverPage(
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
-    pdf.text('TIPO DE PROPIEDAD:', margin, bottomY);
+    pdf.text(t.propertyType, margin, bottomY);
     
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
-    const propertyTypeName = getPropertyTypeName(property.property_type);
+    const propertyTypeName = getPropertyTypeName(property.property_type, lang);
     pdf.text(propertyTypeName, margin + 48, bottomY);
     
     bottomY += 10;
@@ -304,7 +351,7 @@ async function createCompactCoverPage(
     pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
-    pdf.text('AGENTE INMOBILIARIO', margin + 5, bottomY);
+    pdf.text(t.realEstateAgent, margin + 5, bottomY);
     
     bottomY += 7;
 
@@ -323,8 +370,8 @@ async function createCompactCoverPage(
     pdf.setTextColor(hexToRgb(COLORS.textLight).r, hexToRgb(COLORS.textLight).g, hexToRgb(COLORS.textLight).b);
     
     const contactParts = [];
-    if (agent.phone) contactParts.push(`Tel: ${agent.phone}`);
-    if (agent.email) contactParts.push(`Email: ${agent.email}`);
+    if (agent.phone) contactParts.push(`${t.tel}: ${agent.phone}`);
+    if (agent.email) contactParts.push(`${t.email}: ${agent.email}`);
     
     if (contactParts.length > 0) {
       const contactText = contactParts.join('  |  ');
@@ -345,7 +392,7 @@ async function createCompactCoverPage(
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(hexToRgb(COLORS.textMuted).r, hexToRgb(COLORS.textMuted).g, hexToRgb(COLORS.textMuted).b);
-    pdf.text('Powered by Flow Estate AI', margin, bottomY);
+    pdf.text(t.poweredBy, margin, bottomY);
   }
 }
 
@@ -359,7 +406,8 @@ async function createCompactDetailsPage(
   pageWidth: number,
   pageHeight: number,
   margin: number,
-  customFieldsDefinitions?: any[]
+  customFieldsDefinitions?: any[],
+  t?: any
 ) {
   await addCompactHeader(pdf, agent, margin, pageWidth);
 
@@ -371,7 +419,7 @@ async function createCompactDetailsPage(
   pdf.setFontSize(16);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
-  pdf.text('CARACTERÍSTICAS DE LA PROPIEDAD', margin, yPos);
+  pdf.text(t.propertyFeatures, margin, yPos);
   
   // Línea dorada
   pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
@@ -432,7 +480,7 @@ async function createCompactDetailsPage(
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
-    pdf.text('DESCRIPCIÓN', margin, yPos);
+    pdf.text(t.description, margin, yPos);
     
     pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
     pdf.setLineWidth(1.5);
@@ -461,7 +509,7 @@ async function createCompactDetailsPage(
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
-    pdf.text('UBICACIÓN', margin, yPos);
+    pdf.text(t.location, margin, yPos);
     
     pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
     pdf.setLineWidth(1.5);
@@ -513,15 +561,16 @@ async function createCompactDetailsPage(
       pdf.setFontSize(9);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
-      const qrTextWidth = pdf.getTextWidth('Escanear para ver');
-      pdf.text('Escanear para ver', qrX + (qrSize - qrTextWidth) / 2, yPos + qrSize + 5);
+      const qrText = t.scanToView;
+      const qrTextWidth = pdf.getTextWidth(qrText);
+      pdf.text(qrText, qrX + (qrSize - qrTextWidth) / 2, yPos + qrSize + 5);
     } catch (err) {
       console.error('Error generando QR:', err);
     }
   }
 
   // Footer con texto más grande
-  await addCompactFooter(pdf, agent, pageWidth, pageHeight);
+  await addCompactFooter(pdf, agent, pageWidth, pageHeight, t);
 }
 
 // ============================================
@@ -533,7 +582,8 @@ async function createCompactGalleryPage(
   agent: AgentInfo | undefined,
   pageWidth: number,
   pageHeight: number,
-  margin: number
+  margin: number,
+  t: any
 ) {
   await addCompactHeader(pdf, agent, margin, pageWidth);
 
@@ -543,7 +593,7 @@ async function createCompactGalleryPage(
   pdf.setFontSize(16);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(hexToRgb(COLORS.text).r, hexToRgb(COLORS.text).g, hexToRgb(COLORS.text).b);
-  pdf.text('GALERÍA DE FOTOS', margin, yPos);
+  pdf.text(t.photoGallery, margin, yPos);
   
   pdf.setDrawColor(hexToRgb(COLORS.gold).r, hexToRgb(COLORS.gold).g, hexToRgb(COLORS.gold).b);
   pdf.setLineWidth(1.5);
@@ -606,7 +656,7 @@ async function createCompactGalleryPage(
   
   console.log(`✅ Total de fotos cargadas en galería: ${count}`);
 
-  await addCompactFooter(pdf, agent, pageWidth, pageHeight);
+  await addCompactFooter(pdf, agent, pageWidth, pageHeight, t);
 }
 
 // ============================================
@@ -652,7 +702,8 @@ async function addCompactFooter(
   pdf: jsPDF,
   agent: AgentInfo | undefined,
   pageWidth: number,
-  pageHeight: number
+  pageHeight: number,
+  t?: any
 ) {
   const footerY = pageHeight - 10;
   
@@ -677,7 +728,7 @@ async function addCompactFooter(
     const textWidth = pdf.getTextWidth(text);
     pdf.text(text, pageWidth / 2 - textWidth / 2, footerY);
   } else {
-    const text = 'Powered by Flow Estate AI';
+    const text = t?.poweredBy || 'Powered by Flow Estate AI';
     const textWidth = pdf.getTextWidth(text);
     pdf.text(text, pageWidth / 2 - textWidth / 2, footerY);
   }
@@ -708,13 +759,13 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
     : { r: 0, g: 0, b: 0 };
 }
 
-function getPropertyTypeName(type: string): string {
-  const types: { [key: string]: string } = {
-    'house': 'Casa',
-    'condo': 'Condominio',
-    'apartment': 'Apartamento',
-    'land': 'Terreno',
-    'commercial': 'Comercial',
+function getPropertyTypeName(type: string, lang: 'es' | 'en' = 'es'): string {
+  const types: { [key: string]: { es: string; en: string } } = {
+    'house': { es: 'Casa', en: 'House' },
+    'condo': { es: 'Condominio', en: 'Condo' },
+    'apartment': { es: 'Apartamento', en: 'Apartment' },
+    'land': { es: 'Terreno', en: 'Land' },
+    'commercial': { es: 'Comercial', en: 'Commercial' },
   };
-  return types[type] || type.charAt(0).toUpperCase() + type.slice(1);
+  return types[type]?.[lang] || type.charAt(0).toUpperCase() + type.slice(1);
 }

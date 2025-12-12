@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     // Obtener propiedades del agente (incluyendo currency_id)
     const { data: properties, error: propertiesError } = await supabaseAdmin
       .from('properties')
-      .select('id, title, slug, price, currency_id, city, state, property_type, photos, status, views, created_at, listing_type')
+      .select('id, title, slug, price, currency_id, city, state, property_type, photos, status, views, created_at, listing_type, language')
       .eq('agent_id', agent.id)
       .order('created_at', { ascending: false });
 

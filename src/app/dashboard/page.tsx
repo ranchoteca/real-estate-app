@@ -670,7 +670,7 @@ export default function DashboardPage() {
                     backgroundColor: '#DBEAFE',
                     color: '#1E40AF'
                   }}>
-                    {property.language === 'es' ? '🇪🇸' : '🇺🇸'}
+                    {property.language === 'es' ? '🇪🇸' : property.language === 'en' ? '🇺🇸' : '❓'}
                   </span>
                 </div>
 

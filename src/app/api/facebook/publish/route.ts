@@ -150,11 +150,11 @@ ${operationType}
 
 💰 ${displayPrice}${customFieldsText}
 
-📅 ${t.scheduleVisit} ${agentName}${agentPhone ? ` 📱 ${agentPhone}` : ''}
+${t.scheduleVisit} ${agentName}${agentPhone ? ` 📱 ${agentPhone}` : ''}
 
-🔗 ${t.propertyLink} ${propertyUrl}
+${t.propertyLink} ${propertyUrl}
 
-💼 ${t.agentPortfolio} ${agentPortfolioUrl}
+${t.agentPortfolio} ${agentPortfolioUrl}
   `.trim();
   
   return message;

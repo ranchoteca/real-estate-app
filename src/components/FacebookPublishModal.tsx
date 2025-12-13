@@ -62,7 +62,7 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
         {!error && !success && (
           <>
             <h3 className="text-xl font-bold mb-4 text-center" style={{ color: '#0F172A' }}>
-              📘 {t('facebook.publishing')}
+              📘 {t('settings.options.facebook.publishing')}
             </h3>
 
             {/* Barra de progreso */}
@@ -93,7 +93,7 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
           <div className="text-center">
             <div className="text-5xl mb-3">❌</div>
             <h3 className="text-xl font-bold mb-2" style={{ color: '#DC2626' }}>
-              {t('facebook.publishError')}
+              {t('settings.options.facebook.publishError')}
             </h3>
             <p className="text-sm mb-4" style={{ color: '#0F172A' }}>
               {error}
@@ -112,10 +112,10 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
           <div className="text-center">
             <div className="text-5xl mb-3">✅</div>
             <h3 className="text-xl font-bold mb-2" style={{ color: '#10B981' }}>
-              {t('facebook.publishSuccess')}
+              {t('settings.options.facebook.publishSuccess')}
             </h3>
             <p className="text-sm mb-4" style={{ color: '#0F172A' }}>
-              {t('facebook.publishSuccessDesc')}
+              {t('settings.options.facebook.publishSuccessDesc')}
             </p>
             <div className="flex gap-2 justify-center">
               {/*

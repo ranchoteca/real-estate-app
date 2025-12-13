@@ -27,7 +27,13 @@ export async function POST(req: NextRequest) {
 }
 
 // Función para construir el mensaje mejorado de Facebook
-async function buildFacebookMessage(property: any, agent: any, customFieldsMap: Map<string, string>, propertyLanguage: 'es' | 'en'): Promise<string> {
+async function buildFacebookMessage(
+  property: any, 
+  agent: any, 
+  customFieldsMap: Map<string, string>, 
+  propertyLanguage: 'es' | 'en',
+  currencySymbol: string
+): Promise<string> {
   // Traducciones según idioma de la propiedad
   const translations = {
     es: {
@@ -94,9 +100,9 @@ async function buildFacebookMessage(property: any, agent: any, customFieldsMap: 
     ? locationParts.join(', ') 
     : property.address || t.locationAvailable;
   
-  // 4. Precio formateado
+  // 4. Precio formateado con símbolo de divisa correcto
   const displayPrice = property.price 
-    ? `${Number(property.price).toLocaleString()}` 
+    ? `${currencySymbol}${Number(property.price).toLocaleString()}` 
     : t.priceOnRequest;
   
   // 5. Campos personalizados (custom fields) - usando los nombres reales
@@ -206,10 +212,10 @@ function handlePublish(propertyId: string) {
         return;
       }
 
-      // 2. Obtener propiedad (agregamos listing_type, slug, custom_fields_data)
+      // 2. Obtener propiedad (agregamos listing_type, slug, custom_fields_data, currency_id, language)
       const { data: property, error: propertyError } = await supabaseAdmin
         .from('properties')
-        .select('id, title, description, price, city, state, address, photos, agent_id, property_type, listing_type, slug, custom_fields_data, language')
+        .select('id, title, description, price, city, state, address, photos, agent_id, property_type, listing_type, slug, custom_fields_data, language, currency_id')
         .eq('id', propertyId)
         .single();
 
@@ -223,8 +229,28 @@ function handlePublish(propertyId: string) {
 
       console.log('✅ Propiedad encontrada:', property.title);
       console.log('📋 Custom fields:', property.custom_fields_data);
+      console.log('💱 Currency ID:', property.currency_id);
 
-      // 2.1 Obtener los nombres reales de los custom fields
+      // 2.1 Obtener el símbolo de la divisa
+      let currencySymbol = '$'; // Default: dólar
+      if (property.currency_id) {
+        const { data: currency, error: currencyError } = await supabaseAdmin
+          .from('currencies')
+          .select('symbol')
+          .eq('id', property.currency_id)
+          .single();
+        
+        if (!currencyError && currency) {
+          currencySymbol = currency.symbol;
+          console.log('✅ Símbolo de divisa obtenido:', currencySymbol);
+        } else {
+          console.log('⚠️ No se pudo obtener divisa, usando $ por defecto');
+        }
+      } else {
+        console.log('⚠️ Propiedad sin currency_id, usando $ por defecto');
+      }
+
+      // 2.2 Obtener los nombres reales de los custom fields
       const customFieldsMap = new Map<string, string>();
       
       if (property.custom_fields_data && Object.keys(property.custom_fields_data).length > 0) {
@@ -329,7 +355,8 @@ function handlePublish(propertyId: string) {
       const propertyLanguage = property.language || 'es';
       console.log(`🌐 Idioma de la propiedad: ${propertyLanguage}`);
 
-      const message = await buildFacebookMessage(property, agent, customFieldsMap, propertyLanguage);
+      // ✅ Construir mensaje con el símbolo de divisa correcto
+      const message = await buildFacebookMessage(property, agent, customFieldsMap, propertyLanguage, currencySymbol);
       
       console.log('📝 Mensaje de Facebook construido:');
       console.log(message);

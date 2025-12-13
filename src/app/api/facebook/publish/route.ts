@@ -109,11 +109,14 @@ async function buildFacebookMessage(property: any, agent: any, customFieldsMap: 
         const fieldName = customFieldsMap.get(fieldKey) || fieldKey;
         
         // Formatear el valor (manejar booleanos, números, etc)
+        let displayValue: string;
         if (typeof value === 'boolean') {
-          formattedValue = value ? t.yes : t.no;
+          displayValue = value ? t.yes : t.no;
+        } else {
+          displayValue = String(value);
         }
         
-        return `✅ ${fieldName}: ${formattedValue}`;
+        return `✅ ${fieldName}: ${displayValue}`;
       });
     
     if (fields.length > 0) {

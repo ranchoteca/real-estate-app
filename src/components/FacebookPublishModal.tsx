@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface Props {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [postUrl, setPostUrl] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -60,7 +62,7 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
         {!error && !success && (
           <>
             <h3 className="text-xl font-bold mb-4 text-center" style={{ color: '#0F172A' }}>
-              📘 Publicando en Facebook
+              📘 {t('facebook.publishing')}
             </h3>
 
             {/* Barra de progreso */}
@@ -91,7 +93,7 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
           <div className="text-center">
             <div className="text-5xl mb-3">❌</div>
             <h3 className="text-xl font-bold mb-2" style={{ color: '#DC2626' }}>
-              Error al publicar
+              {t('facebook.publishError')}
             </h3>
             <p className="text-sm mb-4" style={{ color: '#0F172A' }}>
               {error}
@@ -101,7 +103,7 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
               className="px-6 py-2 bg-gray-200 rounded-lg font-semibold"
               style={{ color: '#0F172A' }}
             >
-              Cerrar
+              {t('common.close')}
             </button>
           </div>
         )}
@@ -110,10 +112,10 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
           <div className="text-center">
             <div className="text-5xl mb-3">✅</div>
             <h3 className="text-xl font-bold mb-2" style={{ color: '#10B981' }}>
-              ¡Publicado exitosamente!
+              {t('facebook.publishSuccess')}
             </h3>
             <p className="text-sm mb-4" style={{ color: '#0F172A' }}>
-              Tu propiedad ya está en Facebook
+              {t('facebook.publishSuccessDesc')}
             </p>
             <div className="flex gap-2 justify-center">
               {/*
@@ -133,7 +135,7 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
                 className="px-6 py-2 bg-gray-200 rounded-lg font-semibold"
                 style={{ color: '#0F172A' }}
               >
-                Cerrar
+                {t('common.close')}
               </button>
             </div>
           </div>

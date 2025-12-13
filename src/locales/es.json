@@ -8,7 +8,8 @@
     "back": "Volver",
     "confirm": "Confirmar",
     "success": "Éxito",
-    "error": "Error"
+    "error": "Error",
+    "close": "Cerrar"
   },
   "settings": {
     "title": "Ajustes",
@@ -34,8 +35,12 @@
         "description": "Configura campos para cada tipo de propiedad"
       },
       "facebook": {
-        "title": "Facebook (BETA)",
-        "description": "Publica automáticamente tus propiedades"
+        "title": "Facebook",
+        "description": "Publica automáticamente tus propiedades",
+        "publishing": "Publicando en Facebook",
+        "publishError": "Error al publicar",
+        "publishSuccess": "¡Publicado exitosamente!",
+        "publishSuccessDesc": "Tu propiedad ya está en Facebook"
       },
       "portfolio": {
         "title": "Mi Portfolio",

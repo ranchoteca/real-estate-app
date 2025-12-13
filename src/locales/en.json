@@ -8,7 +8,8 @@
     "back": "Back",
     "confirm": "Confirm",
     "success": "Success",
-    "error": "Error"
+    "error": "Error",
+    "close": "Close"
   },
   "settings": {
     "title": "Settings",
@@ -34,8 +35,12 @@
         "description": "Configure fields for each property type"
       },
       "facebook": {
-        "title": "Facebook (BETA)",
-        "description": "Automatically publish your properties"
+        "title": "Facebook",
+        "description": "Automatically publish your properties",
+        "publishing": "Publishing on Facebook",
+        "publishError": "Error publishing",
+        "publishSuccess": "Published successfully!",
+        "publishSuccessDesc": "Your property is now on Facebook"
       },
       "portfolio": {
         "title": "My Portfolio",

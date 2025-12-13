@@ -27,12 +27,44 @@ export async function POST(req: NextRequest) {
 }
 
 // Función para construir el mensaje mejorado de Facebook
-async function buildFacebookMessage(property: any, agent: any, customFieldsMap: Map<string, string>): Promise<string> {
+async function buildFacebookMessage(property: any, agent: any, customFieldsMap: Map<string, string>, propertyLanguage: 'es' | 'en'): Promise<string> {
+  // Traducciones según idioma de la propiedad
+  const translations = {
+    es: {
+      sale: '🎯 VENTA',
+      rent: '🎯 ALQUILER',
+      excellentOpportunity: 'Excelente oportunidad inmobiliaria',
+      features: '✨ Características',
+      scheduleVisit: '📅 Agende su visita con',
+      propertyLink: '🔗 Link de la propiedad:',
+      agentPortfolio: '💼 Mira el portafolio del agente:',
+      yes: 'Sí',
+      no: 'No',
+      priceOnRequest: 'Precio a consultar',
+      locationAvailable: 'Ubicación disponible',
+    },
+    en: {
+      sale: '🎯 FOR SALE',
+      rent: '🎯 FOR RENT',
+      excellentOpportunity: 'Excellent real estate opportunity',
+      features: '✨ Features',
+      scheduleVisit: '📅 Schedule your visit with',
+      propertyLink: '🔗 Property link:',
+      agentPortfolio: '💼 View agent portfolio:',
+      yes: 'Yes',
+      no: 'No',
+      priceOnRequest: 'Price upon request',
+      locationAvailable: 'Location available',
+    }
+  };
+
+  const t = translations[propertyLanguage];
+  
   // 1. Tipo de operación con icono de bombillo
-  const operationType = property.listing_type === 'rent' ? '🎯 ALQUILER' : '🎯 VENTA';
+  const operationType = property.listing_type === 'rent' ? t.rent : t.sale;
   
   // 2. Descripción corta inteligente (primeras 2 oraciones completas)
-  let shortDescription = 'Excelente oportunidad inmobiliaria';
+  let shortDescription = t.excellentOpportunity;
   
   if (property.description) {
     // Dividir por puntos para obtener oraciones completas
@@ -60,12 +92,12 @@ async function buildFacebookMessage(property: any, agent: any, customFieldsMap: 
   const locationParts = [property.city, property.state].filter(Boolean);
   const displayLocation = locationParts.length > 0 
     ? locationParts.join(', ') 
-    : property.address || 'Ubicación disponible';
+    : property.address || t.locationAvailable;
   
   // 4. Precio formateado
   const displayPrice = property.price 
     ? `${Number(property.price).toLocaleString()}` 
-    : 'Precio a consultar';
+    : t.priceOnRequest;
   
   // 5. Campos personalizados (custom fields) - usando los nombres reales
   let customFieldsText = '';
@@ -77,16 +109,15 @@ async function buildFacebookMessage(property: any, agent: any, customFieldsMap: 
         const fieldName = customFieldsMap.get(fieldKey) || fieldKey;
         
         // Formatear el valor (manejar booleanos, números, etc)
-        let formattedValue = value;
         if (typeof value === 'boolean') {
-          formattedValue = value ? 'Sí' : 'No';
+          formattedValue = value ? t.yes : t.no;
         }
         
         return `✅ ${fieldName}: ${formattedValue}`;
       });
     
     if (fields.length > 0) {
-      customFieldsText = '\n\n✨ Características\n' + fields.join('\n');
+      customFieldsText = '\n\n' + t.features + '\n' + fields.join('\n');
     }
   }
   
@@ -110,11 +141,11 @@ ${operationType}
 
 💰 ${displayPrice}${customFieldsText}
 
-📅 Agende su visita con ${agentName}${agentPhone ? ` al 📱 ${agentPhone}` : ''}
+📅 ${t.scheduleVisit} ${agentName}${agentPhone ? ` 📱 ${agentPhone}` : ''}
 
-🔗 Link de la propiedad: ${propertyUrl}
+🔗 ${t.propertyLink} ${propertyUrl}
 
-💼 Mira el portafolio del agente: ${agentPortfolioUrl}
+💼 ${t.agentPortfolio} ${agentPortfolioUrl}
   `.trim();
   
   return message;
@@ -175,7 +206,7 @@ function handlePublish(propertyId: string) {
       // 2. Obtener propiedad (agregamos listing_type, slug, custom_fields_data)
       const { data: property, error: propertyError } = await supabaseAdmin
         .from('properties')
-        .select('id, title, description, price, city, state, address, photos, agent_id, property_type, listing_type, slug, custom_fields_data')
+        .select('id, title, description, price, city, state, address, photos, agent_id, property_type, listing_type, slug, custom_fields_data, language')
         .eq('id', propertyId)
         .single();
 
@@ -291,8 +322,11 @@ function handlePublish(propertyId: string) {
         await sendEvent({ message: 'Omitiendo diseño IA', progress: 50 });
       }
 
-      // 4. Construir mensaje mejorado
-      const message = await buildFacebookMessage(property, agent, customFieldsMap);
+      // Detectar idioma de la propiedad (default: español)
+      const propertyLanguage = property.language || 'es';
+      console.log(`🌐 Idioma de la propiedad: ${propertyLanguage}`);
+
+      const message = await buildFacebookMessage(property, agent, customFieldsMap, propertyLanguage);
       
       console.log('📝 Mensaje de Facebook construido:');
       console.log(message);

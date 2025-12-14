@@ -86,6 +86,14 @@ export default function EditPropertyPage() {
   // País de la ubicación
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>('CR'); // Default Costa Rica
 
+  // Función para obtener nombre de campo según idioma
+  const getCustomFieldName = (field: CustomField): string => {
+    if (property?.language === 'en' && field.field_name_en) {
+      return field.field_name_en;
+    }
+    return field.field_name;
+  };
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -805,7 +813,7 @@ export default function EditPropertyPage() {
                 <div key={field.id}>
                   <label className="block text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#0F172A' }}>
                     <span className="text-lg">{field.icon || '🏷️'}</span>
-                    {field.field_name}
+                    {getCustomFieldName(field)}
                   </label>
                   <input
                     type={field.field_type === 'number' ? 'number' : 'text'}

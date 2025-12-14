@@ -253,6 +253,7 @@ export type Database = {
           property_type: string
           listing_type: string
           field_name: string
+          field_name_en: string | null
           field_type: string
           field_key: string
           placeholder: string | null
@@ -266,6 +267,7 @@ export type Database = {
           property_type: string
           listing_type: string
           field_name: string
+          field_name_en?: string | null
           field_type: string
           field_key: string
           placeholder?: string | null
@@ -279,6 +281,7 @@ export type Database = {
           property_type?: string
           listing_type?: string
           field_name?: string
+          field_name_en?: string | null
           field_type?: string
           field_key?: string
           placeholder?: string | null

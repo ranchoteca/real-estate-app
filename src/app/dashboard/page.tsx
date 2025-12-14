@@ -75,6 +75,14 @@ export default function DashboardPage() {
   const [planInfo, setPlanInfo] = useState<{ plan: string; properties_this_month: number } | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
+  // Estados para duplicar y traducir
+  const [duplicating, setDuplicating] = useState(false);
+  const [translateModal, setTranslateModal] = useState<{
+    open: boolean;
+    propertyId: string | null;
+    currentLang: 'es' | 'en' | null;
+  }>({ open: false, propertyId: null, currentLang: null });
+
   // Estados de filtros
   const [filterPropertyType, setFilterPropertyType] = useState('');
   const [filterLanguage, setFilterLanguage] = useState('');
@@ -161,6 +169,47 @@ export default function DashboardPage() {
         ? 'Error deleting property'
         : 'Error al eliminar la propiedad'
       );
+    }
+  };
+
+  const handleDuplicate = async (propertyId: string) => {
+    const confirmed = confirm(
+      language === 'en' 
+        ? 'Duplicate this property in the same language?'
+        : '¿Duplicar esta propiedad en el mismo idioma?'
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      setDuplicating(true);
+      
+      const response = await fetch('/api/property/duplicate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyId }),
+      });
+
+      if (!response.ok) throw new Error('Error al duplicar');
+
+      const { newPropertyId } = await response.json();
+      
+      alert(
+        language === 'en'
+          ? '✅ Property duplicated successfully'
+          : '✅ Propiedad duplicada exitosamente'
+      );
+      
+      router.push(`/edit-property/${newPropertyId}`);
+      
+    } catch (error) {
+      alert(
+        language === 'en'
+          ? '❌ Error duplicating property'
+          : '❌ Error al duplicar la propiedad'
+      );
+    } finally {
+      setDuplicating(false);
     }
   };
 
@@ -541,6 +590,7 @@ export default function DashboardPage() {
                     className="absolute top-12 right-3 rounded-xl shadow-2xl overflow-hidden z-10 min-w-[160px]"
                     style={{ backgroundColor: '#FFFFFF' }}
                   >
+                    {/* Editar */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -552,6 +602,42 @@ export default function DashboardPage() {
                     >
                       <span>✏️</span> {language === 'en' ? 'Edit' : 'Editar'}
                     </button>
+
+                    {/* NUEVO: Duplicar */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowMenu(null);
+                        handleDuplicate(property.id);
+                      }}
+                      className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
+                      style={{ color: '#10B981', borderTopColor: '#F3F4F6' }}
+                      disabled={duplicating}
+                    >
+                      <span>📋</span> {language === 'en' ? 'Duplicate' : 'Duplicar'}
+                    </button>
+
+                    {/* NUEVO: Traducir */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowMenu(null);
+                        setTranslateModal({ 
+                          open: true, 
+                          propertyId: property.id, 
+                          currentLang: property.language 
+                        });
+                      }}
+                      className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
+                      style={{ color: '#F59E0B', borderTopColor: '#F3F4F6' }}
+                    >
+                      <span>🌐</span> {language === 'en' 
+                        ? `Translate to ${property.language === 'es' ? 'English' : 'Spanish'}`
+                        : `Traducir a ${property.language === 'es' ? 'Inglés' : 'Español'}`
+                      }
+                    </button>
+
+                    {/* Eliminar */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -562,13 +648,14 @@ export default function DashboardPage() {
                     >
                       <span>🗑️</span> {language === 'en' ? 'Delete' : 'Eliminar'}
                     </button>
+
+                    {/* Exportar PDF */}
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
                         setShowMenu(null);
                         setIsGeneratingPDF(true);
                         try {
-                          // Cargar la propiedad COMPLETA con datos del agente
                           const propertyResponse = await fetch(`/api/property/${property.slug}`);
                           if (!propertyResponse.ok) {
                             throw new Error('No se pudo cargar la propiedad completa');
@@ -576,11 +663,7 @@ export default function DashboardPage() {
                           
                           const propertyData = await propertyResponse.json();
                           const fullProperty = propertyData.property;
-                          
-                          console.log('✅ Propiedad completa cargada:', fullProperty);
-                          console.log('✅ Agente con watermark:', fullProperty.agent?.watermark_logo);
 
-                          // Cargar campos personalizados
                           let customFields = [];
                           if (fullProperty.property_type && fullProperty.listing_type) {
                             try {
@@ -598,7 +681,6 @@ export default function DashboardPage() {
                             }
                           }
 
-                          // Generar PDF con toda la info
                           const { exportPropertyToPDF } = await import('@/lib/exportPDF');
                           await exportPropertyToPDF(fullProperty, fullProperty.agent, customFields);
                         } catch (error) {
@@ -613,6 +695,8 @@ export default function DashboardPage() {
                     >
                       <span>📄</span> {language === 'en' ? 'Export PDF' : 'Exportar PDF'}
                     </button>
+
+                    {/* Publicar en Facebook */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -686,12 +770,146 @@ export default function DashboardPage() {
       )}
       {/* Modal de Generando PDF */}
       <GeneratingPDFModal isOpen={isGeneratingPDF} />
+      
       {/* Facebook Publish Modal */}
       <FacebookPublishModal
         isOpen={publishModalOpen}
         onClose={() => setPublishModalOpen(false)}
         propertyId={selectedPropertyId || ''}
       />
+
+      {/* NUEVO: Modal de Traducir */}
+      {translateModal.open && translateModal.propertyId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-xl font-bold mb-4" style={{ color: '#0F172A' }}>
+              🌐 {language === 'en' ? 'Translate property' : 'Traducir propiedad'}
+            </h3>
+
+            <div className="mb-4">
+              <p className="text-sm mb-2" style={{ color: '#0F172A' }}>
+                <strong>{language === 'en' ? 'Current language:' : 'Idioma actual:'}</strong> {translateModal.currentLang === 'es' ? '🇪🇸 Español' : '🇺🇸 English'}
+              </p>
+              <p className="text-sm mb-4" style={{ color: '#0F172A' }}>
+                <strong>{language === 'en' ? 'Translate to:' : 'Traducir a:'}</strong> {translateModal.currentLang === 'es' ? '🇺🇸 English' : '🇪🇸 Español'}
+              </p>
+
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4">
+                <p className="text-sm font-semibold mb-2" style={{ color: '#1E40AF' }}>
+                  {language === 'en' 
+                    ? 'How do you want to create the translation?'
+                    : '¿Cómo deseas crear la traducción?'
+                  }
+                </p>
+
+                <label className="flex items-start gap-3 mb-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="translate-option"
+                    value="ai"
+                    defaultChecked
+                    className="mt-1"
+                  />
+                  <div>
+                    <div className="font-semibold text-sm" style={{ color: '#0F172A' }}>
+                      🤖 {language === 'en' ? 'With AI (recommended)' : 'Con IA (recomendado)'}
+                    </div>
+                    <div className="text-xs" style={{ color: '#6B7280' }}>
+                      {language === 'en'
+                        ? 'Automatically translates title, description, address and custom fields'
+                        : 'Traduce automáticamente título, descripción, dirección y campos personalizados'
+                      }
+                    </div>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="translate-option"
+                    value="manual"
+                    className="mt-1"
+                  />
+                  <div>
+                    <div className="font-semibold text-sm" style={{ color: '#0F172A' }}>
+                      ✍️ {language === 'en' ? 'Manual' : 'Manual'}
+                    </div>
+                    <div className="text-xs" style={{ color: '#6B7280' }}>
+                      {language === 'en'
+                        ? 'Creates a copy without translating (you will have to edit manually)'
+                        : 'Crea una copia sin traducir (tendrás que editar manualmente)'
+                      }
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                <p className="text-xs" style={{ color: '#92400E' }}>
+                  ⚠️ <strong>{language === 'en' ? 'Note:' : 'Nota:'}</strong> {language === 'en'
+                    ? 'The original property will remain unchanged. You can edit the translation after creating it.'
+                    : 'La propiedad original se mantendrá sin cambios. Podrás editar la traducción después de crearla.'
+                  }
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setTranslateModal({ open: false, propertyId: null, currentLang: null })}
+                className="flex-1 py-3 rounded-xl font-bold border-2"
+                style={{ borderColor: '#E5E7EB', color: '#0F172A' }}
+              >
+                {language === 'en' ? 'Cancel' : 'Cancelar'}
+              </button>
+              <button
+                onClick={async () => {
+                  const useAI = (document.querySelector('input[name="translate-option"]:checked') as HTMLInputElement)?.value === 'ai';
+                  const targetLang = translateModal.currentLang === 'es' ? 'en' : 'es';
+
+                  try {
+                    const response = await fetch('/api/property/translate', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        propertyId: translateModal.propertyId,
+                        targetLanguage: targetLang,
+                        useAI,
+                      }),
+                    });
+
+                    if (!response.ok) throw new Error('Error al traducir');
+
+                    const { newPropertyId } = await response.json();
+
+                    alert(useAI 
+                      ? (language === 'en' 
+                          ? '✅ Property translated with AI. Review and adjust if necessary.'
+                          : '✅ Propiedad traducida con IA. Revisa y ajusta si es necesario.')
+                      : (language === 'en'
+                          ? '✅ Property cloned. Edit the content manually.'
+                          : '✅ Propiedad clonada. Edita el contenido manualmente.')
+                    );
+                    
+                    setTranslateModal({ open: false, propertyId: null, currentLang: null });
+                    router.push(`/edit-property/${newPropertyId}`);
+
+                  } catch (error) {
+                    alert(language === 'en'
+                      ? '❌ Error translating property'
+                      : '❌ Error al traducir la propiedad'
+                    );
+                  }
+                }}
+                className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg"
+                style={{ backgroundColor: '#F59E0B' }}
+              >
+                🌐 {language === 'en' ? 'Create translation' : 'Crear traducción'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </MobileLayout>
   );
 }

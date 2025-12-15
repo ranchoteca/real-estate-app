@@ -395,7 +395,12 @@ export default function FacebookSettingsContent() {
           )}
         </div>
 
-        {facebookData.connected && (
+        {/* ========================================
+            FUNCIONALIDAD TEMPORALMENTE DESHABILITADA
+            "Enhance your posts with AI"
+            Se volverá a habilitar después del MVP
+        ======================================== */}
+        {/* {facebookData.connected && (
           <div 
             className="rounded-2xl p-5 shadow-lg"
             style={{ backgroundColor: '#FFFFFF' }}
@@ -404,7 +409,6 @@ export default function FacebookSettingsContent() {
               ✨ {t('facebook.aiTitle')}
             </h3>
 
-            {/* Toggle para activar IA */}
             <div className="mb-4 p-4 rounded-xl" style={{ backgroundColor: '#F0F9FF' }}>
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
@@ -424,10 +428,8 @@ export default function FacebookSettingsContent() {
               </label>
             </div>
 
-            {/* Opciones de configuración (solo visible si está habilitado) */}
             {aiSettings.enabled && (
               <div className="space-y-4 mb-4">
-                {/* Selector de colores */}
                 <div>
                   <p className="font-semibold mb-2" style={{ color: '#0F172A' }}>
                     🎨 {t('facebook.brandColors')}
@@ -458,7 +460,6 @@ export default function FacebookSettingsContent() {
                   </div>
                 </div>
 
-                {/* Selector de plantilla */}
                 <div>
                   <p className="font-semibold mb-2" style={{ color: '#0F172A' }}>
                     📐 {t('facebook.designStyle')}
@@ -485,7 +486,6 @@ export default function FacebookSettingsContent() {
               </div>
             )}
 
-            {/* Botón Guardar */}
             <button
               onClick={handleSaveAISettings}
               disabled={savingSettings}
@@ -495,7 +495,7 @@ export default function FacebookSettingsContent() {
               {savingSettings ? t('watermark.saving') : `💾 ${t('facebook.saveConfig')}`}
             </button>
           </div>
-        )}
+        )} */}
 
         {/* Help Card */}
         <div 

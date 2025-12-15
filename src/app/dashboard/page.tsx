@@ -105,6 +105,9 @@ export default function DashboardPage() {
     }
   }, [session]);
 
+  // Estado para mostrar/ocultar filtros avanzados
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
   const loadPlanInfo = async () => {
     try {
       const response = await fetch('/api/agent/current-plan');
@@ -344,32 +347,46 @@ export default function DashboardPage() {
 
       {/* Filters Section - STICKY */}
       <div className="sticky top-0 z-20 px-4 pt-3 pb-2" style={{ backgroundColor: '#F5EAD3' }}>
-        <div 
-          className="rounded-2xl p-4 shadow-xl space-y-3"
-          style={{ backgroundColor: '#FFFFFF' }}
+      <div 
+        className="rounded-2xl p-4 shadow-xl space-y-3"
+        style={{ backgroundColor: '#FFFFFF' }}
+      >
+        <h3 className="font-bold text-sm" style={{ color: '#0F172A' }}>
+          🔍 {language === 'en' ? 'Filter Properties' : 'Filtrar Propiedades'}
+        </h3>
+
+        {/* Search Input - SIEMPRE VISIBLE */}
+        <div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={language === 'en' ? 'Search by title, city or state...' : 'Buscar por título, ciudad o estado...'}
+            className="w-full px-4 py-2.5 rounded-xl border-2 focus:outline-none text-sm"
+            style={{ 
+              borderColor: '#E5E7EB',
+              backgroundColor: '#F9FAFB',
+              color: '#0F172A'
+            }}
+          />
+        </div>
+
+        {/* Botón para mostrar/ocultar filtros avanzados */}
+        <button
+          onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          className="w-full py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
+          style={{ 
+            backgroundColor: '#EFF6FF',
+            color: '#2563EB'
+          }}
         >
-          <h3 className="font-bold text-sm" style={{ color: '#0F172A' }}>
-            🔍 {language === 'en' ? 'Filter Properties' : 'Filtrar Propiedades'}
-          </h3>
+          {showAdvancedFilters ? '▲' : '▼'} 
+          {language === 'en' ? 'Advanced Filters' : 'Filtros Avanzados'}
+        </button>
 
-          {/* Search Input */}
-          <div>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={language === 'en' ? 'Search by title, city or state...' : 'Buscar por título, ciudad o estado...'}
-              className="w-full px-4 py-2.5 rounded-xl border-2 focus:outline-none text-sm"
-              style={{ 
-                borderColor: '#E5E7EB',
-                backgroundColor: '#F9FAFB',
-                color: '#0F172A'
-              }}
-            />
-          </div>
-
-          {/* Filter Selects */}
-          <div className="space-y-2">
+        {/* Filter Selects - COLAPSABLES */}
+        {showAdvancedFilters && (
+          <div className="space-y-2 pt-2 border-t" style={{ borderTopColor: '#E5E7EB' }}>
             <select
               value={filterPropertyType}
               onChange={(e) => setFilterPropertyType(e.target.value)}
@@ -415,35 +432,36 @@ export default function DashboardPage() {
               ))}
             </select>
           </div>
+        )}
 
-          {/* Clear Filters Button */}
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="text-sm font-semibold underline"
-              style={{ color: '#2563EB' }}
-            >
-              {language === 'en' ? 'Clear filters' : 'Limpiar filtros'}
-            </button>
-          )}
+        {/* Clear Filters Button */}
+        {hasActiveFilters && (
+          <button
+            onClick={clearFilters}
+            className="text-sm font-semibold underline"
+            style={{ color: '#2563EB' }}
+          >
+            {language === 'en' ? 'Clear filters' : 'Limpiar filtros'}
+          </button>
+        )}
 
-          {/* Results Count */}
-          {hasActiveFilters && (
-            <div 
-              className="px-3 py-2 rounded-lg text-xs font-semibold"
-              style={{ 
-                backgroundColor: '#EFF6FF',
-                color: '#1E40AF'
-              }}
-            >
-              {filteredProperties.length === 0 
-                ? (language === 'en' ? '❌ No matches' : '❌ No hay coincidencias')
-                : `✓ ${filteredProperties.length} ${language === 'en' ? (filteredProperties.length === 1 ? 'result' : 'results') : (filteredProperties.length === 1 ? 'resultado' : 'resultados')}`
-              }
-            </div>
-          )}
-        </div>
+        {/* Results Count */}
+        {hasActiveFilters && (
+          <div 
+            className="px-3 py-2 rounded-lg text-xs font-semibold"
+            style={{ 
+              backgroundColor: '#EFF6FF',
+              color: '#1E40AF'
+            }}
+          >
+            {filteredProperties.length === 0 
+              ? (language === 'en' ? '❌ No matches' : '❌ No hay coincidencias')
+              : `✓ ${filteredProperties.length} ${language === 'en' ? (filteredProperties.length === 1 ? 'result' : 'results') : (filteredProperties.length === 1 ? 'resultado' : 'resultados')}`
+            }
+          </div>
+        )}
       </div>
+    </div>
 
       {/* No Credits Warning */}
       {session.user.credits === 0 && (
@@ -603,7 +621,7 @@ export default function DashboardPage() {
                       <span>✏️</span> {language === 'en' ? 'Edit' : 'Editar'}
                     </button>
 
-                    {/* NUEVO: Duplicar */}
+                    {/* Duplicar */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -611,13 +629,13 @@ export default function DashboardPage() {
                         handleDuplicate(property.id);
                       }}
                       className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
-                      style={{ color: '#10B981', borderTopColor: '#F3F4F6' }}
+                      style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
                       disabled={duplicating}
                     >
                       <span>📋</span> {language === 'en' ? 'Duplicate' : 'Duplicar'}
                     </button>
 
-                    {/* NUEVO: Traducir */}
+                    {/* Traducir */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -629,7 +647,7 @@ export default function DashboardPage() {
                         });
                       }}
                       className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
-                      style={{ color: '#F59E0B', borderTopColor: '#F3F4F6' }}
+                      style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
                     >
                       <span>🌐</span> {language === 'en' 
                         ? `Translate to ${property.language === 'es' ? 'English' : 'Spanish'}`
@@ -637,7 +655,7 @@ export default function DashboardPage() {
                       }
                     </button>
 
-                    {/* Eliminar */}
+                    {/* Eliminar - MANTENER EN ROJO */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -705,7 +723,7 @@ export default function DashboardPage() {
                         setPublishModalOpen(true);
                       }}
                       className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
-                      style={{ color: '#1877F2', borderTopColor: '#F3F4F6' }}
+                      style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
                     >
                       <span>📘</span> {language === 'en' ? 'Publish on Facebook' : 'Publicar en Facebook'}
                     </button>

@@ -376,7 +376,7 @@ export default function EditPropertyPage() {
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">✏️</div>
-            <div className="text-lg" style={{ color: '#0F172A' }}>{t('editProperty.loading')}</div>
+            <div className="text-lg" style={{ color: '#0F172A' }}>{t('common.editProperty.loading')}</div>
           </div>
         </div>
       </MobileLayout>
@@ -390,7 +390,7 @@ export default function EditPropertyPage() {
   const totalPhotos = existingPhotos.length + newPhotos.length;
 
   return (
-    <MobileLayout title={t('editProperty.title')} showBack={true} showTabs={true}>
+    <MobileLayout title={t('common.editProperty.title')} showBack={true} showTabs={true}>
       <div className="px-4 py-6 space-y-4">
         {/* Error Message */}
         {error && (
@@ -413,7 +413,7 @@ export default function EditPropertyPage() {
         >
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-bold" style={{ color: '#0F172A' }}>
-              {t('editProperty.photos')} ({totalPhotos}/10)
+              {t('common.editProperty.photos')} ({totalPhotos}/10)
             </h3>
             <label className="cursor-pointer">
               <input
@@ -429,7 +429,7 @@ export default function EditPropertyPage() {
                 style={{ backgroundColor: (totalPhotos >= 10 || compressing) ? '#9CA3AF' : '#2563EB' }}
               >
                 {/* Mostrar estado de compresión */}
-                {compressing ? `⏳ ${t('editProperty.compressing')}` : `➕ ${t('editProperty.addPhotos')}`}
+                {compressing ? `⏳ ${t('common.editProperty.compressing')}` : `➕ ${t('common.editProperty.addPhotos')}`}
               </span>
             </label>
           </div>
@@ -438,7 +438,7 @@ export default function EditPropertyPage() {
           {existingPhotos.length > 0 && (
             <div>
               <p className="text-xs mb-2 opacity-70" style={{ color: '#0F172A' }}>
-                {t('editProperty.currentPhotos')}
+                {t('common.editProperty.currentPhotos')}
               </p>
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {existingPhotos.map((photo, index) => (
@@ -470,7 +470,7 @@ export default function EditPropertyPage() {
           {newPhotos.length > 0 && (
             <div>
               <p className="text-xs mb-2 opacity-70" style={{ color: '#0F172A' }}>
-                {t('editProperty.newPhotos')}
+                {t('common.editProperty.newPhotos')}
               </p>
               <div className="grid grid-cols-3 gap-2">
                 {newPhotosPreviews.map((preview, index) => (
@@ -499,7 +499,7 @@ export default function EditPropertyPage() {
 
           {totalPhotos < 2 && (
             <p className="text-xs mt-2" style={{ color: '#DC2626' }}>
-              ⚠️ {t('editProperty.minPhotosRequired')}
+              ⚠️ {t('common.editProperty.minPhotosRequired')}
             </p>
           )}
         </div>
@@ -515,7 +515,7 @@ export default function EditPropertyPage() {
             </span>
             <div>
               <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                {t('editProperty.propertyLanguage')}:
+                {t('common.editProperty.propertyLanguage')}:
               </p>
               <p className="text-lg font-bold" style={{ color: '#0F172A' }}>
                 {property.language === 'es' ? 'Español' : 'English'}
@@ -530,7 +530,7 @@ export default function EditPropertyPage() {
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-            {t('editProperty.propertyTitle')}
+            {t('common.editProperty.propertyTitle')}
           </label>
           <input
             type="text"
@@ -551,7 +551,7 @@ export default function EditPropertyPage() {
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-            {t('editProperty.description')}
+            {t('common.description')}
           </label>
           <textarea
             value={property.description}
@@ -572,13 +572,13 @@ export default function EditPropertyPage() {
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <h3 className="font-bold" style={{ color: '#0F172A' }}>
-            {t('editProperty.details')}
+            {t('common.editProperty.details')}
           </h3>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                {t('editProperty.price')} ({currencies.find(c => c.id === (selectedCurrency || property.currency_id))?.symbol || '$'})
+                {t('common.editProperty.price')} ({currencies.find(c => c.id === (selectedCurrency || property.currency_id))?.symbol || '$'})
               </label>
               <input
                 type="number"
@@ -595,7 +595,7 @@ export default function EditPropertyPage() {
 
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                {t('editProperty.propertyType')}
+                {t('common.editProperty.propertyType')}
               </label>
               <select
                 value={property.property_type}
@@ -607,17 +607,17 @@ export default function EditPropertyPage() {
                   color: '#0F172A'
                 }}
               >
-                <option value="house">{t('editProperty.house')}</option>
-                <option value="condo">{t('editProperty.condo')}</option>
-                <option value="apartment">{t('editProperty.apartment')}</option>
-                <option value="land">{t('editProperty.land')}</option>
-                <option value="commercial">{t('editProperty.commercial')}</option>
+                <option value="house">{t('common.editProperty.house')}</option>
+                <option value="condo">{t('common.editProperty.condo')}</option>
+                <option value="apartment">{t('common.editProperty.apartment')}</option>
+                <option value="land">{t('common.editProperty.land')}</option>
+                <option value="commercial">{t('common.editProperty.commercial')}</option>
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                {t('editProperty.listingType')}
+                {t('common.editProperty.listingType')}
               </label>
               <select
                 value={property.listing_type || 'sale'}
@@ -629,14 +629,14 @@ export default function EditPropertyPage() {
                   color: '#0F172A'
                 }}
               >
-                <option value="sale">{t('editProperty.sale')}</option>
-                <option value="rent">{t('editProperty.rent')}</option>
+                <option value="sale">{t('common.editProperty.sale')}</option>
+                <option value="rent">{t('common.editProperty.rent')}</option>
               </select>
             </div>
             {/* NUEVO: Selector de Divisa */}
             <div className="col-span-2">
               <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                💰 {t('editProperty.currency')}
+                💰 {t('common.editProperty.currency')}
               </label>
               <select
                 value={selectedCurrency || property.currency_id || ''}
@@ -659,7 +659,7 @@ export default function EditPropertyPage() {
                 ))}
               </select>
               <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
-                💡 {t('editProperty.currencyTip')}
+                💡 {t('common.editProperty.currencyTip')}
               </p>
             </div>
           </div>
@@ -671,12 +671,12 @@ export default function EditPropertyPage() {
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <h3 className="font-bold" style={{ color: '#0F172A' }}>
-            {t('editProperty.location')}
+            {t('common.editProperty.location')}
           </h3>
 
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-              {t('editProperty.address')}
+              {t('common.editProperty.address')}
             </label>
             <input
               type="text"
@@ -694,7 +694,7 @@ export default function EditPropertyPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                {t('editProperty.city')}
+                {t('common.editProperty.city')}
               </label>
               <input
                 type="text"
@@ -711,7 +711,7 @@ export default function EditPropertyPage() {
 
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                {t('editProperty.state')}
+                {t('common.editProperty.state')}
               </label>
               <input
                 type="text"
@@ -728,7 +728,7 @@ export default function EditPropertyPage() {
 
             <div className="col-span-2">
               <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                {t('editProperty.zipCode')}
+                {t('common.editProperty.zipCode')}
               </label>
               <input
                 type="text"
@@ -757,13 +757,13 @@ export default function EditPropertyPage() {
                 className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <span className="text-sm font-semibold" style={{ color: '#0F172A' }}>
-                🗺️ {t('editProperty.showOnMap')}
+                🗺️ {t('common.editProperty.showOnMap')}
               </span>
             </label>
 
             <div className="mb-4">
               <label className="block text-sm font-semibold mb-2 text-gray-700">
-                🌎 {t('editProperty.propertyCountry')}
+                🌎 {t('common.editProperty.propertyCountry')}
               </label>
               <select
                 value={selectedCountry}
@@ -777,7 +777,7 @@ export default function EditPropertyPage() {
                 ))}
               </select>
               <p className="text-xs text-gray-600 mt-1">
-                {t('editProperty.selectCountry')}
+                {t('common.editProperty.selectCountry')}
               </p>
             </div>
 
@@ -812,14 +812,14 @@ export default function EditPropertyPage() {
         >
           <div className="flex items-center justify-between">
             <h3 className="font-bold" style={{ color: '#0F172A' }}>
-              🏷️ {t('editProperty.customFields')}
+              🏷️ {t('common.editProperty.customFields')}
             </h3>
             <button
               onClick={() => router.push('/settings/custom-fields')}
               className="text-xs font-semibold underline"
               style={{ color: '#2563EB' }}
             >
-              {t('editProperty.manageFields')}
+              {t('common.editProperty.manageFields')}
             </button>
           </div>
 
@@ -827,7 +827,7 @@ export default function EditPropertyPage() {
             <div className="text-center py-4">
               <div className="text-3xl mb-2 animate-pulse">⏳</div>
               <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                {t('editProperty.loadingFields')}
+                {t('common.editProperty.loadingFields')}
               </p>
             </div>
           ) : customFields.length > 0 ? (
@@ -868,7 +868,7 @@ export default function EditPropertyPage() {
             >
               <div className="text-3xl mb-2">📝</div>
               <p className="text-sm font-semibold mb-1" style={{ color: '#92400E' }}>
-                {t('editProperty.noCustomFields')}
+                {t('common.editProperty.noCustomFields')}
               </p>
               <p className="text-xs opacity-70 mb-3" style={{ color: '#92400E' }}>
                 {property?.property_type && property?.listing_type && (
@@ -880,7 +880,7 @@ export default function EditPropertyPage() {
                 className="px-4 py-2 rounded-xl font-bold text-white active:scale-95 transition-transform"
                 style={{ backgroundColor: '#2563EB' }}
               >
-                ➕ {t('editProperty.createFields')}
+                ➕ {t('common.editProperty.createFields')}
               </button>
             </div>
           )}
@@ -892,7 +892,7 @@ export default function EditPropertyPage() {
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-            {t('editProperty.propertyStatus')}
+            {t('common.editProperty.propertyStatus')}
           </label>
           <select
             value={property.status}
@@ -904,10 +904,10 @@ export default function EditPropertyPage() {
               color: '#0F172A'
             }}
           >
-            <option value="active">{t('editProperty.active')}</option>
-            <option value="pending">{t('editProperty.pending')}</option>
-            <option value="sold">{t('editProperty.sold')}</option>
-            <option value="rented">{t('editProperty.rented')}</option>
+            <option value="active">{t('common.editProperty.active')}</option>
+            <option value="pending">{t('common.editProperty.pending')}</option>
+            <option value="sold">{t('common.editProperty.sold')}</option>
+            <option value="rented">{t('common.editProperty.rented')}</option>
           </select>
         </div>
 
@@ -922,7 +922,7 @@ export default function EditPropertyPage() {
               backgroundColor: '#FFFFFF'
             }}
           >
-            {t('editProperty.cancel')}
+            {t('common.editProperty.cancel')}
           </button>
           <button
             onClick={handleSave}
@@ -930,7 +930,7 @@ export default function EditPropertyPage() {
             className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
             style={{ backgroundColor: '#2563EB' }}
           >
-            {saving ? `${t('editProperty.saving')}` : `💾 ${t('editProperty.save')}`}
+            {saving ? `${t('common.editProperty.saving')}` : `💾 ${t('common.editProperty.save')}`}
           </button>
         </div>
       </div>

@@ -551,7 +551,7 @@ export default function EditPropertyPage() {
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-            {t('common.description')}
+            {t('common.editProperty.description')}
           </label>
           <textarea
             value={property.description}

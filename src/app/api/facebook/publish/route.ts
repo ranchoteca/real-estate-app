@@ -250,9 +250,13 @@ function handlePublish(propertyId: string) {
         console.log('⚠️ Propiedad sin currency_id, usando $ por defecto');
       }
 
-      // 2.2 Obtener los nombres reales de los custom fields
+      // ✅ IMPORTANTE: Detectar idioma PRIMERO antes de obtener custom fields
+      const propertyLanguage = property.language || 'es';
+      console.log(`🌐 Idioma de la propiedad: ${propertyLanguage}`);
+
+      // 2.2 Obtener los nombres reales de los custom fields EN EL IDIOMA CORRECTO
       const customFieldsMap = new Map<string, string>();
-      
+
       if (property.custom_fields_data && Object.keys(property.custom_fields_data).length > 0) {
         const fieldKeys = Object.keys(property.custom_fields_data);
         
@@ -260,14 +264,19 @@ function handlePublish(propertyId: string) {
         
         const { data: customFields, error: fieldsError } = await supabaseAdmin
           .from('custom_fields')
-          .select('field_key, field_name')
+          .select('field_key, field_name, field_name_en')
           .in('field_key', fieldKeys);
         
         if (!fieldsError && customFields) {
           customFields.forEach(field => {
-            customFieldsMap.set(field.field_key, field.field_name);
+            // ✅ Usar field_name_en si la propiedad está en inglés, sino usar field_name
+            const fieldName = propertyLanguage === 'en' && field.field_name_en 
+              ? field.field_name_en 
+              : field.field_name;
+            
+            customFieldsMap.set(field.field_key, fieldName);
           });
-          console.log('✅ Nombres de campos obtenidos:', Object.fromEntries(customFieldsMap));
+          console.log(`✅ Nombres de campos obtenidos en ${propertyLanguage}:`, Object.fromEntries(customFieldsMap));
         } else {
           console.error('⚠️ Error obteniendo nombres de campos:', fieldsError);
         }
@@ -350,10 +359,6 @@ function handlePublish(propertyId: string) {
         console.log('ℹ️ Generación de IA deshabilitada (fb_ai_enabled = false)');
         await sendEvent({ message: 'Omitiendo diseño IA', progress: 50 });
       }
-
-      // Detectar idioma de la propiedad (default: español)
-      const propertyLanguage = property.language || 'es';
-      console.log(`🌐 Idioma de la propiedad: ${propertyLanguage}`);
 
       // ✅ Construir mensaje con el símbolo de divisa correcto
       const message = await buildFacebookMessage(property, agent, customFieldsMap, propertyLanguage, currencySymbol);

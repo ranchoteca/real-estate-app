@@ -5,15 +5,17 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useI18nStore } from '@/lib/i18n-store';
 
 interface VoiceRecorderProps {
-  onRecordingComplete: (audioBlob: Blob) => void;
-  minDuration?: number; // segundos
-  maxDuration?: number; // segundos
+  onRecordingComplete: (blob: Blob) => void;
+  minDuration?: number;
+  maxDuration?: number;
+  instructionLanguage?: 'es' | 'en';
 }
 
 export default function VoiceRecorder({ 
-  onRecordingComplete,
-  minDuration = 10,
-  maxDuration = 120 
+  onRecordingComplete, 
+  minDuration = 10, 
+  maxDuration = 120,
+  instructionLanguage = 'es'
 }: VoiceRecorderProps) {
   const { t } = useTranslation();
   const { language } = useI18nStore();
@@ -151,10 +153,16 @@ export default function VoiceRecorder({
           <span className="text-2xl">💡</span>
           <div>
             <h4 className="font-bold text-blue-900 mb-1">
-              {t('voiceRecorder.instructionsTitle')}
+              {instructionLanguage === 'en' 
+                ? 'Recording instructions'
+                : 'Instrucciones de grabación'
+              }
             </h4>
             <p className="text-sm text-blue-700">
-              {t('voiceRecorder.instructionsText')}
+              {instructionLanguage === 'en'
+                ? 'Describe the property with all details: location, custom fields, and any relevant information. Speak clearly and in detail so the AI generates the best possible description.'
+                : 'Describe la propiedad con todos los detalles: ubicación, campos personalizados y cualquier información relevante. Habla claro y con detalle para que la IA genere la mejor descripción posible.'
+              }
             </p>
           </div>
         </div>

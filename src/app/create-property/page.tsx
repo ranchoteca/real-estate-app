@@ -512,8 +512,9 @@ export default function CreatePropertyPage() {
     return customFieldsValues[fieldKey] || '';
   };
 
+  // Usar idioma de la PROPIEDAD, no de la interfaz
   const getFieldName = (field: CustomField): string => {
-    if (language === 'en' && field.field_name_en) {
+    if (propertyLanguage === 'en' && field.field_name_en) {
       return field.field_name_en;
     }
     return field.field_name;
@@ -678,10 +679,16 @@ export default function CreatePropertyPage() {
                   <span className="text-2xl">💡</span>
                   <div>
                     <h3 className="font-bold text-blue-900 mb-1">
-                      {t('createProperty.customFieldsHint')}:
+                      {propertyLanguage === 'en' 
+                        ? 'Fields to mention in your recording:'
+                        : 'Campos a mencionar en tu grabación:'
+                      }
                     </h3>
                     <p className="text-sm text-blue-700">
-                      {t('createProperty.customFieldsHintDesc')}
+                      {propertyLanguage === 'en'
+                        ? 'Mention these details so the AI fills them out automatically'
+                        : 'Menciona estos detalles para que la IA los complete automáticamente'
+                      }
                     </p>
                   </div>
                 </div>
@@ -724,6 +731,7 @@ export default function CreatePropertyPage() {
               onRecordingComplete={handleRecordingComplete}
               minDuration={10}
               maxDuration={120}
+              instructionLanguage={propertyLanguage}
             />
           </div>
 

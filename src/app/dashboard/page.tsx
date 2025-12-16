@@ -156,6 +156,15 @@ export default function DashboardPage() {
     }
   };
 
+  const refreshSession = async () => {
+    // Forzar actualización de la sesión
+    const event = new Event("visibilitychange");
+    document.dispatchEvent(event);
+    
+    // Alternativa: hacer fetch al endpoint de sesión
+    await fetch('/api/auth/session', { method: 'GET' });
+  };
+
   const handleDeleteProperty = async (propertyId: string) => {
     setShowMenu(null);
     
@@ -213,6 +222,12 @@ export default function DashboardPage() {
       if (!response.ok) throw new Error('Error al duplicar');
 
       const { newPropertyId } = await response.json();
+      
+      // ✅ NUEVO: Recargar propiedades para actualizar el contador
+      await loadProperties();
+      
+      // ✅ NUEVO: Actualizar sesión
+      await refreshSession();
       
       alert(
         language === 'en'
@@ -923,48 +938,54 @@ export default function DashboardPage() {
                 });
 
                 try {
-                    const response = await fetch('/api/property/translate', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        propertyId: translateModal.propertyId,
-                        targetLanguage: targetLang,
-                        useAI,
-                      }),
-                    });
+                  const response = await fetch('/api/property/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      propertyId: translateModal.propertyId,
+                      targetLanguage: targetLang,
+                      useAI,
+                    }),
+                  });
 
-                    if (!response.ok) throw new Error('Error al traducir');
+                  if (!response.ok) throw new Error('Error al traducir');
 
-                    const { newPropertyId } = await response.json();
+                  const { newPropertyId } = await response.json();
 
-                    // Cerrar modal de progreso
-                    setActionModal({ open: false, type: 'translating', message: '' });
-                    
-                    alert(useAI 
-                      ? (language === 'en' 
-                          ? '✅ Property translated with AI. Review and adjust if necessary.'
-                          : '✅ Propiedad traducida con IA. Revisa y ajusta si es necesario.')
-                      : (language === 'en'
-                          ? '✅ Property cloned. Edit the content manually.'
-                          : '✅ Propiedad clonada. Edita el contenido manualmente.')
-                    );
-                    
-                    router.push(`/edit-property/${newPropertyId}`);
+                  // NUEVO: Recargar propiedades para actualizar el contador
+                  await loadProperties();
+                  
+                  // NUEVO: Actualizar sesión
+                  await refreshSession();
 
-                  } catch (error) {
-                    // Cerrar modal en caso de error
-                    setActionModal({ open: false, type: 'translating', message: '' });
-                    alert(language === 'en'
-                      ? '❌ Error translating property'
-                      : '❌ Error al traducir la propiedad'
-                    );
-                  }
-                }}
-                className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg"
-                style={{ backgroundColor: '#F59E0B' }}
-              >
-                🌐 {language === 'en' ? 'Create translation' : 'Crear traducción'}
-              </button>
+                  // Cerrar modal de progreso
+                  setActionModal({ open: false, type: 'translating', message: '' });
+                  
+                  alert(useAI 
+                    ? (language === 'en' 
+                        ? '✅ Property translated with AI. Review and adjust if necessary.'
+                        : '✅ Propiedad traducida con IA. Revisa y ajusta si es necesario.')
+                    : (language === 'en'
+                        ? '✅ Property cloned. Edit the content manually.'
+                        : '✅ Propiedad clonada. Edita el contenido manualmente.')
+                  );
+                  
+                  router.push(`/edit-property/${newPropertyId}`);
+
+                } catch (error) {
+                  // Cerrar modal en caso de error
+                  setActionModal({ open: false, type: 'translating', message: '' });
+                  alert(language === 'en'
+                    ? '❌ Error translating property'
+                    : '❌ Error al traducir la propiedad'
+                  );
+                }
+              }}
+              className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg"
+              style={{ backgroundColor: '#F59E0B' }}
+            >
+              🌐 {language === 'en' ? 'Create translation' : 'Crear traducción'}
+            </button>
             </div>
           </div>
         </div>

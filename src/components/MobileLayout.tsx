@@ -10,13 +10,15 @@ interface MobileLayoutProps {
   title?: string;
   showBack?: boolean;
   showTabs?: boolean;
+  currentPropertyCount?: number;
 }
 
 export default function MobileLayout({ 
   children, 
   title, 
   showBack = false,
-  showTabs = true 
+  showTabs = true,
+  currentPropertyCount
 }: MobileLayoutProps) {
   const { data: session } = useSession();
   const router = useRouter();
@@ -137,7 +139,13 @@ export default function MobileLayout({
             {/* Create Tab - Center FAB (SIN TEXTO) */}
             <button
               onClick={() => router.push('/create-property')}
-              disabled={!session.user || (session.user.plan === 'free' && session.user.totalProperties >= 20)}
+              disabled={
+                !session?.user || 
+                (session.user.plan === 'free' && 
+                (currentPropertyCount !== undefined 
+                  ? currentPropertyCount >= 20 
+                  : (session.user.totalProperties || 0) >= 20))
+              }
               className="flex-1 flex flex-col items-center justify-center transition-all active:scale-95 disabled:opacity-50"
             >
               <div 

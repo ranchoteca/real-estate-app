@@ -173,12 +173,8 @@ export default function DashboardPage() {
         throw new Error('Error al eliminar');
       }
 
-      // ✅ Recargar propiedades Y sesión
+      // Solo recargar propiedades (el contador se actualiza automáticamente)
       await loadProperties();
-      
-      // ✅ Forzar actualización de la sesión
-      await fetch('/api/auth/session?update=1');
-      window.location.reload(); // Recargar para actualizar session
       
     } catch (error) {
       console.error('Error deleting property:', error);
@@ -318,7 +314,11 @@ export default function DashboardPage() {
   const filteredProperties = getFilteredProperties();
 
   return (
-    <MobileLayout title={language === 'en' ? 'My Properties' : 'Mis Propiedades'} showTabs={true}>
+    <MobileLayout 
+      title={language === 'en' ? 'My Properties' : 'Mis Propiedades'} 
+      showTabs={true}
+      currentPropertyCount={properties.length}
+    >
       {/* Stats Card */}
       <div className="px-4 pt-3 pb-2">
         <div 

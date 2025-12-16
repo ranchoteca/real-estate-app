@@ -9,6 +9,7 @@ import MobileLayout from '@/components/MobileLayout';
 import Image from 'next/image';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useI18nStore } from '@/lib/i18n-store';
+import PropertyActionModal from '@/components/property/PropertyActionModal';
 
 interface Property {
   id: string;
@@ -91,6 +92,13 @@ export default function DashboardPage() {
 
   const [currencies, setCurrencies] = useState<any[]>([]);
 
+  // Estados para modal de acción
+  const [actionModal, setActionModal] = useState<{
+    open: boolean;
+    type: 'duplicating' | 'translating';
+    message: string;
+  }>({ open: false, type: 'duplicating', message: '' });
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -165,7 +173,13 @@ export default function DashboardPage() {
         throw new Error('Error al eliminar');
       }
 
-      loadProperties();
+      // ✅ Recargar propiedades Y sesión
+      await loadProperties();
+      
+      // ✅ Forzar actualización de la sesión
+      await fetch('/api/auth/session?update=1');
+      window.location.reload(); // Recargar para actualizar session
+      
     } catch (error) {
       console.error('Error deleting property:', error);
       alert(language === 'en' 
@@ -187,6 +201,13 @@ export default function DashboardPage() {
     try {
       setDuplicating(true);
       
+      // Mostrar modal
+      setActionModal({
+        open: true,
+        type: 'duplicating',
+        message: language === 'en' ? 'Duplicating property...' : 'Duplicando propiedad...'
+      });
+      
       const response = await fetch('/api/property/duplicate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -202,10 +223,14 @@ export default function DashboardPage() {
           ? '✅ Property duplicated successfully'
           : '✅ Propiedad duplicada exitosamente'
       );
-      
+
+      // Cerrar modal antes de redirigir
+      setActionModal({ open: false, type: 'duplicating', message: '' });
       router.push(`/edit-property/${newPropertyId}`);
       
     } catch (error) {
+      // Cerrar modal en caso de error
+      setActionModal({ open: false, type: 'duplicating', message: '' });
       alert(
         language === 'en'
           ? '❌ Error duplicating property'
@@ -881,11 +906,23 @@ export default function DashboardPage() {
                 {language === 'en' ? 'Cancel' : 'Cancelar'}
               </button>
               <button
-                onClick={async () => {
-                  const useAI = (document.querySelector('input[name="translate-option"]:checked') as HTMLInputElement)?.value === 'ai';
-                  const targetLang = translateModal.currentLang === 'es' ? 'en' : 'es';
+              onClick={async () => {
+                const useAI = (document.querySelector('input[name="translate-option"]:checked') as HTMLInputElement)?.value === 'ai';
+                const targetLang = translateModal.currentLang === 'es' ? 'en' : 'es';
 
-                  try {
+                // Cerrar modal de opciones
+                setTranslateModal({ open: false, propertyId: null, currentLang: null });
+
+                // Mostrar modal de progreso
+                setActionModal({
+                  open: true,
+                  type: 'translating',
+                  message: useAI 
+                    ? (language === 'en' ? 'Translating with AI...' : 'Traduciendo con IA...')
+                    : (language === 'en' ? 'Creating copy...' : 'Creando copia...')
+                });
+
+                try {
                     const response = await fetch('/api/property/translate', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
@@ -900,6 +937,9 @@ export default function DashboardPage() {
 
                     const { newPropertyId } = await response.json();
 
+                    // Cerrar modal de progreso
+                    setActionModal({ open: false, type: 'translating', message: '' });
+                    
                     alert(useAI 
                       ? (language === 'en' 
                           ? '✅ Property translated with AI. Review and adjust if necessary.'
@@ -909,10 +949,11 @@ export default function DashboardPage() {
                           : '✅ Propiedad clonada. Edita el contenido manualmente.')
                     );
                     
-                    setTranslateModal({ open: false, propertyId: null, currentLang: null });
                     router.push(`/edit-property/${newPropertyId}`);
 
                   } catch (error) {
+                    // Cerrar modal en caso de error
+                    setActionModal({ open: false, type: 'translating', message: '' });
                     alert(language === 'en'
                       ? '❌ Error translating property'
                       : '❌ Error al traducir la propiedad'
@@ -928,6 +969,12 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+      {/* Modal de acción (Duplicar/Traducir) */}
+      <PropertyActionModal
+        isOpen={actionModal.open}
+        message={actionModal.message}
+        type={actionModal.type}
+      />
     </MobileLayout>
   );
 }

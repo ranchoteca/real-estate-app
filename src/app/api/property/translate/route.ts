@@ -82,11 +82,19 @@ export async function POST(req: NextRequest) {
             const fieldDef = customFields.find(f => f.field_key === fieldKey);
             
             if (fieldDef && fieldDef.field_type === 'text' && value && typeof value === 'string') {
-              // Solo traducir si es texto y no es un número
-              if (!/^\d+$/.test(value.trim())) {
-                translatedFields[fieldKey] = await translateText(value, targetLanguage);
+              const trimmedValue = value.trim();
+              
+              const shouldNotTranslate = 
+                /^\d+$/.test(trimmedValue) || // Es número
+                /^(sí|si|yes|no)$/i.test(trimmedValue) || // Es Sí/No
+                trimmedValue.split(/\s+/).length <= 2; // 1-2 palabras
+              
+              if (shouldNotTranslate) {
+                // Mantener valor original
+                translatedFields[fieldKey] = value;
               } else {
-                translatedFields[fieldKey] = value; // Mantener números
+                // Traducir
+                translatedFields[fieldKey] = await translateText(value, targetLanguage);
               }
             } else {
               translatedFields[fieldKey] = value; // Mantener números y otros tipos

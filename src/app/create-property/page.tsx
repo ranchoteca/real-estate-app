@@ -186,6 +186,33 @@ export default function CreatePropertyPage() {
     return 'CR';
   };
 
+  const generatePlusCode = async (lat: number, lng: number): Promise<string | null> => {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+      );
+      
+      if (!response.ok) {
+        console.warn('⚠️ Error en API de Geocoding');
+        return null;
+      }
+      
+      const data = await response.json();
+      
+      if (data.results && data.results[0]?.plus_code?.global_code) {
+        const plusCode = data.results[0].plus_code.global_code;
+        console.log('✅ Plus Code generado:', plusCode);
+        return plusCode;
+      }
+      
+      console.warn('⚠️ No se encontró Plus Code en la respuesta');
+      return null;
+    } catch (error) {
+      console.error('❌ Error generando Plus Code:', error);
+      return null;
+    }
+  };
+
   const loadCustomFields = async (propType: string, listType: string) => {
     try {
       setLoadingCustomFields(true);
@@ -271,6 +298,11 @@ export default function CreatePropertyPage() {
             // Detectar país automáticamente
             await detectCountryFromLocation(latitude, longitude);
             
+            // Generar Plus Code
+            console.log('🔍 Generando Plus Code para coordenadas:', latitude, longitude);
+            const plusCode = await generatePlusCode(latitude, longitude);
+            console.log('📍 Plus Code obtenido:', plusCode);
+            
             setPropertyData({
               ...generatedData,
               property_type: propertyType,
@@ -279,7 +311,7 @@ export default function CreatePropertyPage() {
               currency_id: selectedCurrency,
               latitude: latitude,
               longitude: longitude,
-              plus_code: null,
+              plus_code: plusCode,
               show_map: true,
               custom_fields_data: generatedData.custom_fields_data || {},
             });

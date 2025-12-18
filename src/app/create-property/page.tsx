@@ -186,31 +186,47 @@ export default function CreatePropertyPage() {
     return 'CR';
   };
 
-  const generatePlusCode = async (lat: number, lng: number): Promise<string | null> => {
-    try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
-      );
+  const generatePlusCode = (lat: number, lng: number): string => {
+    // Open Location Code algorithm (algoritmo oficial de Google)
+    const CODE_ALPHABET = '23456789CFGHJMPQRVWX';
+    const PAIR_CODE_LENGTH = 10;
+    
+    // Normalizar coordenadas
+    let latitude = lat;
+    let longitude = lng;
+    
+    // Ajustar si están fuera de rango
+    latitude = Math.max(-90, Math.min(90, latitude));
+    longitude = ((longitude % 360) + 360) % 360;
+    if (longitude > 180) longitude -= 360;
+    
+    // Normalizar a valores positivos (0-180 para lat, 0-360 para lng)
+    latitude += 90;
+    longitude += 180;
+    
+    let code = '';
+    let latPlaceValue = 400; // 20^2 (para lat inicial)
+    let lngPlaceValue = 400; // 20^2 (para lng inicial)
+    
+    // Generar los primeros 10 dígitos (5 pares)
+    for (let i = 0; i < PAIR_CODE_LENGTH / 2; i++) {
+      const latDigit = Math.floor(latitude / latPlaceValue);
+      const lngDigit = Math.floor(longitude / lngPlaceValue);
       
-      if (!response.ok) {
-        console.warn('⚠️ Error en API de Geocoding');
-        return null;
-      }
+      code += CODE_ALPHABET[latDigit];
+      code += CODE_ALPHABET[lngDigit];
       
-      const data = await response.json();
+      latitude -= latDigit * latPlaceValue;
+      longitude -= lngDigit * lngPlaceValue;
       
-      if (data.results && data.results[0]?.plus_code?.global_code) {
-        const plusCode = data.results[0].plus_code.global_code;
-        console.log('✅ Plus Code generado:', plusCode);
-        return plusCode;
-      }
-      
-      console.warn('⚠️ No se encontró Plus Code en la respuesta');
-      return null;
-    } catch (error) {
-      console.error('❌ Error generando Plus Code:', error);
-      return null;
+      latPlaceValue /= 20;
+      lngPlaceValue /= 20;
     }
+    
+    // Formato estándar: XXXX+XX (primeros 4 + separador + siguientes 2)
+    const formattedCode = code.substring(0, 4) + '+' + code.substring(4, 6);
+    console.log('✅ Plus Code generado localmente:', formattedCode);
+    return formattedCode;
   };
 
   const loadCustomFields = async (propType: string, listType: string) => {
@@ -300,7 +316,7 @@ export default function CreatePropertyPage() {
             
             // Generar Plus Code
             console.log('🔍 Generando Plus Code para coordenadas:', latitude, longitude);
-            const plusCode = await generatePlusCode(latitude, longitude);
+            const plusCode = generatePlusCode(latitude, longitude);
             console.log('📍 Plus Code obtenido:', plusCode);
             
             setPropertyData({

@@ -263,11 +263,18 @@ async function createCompactCoverPage(
     overlayY += 12;
   }
 
-  // Precio (grande y destacado)
   pdf.setFontSize(32);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(234, 179, 8); // gold
-  const currencySymbol = currency?.symbol || '$';
+
+  // Manejar símbolos de moneda especiales con Unicode
+  let currencySymbol = currency?.symbol || '$';
+
+  // Convertir ₡ a su representación Unicode que jsPDF puede manejar
+  if (currencySymbol === '₡') {
+    currencySymbol = '\u20A1'; // Código Unicode para ₡
+  }
+
   const price = property.price 
     ? `${currencySymbol}${property.price.toLocaleString()}`
     : t.priceOnRequest;

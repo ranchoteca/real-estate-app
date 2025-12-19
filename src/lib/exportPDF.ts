@@ -267,18 +267,22 @@ async function createCompactCoverPage(
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(234, 179, 8); // gold
 
-  // Manejar símbolos de moneda especiales con Unicode
   let currencySymbol = currency?.symbol || '$';
+  const priceValue = property.price ? property.price.toLocaleString() : t.priceOnRequest;
 
-  // Convertir ₡ a su representación Unicode que jsPDF puede manejar
-  if (currencySymbol === '₡') {
-    currencySymbol = '\u20A1'; // Código Unicode para ₡
+  if (property.price) {
+    // Renderizar símbolo y número por separado
+    try {
+      pdf.text(currencySymbol, margin, overlayY + 8);
+      const symbolWidth = pdf.getTextWidth(currencySymbol);
+      pdf.text(priceValue, margin + symbolWidth, overlayY + 8);
+    } catch (e) {
+      // Fallback si falla
+      pdf.text(`${currencySymbol}${priceValue}`, margin, overlayY + 8);
+    }
+  } else {
+    pdf.text(t.priceOnRequest, margin, overlayY + 8);
   }
-
-  const price = property.price 
-    ? `${currencySymbol}${property.price.toLocaleString()}`
-    : t.priceOnRequest;
-  pdf.text(price, margin, overlayY + 8);
 
   // Features principales
   const features = [

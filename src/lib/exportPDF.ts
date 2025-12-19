@@ -31,6 +31,25 @@ export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo,
   console.log('📦 Propiedad:', property.title);
   console.log('👤 Agente (parámetro):', agentParam);
 
+  // Si no viene currency pero la propiedad tiene currency_id, inferir la moneda
+  if (!currency && property.currency_id) {
+    // ID de colones costarricenses
+    if (property.currency_id === 'ec8528a3-d504-47fa-97db-2c07716d8b47') {
+      currency = { symbol: '₡', code: 'CRC' };
+    }
+    // ID de dólares (por defecto)
+    else if (property.currency_id === '839f44d5-bee2-4bc1-b5da-50364f14c681') {
+      currency = { symbol: '$', code: 'USD' };
+    }
+  }
+  
+  // Si aún no hay currency, usar dólares por defecto
+  if (!currency) {
+    currency = { symbol: '$', code: 'USD' };
+  }
+  
+  console.log('💰 Currency final a usar:', currency);
+
   // Cargar información del agente desde la API
   let agent: AgentInfo | undefined = agentParam || property.agent;
 

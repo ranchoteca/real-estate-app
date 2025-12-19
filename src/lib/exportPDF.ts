@@ -95,7 +95,7 @@ export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo,
   const margin = 15;
 
   // PÁGINA 1: PORTADA
-  await createCompactCoverPage(pdf, property, agent, pageWidth, pageHeight, margin, t, lang);
+  await createCompactCoverPage(pdf, property, agent, pageWidth, pageHeight, margin, t, lang, currency);
 
   // PÁGINA 2: DETALLES Y DESCRIPCIÓN
   pdf.addPage();
@@ -175,7 +175,8 @@ async function createCompactCoverPage(
   pageHeight: number,
   margin: number,
   t: any,
-  lang: 'es' | 'en'
+  lang: 'es' | 'en',
+  currency?: { symbol: string; code: string }
 ) {
   // Imagen principal (2/3 superior de la página)
   const imageHeight = pageHeight * 0.65;

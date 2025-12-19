@@ -539,11 +539,14 @@ export default function PropertyPage() {
               onClick={async () => {
                 setIsGeneratingPDF(true);
                 try {
+                  const currencyInfo = currency ? { symbol: currency.symbol, code: currency.code } : { symbol: '$', code: 'USD' };
                   const { exportPropertyToPDF } = await import('@/lib/exportPDF');
                   await exportPropertyToPDF(
                     property,
                     property.agent,
-                    customFields
+                    customFields,
+                    property.language,
+                    currencyInfo
                   );
                 } catch (error) {
                   console.error('Error generando PDF:', error);

@@ -739,8 +739,12 @@ export default function DashboardPage() {
                             }
                           }
 
+                          // Obtener información de la divisa
+                          const currencyInfo = currencies.find(c => c.id === fullProperty.currency_id);
+                          const currency = currencyInfo ? { symbol: currencyInfo.symbol, code: currencyInfo.code } : { symbol: '$', code: 'USD' };
+
                           const { exportPropertyToPDF } = await import('@/lib/exportPDF');
-                          await exportPropertyToPDF(fullProperty, fullProperty.agent, customFields);
+                          await exportPropertyToPDF(fullProperty, fullProperty.agent, customFields, fullProperty.language, currency);
                         } catch (error) {
                           console.error('Error generando PDF:', error);
                           alert('Error al generar el PDF');

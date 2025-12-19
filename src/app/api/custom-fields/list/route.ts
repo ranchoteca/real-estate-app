@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
     // Obtener campos personalizados (solo campos necesarios para renderizar)
     const { data: fields, error: fieldsError } = await supabaseAdmin
       .from('custom_fields')
-      .select('id, field_key, field_name, field_type, icon, display_order')
+      .select('id, field_key, field_name, field_name_en, field_type, icon, display_order')
       .eq('agent_id', agent.id)
       .eq('property_type', property_type)
       .eq('listing_type', listing_type)

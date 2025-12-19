@@ -26,7 +26,7 @@ interface AgentInfo {
   watermark_size?: 'small' | 'medium' | 'large';
 }
 
-export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo, customFieldsDefinitions?: any[], propertyLanguage?: 'es' | 'en') {
+export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo, customFieldsDefinitions?: any[], propertyLanguage?: 'es' | 'en', currency?: { symbol: string; code: string }) {
   console.log('🚀 Iniciando exportación de PDF...');
   console.log('📦 Propiedad:', property.title);
   console.log('👤 Agente (parámetro):', agentParam);
@@ -266,8 +266,9 @@ async function createCompactCoverPage(
   pdf.setFontSize(32);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(234, 179, 8); // gold
+  const currencySymbol = currency?.symbol || '$';
   const price = property.price 
-    ? `$${property.price.toLocaleString()}`
+    ? `${currencySymbol}${property.price.toLocaleString()}`
     : t.priceOnRequest;
   pdf.text(price, margin, overlayY + 8);
 
@@ -439,7 +440,9 @@ async function createCompactDetailsPage(
     for (let i = 0; i < entries.length; i++) {
       const [key, value] = entries[i];
       const fieldDef = fieldsToUse.find((f: any) => f.field_key === key);
-      const fieldName = fieldDef?.field_name || key;
+      const fieldName = (lang === 'en' && fieldDef?.field_name_en) 
+        ? fieldDef.field_name_en 
+        : (fieldDef?.field_name || key);
 
       console.log(`🔍 Campo: ${key} -> Nombre: ${fieldName} (def encontrada: ${!!fieldDef})`);
 

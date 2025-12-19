@@ -30,25 +30,42 @@ export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo,
   console.log('🚀 Iniciando exportación de PDF...');
   console.log('📦 Propiedad:', property.title);
   console.log('👤 Agente (parámetro):', agentParam);
+  
+  // 🔍 LOGS DE DEPURACIÓN
+  console.log('═══════════════════════════════════════');
+  console.log('🔍 DEPURACIÓN DE CURRENCY:');
+  console.log('1️⃣ Currency recibida como parámetro:', currency);
+  console.log('2️⃣ property.currency_id:', property.currency_id);
+  console.log('3️⃣ property completo:', property);
+  console.log('═══════════════════════════════════════');
 
   // Si no viene currency pero la propiedad tiene currency_id, inferir la moneda
   if (!currency && property.currency_id) {
+    console.log('⚠️ No hay currency en parámetro, intentando inferir...');
+    
     // ID de colones costarricenses
     if (property.currency_id === 'ec8528a3-d504-47fa-97db-2c07716d8b47') {
       currency = { symbol: '₡', code: 'CRC' };
+      console.log('✅ Detectado COLONES');
     }
-    // ID de dólares (por defecto)
+    // ID de dólares
     else if (property.currency_id === '839f44d5-bee2-4bc1-b5da-50364f14c681') {
       currency = { symbol: '$', code: 'USD' };
+      console.log('✅ Detectado DÓLARES');
+    }
+    else {
+      console.log('❓ currency_id desconocido:', property.currency_id);
     }
   }
   
   // Si aún no hay currency, usar dólares por defecto
   if (!currency) {
     currency = { symbol: '$', code: 'USD' };
+    console.log('⚠️ Usando DÓLARES por defecto');
   }
   
-  console.log('💰 Currency final a usar:', currency);
+  console.log('💰 Currency FINAL a usar:', currency);
+  console.log('═══════════════════════════════════════');
 
   // Cargar información del agente desde la API
   let agent: AgentInfo | undefined = agentParam || property.agent;

@@ -309,15 +309,21 @@ async function createCompactCoverPage(
     currencySymbol = '¢';
   }
 
-  // 🔍 LOG CRÍTICO: Ver qué símbolo se está usando
-  console.log('💵 SÍMBOLO FINAL EN PDF:', currencySymbol);
-  console.log('💵 Currency object:', currency);
-
   const price = property.price 
     ? `${currencySymbol}${property.price.toLocaleString()}`
     : t.priceOnRequest;
 
-  console.log('💵 PRECIO COMPLETO A RENDERIZAR:', price);
+  // ⚠️ ALERT TEMPORAL - ELIMINAR DESPUÉS
+  alert(`🔍 PDF DEBUG COMPLETO:
+  ━━━━━━━━━━━━━━━━
+  📦 Propiedad: ${property.title.substring(0, 30)}...
+  💰 Precio raw: ${property.price}
+  💱 Currency object: ${JSON.stringify(currency)}
+  💵 Símbolo original: "${currency?.symbol}"
+  💵 Código: ${currency?.code}
+  ✨ Símbolo FINAL: "${currencySymbol}"
+  📝 Precio RENDERIZADO: "${price}"
+  ━━━━━━━━━━━━━━━━`);
 
   pdf.text(price, margin, overlayY + 8);
 

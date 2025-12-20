@@ -309,9 +309,16 @@ async function createCompactCoverPage(
     currencySymbol = '¢';
   }
 
+  // 🔍 LOG CRÍTICO: Ver qué símbolo se está usando
+  console.log('💵 SÍMBOLO FINAL EN PDF:', currencySymbol);
+  console.log('💵 Currency object:', currency);
+
   const price = property.price 
     ? `${currencySymbol}${property.price.toLocaleString()}`
     : t.priceOnRequest;
+
+  console.log('💵 PRECIO COMPLETO A RENDERIZAR:', price);
+
   pdf.text(price, margin, overlayY + 8);
 
   // Features principales

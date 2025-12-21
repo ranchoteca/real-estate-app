@@ -314,18 +314,6 @@ async function createCompactCoverPage(
     ? `${currencySymbol}${property.price.toLocaleString()}`
     : t.priceOnRequest;
 
-  // ⚠️ ALERT TEMPORAL - ELIMINAR DESPUÉS
-  alert(`🔍 PDF DEBUG COMPLETO:
-  ━━━━━━━━━━━━━━━━
-  📦 Propiedad: ${property.title.substring(0, 30)}...
-  💰 Precio raw: ${property.price}
-  💱 Currency object: ${JSON.stringify(currency)}
-  💵 Símbolo original: "${currency?.symbol}"
-  💵 Código: ${currency?.code}
-  ✨ Símbolo FINAL: "${currencySymbol}"
-  📝 Precio RENDERIZADO: "${price}"
-  ━━━━━━━━━━━━━━━━`);
-
   pdf.text(price, margin, overlayY + 8);
 
   // Features principales

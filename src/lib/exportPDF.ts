@@ -144,7 +144,8 @@ export async function exportPropertyToPDF(property: any, agentParam?: AgentInfo,
   }
 
   // Guardar PDF
-  const fileName = `${property.title.replace(/[^a-z0-9]/gi, '_')}_Detalles.pdf`;
+  const timestamp = Date.now();
+  const fileName = `${property.title.replace(/[^a-z0-9]/gi, '_')}_${timestamp}.pdf`;
 
   // Detectar si está en navegador in-app
   const isInAppBrowser = () => {

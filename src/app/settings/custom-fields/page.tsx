@@ -46,7 +46,7 @@ const AVAILABLE_ICONS = [
   '🐶', '🏛️', '🐱', '🕌', '🏤', '🏦', '🏨', '🏩', '🏬', '🏭',
 ];
 
-const MAX_FIELDS_PER_COMBO = 5;
+const MAX_FIELDS_PER_COMBO = 10;
 
 export default function CustomFieldsPage() {
   const { data: session, status } = useSession();

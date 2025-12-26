@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseAdmin } from '@/lib/supabase';
 
-const MAX_FIELDS_PER_COMBO = 5;
+const MAX_FIELDS_PER_COMBO = 10;
 
 export async function POST(req: NextRequest) {
   try {

@@ -69,6 +69,9 @@ export default function CreatePropertyPage() {
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
 
+  const [canUseSuggested, setCanUseSuggested] = useState(false);
+  const [loadingSuggested, setLoadingSuggested] = useState(false);
+
   // Currencies
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
@@ -239,17 +242,59 @@ export default function CreatePropertyPage() {
       if (!response.ok) {
         console.error('Error al cargar campos personalizados');
         setCustomFields([]);
+        setCanUseSuggested(false);
         return;
       }
       
       const data = await response.json();
-      setCustomFields(data.fields || []);
-      console.log(`📋 Campos cargados para ${propType} > ${listType}:`, data.fields?.length || 0);
+      const fields = data.fields || [];
+      setCustomFields(fields);
+      
+      //Determinar si se puede mostrar el botón de campos sugeridos
+      setCanUseSuggested(fields.length === 0);
     } catch (err) {
       console.error('Error loading custom fields:', err);
       setCustomFields([]);
+      setCanUseSuggested(false); // NUEVO
     } finally {
       setLoadingCustomFields(false);
+    }
+  };
+
+  const handleUseSuggestedFields = async () => {
+    setLoadingSuggested(true);
+    
+    try {
+      const response = await fetch('/api/custom-fields/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          property_type: propertyType,
+          listing_type: listingType,
+          language: propertyLanguage,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Error al cargar campos sugeridos');
+      }
+
+      const data = await response.json();
+      console.log(`✅ ${data.count} campos sugeridos creados`);
+      
+      // Recargar campos para mostrarlos
+      await loadCustomFields(propertyType, listingType);
+      
+    } catch (error) {
+      console.error('Error cargando campos sugeridos:', error);
+      alert(
+        propertyLanguage === 'en'
+          ? 'Error loading suggested fields'
+          : 'Error al cargar campos sugeridos'
+      );
+    } finally {
+      setLoadingSuggested(false);
     }
   };
 
@@ -749,6 +794,55 @@ export default function CreatePropertyPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            ) : canUseSuggested ? (
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-2xl p-5">
+                <div className="flex items-start gap-3 mb-4">
+                  <span className="text-3xl">✨</span>
+                  <div>
+                    <h3 className="font-bold text-purple-900 mb-1">
+                      {propertyLanguage === 'en'
+                        ? 'No custom fields yet!'
+                        : '¡Aún no tienes campos personalizados!'
+                      }
+                    </h3>
+                    <p className="text-sm text-purple-700">
+                      {propertyLanguage === 'en'
+                        ? 'Load suggested fields to speed up your listing creation'
+                        : 'Carga campos sugeridos para agilizar la creación de tu propiedad'
+                      }
+                    </p>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={handleUseSuggestedFields}
+                  disabled={loadingSuggested}
+                  className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: '#8B5CF6' }}
+                >
+                  {loadingSuggested ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      {propertyLanguage === 'en' ? 'Loading...' : 'Cargando...'}
+                    </>
+                  ) : (
+                    <>
+                      <span>🚀</span>
+                      {propertyLanguage === 'en' ? 'Use Suggested Fields' : 'Usar Campos Sugeridos'}
+                    </>
+                  )}
+                </button>
+                
+                <p className="text-xs text-purple-600 mt-3 text-center">
+                  {propertyLanguage === 'en'
+                    ? 'You can edit or delete them later in Settings'
+                    : 'Podrás editarlos o eliminarlos después en Configuración'
+                  }
+                </p>
               </div>
             ) : (
               <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-4">

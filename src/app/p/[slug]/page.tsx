@@ -7,7 +7,6 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  // Await params (Next.js 15 requirement)
   const { slug } = await params;
 
   const supabase = createClient(
@@ -15,14 +14,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const { data: property } = await supabase
+  const { data: property, error } = await supabase
     .from('properties')
     .select('title, description, price, city, state, property_type, listing_type, language, photos, slug, currency_id')
     .eq('slug', slug)
     .eq('status', 'published')
     .single();
 
-  if (!property) {
+  // Log para debug
+  console.log('🔍 Metadata generation for:', slug);
+  console.log('📦 Property found:', property ? 'YES' : 'NO');
+  console.log('❌ Error:', error);
+
+  if (error || !property) {
+    console.error('❌ Error en generateMetadata:', error);
     return {
       title: 'Propiedad no encontrada - FlowEstateAI',
       description: 'La propiedad que buscas no está disponible',
@@ -44,9 +49,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   // Formatear precio
+  const lang = property.language || 'es';
   const priceText = property.price 
     ? `${currencySymbol}${new Intl.NumberFormat('en-US').format(property.price)}`
-    : (property.language === 'en' ? 'Price upon request' : 'Precio a consultar');
+    : (lang === 'en' ? 'Price upon request' : 'Precio a consultar');
 
   // Asegurar que la imagen sea URL absoluta
   const firstPhoto = property.photos?.[0] 
@@ -56,8 +62,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     : 'https://flowestateai.com/og-default.jpg';
   
   const listingType = property.listing_type === 'rent' 
-    ? (property.language === 'en' ? 'For Rent' : 'En Alquiler')
-    : (property.language === 'en' ? 'For Sale' : 'En Venta');
+    ? (lang === 'en' ? 'For Rent' : 'En Alquiler')
+    : (lang === 'en' ? 'For Sale' : 'En Venta');
   
   const propertyTypes: Record<string, Record<string, string>> = {
     house: { es: 'Casa', en: 'House' },
@@ -68,18 +74,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
   
   const propertyType = property.property_type 
-    ? (propertyTypes[property.property_type]?.[property.language] || property.property_type)
-    : '';
+    ? (propertyTypes[property.property_type]?.[lang] || property.property_type)
+    : (lang === 'en' ? 'Property' : 'Propiedad');
 
   const location = [property.city, property.state].filter(Boolean).join(', ');
   
   // Título mejorado con precio
-  const title = `${propertyType} ${listingType}${location ? ' en ' + location : ''} - ${priceText}`;
+  const title = `${propertyType} ${listingType}${location ? ' ' + (lang === 'en' ? 'in' : 'en') + ' ' + location : ''} - ${priceText}`;
   
   // Descripción mejorada
   const description = property.description?.substring(0, 155) + '...' || `${propertyType} ${listingType} - ${priceText}`;
   
   const url = `https://flowestateai.com/p/${slug}`;
+
+  console.log('✅ Metadata generado:', { title, description, image: firstPhoto });
 
   return {
     title,
@@ -95,7 +103,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         height: 630,
         alt: property.title,
       }],
-      locale: property.language === 'es' ? 'es_ES' : 'en_US',
+      locale: lang === 'es' ? 'es_ES' : 'en_US',
       type: 'website',
     },
     twitter: {
@@ -104,7 +112,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       images: [firstPhoto],
     },
-    // Meta tags adicionales para mejor SEO
     alternates: {
       canonical: url,
     },

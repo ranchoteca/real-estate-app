@@ -14,14 +14,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
+  // Cambiado de 'published' a 'active'
   const { data: property, error } = await supabase
     .from('properties')
     .select('title, description, price, city, state, property_type, listing_type, language, photos, slug, currency_id')
     .eq('slug', slug)
-    .eq('status', 'published')
+    .eq('status', 'active')
     .single();
 
-  // Log para debug
   console.log('🔍 Metadata generation for:', slug);
   console.log('📦 Property found:', property ? 'YES' : 'NO');
   console.log('❌ Error:', error);
@@ -87,7 +87,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   
   const url = `https://flowestateai.com/p/${slug}`;
 
-  console.log('✅ Metadata generado:', { title, description, image: firstPhoto });
+  console.log('✅ Metadata generado exitosamente');
+  console.log('📝 Title:', title);
+  console.log('🖼️ Image:', firstPhoto);
 
   return {
     title,

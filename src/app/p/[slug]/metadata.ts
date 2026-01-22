@@ -1,22 +1,29 @@
 import { Metadata } from 'next';
+import { createClient } from '@supabase/supabase-js';
 
 export async function generatePropertyMetadata(slug: string): Promise<Metadata> {
   try {
-    // Usa tu API route existente
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://flowestateai.com'}/api/property/${slug}`, {
-      cache: 'no-store'
-    });
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
-    if (!response.ok) {
+    const { data: property } = await supabase
+      .from('properties')
+      .select('id, title, description, price, city, state, property_type, listing_type, language, photos, slug')
+      .eq('slug', slug)
+      .eq('status', 'published')
+      .single();
+
+    if (!property) {
       return {
-        title: 'Propiedad no encontrada',
+        title: 'FlowEstateAI',
+        description: 'Plataforma para agentes inmobiliarios',
       };
     }
 
-    const data = await response.json();
-    const property = data.property;
-
-    const firstPhoto = property.photos?.[0] || 'https://flowestateai.com/default-property.jpg';
+    const firstPhoto = property.photos?.[0] || 'https://flowestateai.com/og-default.jpg';
+    
     const listingTypeText = property.listing_type === 'rent' 
       ? (property.language === 'en' ? 'For Rent' : 'En Alquiler')
       : (property.language === 'en' ? 'For Sale' : 'En Venta');
@@ -68,6 +75,7 @@ export async function generatePropertyMetadata(slug: string): Promise<Metadata> 
     console.error('Error generando metadata:', error);
     return {
       title: 'FlowEstateAI',
+      description: 'Plataforma para agentes inmobiliarios',
     };
   }
 }

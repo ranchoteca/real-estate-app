@@ -1,38 +1,20 @@
 import { Metadata } from 'next';
-import { createClient } from '@supabase/supabase-js';
 
 export async function generatePropertyMetadata(slug: string): Promise<Metadata> {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    // Usa tu API route existente
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://flowestateai.com'}/api/property/${slug}`, {
+      cache: 'no-store'
+    });
 
-    const { data: property } = await supabase
-      .from('properties')
-      .select(`
-        id,
-        title,
-        description,
-        price,
-        currency_id,
-        city,
-        state,
-        property_type,
-        listing_type,
-        language,
-        photos,
-        slug
-      `)
-      .eq('slug', slug)
-      .eq('status', 'published')
-      .single();
-
-    if (!property) {
+    if (!response.ok) {
       return {
         title: 'Propiedad no encontrada',
       };
     }
+
+    const data = await response.json();
+    const property = data.property;
 
     const firstPhoto = property.photos?.[0] || 'https://flowestateai.com/default-property.jpg';
     const listingTypeText = property.listing_type === 'rent' 

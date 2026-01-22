@@ -7,7 +7,6 @@ import GeneratingPDFModal from '@/components/GeneratingPDFModal';
 import MobileLayout from '@/components/MobileLayout';
 import dynamic from 'next/dynamic';
 import { useI18nStore } from '@/lib/i18n-store';
-import { generatePropertyMetadata } from './metadata';
 
 const GoogleMapEditor = dynamic(() => import('@/components/property/GoogleMapEditor'), {
   ssr: false,
@@ -34,7 +33,7 @@ interface Property {
   views: number;
   created_at: string;
   listing_type: 'rent' | 'sale';
-  language: 'es' | 'en'; // ⬅️ IMPORTANTE: idioma de la propiedad
+  language: 'es' | 'en'; // IMPORTANTE: idioma de la propiedad
   latitude: number | null;
   longitude: number | null;
   show_map: boolean;
@@ -76,10 +75,6 @@ const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string =
   };
   return type ? (translations[type]?.[lang] || type) : (lang === 'en' ? 'Property' : 'Propiedad');
 };
-
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  return generatePropertyMetadata(params.slug);
-}
 
 export default function PropertyPage() {
   const params = useParams();

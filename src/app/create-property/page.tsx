@@ -91,6 +91,14 @@ export default function CreatePropertyPage() {
   // Dropdown del país
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>('CR'); // Default Costa Rica
 
+  // Facebook import states
+  const [facebookPosts, setFacebookPosts] = useState<any[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<any>(null);
+  const [importingPost, setImportingPost] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<'voice' | 'facebook'>('voice');
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -529,22 +537,13 @@ export default function CreatePropertyPage() {
     setError(null);
 
     try {
-      console.log('🔍 propertyData COMPLETO:', propertyData);
-      console.log('🔍 customFieldsValues:', customFieldsValues);
-      console.log('🔍 MERGE de custom_fields_data:', {
-        ...propertyData.custom_fields_data,
-        ...customFieldsValues,
-      });
-      console.log('🔍 currency_id seleccionado:', selectedCurrency);
-      console.log('🔍 currency_id en propertyData:', propertyData.currency_id);
-      
       // 1. Crear la propiedad SIN fotos
       const response = await fetch('/api/property/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...propertyData,
-          photos: [],
+          photos: [], // Temporal: sin fotos aún
           custom_fields_data: {
             ...propertyData.custom_fields_data,
             ...customFieldsValues,
@@ -560,23 +559,34 @@ export default function CreatePropertyPage() {
       const { propertyId, slug } = await response.json();
       console.log(`✅ Propiedad creada: ${propertyId}, slug: ${slug}`);
       
-      // 2. Subir fotos con el slug real
-      console.log(`📤 Subiendo ${photos.length} fotos a la carpeta ${slug}...`);
-      const photoUrls = await uploadPhotosWithSlug(photos, slug);
+      // 2. DETERMINAR SI LAS FOTOS SON DE FACEBOOK O NUEVAS
+      let photoUrls: string[] = [];
+      
+      if (activeTab === 'facebook' && tempPhotoUrls.length > 0) {
+        // Caso: fotos importadas de Facebook (ya están en Supabase)
+        console.log('📸 Usando fotos importadas de Facebook');
+        photoUrls = tempPhotoUrls;
+      } else if (photos.length > 0) {
+        // Caso: fotos nuevas del usuario (subirlas)
+        console.log(`📤 Subiendo ${photos.length} fotos nuevas...`);
+        photoUrls = await uploadPhotosWithSlug(photos, slug);
+      }
       
       // 3. Actualizar la propiedad con las URLs de las fotos
-      const updateResponse = await fetch(`/api/property/update/${propertyId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          photos: photoUrls 
-        }),
-      });
+      if (photoUrls.length > 0) {
+        const updateResponse = await fetch(`/api/property/update/${propertyId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            photos: photoUrls 
+          }),
+        });
 
-      if (!updateResponse.ok) {
-        console.error('⚠️ Error actualizando fotos, pero la propiedad fue creada');
-      } else {
-        console.log(`✅ Fotos actualizadas en la propiedad`);
+        if (!updateResponse.ok) {
+          console.error('⚠️ Error actualizando fotos, pero la propiedad fue creada');
+        } else {
+          console.log(`✅ Fotos actualizadas en la propiedad`);
+        }
       }
       
       // Limpiar estados
@@ -639,6 +649,140 @@ export default function CreatePropertyPage() {
 
   const getListingTypeLabel = (type: string) => {
     return type === 'sale' ? t('createProperty.sale') : t('createProperty.rent');
+  };
+
+  const loadFacebookPosts = async () => {
+    setLoadingPosts(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/facebook/list-posts');
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Error al cargar posts');
+      }
+      
+      const data = await response.json();
+      setFacebookPosts(data.posts || []);
+      
+      if (data.posts.length === 0) {
+        setError('No se encontraron posts en tu página de Facebook');
+      }
+    } catch (err: any) {
+      console.error('Error cargando posts:', err);
+      setError(err.message || 'Error al cargar posts de Facebook');
+    } finally {
+      setLoadingPosts(false);
+    }
+  };
+
+  const handleImportPost = async (post: any) => {
+    if (!propertyType || !listingType) {
+      setError('Primero selecciona el tipo de propiedad y tipo de operación');
+      return;
+    }
+    
+    setImportingPost(true);
+    setError(null);
+    setSelectedPost(post);
+    
+    try {
+      const response = await fetch('/api/facebook/import-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId: post.id,
+          property_type: propertyType,
+          listing_type: listingType,
+          language: propertyLanguage,
+          custom_fields: customFields,
+        }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Error al importar post');
+      }
+      
+      const data = await response.json();
+      
+      console.log('✅ Post importado:', data);
+      
+      // Setear las fotos importadas
+      const importedPhotos = data.property.photos || [];
+      setTempPhotoUrls(importedPhotos);
+      
+      // Pre-llenar datos de la propiedad con geolocalización
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            
+            await detectCountryFromLocation(latitude, longitude);
+            
+            const plusCode = generatePlusCode(latitude, longitude);
+            
+            setPropertyData({
+              ...data.property,
+              property_type: propertyType,
+              listing_type: listingType,
+              language: propertyLanguage,
+              currency_id: selectedCurrency,
+              latitude: latitude,
+              longitude: longitude,
+              plus_code: plusCode,
+              show_map: true,
+              photos: importedPhotos,
+            });
+            
+            setCustomFieldsValues(data.property.custom_fields_data || {});
+          },
+          (error) => {
+            console.log('GPS no disponible:', error);
+            
+            setPropertyData({
+              ...data.property,
+              property_type: propertyType,
+              listing_type: listingType,
+              language: propertyLanguage,
+              currency_id: selectedCurrency,
+              latitude: null,
+              longitude: null,
+              plus_code: null,
+              show_map: true,
+              photos: importedPhotos,
+            });
+            
+            setCustomFieldsValues(data.property.custom_fields_data || {});
+          }
+        );
+      } else {
+        setPropertyData({
+          ...data.property,
+          property_type: propertyType,
+          listing_type: listingType,
+          language: propertyLanguage,
+          currency_id: selectedCurrency,
+          latitude: null,
+          longitude: null,
+          plus_code: null,
+          show_map: true,
+          photos: importedPhotos,
+        });
+        
+        setCustomFieldsValues(data.property.custom_fields_data || {});
+      }
+      
+      // Scroll al preview
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      
+    } catch (err: any) {
+      console.error('Error importando post:', err);
+      setError(err.message || 'Error al importar post de Facebook');
+    } finally {
+      setImportingPost(false);
+    }
   };
 
   return (
@@ -864,17 +1008,168 @@ export default function CreatePropertyPage() {
             )}
           </div>
 
-          {/* Section 3: Voice Recording */}
+          {/* Section 3: TABS - Voice o Facebook */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <span>🎤</span> {t('createProperty.step3')}
+              <span>📝</span> {t('createProperty.step3')}
             </h2>
-            <VoiceRecorder 
-              onRecordingComplete={handleRecordingComplete}
-              minDuration={10}
-              maxDuration={120}
-              instructionLanguage={propertyLanguage}
-            />
+
+            {/* TABS */}
+            <div className="flex gap-2 mb-6">
+              <button
+                onClick={() => setActiveTab('voice')}
+                className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${
+                  activeTab === 'voice'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                🎤 {propertyLanguage === 'en' ? 'With Voice' : 'Con Voz'}
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('facebook');
+                  if (facebookPosts.length === 0) {
+                    loadFacebookPosts();
+                  }
+                }}
+                className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${
+                  activeTab === 'facebook'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                📲 {propertyLanguage === 'en' ? 'From Facebook' : 'Desde Facebook'}
+              </button>
+            </div>
+
+            {/* CONTENIDO SEGÚN TAB */}
+            {activeTab === 'voice' ? (
+              <VoiceRecorder 
+                onRecordingComplete={handleRecordingComplete}
+                minDuration={10}
+                maxDuration={120}
+                instructionLanguage={propertyLanguage}
+              />
+            ) : (
+              /* TAB FACEBOOK */
+              <div className="space-y-4">
+                {/* Info sobre configuración requerida */}
+                <div className="bg-blue-50 border-2 border-blue-300 rounded-2xl p-4">
+                  <p className="text-sm text-blue-800 font-semibold flex items-center gap-2">
+                    <span>💡</span>
+                    {propertyLanguage === 'en' 
+                      ? 'Import properties from your Facebook page posts' 
+                      : 'Importa propiedades desde tus posts de Facebook'}
+                  </p>
+                </div>
+
+                {/* Botón para cargar posts */}
+                {facebookPosts.length === 0 && !loadingPosts && (
+                  <button
+                    onClick={loadFacebookPosts}
+                    disabled={loadingPosts}
+                    className="w-full py-4 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform"
+                    style={{ backgroundColor: '#1877F2' }}
+                  >
+                    {loadingPosts ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5 inline mr-2" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        {propertyLanguage === 'en' ? 'Loading...' : 'Cargando...'}
+                      </>
+                    ) : (
+                      <>
+                        🔄 {propertyLanguage === 'en' ? 'Load My Posts' : 'Cargar Mis Posts'}
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {/* Loading state */}
+                {loadingPosts && (
+                  <div className="text-center py-8">
+                    <div className="text-5xl mb-4 animate-pulse">📲</div>
+                    <p className="text-gray-600 font-semibold">
+                      {propertyLanguage === 'en' ? 'Loading posts from Facebook...' : 'Cargando posts de Facebook...'}
+                    </p>
+                  </div>
+                )}
+
+                {/* Lista de posts */}
+                {!loadingPosts && facebookPosts.length > 0 && (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    <p className="text-sm font-semibold text-gray-700">
+                      {propertyLanguage === 'en' 
+                        ? `${facebookPosts.length} posts found. Select one to import:`
+                        : `${facebookPosts.length} posts encontrados. Selecciona uno para importar:`}
+                    </p>
+                    
+                    {facebookPosts.map(post => (
+                      <div 
+                        key={post.id}
+                        className="border-2 rounded-xl p-4 hover:border-blue-400 transition-colors cursor-pointer"
+                        style={{ borderColor: selectedPost?.id === post.id ? '#3B82F6' : '#E5E7EB' }}
+                      >
+                        <div className="flex gap-3">
+                          {/* Thumbnail */}
+                          {post.thumbnail && (
+                            <div className="flex-shrink-0">
+                              <img 
+                                src={post.thumbnail} 
+                                alt="Preview"
+                                className="w-20 h-20 object-cover rounded-lg"
+                              />
+                            </div>
+                          )}
+                          
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 line-clamp-2 mb-1">
+                              {post.message.substring(0, 100)}
+                              {post.message.length > 100 && '...'}
+                            </p>
+                            <p className="text-xs text-gray-500 mb-2">
+                              📅 {post.created_time} • 📸 {post.image_count} {propertyLanguage === 'en' ? 'photos' : 'fotos'}
+                            </p>
+                            
+                            {/* Botón importar */}
+                            <button
+                              onClick={() => handleImportPost(post)}
+                              disabled={importingPost || !post.has_images}
+                              className="px-4 py-2 rounded-lg font-semibold text-white text-sm active:scale-95 transition-transform disabled:opacity-50"
+                              style={{ backgroundColor: '#10B981' }}
+                            >
+                              {importingPost && selectedPost?.id === post.id ? (
+                                <>
+                                  <svg className="animate-spin h-4 w-4 inline mr-1" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                  </svg>
+                                  {propertyLanguage === 'en' ? 'Importing...' : 'Importando...'}
+                                </>
+                              ) : (
+                                <>
+                                  ✨ {propertyLanguage === 'en' ? 'Import' : 'Importar'}
+                                </>
+                              )}
+                            </button>
+                            
+                            {!post.has_images && (
+                              <p className="text-xs text-red-600 mt-1">
+                                ⚠️ {propertyLanguage === 'en' ? 'No images' : 'Sin imágenes'}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Generate Button */}

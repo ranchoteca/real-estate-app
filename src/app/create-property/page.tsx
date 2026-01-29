@@ -92,6 +92,7 @@ export default function CreatePropertyPage() {
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>('CR'); // Default Costa Rica
 
   // Facebook import states
+  const [showImportModal, setShowImportModal] = useState(false);
   const [facebookPosts, setFacebookPosts] = useState<any[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [selectedPost, setSelectedPost] = useState<any>(null);
@@ -684,6 +685,7 @@ export default function CreatePropertyPage() {
     }
     
     setImportingPost(true);
+    setShowImportModal(true);
     setError(null);
     setSelectedPost(post);
     
@@ -782,6 +784,7 @@ export default function CreatePropertyPage() {
       setError(err.message || 'Error al importar post de Facebook');
     } finally {
       setImportingPost(false);
+      setShowImportModal(false);
     }
   };
 
@@ -1059,8 +1062,8 @@ export default function CreatePropertyPage() {
                   <p className="text-sm text-blue-800 font-semibold flex items-center gap-2">
                     <span>💡</span>
                     {propertyLanguage === 'en' 
-                      ? 'Import properties from your Facebook page posts' 
-                      : 'Importa propiedades desde tus posts de Facebook'}
+                      ? 'Import properties from your Facebook page posts, the post will be processed in the language and currency you selected above' 
+                      : 'Importa propiedades desde tus posts de Facebook, el post se procesará en el idioma y divisa que seleccionaste arriba'}
                   </p>
                 </div>
 
@@ -1391,6 +1394,31 @@ export default function CreatePropertyPage() {
                   )}
                 </div>
 
+                {/* Preview de fotos importadas */}
+                {tempPhotoUrls.length > 0 && (
+                  <div className="pt-4 border-t border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      📸 {t('createProperty.importedPhotos')} ({tempPhotoUrls.length})
+                    </h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      {tempPhotoUrls.map((url, index) => (
+                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
+                          <img 
+                            src={url} 
+                            alt={`Imported ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          {index === 0 && (
+                            <div className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-xs font-bold text-white bg-blue-500">
+                              Principal
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* CUSTOM FIELDS */}
                 {customFields.length > 0 && (
                   <div className="pt-4 border-t border-gray-200">
@@ -1470,6 +1498,37 @@ export default function CreatePropertyPage() {
           )}
         </div>
       </div>
+      {/* Modal de Importando */}
+      {showImportModal && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-50"
+            style={{ backdropFilter: 'blur(4px)' }}
+          />
+          
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm w-full">
+              <div className="text-center">
+                <div className="text-6xl mb-4 animate-bounce">📲</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  {propertyLanguage === 'en' ? 'Importing Post...' : 'Importando Publicación...'}
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  {propertyLanguage === 'en' 
+                    ? 'Downloading images and extracting data with AI...' 
+                    : 'Descargando imágenes y extrayendo datos con IA...'}
+                </p>
+                <div className="flex justify-center">
+                  <svg className="animate-spin h-8 w-8 text-blue-600" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </MobileLayout>
   );
 }

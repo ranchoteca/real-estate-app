@@ -91,6 +91,7 @@ export default function CreatePropertyPage() {
   // Dropdown del país
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>('CR'); // Default Costa Rica
 
+  /* TEMPORALMENTE DESHABILITADO - Pendiente aprobación de Facebook
   // Facebook import states
   const [showImportModal, setShowImportModal] = useState(false);
   const [facebookPosts, setFacebookPosts] = useState<any[]>([]);
@@ -99,6 +100,10 @@ export default function CreatePropertyPage() {
   const [importingPost, setImportingPost] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'voice' | 'facebook'>('voice');
+  */
+
+  // Solo tab de voz activo por ahora
+  const [activeTab] = useState<'voice'>('voice');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -652,6 +657,7 @@ export default function CreatePropertyPage() {
     return type === 'sale' ? t('createProperty.sale') : t('createProperty.rent');
   };
 
+  /* TEMPORALMENTE DESHABILITADO - Pendiente aprobación de Facebook
   const loadFacebookPosts = async () => {
     setLoadingPosts(true);
     setError(null);
@@ -786,7 +792,7 @@ export default function CreatePropertyPage() {
       setImportingPost(false);
       setShowImportModal(false);
     }
-  };
+  };*/
 
   return (
     <MobileLayout title={t('createProperty.createTitle')} showBack={true} showTabs={true}>
@@ -1011,168 +1017,19 @@ export default function CreatePropertyPage() {
             )}
           </div>
 
-          {/* Section 3: TABS - Voice o Facebook */}
+          {/* Section 3: Voice Recording */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <span>📝</span> {t('createProperty.step3')}
             </h2>
 
-            {/* TABS */}
-            <div className="flex gap-2 mb-6">
-              <button
-                onClick={() => setActiveTab('voice')}
-                className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${
-                  activeTab === 'voice'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                🎤 {propertyLanguage === 'en' ? 'With Voice' : 'Con Voz'}
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('facebook');
-                  if (facebookPosts.length === 0) {
-                    loadFacebookPosts();
-                  }
-                }}
-                className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${
-                  activeTab === 'facebook'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                📲 {propertyLanguage === 'en' ? 'From Facebook' : 'Desde Facebook'}
-              </button>
-            </div>
-
-            {/* CONTENIDO SEGÚN TAB */}
-            {activeTab === 'voice' ? (
-              <VoiceRecorder 
-                onRecordingComplete={handleRecordingComplete}
-                minDuration={10}
-                maxDuration={120}
-                instructionLanguage={propertyLanguage}
-              />
-            ) : (
-              /* TAB FACEBOOK */
-              <div className="space-y-4">
-                {/* Info sobre configuración requerida */}
-                <div className="bg-blue-50 border-2 border-blue-300 rounded-2xl p-4">
-                  <p className="text-sm text-blue-800 font-semibold flex items-center gap-2">
-                    <span>💡</span>
-                    {propertyLanguage === 'en' 
-                      ? 'Import properties from your Facebook page posts, the post will be processed in the language and currency you selected above' 
-                      : 'Importa propiedades desde tus posts de Facebook, el post se procesará en el idioma y divisa que seleccionaste arriba'}
-                  </p>
-                </div>
-
-                {/* Botón para cargar posts */}
-                {facebookPosts.length === 0 && !loadingPosts && (
-                  <button
-                    onClick={loadFacebookPosts}
-                    disabled={loadingPosts}
-                    className="w-full py-4 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform"
-                    style={{ backgroundColor: '#1877F2' }}
-                  >
-                    {loadingPosts ? (
-                      <>
-                        <svg className="animate-spin h-5 w-5 inline mr-2" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        {propertyLanguage === 'en' ? 'Loading...' : 'Cargando...'}
-                      </>
-                    ) : (
-                      <>
-                        🔄 {propertyLanguage === 'en' ? 'Load My Posts' : 'Cargar Mis Posts'}
-                      </>
-                    )}
-                  </button>
-                )}
-
-                {/* Loading state */}
-                {loadingPosts && (
-                  <div className="text-center py-8">
-                    <div className="text-5xl mb-4 animate-pulse">📲</div>
-                    <p className="text-gray-600 font-semibold">
-                      {propertyLanguage === 'en' ? 'Loading posts from Facebook...' : 'Cargando posts de Facebook...'}
-                    </p>
-                  </div>
-                )}
-
-                {/* Lista de posts */}
-                {!loadingPosts && facebookPosts.length > 0 && (
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    <p className="text-sm font-semibold text-gray-700">
-                      {propertyLanguage === 'en' 
-                        ? `${facebookPosts.length} posts found. Select one to import:`
-                        : `${facebookPosts.length} posts encontrados. Selecciona uno para importar:`}
-                    </p>
-                    
-                    {facebookPosts.map(post => (
-                      <div 
-                        key={post.id}
-                        className="border-2 rounded-xl p-4 hover:border-blue-400 transition-colors cursor-pointer"
-                        style={{ borderColor: selectedPost?.id === post.id ? '#3B82F6' : '#E5E7EB' }}
-                      >
-                        <div className="flex gap-3">
-                          {/* Thumbnail */}
-                          {post.thumbnail && (
-                            <div className="flex-shrink-0">
-                              <img 
-                                src={post.thumbnail} 
-                                alt="Preview"
-                                className="w-20 h-20 object-cover rounded-lg"
-                              />
-                            </div>
-                          )}
-                          
-                          {/* Info */}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 line-clamp-2 mb-1">
-                              {post.message.substring(0, 100)}
-                              {post.message.length > 100 && '...'}
-                            </p>
-                            <p className="text-xs text-gray-500 mb-2">
-                              📅 {post.created_time} • 📸 {post.image_count} {propertyLanguage === 'en' ? 'photos' : 'fotos'}
-                            </p>
-                            
-                            {/* Botón importar */}
-                            <button
-                              onClick={() => handleImportPost(post)}
-                              disabled={importingPost || !post.has_images}
-                              className="px-4 py-2 rounded-lg font-semibold text-white text-sm active:scale-95 transition-transform disabled:opacity-50"
-                              style={{ backgroundColor: '#10B981' }}
-                            >
-                              {importingPost && selectedPost?.id === post.id ? (
-                                <>
-                                  <svg className="animate-spin h-4 w-4 inline mr-1" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                  </svg>
-                                  {propertyLanguage === 'en' ? 'Importing...' : 'Importando...'}
-                                </>
-                              ) : (
-                                <>
-                                  ✨ {propertyLanguage === 'en' ? 'Import' : 'Importar'}
-                                </>
-                              )}
-                            </button>
-                            
-                            {!post.has_images && (
-                              <p className="text-xs text-red-600 mt-1">
-                                ⚠️ {propertyLanguage === 'en' ? 'No images' : 'Sin imágenes'}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            {/* SOLO VOZ - Facebook temporalmente deshabilitado */}
+            <VoiceRecorder 
+              onRecordingComplete={handleRecordingComplete}
+              minDuration={10}
+              maxDuration={120}
+              instructionLanguage={propertyLanguage}
+            />
           </div>
 
           {/* Generate Button */}
@@ -1498,7 +1355,7 @@ export default function CreatePropertyPage() {
           )}
         </div>
       </div>
-      {/* Modal de Importando */}
+      {/* TEMPORALMENTE DESHABILITADO - Pendiente aprobación de Facebook
       {showImportModal && (
         <>
           <div 
@@ -1529,6 +1386,7 @@ export default function CreatePropertyPage() {
           </div>
         </>
       )}
+      */}
     </MobileLayout>
   );
 }

@@ -11,6 +11,44 @@ export default function LandingPage() {
   const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
 
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallButton, setShowInstallButton] = useState(false);
+
+  useEffect(() => {
+    // Detectar si es móvil
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    // Handler para el evento beforeinstallprompt
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      // Solo mostrar en móviles
+      if (isMobile) {
+        setShowInstallButton(true);
+      }
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      console.log('PWA instalada');
+    }
+    
+    setDeferredPrompt(null);
+    setShowInstallButton(false);
+  };
+
   useEffect(() => {
     if (status === 'authenticated') {
       router.push('/dashboard');
@@ -146,6 +184,17 @@ export default function LandingPage() {
             >
               Ver Cómo Funciona
             </button>
+            
+            {/* Botón de Instalación PWA - Solo móviles */}
+            {showInstallButton && (
+              <button
+                onClick={handleInstallClick}
+                className="px-8 py-4 rounded-xl font-bold text-white shadow-xl text-lg active:scale-95 transition-transform animate-pulse"
+                style={{ backgroundColor: '#10B981' }}
+              >
+                📱 Instalar App
+              </button>
+            )}
           </div>
 
           {/* Key Benefits */}

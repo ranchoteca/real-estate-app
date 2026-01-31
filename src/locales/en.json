@@ -91,6 +91,10 @@
         "publishSuccess": "Published successfully!",
         "publishSuccessDesc": "Your property is now on Facebook"
       },
+      "uploadToken": {
+        "title": "Upload Link",
+        "description": "Generate temporary link for help"
+      },
       "portfolio": {
         "title": "My Portfolio",
         "description": "View your public portfolio",

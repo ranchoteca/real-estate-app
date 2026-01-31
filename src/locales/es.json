@@ -91,6 +91,10 @@
         "publishSuccess": "¡Publicado exitosamente!",
         "publishSuccessDesc": "Tu propiedad ya está en Facebook"
       },
+      "uploadToken": {
+        "title": "Enlace de Carga",
+        "description": "Genera enlace temporal para ayuda"
+      },
       "portfolio": {
         "title": "Mi Portfolio",
         "description": "Ver tu portfolio público",

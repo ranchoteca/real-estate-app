@@ -98,6 +98,13 @@ export default function SettingsPage() {
     },
     */
     {
+      icon: '🔑',
+      title: t('settings.options.uploadToken.title'),
+      description: t('settings.options.uploadToken.description'),
+      href: '/settings/upload-token',
+      color: '#8B5CF6',
+    },
+    {
       icon: '🔗',
       title: t('settings.options.portfolio.title'),
       description: t('settings.options.portfolio.description'),

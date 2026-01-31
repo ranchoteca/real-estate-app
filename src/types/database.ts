@@ -290,6 +290,38 @@ export type Database = {
           created_at?: string
         }
       }
+      upload_tokens: {
+        Row: {
+          id: string
+          agent_id: string
+          token: string
+          expires_at: string
+          created_at: string
+          used_count: number
+          max_uses: number
+          is_active: boolean
+        }
+        Insert: {
+          id?: string
+          agent_id: string
+          token: string
+          expires_at: string
+          created_at?: string
+          used_count?: number
+          max_uses?: number
+          is_active?: boolean
+        }
+        Update: {
+          id?: string
+          agent_id?: string
+          token?: string
+          expires_at?: string
+          created_at?: string
+          used_count?: number
+          max_uses?: number
+          is_active?: boolean
+        }
+      }
     }
   }
 }

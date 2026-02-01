@@ -273,10 +273,12 @@ Transcripción del agente:`;
 
 export async function POST(req: NextRequest) {
   try {
-    // Verificar autenticación
+    // Verificar autenticación: Sesión O Token
     const session = await getServerSession();
     const uploadToken = req.headers.get('X-Upload-Token');
-    if (!session) {
+
+    // Si no hay ni sesión ni token, rechazar
+    if (!session && !uploadToken) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }

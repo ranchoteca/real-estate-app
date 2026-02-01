@@ -575,7 +575,10 @@ export default function UploadWithTokenCreatePage() {
       if (photoUrls.length > 0) {
         const updateResponse = await fetch(`/api/property/update/${propertyId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-Upload-Token': token,
+          },
           body: JSON.stringify({ 
             photos: photoUrls 
           }),

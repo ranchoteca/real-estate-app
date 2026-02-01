@@ -498,7 +498,10 @@ export default function UploadWithTokenCreatePage() {
   ): Promise<PropertyData> => {
     const response = await fetch('/api/property/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Upload-Token': token,
+      },
       body: JSON.stringify({ 
         transcription,
         property_type: propType,

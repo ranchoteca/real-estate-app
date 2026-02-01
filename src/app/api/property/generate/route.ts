@@ -6,6 +6,11 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 interface CustomField {
   field_key: string;   
   field_name: string;
@@ -269,11 +274,46 @@ export async function POST(req: NextRequest) {
   try {
     // Verificar autenticación
     const session = await getServerSession();
+    const uploadToken = req.headers.get('X-Upload-Token');
     if (!session) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
       );
+    }
+
+    // Si hay token pero no sesión, validarlo
+    if (uploadToken && !session) {
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('upload_tokens')
+        .select('id, agent_id, expires_at, is_active')
+        .eq('token', uploadToken)
+        .single();
+
+      if (tokenError || !tokenData) {
+        return NextResponse.json(
+          { error: 'Token inválido' },
+          { status: 401 }
+        );
+      }
+
+      // Verificar si el token está activo
+      if (!tokenData.is_active) {
+        return NextResponse.json(
+          { error: 'Token desactivado' },
+          { status: 401 }
+        );
+      }
+
+      // Verificar si el token ha expirado
+      if (new Date(tokenData.expires_at) < new Date()) {
+        return NextResponse.json(
+          { error: 'Token expirado' },
+          { status: 401 }
+        );
+      }
+
+      console.log('✅ Token validado correctamente para agente:', tokenData.agent_id);
     }
 
     const { transcription, property_type, listing_type, language, custom_fields } = await req.json();

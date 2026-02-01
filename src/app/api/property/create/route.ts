@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseAdmin } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 function generateSlug(title: string): string {
   const baseSlug = title
@@ -15,7 +21,10 @@ function generateSlug(title: string): string {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession();
-    if (!session?.user?.email) {
+    const uploadToken = req.headers.get('X-Upload-Token');
+
+    // Si no hay ni sesión ni token, rechazar
+    if (!session?.user?.email && !uploadToken) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
@@ -46,12 +55,83 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Obtener agente
-    const { data: agent, error: agentError } = await supabaseAdmin
-      .from('agents')
-      .select('id, credits, plan, properties_this_month, default_currency_id')
-      .eq('email', session.user.email)
-      .single();
+    // Obtener ID del agente (desde sesión o desde datos enviados con token)
+    let agentId: string;
+    let agentEmail: string | undefined;
+
+    if (uploadToken && !session) {
+      // Validar token
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('upload_tokens')
+        .select('id, agent_id, expires_at, is_active')
+        .eq('token', uploadToken)
+        .single();
+
+      if (tokenError || !tokenData) {
+        return NextResponse.json(
+          { error: 'Token inválido' },
+          { status: 401 }
+        );
+      }
+
+      if (!tokenData.is_active) {
+        return NextResponse.json(
+          { error: 'Token desactivado' },
+          { status: 401 }
+        );
+      }
+
+      if (new Date(tokenData.expires_at) < new Date()) {
+        return NextResponse.json(
+          { error: 'Token expirado' },
+          { status: 401 }
+        );
+      }
+
+      console.log('✅ Token validado correctamente para agente:', tokenData.agent_id);
+      
+      // Usar agent_id del token (puede venir en propertyData o del token)
+      agentId = propertyData.agent_id || tokenData.agent_id;
+    } else if (session?.user?.email) {
+      // Usar email de la sesión
+      agentEmail = session.user.email;
+      agentId = ''; // Se obtendrá después
+    } else {
+      return NextResponse.json(
+        { error: 'No autenticado' },
+        { status: 401 }
+      );
+    }
+
+    // Obtener datos del agente
+    let agent;
+    let agentError;
+
+    if (agentEmail) {
+      // Buscar por email (sesión normal)
+      const result = await supabaseAdmin
+        .from('agents')
+        .select('id, credits, plan, properties_this_month, default_currency_id')
+        .eq('email', agentEmail)
+        .single();
+      
+      agent = result.data;
+      agentError = result.error;
+      
+      if (agent) {
+        agentId = agent.id;
+      }
+    } else {
+      // Buscar por ID (token)
+      const result = await supabaseAdmin
+        .from('agents')
+        .select('id, credits, plan, properties_this_month, default_currency_id')
+        .eq('id', agentId)
+        .single();
+      
+      agent = result.data;
+      agentError = result.error;
+    }
 
     if (agentError || !agent) {
       return NextResponse.json(

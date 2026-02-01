@@ -250,7 +250,7 @@ export default function UploadWithTokenCreatePage() {
     try {
       setLoadingCustomFields(true);
       const response = await fetch(
-        `/api/custom-fields/list?property_type=${propType}&listing_type=${listType}`
+        `/api/custom-fields/list?property_type=${propType}&listing_type=${listType}&agent_id=${agentId}`
       );
       
       if (!response.ok) {

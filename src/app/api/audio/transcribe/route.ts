@@ -1,20 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import OpenAI from 'openai';
+import { createClient } from '@supabase/supabase-js';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 export async function POST(req: NextRequest) {
   try {
-    // Verificar autenticación
+    // Verificar autenticación: Sesión O Token
     const session = await getServerSession();
-    if (!session) {
+    const uploadToken = req.headers.get('X-Upload-Token');
+
+    // Si no hay sesión, verificar token
+    if (!session && !uploadToken) {
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
       );
+    }
+
+    // Si hay token pero no sesión, validarlo
+    if (uploadToken && !session) {
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('upload_tokens')
+        .select('id, agent_id, expires_at, is_active')
+        .eq('token', uploadToken)
+        .single();
+
+      if (tokenError || !tokenData) {
+        return NextResponse.json(
+          { error: 'Token inválido' },
+          { status: 401 }
+        );
+      }
+
+      // Verificar si el token está activo
+      if (!tokenData.is_active) {
+        return NextResponse.json(
+          { error: 'Token desactivado' },
+          { status: 401 }
+        );
+      }
+
+      // Verificar si el token ha expirado
+      if (new Date(tokenData.expires_at) < new Date()) {
+        return NextResponse.json(
+          { error: 'Token expirado' },
+          { status: 401 }
+        );
+      }
+
+      console.log('✅ Token validado correctamente para agente:', tokenData.agent_id);
     }
 
     // Obtener el archivo de audio del FormData
@@ -61,7 +104,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Error al transcribir el audio',
-        details: error
+        details: error instanceof Error ? error.message : 'Error desconocido'
       },
       { status: 500 }
     );

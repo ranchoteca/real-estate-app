@@ -475,6 +475,9 @@ export default function UploadWithTokenCreatePage() {
 
     const response = await fetch('/api/audio/transcribe', {
       method: 'POST',
+      headers: {
+        'X-Upload-Token': token,
+      },
       body: formData,
     });
 

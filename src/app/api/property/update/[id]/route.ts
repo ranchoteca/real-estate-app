@@ -8,20 +8,54 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession();
-    if (!session?.user?.email) {
+    const uploadToken = req.headers.get('X-Upload-Token');
+
+    // Permitir acceso con sesión O token
+    if (!session?.user?.email && !uploadToken) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
+    let agentId: string | null = null;
+
+    // Si hay token pero NO hay sesión, validar el token
+    if (uploadToken && !session) {
+      const { data: tokenData, error: tokenError } = await supabaseAdmin
+        .from('upload_tokens')
+        .select('id, agent_id, expires_at, is_active')
+        .eq('token', uploadToken)
+        .single();
+
+      if (tokenError || !tokenData || !tokenData.is_active) {
+        return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
+      }
+
+      if (new Date(tokenData.expires_at) < new Date()) {
+        return NextResponse.json({ error: 'Token expirado' }, { status: 401 });
+      }
+
+      agentId = tokenData.agent_id;
+      console.log('✅ Token validado - agentId:', agentId);
     }
 
     const { id } = await params;
     const updates = await req.json();
 
-    const { data: agent } = await supabaseAdmin
-      .from('agents')
-      .select('id, default_currency_id')
-      .eq('email', session.user.email)
-      .single();
+    // Obtener agent_id según el método de autenticación
+    if (!agentId && session?.user?.email) {
+      const { data: agent } = await supabaseAdmin
+        .from('agents')
+        .select('id, default_currency_id')
+        .eq('email', session.user.email)
+        .single();
 
-    if (!agent) {
+      if (!agent) {
+        return NextResponse.json({ error: 'Agente no encontrado' }, { status: 404 });
+      }
+      
+      agentId = agent.id;
+    }
+
+    if (!agentId) {
       return NextResponse.json({ error: 'Agente no encontrado' }, { status: 404 });
     }
 
@@ -30,7 +64,7 @@ export async function PUT(
       .from('properties')
       .select('id')
       .eq('id', id)
-      .eq('agent_id', agent.id)
+      .eq('agent_id', agentId)
       .single();
 
     if (!property) {

@@ -448,6 +448,9 @@ export default function UploadWithTokenCreatePage() {
       try {
         const response = await fetch('/api/property/upload-photos', {
           method: 'POST',
+          headers: {
+            'X-Upload-Token': token,
+          },
           body: formData,
         });
 

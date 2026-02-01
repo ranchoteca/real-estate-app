@@ -106,10 +106,11 @@ export default function UploadWithTokenCreatePage() {
   }, [tokenValid, agentId]);
 
   useEffect(() => {
-    if (propertyType && listingType) {
+    if (propertyType && listingType && agentId) {
+      console.log('🔄 Cargando campos para:', { propertyType, listingType, agentId });
       loadCustomFields(propertyType, listingType);
     }
-  }, [propertyType, listingType]);
+  }, [propertyType, listingType, agentId]);
 
   const validateToken = async () => {
     try {
@@ -245,7 +246,12 @@ export default function UploadWithTokenCreatePage() {
   };
 
   const loadCustomFields = async (propType: string, listType: string) => {
-    if(!agentId) return; 
+    if (!agentId) {
+      console.log('⚠️ No hay agentId, saltando carga de campos');
+      return;
+    }
+
+    console.log('📡 Llamando API con:', { propType, listType, agentId });
 
     try {
       setLoadingCustomFields(true);

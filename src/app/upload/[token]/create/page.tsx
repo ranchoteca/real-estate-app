@@ -245,6 +245,8 @@ export default function UploadWithTokenCreatePage() {
   };
 
   const loadCustomFields = async (propType: string, listType: string) => {
+    if(!agentId) return; 
+
     try {
       setLoadingCustomFields(true);
       const response = await fetch(

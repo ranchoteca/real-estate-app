@@ -7,9 +7,46 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const property_type = searchParams.get('property_type');
     const listing_type = searchParams.get('listing_type');
-    const username = searchParams.get('username'); 
+    const username = searchParams.get('username');
+    const agentIdParam = searchParams.get('agent_id'); // ← NUEVO
 
-    // ===== CASO 1: Usuario AUTENTICADO (Dashboard) =====
+    // ===== CASO 1: Upload con Token (agent_id directo) ===== ← NUEVO CASO
+    if (agentIdParam) {
+      console.log(`🔑 Cargando campos para agent_id: ${agentIdParam}`);
+
+      // Construir query con filtros opcionales
+      let query = supabaseAdmin
+        .from('custom_fields')
+        .select('*')
+        .eq('agent_id', agentIdParam);
+
+      if (property_type) {
+        query = query.eq('property_type', property_type);
+      }
+      if (listing_type) {
+        query = query.eq('listing_type', listing_type);
+      }
+
+      const { data: fields, error: fieldsError } = await query
+        .order('display_order', { ascending: true });
+
+      if (fieldsError) {
+        console.error('Error al cargar campos (token):', fieldsError);
+        return NextResponse.json(
+          { error: 'Error al cargar campos personalizados' },
+          { status: 500 }
+        );
+      }
+
+      console.log(`✅ Campos cargados (token): ${fields?.length || 0}`);
+
+      return NextResponse.json({
+        success: true,
+        fields: fields || [],
+      });
+    }
+
+    // ===== CASO 2: Usuario AUTENTICADO (Dashboard) ===== ← SIN CAMBIOS
     const session = await getServerSession();
     if (session?.user?.email) {
       // Obtener agente por email (usuario autenticado)
@@ -58,7 +95,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // ===== CASO 2: Usuario NO AUTENTICADO (Vista Pública) =====
+    // ===== CASO 3: Usuario NO AUTENTICADO (Vista Pública) ===== ← SIN CAMBIOS
     // Requiere username + property_type + listing_type
     if (!username || !property_type || !listing_type) {
       return NextResponse.json(

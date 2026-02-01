@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Construir URL completa
-    const uploadUrl = `${process.env.NEXT_PUBLIC_APP_URL}/upload/${token}`;
+    const uploadUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://flowestateai.com'}/upload/${token}`;
 
     return NextResponse.json({
       success: true,

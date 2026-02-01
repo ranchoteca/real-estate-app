@@ -1,22 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseAdmin } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(req: NextRequest) {
   try {
+    // Verificar autenticación: Sesión O Token
     const session = await getServerSession();
-    if (!session?.user?.email) {
+    const uploadToken = req.headers.get('X-Upload-Token');
+
+    // Si no hay ni sesión ni token, rechazar
+    if (!session?.user?.email && !uploadToken) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    const { data: agent, error: agentError } = await supabaseAdmin
-      .from('agents')
-      .select('id')
-      .eq('email', session.user.email)
-      .single();
+    // Obtener ID del agente
+    let agentId: string;
 
-    if (agentError || !agent) {
-      return NextResponse.json({ error: 'Agente no encontrado' }, { status: 404 });
+    if (uploadToken && !session) {
+      // Validar token
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('upload_tokens')
+        .select('id, agent_id, expires_at, is_active')
+        .eq('token', uploadToken)
+        .single();
+
+      if (tokenError || !tokenData) {
+        return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
+      }
+
+      if (!tokenData.is_active) {
+        return NextResponse.json({ error: 'Token desactivado' }, { status: 401 });
+      }
+
+      if (new Date(tokenData.expires_at) < new Date()) {
+        return NextResponse.json({ error: 'Token expirado' }, { status: 401 });
+      }
+
+      console.log('✅ Token validado correctamente para agente:', tokenData.agent_id);
+      agentId = tokenData.agent_id;
+      
+    } else if (session?.user?.email) {
+      // Buscar por email (sesión normal)
+      const { data: agent, error: agentError } = await supabaseAdmin
+        .from('agents')
+        .select('id')
+        .eq('email', session.user.email)
+        .single();
+
+      if (agentError || !agent) {
+        return NextResponse.json({ error: 'Agente no encontrado' }, { status: 404 });
+      }
+      
+      agentId = agent.id;
+      
+    } else {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
     const formData = await req.formData();
@@ -51,7 +95,7 @@ export async function POST(req: NextRequest) {
       
       // ✅ USAR TIMESTAMP PARA NOMBRES ÚNICOS (evita sobreescritura)
       const timestamp = Date.now();
-      const fileName = `${agent.id}/${propertySlug}/foto-${timestamp}-${i}.${fileExt}`;
+      const fileName = `${agentId}/${propertySlug}/foto-${timestamp}-${i}.${fileExt}`;
 
       const arrayBuffer = await file.arrayBuffer();
       const buffer = new Uint8Array(arrayBuffer);

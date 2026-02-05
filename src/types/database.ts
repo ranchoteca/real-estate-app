@@ -31,6 +31,11 @@ export type Database = {
           watermark_logo: string | null
           watermark_position: string | null
           watermark_size: string | null
+          watermark_image: string | null
+          watermark_opacity: number | null
+          watermark_scale: number | null
+          use_corner_logo: boolean | null
+          use_watermark: boolean | null
           facebook_page_id: string | null
           facebook_page_name: string | null
           facebook_access_token: string | null
@@ -61,6 +66,11 @@ export type Database = {
           watermark_logo?: string | null
           watermark_position?: string | null
           watermark_size?: string | null
+          watermark_image?: string | null
+          watermark_opacity?: number | null
+          watermark_scale?: number | null
+          use_corner_logo?: boolean | null
+          use_watermark?: boolean | null
           facebook_page_id?: string | null
           facebook_page_name?: string | null
           facebook_access_token?: string | null
@@ -91,6 +101,11 @@ export type Database = {
           watermark_logo?: string | null
           watermark_position?: string | null
           watermark_size?: string | null
+          watermark_image?: string | null
+          watermark_opacity?: number | null
+          watermark_scale?: number | null
+          use_corner_logo?: boolean | null
+          use_watermark?: boolean | null
           facebook_page_id?: string | null
           facebook_page_name?: string | null
           facebook_access_token?: string | null

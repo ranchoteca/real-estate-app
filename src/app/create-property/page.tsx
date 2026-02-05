@@ -171,9 +171,17 @@ export default function CreatePropertyPage() {
       if (response.ok) {
         const data = await response.json();
         setWatermarkConfig({
-          logoUrl: data.agent.watermark_logo || null,
+          // Logo en esquina
+          useCornerLogo: data.agent.use_corner_logo ?? true,
+          cornerLogoUrl: data.agent.watermark_logo || null,
           position: data.agent.watermark_position || 'bottom-right',
           size: data.agent.watermark_size || 'medium',
+          
+          // Watermark centrado
+          useWatermark: data.agent.use_watermark ?? false,
+          watermarkUrl: data.agent.watermark_image || null,
+          opacity: data.agent.watermark_opacity || 30,
+          scale: data.agent.watermark_scale || 50,
         });
       }
     } catch (err) {

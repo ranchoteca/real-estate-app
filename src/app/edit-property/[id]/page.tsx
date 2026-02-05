@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import MobileLayout from '@/components/MobileLayout';
 import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
-import { applyWatermark, WatermarkConfig } from '@/lib/watermark';
+import { WatermarkConfig } from '@/lib/watermark';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
 import { SUPPORTED_COUNTRIES, CountryCode } from '@/lib/google-maps-config';
 
@@ -129,9 +129,17 @@ export default function EditPropertyPage() {
       if (response.ok) {
         const data = await response.json();
         setWatermarkConfig({
-          logoUrl: data.agent.watermark_logo || null,
+          // Logo en esquina
+          useCornerLogo: data.agent.use_corner_logo ?? true,
+          cornerLogoUrl: data.agent.watermark_logo || null,
           position: data.agent.watermark_position || 'bottom-right',
           size: data.agent.watermark_size || 'medium',
+          
+          // Watermark centrado
+          useWatermark: data.agent.use_watermark ?? false,
+          watermarkUrl: data.agent.watermark_image || null,
+          opacity: data.agent.watermark_opacity || 30,
+          scale: data.agent.watermark_scale || 50,
         });
       }
     } catch (err) {
@@ -247,16 +255,41 @@ export default function EditPropertyPage() {
 
       for (const file of files) {
         const compressed = await compressImage(file);
-        
         let finalFile = compressed;
-        if (watermarkConfig) {
-          try {
-            finalFile = await applyWatermark(compressed, watermarkConfig);
-            console.log('✅ Watermark aplicado a', file.name);
-          } catch (err) {
-            console.error('Error aplicando watermark:', err);
-            finalFile = compressed;
+        
+        try {
+          // 1. Aplicar logo en esquina (si está habilitado)
+          if (watermarkConfig?.useCornerLogo && watermarkConfig?.cornerLogoUrl) {
+            const { applyCornerLogo } = await import('@/lib/watermark');
+            finalFile = await applyCornerLogo(finalFile, {
+              logoUrl: watermarkConfig.cornerLogoUrl,
+              position: watermarkConfig.position,
+              size: watermarkConfig.size,
+            });
+            console.log('✅ Logo en esquina aplicado a', file.name);
           }
+
+          // 2. Aplicar watermark centrado (si está habilitado)
+          if (watermarkConfig?.useWatermark && watermarkConfig?.watermarkUrl) {
+            const { applyCenterWatermark } = await import('@/lib/watermark');
+            finalFile = await applyCenterWatermark(finalFile, {
+              logoUrl: watermarkConfig.watermarkUrl,
+              opacity: watermarkConfig.opacity,
+              scale: watermarkConfig.scale,
+            });
+            console.log('✅ Watermark centrado aplicado a', file.name);
+          }
+
+          // 3. Si no hay ni logo ni watermark, aplicar texto por defecto
+          if (!watermarkConfig?.useCornerLogo && !watermarkConfig?.useWatermark) {
+            const { applyDefaultText } = await import('@/lib/watermark');
+            finalFile = await applyDefaultText(finalFile);
+            console.log('✅ Texto por defecto aplicado a', file.name);
+          }
+        } catch (err) {
+          console.error('Error aplicando marcas:', err);
+          // Si falla, usar imagen comprimida sin marcas
+          finalFile = compressed;
         }
         
         processedFiles.push(finalFile);

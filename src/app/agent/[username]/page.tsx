@@ -68,12 +68,29 @@ export default function AgentPortfolioPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'sold' | 'rented'>('active');
   const [languageFilter, setLanguageFilter] = useState<'all' | 'es' | 'en'>('all');
+  const [currencies, setCurrencies] = useState<any[]>([]);
 
   useEffect(() => {
     if (username) {
       loadAgentData();
     }
   }, [username]);
+
+  useEffect(() => {
+    loadCurrencies();
+  }, []);
+
+  const loadCurrencies = async () => {
+    try {
+      const response = await fetch('/api/currencies/list');
+      if (response.ok) {
+        const data = await response.json();
+        setCurrencies(data.currencies || []);
+      }
+    } catch (error) {
+      console.error('Error loading currencies:', error);
+    }
+  };
 
   const loadAgentData = async () => {
     try {
@@ -100,13 +117,16 @@ export default function AgentPortfolioPage() {
     }
   };
 
-  const formatPrice = (price: number | null) => {
+  const formatPrice = (price: number | null, currencyId: string | null) => {
     if (!price) return language === 'en' ? 'Price upon request' : 'Precio a consultar';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    
+    const currency = currencies.find(c => c.id === currencyId);
+    const symbol = currency?.symbol || '$';
+    
+    return `${symbol}${new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 0,
-    }).format(price);
+      maximumFractionDigits: 0,
+    }).format(price)}`;
   };
 
   const filteredProperties = properties.filter(p => {
@@ -462,7 +482,7 @@ export default function AgentPortfolioPage() {
                     
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-lg lg:text-xl font-bold" style={{ color: '#2563EB' }}>
-                        {formatPrice(property.price)}
+                        {formatPrice(property.price, property.currency_id)}
                       </span>
                       {property.city && property.state && (
                         <span className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>

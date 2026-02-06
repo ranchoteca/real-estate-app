@@ -363,7 +363,7 @@ export default function CreatePropertyPage() {
       // 1. Transcribir audio
       const transcription = await transcribeAudio(audioBlob);
 
-      // 2. Generar descripción con GPT-4
+      // 2. Generar descripción con la IA
       const generatedData = await generateDescription(
         transcription, 
         propertyType, 
@@ -372,72 +372,24 @@ export default function CreatePropertyPage() {
         customFields
       );
 
-      // 3. Actualizar estado con datos generados + divisa seleccionada
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const { latitude, longitude } = position.coords;
-            
-            // Detectar país automáticamente
-            await detectCountryFromLocation(latitude, longitude);
-            
-            // Generar Plus Code
-            console.log('🔍 Generando Plus Code para coordenadas:', latitude, longitude);
-            const plusCode = generatePlusCode(latitude, longitude);
-            console.log('📍 Plus Code obtenido:', plusCode);
-            
-            setPropertyData({
-              ...generatedData,
-              property_type: propertyType,
-              listing_type: listingType,
-              language: propertyLanguage,
-              currency_id: selectedCurrency,
-              latitude: latitude,
-              longitude: longitude,
-              plus_code: plusCode,
-              show_map: true,
-              custom_fields_data: generatedData.custom_fields_data || {},
-            });
-            
-            setCustomFieldsValues(generatedData.custom_fields_data || {});
-          },
-          (error) => {
-            console.log('GPS no disponible:', error);
-            
-            // Sin GPS, usar datos generados sin coordenadas
-            setPropertyData({
-              ...generatedData,
-              property_type: propertyType,
-              listing_type: listingType,
-              language: propertyLanguage,
-              currency_id: selectedCurrency,
-              latitude: null,
-              longitude: null,
-              plus_code: null,
-              show_map: true,
-              custom_fields_data: generatedData.custom_fields_data || {},
-            });
-            
-            setCustomFieldsValues(generatedData.custom_fields_data || {});
-          }
-        );
-      } else {
-        // Navegador no soporta geolocalización
-        setPropertyData({
-          ...generatedData,
-          property_type: propertyType,
-          listing_type: listingType,
-          language: propertyLanguage,
-          currency_id: selectedCurrency,
-          latitude: null,
-          longitude: null,
-          plus_code: null,
-          show_map: true,
-          custom_fields_data: generatedData.custom_fields_data || {},
-        });
-        
-        setCustomFieldsValues(generatedData.custom_fields_data || {});
-      }
+      // 3. Actualizar estado con datos generados (SIN GPS)
+      // Dejamos las coordenadas en null para que el componente del mapa 
+      // haga el geocoding basado en la dirección que acaba de inventar la IA.
+      setPropertyData({
+        ...generatedData,
+        property_type: propertyType,
+        listing_type: listingType,
+        language: propertyLanguage,
+        currency_id: selectedCurrency,
+        latitude: null,
+        longitude: null,
+        plus_code: null,
+        show_map: true,
+        custom_fields_data: generatedData.custom_fields_data || {},
+      });
+
+      setCustomFieldsValues(generatedData.custom_fields_data || {});
+
     } catch (err) {
       console.error('Error al procesar:', err);
       setError(err instanceof Error ? err.message : 'Error al procesar la propiedad');

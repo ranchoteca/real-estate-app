@@ -41,7 +41,8 @@ export default function GoogleMapEditor({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null); // 🆕 Para advertencias de país
-  const [gpsUsed, setGpsUsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searching, setSearching] = useState(false);
   const [coordsSuccess, setCoordsSuccess] = useState(false);
   const [coordsError, setCoordsError] = useState(false);
   const [plusCodeSuccess, setPlusCodeSuccess] = useState(false);
@@ -202,6 +203,55 @@ export default function GoogleMapEditor({
     return R * c;
   }, []);
 
+  // Función de búsqueda
+  const handleSearch = useCallback(async () => {
+    if (!searchQuery.trim()) return;
+    
+    setSearching(true);
+    setError(null);
+    setWarning(null);
+    
+    try {
+      const geocoder = new google.maps.Geocoder();
+      const result = await geocoder.geocode({ 
+        address: searchQuery,
+        componentRestrictions: { 
+          country: selectedCountry 
+        }
+      });
+
+      if (result.results && result.results.length > 0) {
+        const location = result.results[0].geometry.location;
+        const coords = {
+          lat: location.lat(),
+          lng: location.lng()
+        };
+        
+        const code = await generatePlusCode(coords.lat, coords.lng);
+        
+        setPosition(coords);
+        setManualLat(coords.lat.toFixed(6));
+        setManualLng(coords.lng.toFixed(6));
+        setPlusCode(code);
+        onLocationChange(coords.lat, coords.lng, code);
+        validateCountry(coords.lat, coords.lng);
+        
+        // Centrar mapa
+        if (mapRef.current) {
+          mapRef.current.panTo(coords);
+          mapRef.current.setZoom(16);
+        }
+      } else {
+        setError('❌ No se encontró la ubicación. Intenta con más detalles o usa el Plus Code.');
+      }
+    } catch (err) {
+      console.error('Error en búsqueda:', err);
+      setError('⚠️ Error al buscar. Verifica el texto ingresado.');
+    } finally {
+      setSearching(false);
+    }
+  }, [searchQuery, selectedCountry, generatePlusCode, onLocationChange, validateCountry]);
+
   // 🆕 Centrar mapa en el país seleccionado cuando cambia
   useEffect(() => {
     if (!mapRef.current || !isLoaded) return;
@@ -221,7 +271,7 @@ export default function GoogleMapEditor({
       setError(null);
       setWarning(null);
 
-      // Si hay coordenadas iniciales, usarlas
+      // 1 CASO EDICIÓN: Si ya tenemos coordenadas guardadas, mandan ellas
       if (initialLat && initialLng) {
         const coords: google.maps.LatLngLiteral = { lat: initialLat, lng: initialLng };
         const code = initialPlusCode || await generatePlusCode(initialLat, initialLng);
@@ -230,12 +280,12 @@ export default function GoogleMapEditor({
         setManualLat(initialLat.toFixed(6));
         setManualLng(initialLng.toFixed(6));
         setPlusCode(code);
-        validateCountry(initialLat, initialLng); // 🆕 Validar país
+        validateCountry(initialLat, initialLng);
         setLoading(false);
         return;
       }
 
-      // Si hay Plus Code inicial, decodificarlo
+      // 2 CASO PLUS CODE: Si no hay coordenadas pero sí un Plus Code
       if (initialPlusCode) {
         const coords = await decodePlusCode(initialPlusCode);
         if (coords) {
@@ -249,57 +299,8 @@ export default function GoogleMapEditor({
         }
       }
 
-      // Intentar GPS primero (solo en modo edición)
-      if (navigator.geolocation && editable) {
-        try {
-          const gpsPosition = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              timeout: 5000,
-              maximumAge: 0,
-            });
-          });
-
-          const gpsCoords: google.maps.LatLngLiteral = {
-            lat: gpsPosition.coords.latitude,
-            lng: gpsPosition.coords.longitude,
-          };
-
-          const code = await generatePlusCode(gpsCoords.lat, gpsCoords.lng);
-          const geocodedCoords = await geocodeAddress(address, city, state);
-
-          if (geocodedCoords) {
-            const distance = calculateDistance(gpsCoords, geocodedCoords);
-
-            if (distance > 1) {
-              setError(`⚠️ Tu ubicación está a ${distance.toFixed(1)}km de la dirección. Ajusta usando el Plus Code o arrastra el pin.`);
-            } else {
-              setGpsUsed(true);
-            }
-
-            setPosition(gpsCoords);
-            setManualLat(gpsCoords.lat.toFixed(6));
-            setManualLng(gpsCoords.lng.toFixed(6));
-            setPlusCode(code);
-            onLocationChange(gpsCoords.lat, gpsCoords.lng, code);
-            validateCountry(gpsCoords.lat, gpsCoords.lng); // 🆕
-          } else {
-            setPosition(gpsCoords);
-            setManualLat(gpsCoords.lat.toFixed(6));
-            setManualLng(gpsCoords.lng.toFixed(6));
-            setPlusCode(code);
-            onLocationChange(gpsCoords.lat, gpsCoords.lng, code);
-            setGpsUsed(true);
-            validateCountry(gpsCoords.lat, gpsCoords.lng); // 🆕
-          }
-
-          setLoading(false);
-          return;
-        } catch (gpsError) {
-          console.log('GPS no disponible, usando geocoding...');
-        }
-      }
-
-      // Geocoding como fallback
+      // 3 CASO NUEVA PROPIEDAD: Intentar Geocoding por la dirección que dio la IA
+      // Esto es lo que reemplaza al molesto GPS
       const coords = await geocodeAddress(address, city, state);
       if (coords) {
         const code = await generatePlusCode(coords.lat, coords.lng);
@@ -308,19 +309,21 @@ export default function GoogleMapEditor({
         setManualLng(coords.lng.toFixed(6));
         setPlusCode(code);
         onLocationChange(coords.lat, coords.lng, code);
-        setError('📍 Ubicación aproximada. Ajusta usando el Plus Code o arrastra el pin.');
-      } else {
-        // 🆕 Usar centro del país seleccionado como default
-        const country = getCountryByCode(selectedCountry);
-        const defaultCoords = country?.center || GOOGLE_MAPS_CONFIG.defaultCenter;
-        const code = await generatePlusCode(defaultCoords.lat, defaultCoords.lng);
-        setPosition(defaultCoords);
-        setManualLat(defaultCoords.lat.toFixed(6));
-        setManualLng(defaultCoords.lng.toFixed(6));
-        setPlusCode(code);
-        setError('⚠️ No se pudo ubicar la dirección. Pega el Plus Code de Google Maps.');
+        setError('📍 Ubicación aproximada basada en la dirección. Ajusta el pin si es necesario.');
+        setLoading(false);
+        return;
       }
 
+      // 4 ÚLTIMO RECURSO: Centro del país
+      const country = getCountryByCode(selectedCountry);
+      const defaultCoords = country?.center || GOOGLE_MAPS_CONFIG.defaultCenter;
+      const code = await generatePlusCode(defaultCoords.lat, defaultCoords.lng);
+      
+      setPosition(defaultCoords);
+      setManualLat(defaultCoords.lat.toFixed(6));
+      setManualLng(defaultCoords.lng.toFixed(6));
+      setPlusCode(code);
+      setError('⚠️ No se encontró la dirección exacta. Por favor, mueve el pin manualmente.');
       setLoading(false);
     };
 
@@ -476,13 +479,6 @@ export default function GoogleMapEditor({
           </div>
         </div>
       )}
-
-      {/* Mensajes globales */}
-      {gpsUsed && !error && !warning && (
-        <div className="px-3 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
-          ✅ Ubicación detectada con GPS
-        </div>
-      )}
       
       {/* 🆕 Advertencia de país */}
       {warning && (
@@ -494,6 +490,37 @@ export default function GoogleMapEditor({
       {error && (
         <div className="px-3 py-2 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 text-sm">
           {error}
+        </div>
+      )}
+
+      {/* 🆕 Buscador de ubicación */}
+      {editable && (
+        <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
+          <label className="block text-sm font-bold mb-2 text-purple-900 flex items-center gap-2">
+            <span className="text-lg">🔍</span>
+            Buscar ubicación en {currentCountry?.name}
+          </label>
+          <p className="text-xs text-purple-700 mb-3 leading-relaxed">
+            Escribe el nombre del lugar, barrio, ciudad o dirección.<br />
+            Ejemplo: <code className="bg-purple-100 px-1 rounded">Playa Tamarindo</code> o <code className="bg-purple-100 px-1 rounded">Centro de San José</code>
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder={`Ej: Playa Hermosa, ${currentCountry?.name}`}
+              className="flex-1 px-3 py-2 border-2 border-purple-300 rounded-lg text-sm text-gray-900 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+            <button
+              onClick={handleSearch}
+              disabled={searching || !searchQuery.trim()}
+              className="px-4 py-2 bg-purple-500 text-white font-semibold rounded-lg hover:bg-purple-600 transition-colors text-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {searching ? '⏳ Buscando...' : '🔍 Buscar'}
+            </button>
+          </div>
         </div>
       )}
 

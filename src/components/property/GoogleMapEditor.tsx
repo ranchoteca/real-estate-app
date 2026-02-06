@@ -493,36 +493,27 @@ export default function GoogleMapEditor({
         </div>
       )}
 
-      {/* 🆕 Buscador de ubicación */}
-      {editable && (
-        <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
-          <label className="block text-sm font-bold mb-2 text-purple-900 flex items-center gap-2">
-            <span className="text-lg">🔍</span>
-            Buscar ubicación en {currentCountry?.name}
-          </label>
-          <p className="text-xs text-purple-700 mb-3 leading-relaxed">
-            Escribe el nombre del lugar, barrio, ciudad o dirección.<br />
-            Ejemplo: <code className="bg-purple-100 px-1 rounded">Playa Tamarindo</code> o <code className="bg-purple-100 px-1 rounded">Centro de San José</code>
-          </p>
-          <div className="flex gap-2">
+      <div className="flex flex-col gap-3">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder={`Ej: Playa Hermosa, ${currentCountry?.name}`}
-              className="flex-1 px-3 py-2 border-2 border-purple-300 rounded-lg text-sm text-gray-900 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg text-sm text-gray-900 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
             />
             <button
               onClick={handleSearch}
               disabled={searching || !searchQuery.trim()}
-              className="px-4 py-2 bg-purple-500 text-white font-semibold rounded-lg hover:bg-purple-600 transition-colors text-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-purple-500 text-white font-bold rounded-lg hover:bg-purple-600 transition-all active:scale-95 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
             >
-              {searching ? '⏳ Buscando...' : '🔍 Buscar'}
+              {searching ? (
+                <><span>⏳</span> Buscando...</>
+              ) : (
+                <><span>📍</span> Ubicar en el mapa</>
+              )}
             </button>
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Mapa */}
       <div className="w-full h-64 rounded-xl overflow-hidden border-2 border-gray-200">

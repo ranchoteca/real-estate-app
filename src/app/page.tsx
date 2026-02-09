@@ -124,9 +124,9 @@ export default function LandingPage() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 shadow-lg"
             style={{ backgroundColor: '#FFFFFF' }}
           >
-            <span className="text-xl">✨</span>
+            <span className="text-xl">📱</span>
             <span className="font-semibold" style={{ color: '#0F172A' }}>
-              Impulsado por IA
+              Para Agentes Independientes
             </span>
           </div>
 
@@ -135,12 +135,12 @@ export default function LandingPage() {
             className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight"
             style={{ color: '#0F172A' }}
           >
-            Crea Listings Profesionales en{' '}
+            Deja de Enviar Fotos Sueltas por{' '}
             <span 
               className="relative inline-block"
               style={{ color: '#2563EB' }}
             >
-              60 Segundos
+              WhatsApp
               <svg 
                 className="absolute -bottom-2 left-0 w-full" 
                 viewBox="0 0 200 12" 
@@ -160,8 +160,8 @@ export default function LandingPage() {
             className="text-lg sm:text-xl mb-8 max-w-2xl mx-auto opacity-80"
             style={{ color: '#0F172A' }}
           >
-            Sube fotos, describe por voz, y nuestra IA genera descripciones profesionales automáticamente.
-            <span className="font-semibold"> Optimiza tu trabajo en segundos.</span>
+            Crea tu portafolio digital profesional sin pagar sitio web. 
+            <span className="font-semibold"> Habla tu descripción, nosotros la escribimos.</span>
           </p>
 
           {/* CTA Buttons */}
@@ -171,7 +171,7 @@ export default function LandingPage() {
               className="px-8 py-4 rounded-xl font-bold text-white shadow-xl text-lg active:scale-95 transition-transform"
               style={{ backgroundColor: '#2563EB' }}
             >
-              🚀 Empezar Gratis
+              🚀 Probar Gratis
             </Link>
             <button
               onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
@@ -200,26 +200,26 @@ export default function LandingPage() {
           {/* Key Benefits */}
           <div className="flex flex-wrap items-center justify-center gap-6">
             <div className="flex items-center gap-2">
-              <span className="text-2xl">⚡</span>
-              <div className="text-left">
-                <div className="text-sm font-bold" style={{ color: '#0F172A' }}>Súper Rápido</div>
-                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Listings en 60s</div>
-              </div>
-            </div>
-            <div className="w-px h-10" style={{ backgroundColor: '#0F172A', opacity: 0.2 }} />
-            <div className="flex items-center gap-2">
               <span className="text-2xl">🎤</span>
               <div className="text-left">
-                <div className="text-sm font-bold" style={{ color: '#0F172A' }}>100% Voz</div>
-                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Sin escribir</div>
+                <div className="text-sm font-bold" style={{ color: '#0F172A' }}>Sin Escribir</div>
+                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Solo habla</div>
               </div>
             </div>
             <div className="w-px h-10" style={{ backgroundColor: '#0F172A', opacity: 0.2 }} />
             <div className="flex items-center gap-2">
-              <span className="text-2xl">🤖</span>
+              <span className="text-2xl">📄</span>
               <div className="text-left">
-                <div className="text-sm font-bold" style={{ color: '#0F172A' }}>IA Avanzada</div>
-                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Textos pro</div>
+                <div className="text-sm font-bold" style={{ color: '#0F172A' }}>PDFs con Logo</div>
+                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Tu marca</div>
+              </div>
+            </div>
+            <div className="w-px h-10" style={{ backgroundColor: '#0F172A', opacity: 0.2 }} />
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">💼</span>
+              <div className="text-left">
+                <div className="text-sm font-bold" style={{ color: '#0F172A' }}>Verse Pro</div>
+                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Sin sitio web</div>
               </div>
             </div>
           </div>
@@ -231,10 +231,10 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
-              3 Pasos Simples
+              Cómo Funciona
             </h2>
             <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>
-              Comienza a organizar tu trabajo hoy
+              Tan fácil como enviar un mensaje de voz
             </p>
           </div>
 
@@ -244,19 +244,19 @@ export default function LandingPage() {
                 step: '1',
                 emoji: '📸',
                 title: 'Sube Fotos',
-                description: 'Selecciónalas de tu galería. Mínimo 2, máximo 10.'
+                description: 'Selecciona las fotos de la propiedad desde tu celular. Entre 2 y 10 fotos.'
               },
               {
                 step: '2',
                 emoji: '🎤',
-                title: 'Describe por Voz',
-                description: 'Graba 30-120 segundos describiendo la propiedad. Sin escribir nada.'
+                title: 'Graba tu Voz',
+                description: 'Describe la propiedad hablando 30-120 segundos. Como si le explicaras a un cliente.'
               },
               {
                 step: '3',
-                emoji: '✨',
-                title: 'IA Genera Todo',
-                description: 'Nuestra IA crea título, descripción profesional y extrae todos los detalles. Además puedes entrenar a la IA con tus propios campos personalizados.'
+                emoji: '✅',
+                title: 'Listo para Compartir',
+                description: 'Recibe la descripción profesional lista. Comparte PDF o link de tu portafolio.'
               }
             ].map((item, index) => (
               <div
@@ -283,26 +283,74 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Problem/Solution */}
+      <section className="py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
+              ¿Te Suena Familiar?
+            </h2>
+            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>
+              Problemas que todos los agentes tienen
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-12">
+            {[
+              {
+                problem: '❌ Envías 10 fotos sueltas por WhatsApp a cada cliente',
+                solution: '✅ Envía 1 PDF profesional con tu logo'
+              },
+              {
+                problem: '❌ No tienes sitio web porque es caro',
+                solution: '✅ Tu portafolio digital sin pagar sitio web'
+              },
+              {
+                problem: '❌ Pierdes tiempo escribiendo descripciones',
+                solution: '✅ Solo hablas, nosotros escribimos'
+              },
+              {
+                problem: '❌ Tus propiedades en Facebook se pierden',
+                solution: '✅ Todo organizado en un solo lugar'
+              }
+            ].map((item, index) => (
+              <div
+                key={index}
+                className="rounded-2xl p-6 shadow-lg"
+                style={{ backgroundColor: '#FFFFFF' }}
+              >
+                <div className="mb-3 text-sm opacity-70" style={{ color: '#0F172A' }}>
+                  {item.problem}
+                </div>
+                <div className="font-semibold" style={{ color: '#2563EB' }}>
+                  {item.solution}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
-              Todo lo que Necesitas
+              Lo Que Obtienes
             </h2>
             <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>
-              Herramientas profesionales a precio accesible
+              Todo lo necesario para verte profesional
             </p>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { emoji: '🤖', title: 'IA Avanzada', desc: 'Nuestra IA hará más agradable registrar tus propiedades' },
-              { emoji: '📱', title: 'App Móvil', desc: 'PWA nativa para iOS y Android' },
-              { emoji: '⚡', title: 'Super Rápido', desc: 'Crea listings en menos de 60 segundos' },
-              { emoji: '🔒', title: 'Seguro', desc: 'Tus datos protegidos con encriptación' },
-              { emoji: '🌐', title: 'Links Públicos', desc: 'Comparte con un solo click' },
-              { emoji: '📊', title: 'Métricas Valiosas', desc: 'Controla tus propiedades y su rendimiento' }
+              { emoji: '📄', title: 'PDFs Profesionales', desc: 'Genera PDFs con marca de agua en tus fotos para enviar a clientes' },
+              { emoji: '🏷️', title: 'Tu Logo en Fotos', desc: 'Agrega tu logo a todas las fotos automáticamente' },
+              { emoji: '📇', title: 'Tarjeta Digital', desc: 'Comparte tu información de contacto profesionalmente' },
+              { emoji: '🌐', title: 'Portafolio Público', desc: 'Link para compartir todas tus propiedades' },
+              { emoji: '💵', title: 'Colones y Dólares', desc: 'Maneja precios en ambas monedas fácilmente' },
+              { emoji: '🗺️', title: 'Mapa Integrado', desc: 'Ubicación exacta con Google Maps' }
             ].map((feature, index) => (
               <div
                 key={index}
@@ -322,46 +370,40 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Customization Features */}
+      {/* Bilingual Features */}
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
-              Personaliza Tu Marca
+              Para el Mercado Internacional
             </h2>
             <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>
-              Herramientas profesionales para destacar en el mercado
+              Atrae clientes extranjeros sin esfuerzo
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {[
               {
+                icon: '🌎',
+                title: 'Portafolio Bilingüe',
+                description: 'Tus propiedades en español e inglés. Perfecto para turistas y extranjeros interesados en Costa Rica.',
+                color: '#10B981'
+              },
+              {
                 icon: '📇',
-                title: 'Tarjeta Digital',
-                description: 'Crea tu tarjeta de presentación digital con foto, portada y descripción personalizada. Compártela fácilmente con tus clientes.',
-                color: '#6366F1'
-              },
-              {
-                icon: '🎨',
-                title: 'Logo Personalizado',
-                description: 'Agrega tu logo a todas las fotos de propiedades. Define posición y tamaño para mantener tu identidad de marca.',
-                color: '#8B5CF6'
-              },
-              {
-                icon: '💰',
-                title: 'Multi-Divisa',
-                description: 'Gestiona fácilmente tus propiedades en colones o dólares. Comparte tu portafolio completo con un solo link.',
+                title: 'Tarjeta en 2 Idiomas',
+                description: 'Tu tarjeta digital se adapta al idioma del cliente automáticamente.',
                 color: '#F59E0B'
               }
             ].map((feature, index) => (
               <div
                 key={index}
-                className="rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all"
+                className="rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all"
                 style={{ backgroundColor: '#FFFFFF' }}
               >
                 <div 
-                  className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl mb-4 shadow-sm"
+                  className="w-16 h-16 rounded-xl flex items-center justify-center text-4xl mb-4 shadow-sm"
                   style={{ backgroundColor: `${feature.color}20` }}
                 >
                   {feature.icon}
@@ -386,31 +428,31 @@ export default function LandingPage() {
               ¿Por Qué Flow Estate AI?
             </h2>
             <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>
-              La solución completa para agentes inmobiliarios modernos
+              Diseñado específicamente para agentes independientes
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {[
               {
-                title: 'Ahorra Tiempo Valioso',
-                description: 'Deja de perder horas escribiendo descripciones. Nuestra IA lo hace por ti en segundos, permitiéndote enfocarte en cerrar ventas.',
+                title: 'Ahorra Horas de Trabajo',
+                description: 'No más escribir descripciones largas. Habla 1 minuto y recibe texto profesional listo para compartir.',
                 icon: '⏱️'
               },
               {
-                title: 'Textos Profesionales',
-                description: 'La IA genera descripciones persuasivas y profesionales que destacan las mejores características de cada propiedad.',
-                icon: '✍️'
+                title: 'Verse Más Profesional',
+                description: 'PDFs con tu logo, portafolio organizado, tarjeta digital. Tus clientes verán que eres serio.',
+                icon: '💼'
               },
               {
                 title: 'Fácil de Usar',
-                description: 'Interfaz intuitiva diseñada para agentes ocupados. Si sabes usar WhatsApp, sabes usar Flow Estate AI.',
-                icon: '👌'
+                description: 'Si usas WhatsApp, puedes usar Flow Estate. No necesitas ser experto en tecnología.',
+                icon: '👍'
               },
               {
-                title: 'Portfolio Profesional',
-                description: 'Cada agente obtiene su portafolio público personalizado para compartir con clientes y redes sociales.',
-                icon: '🎯'
+                title: 'Sin Sitio Web Caro',
+                description: 'Obtén tu portafolio profesional sin pagar miles en desarrollo web.',
+                icon: '💰'
               }
             ].map((item, index) => (
               <div
@@ -435,116 +477,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Commented Pricing Section
-      <section className="py-16 px-4" id="pricing">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
-              Planes y Precios
-            </h2>
-            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>
-              Elige el plan ideal para hacer crecer tu negocio
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {[
-              {
-                id: 'free',
-                name: 'Free',
-                price: 0,
-                properties: 3,
-                period: 'total',
-                features: [
-                  '3 propiedades totales',
-                  'Portfolio público',
-                  'Descripción con IA',
-                  'Hasta 10 fotos por propiedad',
-                  'Exporta tus propiedades a CSV'
-                ],
-                highlight: false
-              },
-              {
-                id: 'pro',
-                name: 'Pro',
-                price: 19,
-                properties: 30,
-                period: 'mes',
-                features: [
-                  '30 propiedades nuevas/mes',
-                  'Todo en Free +',
-                  'Sin marca de agua',
-                  'Incluye tu logo personalizado',
-                  'Soporte prioritario',
-                  'Analytics básico'
-                ],
-                highlight: true
-              }
-            ].map((plan) => (
-              <div
-                key={plan.id}
-                className={`relative rounded-2xl p-6 shadow-lg ${
-                  plan.highlight ? 'border-4 scale-105' : 'border-2'
-                }`}
-                style={{
-                  backgroundColor: '#FFFFFF',
-                  borderColor: plan.highlight ? '#2563EB' : '#E5E7EB'
-                }}
-              >
-                {plan.highlight && (
-                  <div
-                    className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-white text-sm font-bold shadow-lg"
-                    style={{ backgroundColor: '#2563EB' }}
-                  >
-                    MÁS POPULAR
-                  </div>
-                )}
-                <div className="text-center mb-4">
-                  <h3 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
-                    {plan.name}
-                  </h3>
-                  <div className="text-4xl font-bold mb-1" style={{ color: '#2563EB' }}>
-                    ${plan.price}
-                  </div>
-                  {plan.price > 0 && (
-                    <div className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                      /{plan.period}
-                    </div>
-                  )}
-                  <div className="text-sm mt-1 opacity-70" style={{ color: '#0F172A' }}>
-                    {plan.properties} propiedades {plan.period === 'mes' ? 'por mes' : 'en total'}
-                  </div>
-                </div>
-                <ul className="space-y-2 mb-6">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="text-sm flex gap-2 items-start" style={{ color: '#0F172A' }}>
-                      <span style={{ color: '#2563EB' }}>✓</span>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/login"
-                  className="block w-full py-3 rounded-xl font-bold text-center shadow-lg active:scale-95 transition-transform"
-                  style={{
-                    backgroundColor: plan.highlight ? '#2563EB' : '#FFFFFF',
-                    color: plan.highlight ? '#FFFFFF' : '#2563EB',
-                    border: plan.highlight ? 'none' : '2px solid #2563EB'
-                  }}
-                >
-                  Empezar Ahora
-                </Link>
-              </div>
-            ))}
-          </div>
-
-          <p className="text-center mt-8 text-sm opacity-70" style={{ color: '#0F172A' }}>
-            🎁 <strong>3 propiedades gratis</strong> al registrarte • Cancela cuando quieras
-          </p>
-        </div>
-      </section>
-      */}
-
       {/* Final CTA */}
       <section className="py-16 px-4">
         <div 
@@ -552,18 +484,21 @@ export default function LandingPage() {
           style={{ backgroundColor: '#0F172A' }}
         >
           <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white">
-            ¿Listo para Transformar tu Forma de Trabajar?
+            ¿Listo Para Verse Más Profesional?
           </h2>
           <p className="text-lg mb-8 text-white opacity-80">
-            Únete a la nueva generación de agentes inmobiliarios que trabajan más inteligente
+            Comienza gratis hoy. Sin tarjeta de crédito.
           </p>
           <Link
             href="/login"
             className="inline-block px-10 py-4 rounded-xl font-bold text-lg shadow-xl active:scale-95 transition-transform"
             style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}
           >
-            🚀 Comenzar Gratis Ahora
+            🚀 Probar Gratis Ahora
           </Link>
+          <p className="text-sm mt-4 text-white opacity-60">
+            Empieza en menos de 2 minutos
+          </p>
         </div>
       </section>
 
@@ -581,7 +516,7 @@ export default function LandingPage() {
             />
           </div>
           <p className="text-sm opacity-60 mb-4" style={{ color: '#0F172A' }}>
-            Creando el futuro de los listings inmobiliarios
+            Herramientas digitales para agentes independientes
           </p>
           <div className="flex justify-center gap-6 text-sm" style={{ color: '#0F172A' }}>
             <Link href="/terms" className="hover:opacity-60 transition-opacity">
@@ -595,7 +530,7 @@ export default function LandingPage() {
             </a>
           </div>
           <p className="text-xs mt-4 opacity-40" style={{ color: '#0F172A' }}>
-            © 2025 Flow Estate AI. Todos los derechos reservados.
+            © 2026 Flow Estate AI. Todos los derechos reservados.
           </p>
         </div>
       </footer>

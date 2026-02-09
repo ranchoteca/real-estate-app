@@ -53,7 +53,7 @@ export default function LoginPage() {
             </h1>
             
             <p className="text-lg opacity-80" style={{ color: '#0F172A' }}>
-              Crea listings profesionales en 60 segundos
+              Tu portafolio digital profesional
             </p>
           </div>
 
@@ -63,16 +63,16 @@ export default function LoginPage() {
             style={{ backgroundColor: '#FFFFFF' }}
           >
             <h2 className="text-2xl font-bold text-center mb-6" style={{ color: '#0F172A' }}>
-              Bienvenido
+              Empieza Gratis
             </h2>
 
             {/* Benefits */}
             <div className="space-y-3 mb-6">
               {[
-                { emoji: '✨', text: 'Genera descripciones con IA' },
-                { emoji: '📸', text: 'Sube fotos desde tu móvil' },
-                { emoji: '⚡', text: 'Publica en menos de 1 minuto' },
-                { emoji: '🌐', text: 'Tu portafolio profesional público' }
+                { emoji: '🎤', text: 'Crea propiedades hablando' },
+                { emoji: '📄', text: 'PDFs con tu logo' },
+                { emoji: '💼', text: 'Portafolio profesional' },
+                { emoji: '🌐', text: 'Comparte con un link' }
               ].map((benefit, index) => (
                 <div key={index} className="flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
                   <span className="text-2xl">{benefit.emoji}</span>
@@ -140,13 +140,13 @@ export default function LoginPage() {
           <div className="flex flex-wrap justify-center gap-8 text-center">
             <div>
               <div className="text-3xl mb-2">
-                🤖
+                ⚡
               </div>
               <div className="text-sm font-semibold mb-1" style={{ color: '#0F172A' }}>
-                IA Avanzada
+                Sin Escribir
               </div>
               <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                Genera textos profesionales
+                Solo habla tu descripción
               </div>
             </div>
             <div>
@@ -154,10 +154,10 @@ export default function LoginPage() {
                 📱
               </div>
               <div className="text-sm font-semibold mb-1" style={{ color: '#0F172A' }}>
-                App Móvil
+                Desde tu Celular
               </div>
               <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                Funciona en cualquier dispositivo
+                Funciona en iOS y Android
               </div>
             </div>
             <div>
@@ -165,10 +165,10 @@ export default function LoginPage() {
                 🔒
               </div>
               <div className="text-sm font-semibold mb-1" style={{ color: '#0F172A' }}>
-                100% Seguro
+                Seguro
               </div>
               <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                Tus datos protegidos
+                Tus propiedades protegidas
               </div>
             </div>
           </div>

@@ -161,7 +161,7 @@ export default function LandingPage() {
             style={{ color: '#0F172A' }}
           >
             Crea tu portafolio digital profesional sin pagar sitio web. 
-            <span className="font-semibold"> Habla tu descripción, nosotros la escribimos.</span>
+            <span className="font-semibold">Mientras tu describes la propiedad usando tu voz, nosotros nos encargamos del trabajo dificil.</span>
           </p>
 
           {/* CTA Buttons */}

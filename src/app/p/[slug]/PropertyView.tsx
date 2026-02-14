@@ -234,6 +234,88 @@ export default function PropertyView() {
     setShowShareMenu(false);
   };
 
+  const copyPropertyInfo = () => {
+    if (!property) return;
+
+    // Construir el texto formateado
+    const listingTypeText = property.listing_type === 'rent' 
+      ? (interfaceLang === 'en' ? '🏠 FOR RENT' : '🏠 PARA ALQUILER')
+      : (interfaceLang === 'en' ? '💰 FOR SALE' : '💰 EN VENTA');
+
+    const propertyTypeText = property.property_type 
+      ? `🏡 ${translatePropertyType(property.property_type, interfaceLang)}`
+      : '';
+
+    // Descripción truncada (primeros 200-300 caracteres)
+    const truncatedDescription = property.description.length > 250 
+      ? property.description.substring(0, 250) + '...'
+      : property.description;
+
+    // Características especiales
+    let featuresText = '';
+    if (filledCustomFields.length > 0) {
+      const featuresList = filledCustomFields
+        .slice(0, 5) // Máximo 5 características para no hacer el texto muy largo
+        .map(field => {
+          const value = getCustomFieldValue(field.field_key);
+          const name = getCustomFieldName(field);
+          return `  • ${name}: ${value}`;
+        })
+        .join('\n');
+      
+      featuresText = `\n\n${interfaceLang === 'en' ? '✨ SPECIAL FEATURES' : '✨ CARACTERÍSTICAS ESPECIALES'}\n${featuresList}`;
+    }
+
+    // Ubicación
+    const locationParts = [property.address, property.city, property.state, property.zip_code]
+      .filter(Boolean);
+    const locationText = locationParts.length > 0 
+      ? `📍 ${locationParts.join(', ')}`
+      : '';
+
+    // Información del agente
+    const agentName = property.agent.full_name || property.agent.name || (interfaceLang === 'en' ? 'Agent' : 'Agente');
+    const agentInfo = [
+      `\n\n${interfaceLang === 'en' ? '👤 CONTACT AGENT' : '👤 CONTACTAR AGENTE'}`,
+      agentName,
+      property.agent.brokerage || '',
+      property.agent.phone ? `📞 ${property.agent.phone}` : '',
+      `✉️ ${property.agent.email}`
+    ].filter(Boolean).join('\n');
+
+    // Texto completo
+    const fullText = `
+  ${listingTypeText}${propertyTypeText ? ' | ' + propertyTypeText : ''}
+
+  ${property.title}
+
+  💵 ${formatPrice(property.price)}
+
+  ${locationText}
+
+  ${interfaceLang === 'en' ? '📝 DESCRIPTION' : '📝 DESCRIPCIÓN'}
+  ${truncatedDescription}${featuresText}${agentInfo}
+
+  🔗 ${interfaceLang === 'en' ? 'View full details:' : 'Ver detalles completos:'}
+    ${window.location.href}
+      `.trim();
+
+      // Copiar al portapapeles
+      navigator.clipboard.writeText(fullText)
+        .then(() => {
+          alert(interfaceLang === 'en' 
+            ? '✅ Property info copied! Now you can paste it on Facebook or any social network.'
+            : '✅ ¡Información copiada! Ahora puedes pegarla en Facebook o cualquier red social.');
+          setShowShareMenu(false);
+        })
+        .catch(err => {
+          console.error('Error copying to clipboard:', err);
+          alert(interfaceLang === 'en' 
+            ? '❌ Error copying info'
+            : '❌ Error al copiar la información');
+        });
+  };
+
   const shareWhatsApp = () => {
     const text = `${property?.title} - ${formatPrice(property?.price)}`;
     const url = window.location.href;
@@ -670,6 +752,14 @@ export default function PropertyView() {
             className="absolute bottom-16 lg:bottom-20 right-0 rounded-2xl shadow-2xl p-3 min-w-[180px] lg:min-w-[200px]"
             style={{ backgroundColor: '#FFFFFF' }}
           >
+            {/* Copiar información completa */}
+            <button
+                onClick={copyPropertyInfo}
+                className="w-full px-4 py-3 text-left font-semibold rounded-xl hover:bg-gray-100 active:bg-gray-100 transition-colors flex items-center gap-3"
+                style={{ color: '#0F172A' }}
+              >
+                <span>📋</span> {interfaceLang === 'en' ? 'Copy full info' : 'Copiar info completa'}
+            </button>
             {navigator.share && (
               <button
                 onClick={shareNative}

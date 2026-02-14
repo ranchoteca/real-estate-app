@@ -259,7 +259,8 @@ export default function PropertyView() {
         .map(field => {
           const value = getCustomFieldValue(field.field_key);
           const name = getCustomFieldName(field);
-          return `  • ${name}: ${value}`;
+          const icon = field.icon || '🏷️'; // Usar el icono del campo o un default
+          return `  ${icon} ${name}: ${value}`;
         })
         .join('\n');
       

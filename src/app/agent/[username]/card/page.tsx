@@ -102,7 +102,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
       imageUrl = 'https://www.flowestateai.com/og-default-agent.jpg';
     }
 
-    const url = `https://www.flowestateai.com/agent/${username}/card`;
+    const url = `https://www.flowestateai.com/agent/${username}/card${lang ? `?lang=${lang}` : ''}`;
 
     console.log('========================================');
     console.log('✅ METADATA GENERATED SUCCESSFULLY');

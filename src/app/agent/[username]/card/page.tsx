@@ -3,13 +3,15 @@ import { createClient } from '@supabase/supabase-js';
 import AgentCardPage from './AgentCardPage';
 
 interface PageProps {
-  params: { username: string };
-  searchParams: { lang?: string };
+  params: Promise<{ username: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }
 
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
-  const username = params.username;
-  const language = (searchParams?.lang || 'es') as 'es' | 'en';
+  // ← Hacer await de params y searchParams
+  const { username } = await params;
+  const { lang } = await searchParams;
+  const language = (lang || 'es') as 'es' | 'en';
 
   console.log('========================================');
   console.log('🔍 AGENT CARD METADATA GENERATION START');

@@ -13,12 +13,6 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const { lang } = await searchParams;
   const language = (lang || 'es') as 'es' | 'en';
 
-  console.log('========================================');
-  console.log('🔍 AGENT CARD METADATA GENERATION START');
-  console.log('Username:', username);
-  console.log('Language:', language);
-  console.log('========================================');
-
   try {
     // Crear cliente de Supabase (igual que en la API route)
     const supabase = createClient(
@@ -33,10 +27,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
       .eq('username', username)
       .single();
 
-    console.log('Agent query:', { agent, agentError });
-
     if (agentError || !agent) {
-      console.error('❌ Agent not found');
       return {
         title: 'Agent Card - FlowEstateAI',
         description: 'Real estate agent digital card',
@@ -55,10 +46,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
       .eq('agent_id', agent.id)
       .single();
 
-    console.log('Card query:', { card, cardError });
-
     if (cardError || !card) {
-      console.error('❌ Card not found');
       return {
         title: `${agent.full_name || agent.name || agent.username} - FlowEstateAI`,
         description: 'Real estate agent digital card',
@@ -104,14 +92,6 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
 
     const url = `https://www.flowestateai.com/agent/${username}/card${lang ? `?lang=${lang}` : ''}`;
 
-    console.log('========================================');
-    console.log('✅ METADATA GENERATED SUCCESSFULLY');
-    console.log('Title:', title);
-    console.log('Description:', description);
-    console.log('Image:', imageUrl);
-    console.log('URL:', url);
-    console.log('========================================');
-
     return {
       title,
       description,
@@ -137,10 +117,6 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
       },
     };
   } catch (error) {
-    console.error('========================================');
-    console.error('❌ FATAL ERROR IN METADATA GENERATION');
-    console.error('Error:', error);
-    console.error('========================================');
     
     return {
       title: 'Agent Card - FlowEstateAI',

@@ -80,7 +80,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
       : `Contacta a ${displayName} para servicios inmobiliarios`);
 
     // Asegurar que la imagen sea URL absoluta
-    let imageUrl = card.profile_photo || card.cover_photo;
+    let imageUrl = `https://www.flowestateai.com/api/og/agent-card/${username}${lang ? `?lang=${lang}` : ''}`;
     
     if (imageUrl && !imageUrl.startsWith('http')) {
       imageUrl = `https://www.flowestateai.com${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;

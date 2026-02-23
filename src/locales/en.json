@@ -381,7 +381,10 @@
     "followMe": "Follow me",
     "createdWith": "Created with ❤️ by Flow Estate AI",
     "whatsappMessage": "Hello {name}, I saw your digital card and would like to contact you",
-    "contactSubject": "Contact from digital card"
+    "contactSubject": "Contact from digital card",
+    "copyFullInfo": "Copy Full Info",
+    "infoCopied": "Information copied to clipboard",
+    "myDigitalCard": "My digital card"
   },
   "createProperty": {
     "introText": "Complete the following steps to generate your property in seconds",

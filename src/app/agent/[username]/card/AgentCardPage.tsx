@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import es from '@/locales/es.json';
 import en from '@/locales/en.json';
@@ -32,6 +33,7 @@ const translations = { es, en };
 export default function AgentCardPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
   const username = params.username as string;
 
   const [card, setCard] = useState<AgentCard | null>(null);
@@ -57,6 +59,9 @@ export default function AgentCardPage() {
     }
     return typeof value === 'string' ? value : key;
   };
+
+  // Detectar si es el agente viendo su propia tarjeta
+  const isOwnCard = session?.user?.email === agent?.email;
 
   useEffect(() => {
     if (username) {
@@ -97,6 +102,53 @@ export default function AgentCardPage() {
       setError(t('agentCard.errorLoading'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCopyFullInfo = async () => {
+    if (!card || !agent) return;
+
+    const displayName = language === 'en' && card.display_name_en 
+      ? card.display_name_en 
+      : card.display_name;
+    
+    const brokerage = language === 'en' && card.brokerage_en 
+      ? card.brokerage_en 
+      : card.brokerage;
+    
+    const bio = language === 'en' && card.bio_en 
+      ? card.bio_en 
+      : card.bio;
+
+    const cardUrl = `${window.location.origin}/agent/${agent.username}/card?lang=${language}`;
+
+    // Construir texto formateado
+    let fullText = `👤 ${displayName}\n`;
+    
+    if (brokerage) {
+      fullText += `🏢 ${brokerage}\n`;
+    }
+    
+    if (agent.phone) {
+      fullText += `📱 ${agent.phone}\n`;
+    }
+    
+    fullText += '\n';
+    
+    if (bio) {
+      // Limitar bio a 150 caracteres si es muy larga
+      const shortBio = bio.length > 150 ? bio.substring(0, 150) + '...' : bio;
+      fullText += `${shortBio}\n\n`;
+    }
+    
+    fullText += `📇 ${t('agentCard.myDigitalCard')}:\n${cardUrl}`;
+
+    try {
+      await navigator.clipboard.writeText(fullText);
+      alert(t('agentCard.infoCopied'));
+    } catch (err) {
+      console.error('Error copying:', err);
+      alert(t('agentCard.linkCopyError'));
     }
   };
 
@@ -286,6 +338,17 @@ export default function AgentCardPage() {
               >
                 🏠 {t('agentCard.viewPortfolio')}
               </a>
+
+              {/* NUEVO: Botón Copiar Info Completa - Solo visible para el agente */}
+              {isOwnCard && (
+                <button
+                  onClick={handleCopyFullInfo}
+                  className="w-full py-4 rounded-xl font-bold text-center shadow-lg active:scale-95 transition-transform text-lg text-white"
+                  style={{ backgroundColor: '#F59E0B' }}
+                >
+                  📋 {t('agentCard.copyFullInfo')}
+                </button>
+              )}
 
               <button
                 onClick={handleShare}

@@ -381,7 +381,10 @@
     "followMe": "Sígueme en redes",
     "createdWith": "Creado con ❤️ por Flow Estate AI",
     "whatsappMessage": "Hola {name}, vi tu tarjeta digital y me gustaría contactarte",
-    "contactSubject": "Contacto desde tarjeta digital"
+    "contactSubject": "Contacto desde tarjeta digital",
+    "copyFullInfo": "Copiar Info Completa",
+    "infoCopied": "Información copiada al portapapeles",
+    "myDigitalCard": "Mi tarjeta digital"
   },
   "createProperty": {
     "introText": "Completa los siguientes pasos para generar tu propiedad en segundos",

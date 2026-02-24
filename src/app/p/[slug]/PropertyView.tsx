@@ -38,6 +38,7 @@ interface Property {
   longitude: number | null;
   show_map: boolean;
   custom_fields_data: Record<string, string> | null;
+  video_url: string | null;
   agent: {
     name: string | null;
     full_name: string | null;
@@ -470,6 +471,31 @@ export default function PropertyView() {
               )}
             </div>
           </div>
+
+          {/* Video Player - NUEVO */}
+          {property.video_url && (
+            <div className="px-4 lg:px-0 pt-4 pb-4">
+              <div className="bg-white rounded-2xl p-5 lg:p-6 shadow-lg">
+                <h2 className="text-lg lg:text-xl font-bold mb-3 flex items-center gap-2" style={{ color: '#0F172A' }}>
+                  <span>🎬</span>
+                  {interfaceLang === 'en' ? 'Property Video' : 'Video de la Propiedad'}
+                </h2>
+                <div className="relative aspect-video rounded-xl overflow-hidden bg-black">
+                  <video
+                    src={property.video_url}
+                    controls
+                    className="w-full h-full"
+                    poster={property.photos?.[0] || undefined}
+                  >
+                    {interfaceLang === 'en' 
+                      ? 'Your browser does not support video playback.'
+                      : 'Tu navegador no soporta reproducción de video.'
+                    }
+                  </video>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* RIGHT COLUMN - Content */}
           <div className="px-4 lg:px-0 pt-4 pb-24 lg:pb-8 space-y-4">

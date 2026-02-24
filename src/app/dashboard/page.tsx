@@ -26,6 +26,7 @@ interface Property {
   created_at: string;
   listing_type: 'rent' | 'sale';
   language: 'es' | 'en';
+  video_url: string | null;
 }
 
 const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string => {
@@ -223,10 +224,10 @@ export default function DashboardPage() {
 
       const { newPropertyId } = await response.json();
       
-      // ✅ NUEVO: Recargar propiedades para actualizar el contador
+      // NUEVO: Recargar propiedades para actualizar el contador
       await loadProperties();
       
-      // ✅ NUEVO: Actualizar sesión
+      // NUEVO: Actualizar sesión
       await refreshSession();
       
       alert(
@@ -693,6 +694,53 @@ export default function DashboardPage() {
                         ? `Translate to ${property.language === 'es' ? 'English' : 'Spanish'}`
                         : `Traducir a ${property.language === 'es' ? 'Inglés' : 'Español'}`
                       }
+                    </button>
+
+                    {/* Descargar Video - (solo si tiene video) */}
+                    {property.video_url && (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          setShowMenu(null);
+                          
+                          try {
+                            // Convertir la URL de Mux a descargable
+                            const videoUrl = property.video_url.replace('.m3u8', '.mp4');
+                            
+                            // Crear elemento <a> temporal para forzar descarga
+                            const link = document.createElement('a');
+                            link.href = videoUrl;
+                            link.download = `${property.slug}-video.mp4`;
+                            link.target = '_blank';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            
+                          } catch (error) {
+                            console.error('Error descargando video:', error);
+                            alert(language === 'en'
+                              ? '❌ Error downloading video. Try opening the property and downloading from there.'
+                              : '❌ Error al descargar el video. Intenta abrir la propiedad y descargar desde ahí.'
+                            );
+                          }
+                        }}
+                        className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
+                        style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
+                      >
+                        <span>⬇️</span> {language === 'en' ? 'Download Video' : 'Descargar Video'}
+                      </button>
+                    )}
+
+                    {/* Eliminar - código existente que ya está */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteProperty(property.id);
+                      }}
+                      className="w-full px-4 py-3 text-left font-semibold active:bg-red-50 transition-colors flex items-center gap-2 border-t"
+                      style={{ color: '#DC2626', borderTopColor: '#F3F4F6' }}
+                    >
+                      <span>🗑️</span> {language === 'en' ? 'Delete' : 'Eliminar'}
                     </button>
 
                     {/* Eliminar - MANTENER EN ROJO */}

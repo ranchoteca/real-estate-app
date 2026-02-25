@@ -7,7 +7,6 @@ import PhotoUploader from '@/components/property/PhotoUploader';
 import VoiceRecorder from '@/components/property/VoiceRecorder';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
 import VideoUploader from '@/components/property/VideoUploader';
-import { generateVideoIntro, generateOutroVideo } from '@/lib/videoIntro';
 import { uploadVideoToMux, waitForAssetId } from '@/lib/muxUpload';
 import MobileLayout from '@/components/MobileLayout';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -552,34 +551,11 @@ export default function CreatePropertyPage() {
       if (videos.length > 0) {
         try {
           setVideoProgress(language === 'en' 
-            ? 'Generating intro with your logo...' 
-            : 'Generando intro con tu logo...'
+            ? 'Preparing videos...' 
+            : 'Preparando videos...'
           );
           
-          // Obtener logo del agente
-          const profileResponse = await fetch('/api/agent/profile');
-          const profileData = await profileResponse.json();
-          const agentLogo = profileData.agent.watermark_logo;
-          
-          if (!agentLogo) {
-            throw new Error('No logo found for video intro');
-          }
-          
-          // Generar intro (3 seg)
-          const introBlob = await generateVideoIntro(agentLogo, 3);
-          
-          setVideoProgress(language === 'en' 
-            ? 'Generating FlowEstateAI outro...' 
-            : 'Generando outro de FlowEstateAI...'
-          );
-          
-          // Generar outro (3 seg)
-          const outroBlob = await generateOutroVideo();
-          
-          // Array con todos los videos: intro + videos del agente + outro
-          const introFile = new File([introBlob], 'intro.webm', { type: 'video/webm' });
-          const outroFile = new File([outroBlob], 'outro.webm', { type: 'video/webm' });
-          const allVideos = [introFile, ...videos, outroFile];
+          const allVideos = [...videos];
           const assetIds: string[] = [];
           
           // Subir cada video a Mux
@@ -891,8 +867,8 @@ export default function CreatePropertyPage() {
               />
               <p className="text-xs text-gray-500 mt-2">
                 💡 {language === 'en' 
-                  ? 'Videos will be automatically merged with your logo intro and FlowEstateAI outro'
-                  : 'Los videos se fusionarán automáticamente con tu logo de intro y outro de FlowEstateAI'
+                  ? 'Videos will be automatically uploaded and merged'
+                  : 'Los videos se subirán y fusionarán automáticamente'
                 }
               </p>
             </div>

@@ -147,16 +147,16 @@ export async function POST(req: NextRequest) {
         .select('*', { count: 'exact', head: true })
         .eq('agent_id', agent.id);
 
-      if (count && count >= 20) {
+      if (count && count >= 150) {
         return NextResponse.json(
-          { error: 'Has alcanzado el límite de 20 propiedades. Actualiza a Pro para crear más.' },
+          { error: 'Has alcanzado el límite de 150 propiedades. Actualiza a Plus para crear más.' },
           { status: 403 }
         );
       }
-    } else if (agent.plan === 'pro') {
-      if (agent.properties_this_month >= 30) {
+    } else if (agent.plan === 'plus') {
+      if (agent.properties_this_month >= 150) {
         return NextResponse.json(
-          { error: 'Has alcanzado el límite de 30 propiedades este mes.' },
+          { error: 'Has alcanzado el límite de 150 propiedades este mes.' },
           { status: 403 }
         );
       }

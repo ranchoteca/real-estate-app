@@ -243,8 +243,8 @@ export default function EditPropertyPage() {
     const files = Array.from(e.target.files || []);
     const totalPhotos = existingPhotos.length + newPhotos.length + files.length - photosToDelete.length;
     
-    if (totalPhotos > 10) {
-      alert('Máximo 10 fotos por propiedad');
+    if (totalPhotos > 15) {
+      alert('Máximo 15 fotos por propiedad');
       return;
     }
 
@@ -446,7 +446,7 @@ export default function EditPropertyPage() {
         >
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-bold" style={{ color: '#0F172A' }}>
-              {t('common.editProperty.photos')} ({totalPhotos}/10)
+              {t('common.editProperty.photos')} ({totalPhotos}/15)
             </h3>
             <label className="cursor-pointer">
               <input
@@ -455,11 +455,11 @@ export default function EditPropertyPage() {
                 accept="image/*"
                 onChange={handleAddPhotos}
                 className="hidden"
-                disabled={totalPhotos >= 10 || compressing} // Deshabilitar cuando está comprimiendo
+                disabled={totalPhotos >= 15 || compressing} // Deshabilitar cuando está comprimiendo
               />
               <span 
                 className="px-4 py-2 rounded-xl font-semibold text-white shadow-lg active:scale-95 transition-transform inline-block"
-                style={{ backgroundColor: (totalPhotos >= 10 || compressing) ? '#9CA3AF' : '#2563EB' }}
+                style={{ backgroundColor: (totalPhotos >= 15 || compressing) ? '#9CA3AF' : '#2563EB' }}
               >
                 {/* Mostrar estado de compresión */}
                 {compressing ? `⏳ ${t('common.editProperty.compressing')}` : `➕ ${t('common.editProperty.addPhotos')}`}
@@ -481,6 +481,7 @@ export default function EditPropertyPage() {
                       alt={`Photo ${index + 1}`}
                       fill
                       className="object-cover"
+                      unoptimized
                     />
                     <button
                       onClick={() => handleDeleteExistingPhoto(photo)}

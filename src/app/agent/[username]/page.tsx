@@ -452,6 +452,7 @@ export default function AgentPortfolioPage() {
                         alt={property.title}
                         fill
                         className="object-contain bg-gray-900"
+                        unoptimized
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-5xl">

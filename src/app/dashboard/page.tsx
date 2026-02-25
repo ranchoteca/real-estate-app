@@ -358,19 +358,19 @@ export default function DashboardPage() {
               </p>
               <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>
                 {planInfo?.plan === 'free' 
-                  ? `${properties.length} / 20`
+                  ? `${properties.length} / 150`
                   : `${planInfo?.properties_this_month || 0} / 30`
                 }
               </p>
             </div>
           </div>
           
-          {planInfo?.plan === 'free' && properties.length >= 20 && (
+          {planInfo?.plan === 'free' && properties.length >= 150 && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>
               <p className="text-sm mb-3" style={{ color: '#DC2626' }}>
                 ⚠️ {language === 'en' 
-                  ? 'You have reached the limit. Delete a property or upgrade to Pro.'
-                  : 'Has alcanzado el límite. Elimina una propiedad o actualiza a Pro.'
+                  ? 'You have reached the limit of 150 properties. Delete a property or upgrade to Plus.'
+                  : 'Has alcanzado el límite de 150 propiedades. Elimina una propiedad o actualiza a Plus.'
                 }
               </p>
               <button
@@ -607,6 +607,7 @@ export default function DashboardPage() {
                     alt={property.title}
                     fill
                     className="object-contain bg-gray-900"
+                    unoptimized
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-6xl">

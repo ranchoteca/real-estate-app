@@ -481,6 +481,7 @@ export default function EditPropertyPage() {
                       alt={`Photo ${index + 1}`}
                       fill
                       className="object-cover"
+                      unoptimized
                     />
                     <button
                       onClick={() => handleDeleteExistingPhoto(photo)}

@@ -8,7 +8,7 @@ import VoiceRecorder from '@/components/property/VoiceRecorder';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
 import VideoUploader from '@/components/property/VideoUploader';
 import { generateVideoIntro, generateOutroVideo } from '@/lib/videoIntro';
-import { uploadVideoToMux } from '@/lib/muxUpload';
+import { uploadVideoToMux, waitForAssetId } from '@/lib/muxUpload';
 import MobileLayout from '@/components/MobileLayout';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useI18nStore } from '@/lib/i18n-store';
@@ -586,11 +586,17 @@ export default function CreatePropertyPage() {
               ? `Uploading video ${i + 1} of ${allVideos.length}...`
               : `Subiendo video ${i + 1} de ${allVideos.length}...`
             );
-            
-            const assetId = await uploadVideoToMux(allVideos[i], (progress) => {
+
+            const uploadId = await uploadVideoToMux(allVideos[i], (progress) => {
               console.log(`Video ${i + 1} upload progress:`, progress);
             });
-            
+
+            setVideoProgress(language === 'en'
+              ? `Processing video ${i + 1} of ${allVideos.length}...`
+              : `Procesando video ${i + 1} de ${allVideos.length}...`
+            );
+
+            const assetId = await waitForAssetId(uploadId);
             assetIds.push(assetId);
           }
           

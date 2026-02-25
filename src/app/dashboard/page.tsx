@@ -731,18 +731,6 @@ export default function DashboardPage() {
                       </button>
                     )}
 
-                    {/* Eliminar - código existente que ya está */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProperty(property.id);
-                      }}
-                      className="w-full px-4 py-3 text-left font-semibold active:bg-red-50 transition-colors flex items-center gap-2 border-t"
-                      style={{ color: '#DC2626', borderTopColor: '#F3F4F6' }}
-                    >
-                      <span>🗑️</span> {language === 'en' ? 'Delete' : 'Eliminar'}
-                    </button>
-
                     {/* Eliminar - MANTENER EN ROJO */}
                     <button
                       onClick={(e) => {

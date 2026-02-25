@@ -577,7 +577,9 @@ export default function CreatePropertyPage() {
           const outroBlob = await generateOutroVideo();
           
           // Array con todos los videos: intro + videos del agente + outro
-          const allVideos = [introBlob, ...videos, outroBlob];
+          const introFile = new File([introBlob], 'intro.webm', { type: 'video/webm' });
+          const outroFile = new File([outroBlob], 'outro.webm', { type: 'video/webm' });
+          const allVideos = [introFile, ...videos, outroFile];
           const assetIds: string[] = [];
           
           // Subir cada video a Mux

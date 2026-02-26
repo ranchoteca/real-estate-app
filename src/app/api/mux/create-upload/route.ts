@@ -11,8 +11,8 @@ export async function POST(req: NextRequest) {
     const upload = await mux.video.uploads.create({
       new_asset_settings: {
         playback_policy: ['public'],
-        encoding_tier: 'baseline',
-        mp4_support: 'standard',
+        encoding_tier: 'smart',
+        mp4_support: 'capped-1080p',
       },
       cors_origin: process.env.NEXT_PUBLIC_SITE_URL || '*',
     });

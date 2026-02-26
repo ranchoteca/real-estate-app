@@ -86,7 +86,7 @@ export default function PropertyView() {
 
   const { language: pwaLanguage } = useI18nStore();
   const [interfaceLang, setInterfaceLang] = useState<'es' | 'en'>('es');
-  const [setIsInPWA] = useState(false);
+  const [isInPWA, setIsInPWA] = useState(false);
   const [property, setProperty] = useState<Property | null>(null);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(true);

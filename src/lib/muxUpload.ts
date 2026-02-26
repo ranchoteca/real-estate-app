@@ -32,32 +32,23 @@ export async function uploadVideoToMux(
   return uploadId;
 }
 
-export async function waitForAssetId(
+export async function waitForPlaybackId(
   uploadId: string,
   maxAttempts = 30,
   intervalMs = 3000
 ): Promise<string> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const response = await fetch(`/api/mux/get-asset?uploadId=${uploadId}`);
-
-    if (!response.ok) {
-      throw new Error(`Failed to check upload status: ${response.statusText}`);
-    }
-
     const data = await response.json();
 
-    if (data.assetId) {
-      console.log(`✅ Asset listo: ${data.assetId} (intento ${attempt + 1})`);
-      return data.assetId;
+    if (data.playbackId) {
+      console.log(`✅ PlaybackId listo: ${data.playbackId}`);
+      return data.playbackId;
     }
 
-    if (data.status === 'errored') {
-      throw new Error(`Mux upload errored: ${data.error || 'Unknown error'}`);
-    }
-
-    console.log(`⏳ status: "${data.status}" (intento ${attempt + 1}/${maxAttempts})`);
+    console.log(`⏳ Esperando playbackId... intento ${attempt + 1}`);
     await new Promise(resolve => setTimeout(resolve, intervalMs));
   }
 
-  throw new Error(`Timeout: asset no listo después de ${maxAttempts * intervalMs / 1000}s`);
+    throw new Error('Timeout: playbackId not ready');
 }

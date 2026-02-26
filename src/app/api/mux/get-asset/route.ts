@@ -16,9 +16,14 @@ export async function GET(req: NextRequest) {
 
   try {
     const upload = await mux.video.uploads.retrieve(uploadId);
+    const playbackId = upload.asset_id 
+      ? (await mux.video.assets.retrieve(upload.asset_id)).playback_ids?.[0]?.id 
+      : null;
+
     return NextResponse.json({
       status: upload.status,
       assetId: upload.asset_id ?? null,
+      playbackId: playbackId ?? null,
     });
   } catch (error: any) {
     console.error('Error retrieving Mux upload:', error);

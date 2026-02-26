@@ -7,7 +7,7 @@ import PhotoUploader from '@/components/property/PhotoUploader';
 import VoiceRecorder from '@/components/property/VoiceRecorder';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
 import VideoUploader from '@/components/property/VideoUploader';
-import { uploadVideoToMux, waitForAssetId } from '@/lib/muxUpload';
+import { uploadVideoToMux, waitForPlaybackId } from '@/lib/muxUpload';
 import MobileLayout from '@/components/MobileLayout';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useI18nStore } from '@/lib/i18n-store';
@@ -546,62 +546,36 @@ export default function CreatePropertyPage() {
       }
       
       // 3. Procesar videos si hay
-      let videoUrl: string | null = null;
+      let videoUrls: string[] | null = null;
       
       if (videos.length > 0) {
         try {
-          setVideoProgress(language === 'en' 
-            ? 'Preparing videos...' 
-            : 'Preparando videos...'
-          );
+          const playbackIds: string[] = [];
           
-          const allVideos = [...videos];
-          const assetIds: string[] = [];
-          
-          // Subir cada video a Mux
-          for (let i = 0; i < allVideos.length; i++) {
+          for (let i = 0; i < videos.length; i++) {
             setVideoProgress(language === 'en'
-              ? `Uploading video ${i + 1} of ${allVideos.length}...`
-              : `Subiendo video ${i + 1} de ${allVideos.length}...`
+              ? `Uploading video ${i + 1} of ${videos.length}...`
+              : `Subiendo video ${i + 1} de ${videos.length}...`
             );
 
-            const uploadId = await uploadVideoToMux(allVideos[i], (progress) => {
-              console.log(`Video ${i + 1} upload progress:`, progress);
+            const uploadId = await uploadVideoToMux(videos[i], (progress) => {
+              console.log(`Video ${i + 1} progress:`, progress);
             });
 
             setVideoProgress(language === 'en'
-              ? `Processing video ${i + 1} of ${allVideos.length}...`
-              : `Procesando video ${i + 1} de ${allVideos.length}...`
+              ? `Processing video ${i + 1} of ${videos.length}...`
+              : `Procesando video ${i + 1} de ${videos.length}...`
             );
 
-            const assetId = await waitForAssetId(uploadId);
-            assetIds.push(assetId);
+            const playbackId = await waitForPlaybackId(uploadId);
+            playbackIds.push(playbackId);
           }
-          
-          setVideoProgress(language === 'en'
-            ? 'Merging videos...'
-            : 'Fusionando videos...'
-          );
-          
-          // Fusionar todos los videos en Mux
-          const mergeResponse = await fetch('/api/mux/create-video', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ assetIds }),
-          });
-          
-          if (!mergeResponse.ok) {
-            throw new Error('Failed to merge videos');
-          }
-          
-          const { playbackId } = await mergeResponse.json();
-          videoUrl = `https://stream.mux.com/${playbackId}.m3u8`;
-          
-          console.log('✅ Video fusionado:', videoUrl);
+
+          // Guardar array de playbackIds
+          videoUrls = playbackIds.map(id => `https://stream.mux.com/${id}.m3u8`);
           
         } catch (videoError) {
           console.error('Error procesando videos:', videoError);
-          // No fallar la publicación si el video falla, solo log
           alert(language === 'en'
             ? '⚠️ Video processing failed, but property was created successfully'
             : '⚠️ El procesamiento de video falló, pero la propiedad se creó exitosamente'
@@ -615,7 +589,7 @@ export default function CreatePropertyPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           photos: photoUrls,
-          video_url: videoUrl,
+          video_urls: videoUrls,
           video_processing: false, // Ya terminó de procesar
         }),
       });

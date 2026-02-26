@@ -39,6 +39,7 @@ interface Property {
   show_map: boolean;
   custom_fields_data: Record<string, string> | null;
   video_url: string | null;
+  video_urls: string[] | null;
   agent: {
     name: string | null;
     full_name: string | null;
@@ -47,6 +48,7 @@ interface Property {
     brokerage: string | null;
     profile_photo: string | null;
     username: string;
+    watermark_logo: string | null;
   };
 }
 
@@ -54,7 +56,7 @@ interface CustomField {
   id: string;
   field_key: string;   
   field_name: string;
-  field_name_en: string | null; // ⬅️ Agregado para bilingüe
+  field_name_en: string | null;
   field_type: 'text' | 'number';
   icon: string;
 }
@@ -84,7 +86,7 @@ export default function PropertyView() {
 
   const { language: pwaLanguage } = useI18nStore();
   const [interfaceLang, setInterfaceLang] = useState<'es' | 'en'>('es');
-  const [isInPWA, setIsInPWA] = useState(false);
+  const [setIsInPWA] = useState(false);
   const [property, setProperty] = useState<Property | null>(null);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,6 +95,10 @@ export default function PropertyView() {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [currency, setCurrency] = useState<any>(null);
+
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [showLogoOverlay, setShowLogoOverlay] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -473,27 +479,80 @@ export default function PropertyView() {
             </div>
           </div>
 
-          {/* Video Player - NUEVO */}
-          {property.video_url && (
+          {/* Video Player */}
+          {property.video_urls && property.video_urls.length > 0 && (
             <div className="px-4 lg:px-0 pt-4 pb-4">
               <div className="bg-white rounded-2xl p-5 lg:p-6 shadow-lg">
                 <h2 className="text-lg lg:text-xl font-bold mb-3 flex items-center gap-2" style={{ color: '#0F172A' }}>
                   <span>🎬</span>
                   {interfaceLang === 'en' ? 'Property Video' : 'Video de la Propiedad'}
+                  {property.video_urls.length > 1 && (
+                    <span className="text-sm font-normal opacity-60">
+                      ({currentVideoIndex + 1}/{property.video_urls.length})
+                    </span>
+                  )}
                 </h2>
+
                 <div className="relative aspect-video rounded-xl overflow-hidden bg-black">
+                  {/* Logo overlay - primeros 3 segundos */}
+                  {showLogoOverlay && property.agent.watermark_logo && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black bg-opacity-40 pointer-events-none">
+                      <img
+                        src={property.agent.watermark_logo}
+                        alt="Agent logo"
+                        className="w-32 h-32 object-contain opacity-90"
+                      />
+                    </div>
+                  )}
+
                   <video
-                    src={property.video_url}
+                    ref={videoRef}
+                    key={currentVideoIndex}
+                    src={property.video_urls[currentVideoIndex]}
                     controls
                     className="w-full h-full"
                     poster={property.photos?.[0] || undefined}
+                    onPlay={() => {
+                      setShowLogoOverlay(true);
+                      setTimeout(() => setShowLogoOverlay(false), 3000);
+                    }}
+                    onEnded={() => {
+                      // Pasar al siguiente clip automáticamente
+                      if (currentVideoIndex < property.video_urls!.length - 1) {
+                        setCurrentVideoIndex(prev => prev + 1);
+                        setTimeout(() => videoRef.current?.play(), 100);
+                      }
+                    }}
                   >
-                    {interfaceLang === 'en' 
+                    {interfaceLang === 'en'
                       ? 'Your browser does not support video playback.'
                       : 'Tu navegador no soporta reproducción de video.'
                     }
                   </video>
                 </div>
+
+                {/* Miniaturas de clips si hay más de uno */}
+                {property.video_urls.length > 1 && (
+                  <div className="flex gap-2 mt-3 overflow-x-auto">
+                    {property.video_urls.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setCurrentVideoIndex(index);
+                          setTimeout(() => videoRef.current?.play(), 100);
+                        }}
+                        className="flex-shrink-0 w-16 h-10 rounded-lg flex items-center justify-center text-sm font-bold border-2 transition-all"
+                        style={{
+                          borderColor: index === currentVideoIndex ? '#2563EB' : '#E5E7EB',
+                          backgroundColor: index === currentVideoIndex ? '#EFF6FF' : '#F9FAFB',
+                          color: index === currentVideoIndex ? '#2563EB' : '#6B7280',
+                        }}
+                      >
+                        ▶ {index + 1}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

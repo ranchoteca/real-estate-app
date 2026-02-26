@@ -517,7 +517,7 @@ export default function CreatePropertyPage() {
         body: JSON.stringify({
           ...propertyData,
           photos: [],
-          video_url: null,
+          video_urls: [],
           video_processing: videos.length > 0, // Marcar como procesando si hay videos
           custom_fields_data: {
             ...propertyData.custom_fields_data,

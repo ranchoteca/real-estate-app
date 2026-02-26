@@ -145,6 +145,7 @@ export type Database = {
           plus_code: string | null
           location?: string | null
           video_url: string | null
+          video_urls: string[] | null
           video_processing: boolean | null
         }
         Insert: {
@@ -174,6 +175,7 @@ export type Database = {
           custom_fields_data?: Json | null
           plus_code?: string | null
           video_url?: string | null
+          video_urls?: string[] | null
           video_processing?: boolean | null
         }
         Update: {
@@ -203,6 +205,7 @@ export type Database = {
           custom_fields_data?: Json | null
           plus_code?: string | null
           video_url?: string | null
+          video_urls?: string[] | null
           video_processing?: boolean | null
         }
       }

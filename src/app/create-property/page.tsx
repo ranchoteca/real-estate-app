@@ -780,7 +780,7 @@ export default function CreatePropertyPage() {
             <PhotoUploader 
               onPhotosChange={handlePhotosChange}
               minPhotos={2}
-              maxPhotos={10}
+              maxPhotos={15}
               watermarkConfig={watermarkConfig}
             />
           </div>

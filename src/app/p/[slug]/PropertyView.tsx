@@ -407,14 +407,21 @@ export default function PropertyView() {
         {/* Video */}
         <video
           ref={tikTokVideoRef}
-          key={currentVideoIndex}
+          key={`tiktok-${currentVideoIndex}`}
           src={property.video_urls[currentVideoIndex]}
           className="w-full h-full object-cover"
           autoPlay
           playsInline
+          muted={false}
+          onCanPlay={() => {
+            tikTokVideoRef.current?.play().catch(() => {});
+          }}
           onEnded={() => {
             if (currentVideoIndex < property.video_urls!.length - 1) {
               setCurrentVideoIndex(prev => prev + 1);
+            } else {
+              // Volver al primero al terminar todos
+              setCurrentVideoIndex(0);
             }
           }}
         />
@@ -559,7 +566,7 @@ export default function PropertyView() {
         <div className="lg:grid lg:grid-cols-2 lg:gap-8">
           
           {/* LEFT COLUMN - Gallery (Desktop) / Full Width (Mobile) */}
-          <div className="lg:sticky lg:top-8 lg:self-start">
+          <div className="lg:sticky lg:top-8 lg:self-start lg:max-h-screen lg:overflow-hidden">
             {/* Photo Gallery */}
             <div className="relative">
               <div className="relative aspect-[4/3] lg:aspect-square bg-gray-200 lg:rounded-2xl lg:overflow-hidden">
@@ -639,92 +646,95 @@ export default function PropertyView() {
           <div className="px-4 lg:px-0 pt-4 pb-24 lg:pb-8 space-y-4">
             {/* Video Player */}
             {property.video_urls && property.video_urls.length > 0 && (
-              <div className="px-4 lg:px-0 pt-4 pb-4">
-                <div className="bg-white rounded-2xl p-5 lg:p-6 shadow-lg">
-                  <h2 className="text-lg lg:text-xl font-bold mb-3 flex items-center justify-between gap-2" style={{ color: '#0F172A' }}>
-                    <div className="flex items-center gap-2">
-                      <span>🎬</span>
-                      {interfaceLang === 'en' ? 'Property Video' : 'Video de la Propiedad'}
+              <div className="mx-4 lg:mx-0 mt-4 lg:mt-0 rounded-2xl overflow-hidden shadow-lg bg-black">
+                
+                {/* Contenedor del video con overlay */}
+                <div className="relative aspect-video">
+                  {/* Logo overlay */}
+                  {showLogoOverlay && property.agent.watermark_logo && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black bg-opacity-50 pointer-events-none">
+                      <img
+                        src={property.agent.watermark_logo}
+                        alt="Agent logo"
+                        className="w-24 h-24 object-contain opacity-90"
+                      />
+                    </div>
+                  )}
+
+                  <video
+                    ref={videoRef}
+                    key={currentVideoIndex}
+                    src={property.video_urls[currentVideoIndex]}
+                    controls
+                    className="w-full h-full"
+                    onLoadedData={() => {
+                      if (property.agent.watermark_logo && !logoOverlayShownRef.current.has(currentVideoIndex)) {
+                        logoOverlayShownRef.current.add(currentVideoIndex);
+                        setShowLogoOverlay(true);
+                        setTimeout(() => {
+                          setShowLogoOverlay(false);
+                          videoRef.current?.play().catch(() => {});
+                        }, 2000);
+                      } else {
+                        videoRef.current?.play().catch(() => {});
+                      }
+                    }}
+                    onEnded={() => {
+                      if (currentVideoIndex < property.video_urls!.length - 1) {
+                        setCurrentVideoIndex(prev => prev + 1);
+                      }
+                    }}
+                  >
+                    {interfaceLang === 'en'
+                      ? 'Your browser does not support video playback.'
+                      : 'Tu navegador no soporta reproducción de video.'
+                    }
+                  </video>
+                </div>
+
+                {/* Barra inferior del reproductor */}
+                <div className="bg-white px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    {/* Título e info */}
+                    <div className="flex-1 min-w-0 mr-3">
+                      <p className="text-sm font-bold truncate" style={{ color: '#0F172A' }}>
+                        🎬 {interfaceLang === 'en' ? 'Property Video' : 'Video de la Propiedad'}
+                      </p>
                       {property.video_urls.length > 1 && (
-                        <span className="text-sm font-normal opacity-60">
-                          ({currentVideoIndex + 1}/{property.video_urls.length})
-                        </span>
+                        <p className="text-xs opacity-60" style={{ color: '#0F172A' }}>
+                          {interfaceLang === 'en' ? 'Clip' : 'Clip'} {currentVideoIndex + 1} {interfaceLang === 'en' ? 'of' : 'de'} {property.video_urls.length}
+                        </p>
                       )}
                     </div>
+
+                    {/* Botón Vista Completa — solo móvil */}
                     <button
                       onClick={() => {
                         setTikTokMode(true);
                         setCurrentVideoIndex(0);
                       }}
-                      className="lg:hidden px-3 py-1.5 rounded-xl text-xs font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center gap-1"
-                      style={{ backgroundColor: '#0F172A' }}
+                      className="lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-xs text-white shadow-lg active:scale-95 transition-transform"
+                      style={{ backgroundColor: '#0F172A', flexShrink: 0 }}
                     >
-                      <span>▶</span> {interfaceLang === 'en' ? 'Full View' : 'Vista Completa'}
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                      </svg>
+                      {interfaceLang === 'en' ? 'Full View' : 'Vista Completa'}
                     </button>
-                  </h2>
-
-                  <div className="relative aspect-video rounded-xl overflow-hidden bg-black">
-                    {/* Logo overlay - primeros 3 segundos */}
-                    {showLogoOverlay && property.agent.watermark_logo && (
-                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-black bg-opacity-40 pointer-events-none">
-                        <img
-                          src={property.agent.watermark_logo}
-                          alt="Agent logo"
-                          className="w-32 h-32 object-contain opacity-90"
-                        />
-                      </div>
-                    )}
-
-                    <video
-                      ref={videoRef}
-                      key={currentVideoIndex}
-                      src={property.video_urls[currentVideoIndex]}
-                      controls
-                      autoPlay
-                      className="w-full h-full"
-                      onPlay={() => {
-                        if (property.agent.watermark_logo && !logoOverlayShownRef.current.has(currentVideoIndex)) {
-                          logoOverlayShownRef.current.add(currentVideoIndex);
-                          videoRef.current?.pause();
-                          setShowLogoOverlay(true);
-                          setTimeout(() => {
-                            setShowLogoOverlay(false);
-                            videoRef.current?.play().catch(() => {});
-                          }, 3000);
-                        }
-                      }}
-                      onEnded={() => {
-                        if (currentVideoIndex < property.video_urls!.length - 1) {
-                          setCurrentVideoIndex(prev => prev + 1);
-                        }
-                      }}
-                    >
-                      {interfaceLang === 'en'
-                        ? 'Your browser does not support video playback.'
-                        : 'Tu navegador no soporta reproducción de video.'
-                      }
-                    </video>
                   </div>
 
-                  {/* Miniaturas de clips si hay más de uno */}
+                  {/* Indicadores de clips — estilo app móvil */}
                   {property.video_urls.length > 1 && (
-                    <div className="flex gap-2 mt-3 overflow-x-auto">
+                    <div className="flex gap-1.5 mt-2">
                       {property.video_urls.map((_, index) => (
                         <button
                           key={index}
-                          onClick={() => {
-                            setCurrentVideoIndex(index);
-                            setTimeout(() => videoRef.current?.play(), 100);
-                          }}
-                          className="flex-shrink-0 w-16 h-10 rounded-lg flex items-center justify-center text-sm font-bold border-2 transition-all"
+                          onClick={() => setCurrentVideoIndex(index)}
+                          className="flex-1 h-1 rounded-full transition-all duration-300"
                           style={{
-                            borderColor: index === currentVideoIndex ? '#2563EB' : '#E5E7EB',
-                            backgroundColor: index === currentVideoIndex ? '#EFF6FF' : '#F9FAFB',
-                            color: index === currentVideoIndex ? '#2563EB' : '#6B7280',
+                            backgroundColor: index === currentVideoIndex ? '#0F172A' : '#E5E7EB',
                           }}
-                        >
-                          ▶ {index + 1}
-                        </button>
+                        />
                       ))}
                     </div>
                   )}

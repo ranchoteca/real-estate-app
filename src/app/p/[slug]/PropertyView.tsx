@@ -738,10 +738,9 @@ export default function PropertyView() {
                     src={property.video_urls[currentVideoIndex]}
                     controls
                     controlsList="nofullscreen"
+                    autoPlay
+                    playsInline
                     className="w-full h-full"
-                    onCanPlayThrough={() => {
-                      videoRef.current?.play().catch(() => {});
-                    }}
                     onEnded={() => {
                       if (currentVideoIndex < property.video_urls!.length - 1) {
                         setCurrentVideoIndex(prev => prev + 1);

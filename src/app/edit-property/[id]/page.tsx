@@ -443,7 +443,7 @@ export default function EditPropertyPage() {
 
           finalVideoUrls = [
             ...existingVideos,
-            ...newPlaybackIds.map(id => `https://stream.mux.com/${id}.m3u8`),
+            ...newPlaybackIds.map(id => `https://stream.mux.com/${id}/capped-1080p.mp4`),
           ];
 
         } catch (videoError: any) {

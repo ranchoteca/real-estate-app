@@ -101,6 +101,8 @@ export default function PropertyView() {
 
   const [tikTokMode, setTikTokMode] = useState(false);
   const tikTokVideoRef = useRef<HTMLVideoElement>(null);
+  const [tikTokPaused, setTikTokPaused] = useState(false);
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
 
   const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -401,30 +403,47 @@ export default function PropertyView() {
   // Modo TikTok - pantalla completa
   if (tikTokMode && property.video_urls && property.video_urls.length > 0) {
     return (
-      <div 
-        className="fixed inset-0 bg-black z-50"
-        onClick={() => {
-          if (tikTokVideoRef.current?.paused) {
-            tikTokVideoRef.current?.play().catch(() => {});
-          } else {
-            tikTokVideoRef.current?.pause();
-          }
-        }}
+      <div
+        className="fixed inset-0 bg-black z-50 select-none"
         onTouchStart={(e) => {
           (e.currentTarget as any)._touchStartY = e.touches[0].clientY;
+          (e.currentTarget as any)._touchStartX = e.touches[0].clientX;
         }}
         onTouchEnd={(e) => {
           const startY = (e.currentTarget as any)._touchStartY;
+          const startX = (e.currentTarget as any)._touchStartX;
           const endY = e.changedTouches[0].clientY;
-          const diff = startY - endY;
+          const endX = e.changedTouches[0].clientX;
+          const diffY = startY - endY;
+          const diffX = Math.abs(startX - endX);
 
-          if (Math.abs(diff) > 50) {
-            if (diff > 0 && currentVideoIndex < property.video_urls!.length - 1) {
+          // Solo swipe vertical y que no sea accidentalmente horizontal
+          if (Math.abs(diffY) > 50 && diffX < 30) {
+            if (diffY > 0) {
               // Swipe up — siguiente video
-              setCurrentVideoIndex(prev => prev + 1);
-            } else if (diff < 0 && currentVideoIndex > 0) {
+              if (currentVideoIndex < property.video_urls!.length - 1) {
+                setCurrentVideoIndex(prev => prev + 1);
+                setShowSwipeHint(false);
+                setTikTokPaused(false);
+              }
+            } else {
               // Swipe down — video anterior
-              setCurrentVideoIndex(prev => prev - 1);
+              if (currentVideoIndex > 0) {
+                setCurrentVideoIndex(prev => prev - 1);
+                setShowSwipeHint(false);
+                setTikTokPaused(false);
+              }
+            }
+          }
+        }}
+        onClick={() => {
+          if (tikTokVideoRef.current) {
+            if (tikTokVideoRef.current.paused) {
+              tikTokVideoRef.current.play().catch(() => {});
+              setTikTokPaused(false);
+            } else {
+              tikTokVideoRef.current.pause();
+              setTikTokPaused(true);
             }
           }
         }}
@@ -439,27 +458,66 @@ export default function PropertyView() {
           playsInline
           onCanPlay={() => {
             tikTokVideoRef.current?.play().catch(() => {});
+            setTikTokPaused(false);
           }}
           onEnded={() => {
+            setShowSwipeHint(true);
             if (currentVideoIndex < property.video_urls!.length - 1) {
-              setCurrentVideoIndex(prev => prev + 1);
+              // Hay más videos — el hint ya se activa arriba
             } else {
-              setCurrentVideoIndex(0);
+              // Último video — volver al primero automáticamente
+              setTimeout(() => {
+                setCurrentVideoIndex(0);
+                setShowSwipeHint(false);
+              }, 2000);
             }
           }}
           onClick={(e) => e.stopPropagation()}
         />
 
         {/* Overlay oscuro */}
-        <div className="absolute inset-0 pointer-events-none" style={{
-          background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 40%, transparent 70%, rgba(0,0,0,0.3) 100%)'
-        }} />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 40%, transparent 70%, rgba(0,0,0,0.3) 100%)'
+          }}
+        />
+
+        {/* Icono pausa/play en centro */}
+        {tikTokPaused && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            </div>
+          </div>
+        )}
+
+        {/* Hint swipe — aparece al terminar video */}
+        {showSwipeHint && currentVideoIndex < property.video_urls.length - 1 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div
+              className="px-6 py-4 rounded-2xl flex flex-col items-center gap-2 animate-bounce"
+              style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+            >
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+              <p className="text-white text-sm font-bold">
+                {interfaceLang === 'en' ? 'Swipe up for next video' : 'Desliza arriba para el siguiente video'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Botón cerrar */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             setTikTokMode(false);
+            setShowSwipeHint(false);
+            setTikTokPaused(false);
           }}
           className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center z-20"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
@@ -484,7 +542,6 @@ export default function PropertyView() {
 
         {/* Iconos laterales */}
         <div className="absolute right-3 bottom-32 flex flex-col items-center gap-6 z-20">
-          {/* Foto agente */}
           <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden shadow-lg">
             {property.agent.profile_photo ? (
               <img src={property.agent.profile_photo} alt="Agent" className="w-full h-full object-cover" />
@@ -495,7 +552,6 @@ export default function PropertyView() {
             )}
           </div>
 
-          {/* WhatsApp */}
           {property.agent.phone && (
             <div className="flex flex-col items-center gap-1">
               <a 
@@ -518,7 +574,6 @@ export default function PropertyView() {
             </div>
           )}
 
-          {/* Llamar */}
           {property.agent.phone && (
             <div className="flex flex-col items-center gap-1">
               <a 
@@ -535,7 +590,6 @@ export default function PropertyView() {
             </div>
           )}
 
-          {/* Compartir */}
           <div className="flex flex-col items-center gap-1">
             <button
               onClick={(e) => {
@@ -555,19 +609,19 @@ export default function PropertyView() {
 
         {/* Bottom info */}
         <div className="absolute bottom-8 left-0 right-16 px-4 z-20">
-          <p className="text-white text-sm font-semibold mb-3 drop-shadow-lg">
+          <p className="text-white text-sm font-semibold mb-2 drop-shadow-lg">
             @{property.agent.username} · {property.agent.brokerage || ''}
           </p>
 
-          {/* Indicadores de clips */}
           {property.video_urls.length > 1 && (
-            <div className="flex gap-1.5 mb-3">
+            <div className="flex gap-1.5 mb-2">
               {property.video_urls.map((_, index) => (
                 <button
                   key={index}
                   onClick={(e) => {
                     e.stopPropagation();
                     setCurrentVideoIndex(index);
+                    setShowSwipeHint(false);
                   }}
                   className="h-1 rounded-full transition-all duration-300"
                   style={{
@@ -579,14 +633,7 @@ export default function PropertyView() {
             </div>
           )}
 
-          {/* Hint de swipe */}
-          {property.video_urls.length > 1 && (
-            <p className="text-white text-xs opacity-50 pointer-events-none">
-              {interfaceLang === 'en' ? '↕ Swipe to change video' : '↕ Desliza para cambiar video'}
-            </p>
-          )}
-
-          <p className="text-white text-xs opacity-80 drop-shadow line-clamp-2 mt-1">
+          <p className="text-white text-xs opacity-80 drop-shadow line-clamp-2">
             {property.description.substring(0, 100)}...
           </p>
         </div>
@@ -681,7 +728,7 @@ export default function PropertyView() {
           <div className="px-4 lg:px-0 pt-4 pb-24 lg:pb-8 space-y-4">
             {/* Video Player */}
             {property.video_urls && property.video_urls.length > 0 && (
-              <div className="mx-2 lg:mx-0 mt-4 lg:mt-0 rounded-2xl overflow-hidden shadow-lg bg-black">
+              <div className="mx-1 lg:mx-0 mt-4 lg:mt-0 rounded-2xl overflow-hidden shadow-lg bg-black">
                 
                 {/* Contenedor del video con overlay */}
                 <div className="relative aspect-video">
@@ -692,7 +739,7 @@ export default function PropertyView() {
                     controls
                     controlsList="nofullscreen"
                     className="w-full h-full"
-                    onLoadedData={() => {
+                    onCanPlayThrough={() => {
                       videoRef.current?.play().catch(() => {});
                     }}
                     onEnded={() => {

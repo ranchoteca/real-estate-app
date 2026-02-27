@@ -581,7 +581,7 @@ export default function CreatePropertyPage() {
           }
 
           // Guardar array de playbackIds
-          videoUrls = playbackIds.map(id => `https://stream.mux.com/${id}.m3u8`);
+          videoUrls = playbackIds.map(id => `https://stream.mux.com/${id}/capped-1080p.mp4`);
           
         } catch (videoError: any) {
           console.error('Error procesando videos:', videoError);

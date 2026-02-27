@@ -97,9 +97,7 @@ export default function PropertyView() {
   const [currency, setCurrency] = useState<any>(null);
 
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [showLogoOverlay, setShowLogoOverlay] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const logoOverlayShownRef = useRef<Set<number>>(new Set());
 
   const [tikTokMode, setTikTokMode] = useState(false);
   const tikTokVideoRef = useRef<HTMLVideoElement>(null);
@@ -403,7 +401,34 @@ export default function PropertyView() {
   // Modo TikTok - pantalla completa
   if (tikTokMode && property.video_urls && property.video_urls.length > 0) {
     return (
-      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+      <div 
+        className="fixed inset-0 bg-black z-50"
+        onClick={() => {
+          if (tikTokVideoRef.current?.paused) {
+            tikTokVideoRef.current?.play().catch(() => {});
+          } else {
+            tikTokVideoRef.current?.pause();
+          }
+        }}
+        onTouchStart={(e) => {
+          (e.currentTarget as any)._touchStartY = e.touches[0].clientY;
+        }}
+        onTouchEnd={(e) => {
+          const startY = (e.currentTarget as any)._touchStartY;
+          const endY = e.changedTouches[0].clientY;
+          const diff = startY - endY;
+
+          if (Math.abs(diff) > 50) {
+            if (diff > 0 && currentVideoIndex < property.video_urls!.length - 1) {
+              // Swipe up — siguiente video
+              setCurrentVideoIndex(prev => prev + 1);
+            } else if (diff < 0 && currentVideoIndex > 0) {
+              // Swipe down — video anterior
+              setCurrentVideoIndex(prev => prev - 1);
+            }
+          }
+        }}
+      >
         {/* Video */}
         <video
           ref={tikTokVideoRef}
@@ -412,7 +437,6 @@ export default function PropertyView() {
           className="w-full h-full object-cover"
           autoPlay
           playsInline
-          muted={false}
           onCanPlay={() => {
             tikTokVideoRef.current?.play().catch(() => {});
           }}
@@ -420,21 +444,32 @@ export default function PropertyView() {
             if (currentVideoIndex < property.video_urls!.length - 1) {
               setCurrentVideoIndex(prev => prev + 1);
             } else {
-              // Volver al primero al terminar todos
               setCurrentVideoIndex(0);
             }
           }}
+          onClick={(e) => e.stopPropagation()}
         />
 
-        {/* Overlay oscuro sutil */}
-        <div 
-          className="absolute inset-0 pointer-events-none" 
-          style={{
-            background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.3) 100%)'
-          }} 
-        />
+        {/* Overlay oscuro */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 40%, transparent 70%, rgba(0,0,0,0.3) 100%)'
+        }} />
 
-        {/* Header - título y precio */}
+        {/* Botón cerrar */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setTikTokMode(false);
+          }}
+          className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center z-20"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        >
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        {/* Header */}
         <div className="absolute top-0 left-0 right-0 px-4 pt-12 pb-4 pointer-events-none">
           <h2 className="text-white font-bold text-lg leading-tight drop-shadow-lg">
             {property.title}
@@ -447,36 +482,23 @@ export default function PropertyView() {
           )}
         </div>
 
-        {/* Botón cerrar */}
-        <button
-          onClick={() => setTikTokMode(false)}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-        >
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
-        {/* Iconos laterales derecha - estilo TikTok */}
-        <div className="absolute right-3 bottom-32 flex flex-col items-center gap-6">
-          {/* Logo agente */}
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden shadow-lg">
-              {property.agent.profile_photo ? (
-                <img src={property.agent.profile_photo} alt="Agent" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg" style={{ backgroundColor: '#2563EB' }}>
-                  {property.agent.name?.charAt(0).toUpperCase() || '?'}
-                </div>
-              )}
-            </div>
+        {/* Iconos laterales */}
+        <div className="absolute right-3 bottom-32 flex flex-col items-center gap-6 z-20">
+          {/* Foto agente */}
+          <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden shadow-lg">
+            {property.agent.profile_photo ? (
+              <img src={property.agent.profile_photo} alt="Agent" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg" style={{ backgroundColor: '#2563EB' }}>
+                {property.agent.name?.charAt(0).toUpperCase() || '?'}
+              </div>
+            )}
           </div>
 
           {/* WhatsApp */}
           {property.agent.phone && (
             <div className="flex flex-col items-center gap-1">
-              <a
+              <a 
                 href={`https://wa.me/${property.agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
                   interfaceLang === 'en'
                     ? `Hi, I'm interested in: ${property.title}`
@@ -484,6 +506,7 @@ export default function PropertyView() {
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
                 style={{ backgroundColor: '#25D366' }}
               >
@@ -498,8 +521,9 @@ export default function PropertyView() {
           {/* Llamar */}
           {property.agent.phone && (
             <div className="flex flex-col items-center gap-1">
-              <a
+              <a 
                 href={`tel:${property.agent.phone}`}
+                onClick={(e) => e.stopPropagation()}
                 className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
                 style={{ backgroundColor: '#2563EB' }}
               >
@@ -514,7 +538,10 @@ export default function PropertyView() {
           {/* Compartir */}
           <div className="flex flex-col items-center gap-1">
             <button
-              onClick={shareWhatsApp}
+              onClick={(e) => {
+                e.stopPropagation();
+                shareWhatsApp();
+              }}
               className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
               style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
             >
@@ -526,9 +553,8 @@ export default function PropertyView() {
           </div>
         </div>
 
-        {/* Bottom - info clips y navegación */}
-        <div className="absolute bottom-8 left-0 right-16 px-4">
-          {/* Nombre agente */}
+        {/* Bottom info */}
+        <div className="absolute bottom-8 left-0 right-16 px-4 z-20">
           <p className="text-white text-sm font-semibold mb-3 drop-shadow-lg">
             @{property.agent.username} · {property.agent.brokerage || ''}
           </p>
@@ -539,8 +565,11 @@ export default function PropertyView() {
               {property.video_urls.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentVideoIndex(index)}
-                  className="h-1 rounded-full transition-all"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentVideoIndex(index);
+                  }}
+                  className="h-1 rounded-full transition-all duration-300"
                   style={{
                     backgroundColor: index === currentVideoIndex ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
                     width: index === currentVideoIndex ? '24px' : '8px',
@@ -550,8 +579,14 @@ export default function PropertyView() {
             </div>
           )}
 
-          {/* Descripción corta */}
-          <p className="text-white text-xs opacity-80 drop-shadow line-clamp-2">
+          {/* Hint de swipe */}
+          {property.video_urls.length > 1 && (
+            <p className="text-white text-xs opacity-50 pointer-events-none">
+              {interfaceLang === 'en' ? '↕ Swipe to change video' : '↕ Desliza para cambiar video'}
+            </p>
+          )}
+
+          <p className="text-white text-xs opacity-80 drop-shadow line-clamp-2 mt-1">
             {property.description.substring(0, 100)}...
           </p>
         </div>
@@ -646,38 +681,19 @@ export default function PropertyView() {
           <div className="px-4 lg:px-0 pt-4 pb-24 lg:pb-8 space-y-4">
             {/* Video Player */}
             {property.video_urls && property.video_urls.length > 0 && (
-              <div className="mx-4 lg:mx-0 mt-4 lg:mt-0 rounded-2xl overflow-hidden shadow-lg bg-black">
+              <div className="mx-2 lg:mx-0 mt-4 lg:mt-0 rounded-2xl overflow-hidden shadow-lg bg-black">
                 
                 {/* Contenedor del video con overlay */}
                 <div className="relative aspect-video">
-                  {/* Logo overlay */}
-                  {showLogoOverlay && property.agent.watermark_logo && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black bg-opacity-50 pointer-events-none">
-                      <img
-                        src={property.agent.watermark_logo}
-                        alt="Agent logo"
-                        className="w-24 h-24 object-contain opacity-90"
-                      />
-                    </div>
-                  )}
-
                   <video
                     ref={videoRef}
                     key={currentVideoIndex}
                     src={property.video_urls[currentVideoIndex]}
                     controls
+                    controlsList="nofullscreen"
                     className="w-full h-full"
                     onLoadedData={() => {
-                      if (property.agent.watermark_logo && !logoOverlayShownRef.current.has(currentVideoIndex)) {
-                        logoOverlayShownRef.current.add(currentVideoIndex);
-                        setShowLogoOverlay(true);
-                        setTimeout(() => {
-                          setShowLogoOverlay(false);
-                          videoRef.current?.play().catch(() => {});
-                        }, 2000);
-                      } else {
-                        videoRef.current?.play().catch(() => {});
-                      }
+                      videoRef.current?.play().catch(() => {});
                     }}
                     onEnded={() => {
                       if (currentVideoIndex < property.video_urls!.length - 1) {

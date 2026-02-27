@@ -511,13 +511,15 @@ export default function PropertyView() {
                     src={property.video_urls[currentVideoIndex]}
                     controls
                     className="w-full h-full"
-                    poster={property.photos?.[0] || undefined}
                     onPlay={() => {
+                      videoRef.current?.pause();
                       setShowLogoOverlay(true);
-                      setTimeout(() => setShowLogoOverlay(false), 3000);
+                      setTimeout(() => {
+                        setShowLogoOverlay(false);
+                        videoRef.current?.play();
+                      }, 3000);
                     }}
                     onEnded={() => {
-                      // Pasar al siguiente clip automáticamente
                       if (currentVideoIndex < property.video_urls!.length - 1) {
                         setCurrentVideoIndex(prev => prev + 1);
                         setTimeout(() => videoRef.current?.play(), 100);

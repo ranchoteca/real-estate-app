@@ -1,12 +1,15 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { useI18nStore } from '@/lib/i18n-store';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useEffect, useState } from 'react';
 import MobileLayout from '@/components/MobileLayout';
 import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
+import VideoUploader from '@/components/property/VideoUploader';
+import { uploadVideoToMux, waitForPlaybackId } from '@/lib/muxUpload';
 import { WatermarkConfig } from '@/lib/watermark';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
 import { SUPPORTED_COUNTRIES, CountryCode } from '@/lib/google-maps-config';
@@ -60,6 +63,7 @@ export default function EditPropertyPage() {
   const { t } = useTranslation();
   const params = useParams();
   const propertyId = params.id as string;
+  const { language } = useI18nStore();
 
   const [property, setProperty] = useState<PropertyData | null>(null);
   const [propertySlug, setPropertySlug] = useState<string>('');
@@ -72,6 +76,11 @@ export default function EditPropertyPage() {
   const [newPhotos, setNewPhotos] = useState<File[]>([]);
   const [newPhotosPreviews, setNewPhotosPreviews] = useState<string[]>([]);
   const [photosToDelete, setPhotosToDelete] = useState<string[]>([]);
+
+  const [existingVideos, setExistingVideos] = useState<string[]>([]);
+  const [newVideos, setNewVideos] = useState<File[]>([]);
+  const [videoProgress, setVideoProgress] = useState<string>('');
+  const [existingVideosDuration, setExistingVideosDuration] = useState<number>(0);
 
   // Estados para campos personalizados
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
@@ -172,6 +181,14 @@ export default function EditPropertyPage() {
       setProperty(data.property);
       setPropertySlug(data.property.slug);
       setExistingPhotos(data.property.photos || []);
+      const urls = data.property.video_urls || [];
+      setExistingVideos(urls);
+
+      if (urls.length > 0) {
+        const durations = await Promise.all(urls.map(getVideoDuration));
+        const total = durations.reduce((sum, d) => sum + d, 0);
+        setExistingVideosDuration(total);
+      }
       setSelectedCurrency(data.property.currency_id); 
       
       // Cargar valores de campos personalizados
@@ -237,6 +254,16 @@ export default function EditPropertyPage() {
       console.error('Error comprimiendo imagen:', error);
       return file;
     }
+  };
+
+  const getVideoDuration = (url: string): Promise<number> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => resolve(video.duration);
+      video.onerror = () => resolve(0);
+      video.src = url;
+    });
   };
 
   const handleAddPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -331,6 +358,14 @@ export default function EditPropertyPage() {
     setNewPhotosPreviews(newPhotosPreviews.filter((_, i) => i !== index));
   };
 
+  const handleDeleteExistingVideo = (index: number) => {
+    setExistingVideos(existingVideos.filter((_, i) => i !== index));
+  };
+
+  const handleNewVideosChange = (files: File[]) => {
+    setNewVideos(files);
+  };
+
   const handleSave = async () => {
     if (!property) return;
 
@@ -377,6 +412,52 @@ export default function EditPropertyPage() {
       // 2. Combinar fotos existentes + nuevas
       const allPhotos = [...existingPhotos, ...uploadedUrls];
 
+      // Procesar videos nuevos si hay
+      let finalVideoUrls = [...existingVideos];
+
+      if (newVideos.length > 0) {
+        try {
+          setVideoProgress(language === 'en' ? 'Uploading videos...' : 'Subiendo videos...');
+          const newPlaybackIds: string[] = [];
+
+          for (let i = 0; i < newVideos.length; i++) {
+            setVideoProgress(
+              language === 'en'
+                ? `Uploading video ${i + 1} of ${newVideos.length}...`
+                : `Subiendo video ${i + 1} de ${newVideos.length}...`
+            );
+
+            const uploadId = await uploadVideoToMux(newVideos[i], (progress) => {
+              console.log(`Video ${i + 1} progress:`, progress);
+            });
+
+            setVideoProgress(
+              language === 'en'
+                ? `Processing video ${i + 1} of ${newVideos.length}...`
+                : `Procesando video ${i + 1} de ${newVideos.length}...`
+            );
+
+            const playbackId = await waitForPlaybackId(uploadId);
+            newPlaybackIds.push(playbackId);
+          }
+
+          finalVideoUrls = [
+            ...existingVideos,
+            ...newPlaybackIds.map(id => `https://stream.mux.com/${id}.m3u8`),
+          ];
+
+        } catch (videoError: any) {
+          console.error('Error procesando videos:', videoError);
+          alert(
+            language === 'en'
+              ? `⚠️ Video processing failed: ${videoError.message || 'Unknown error'}. Property will be saved without new videos.`
+              : `⚠️ Error procesando videos: ${videoError.message || 'Error desconocido'}. La propiedad se guardará sin los videos nuevos.`
+          );
+        } finally {
+          setVideoProgress('');
+        }
+      }
+
       // 3. Actualizar propiedad (CON plus_code)
       const response = await fetch(`/api/property/update/${propertyId}`, {
         method: 'PUT',
@@ -386,6 +467,7 @@ export default function EditPropertyPage() {
           photos: allPhotos,
           photosToDelete,
           custom_fields_data: customFieldsValues,
+          video_urls: finalVideoUrls,
         }),
       });
 
@@ -535,6 +617,64 @@ export default function EditPropertyPage() {
             <p className="text-xs mt-2" style={{ color: '#DC2626' }}>
               ⚠️ {t('common.editProperty.minPhotosRequired')}
             </p>
+          )}
+        </div>
+
+        {/* Videos Editor */}
+        <div className="rounded-2xl p-4 shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
+          <h3 className="font-bold mb-3" style={{ color: '#0F172A' }}>
+            🎬 Videos
+          </h3>
+
+          {/* Videos existentes */}
+          {existingVideos.length > 0 && (
+            <div className="space-y-2 mb-4">
+              <p className="text-xs opacity-70 mb-2" style={{ color: '#0F172A' }}>
+                Videos actuales:
+              </p>
+              {existingVideos.map((url, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 rounded-xl border-2"
+                  style={{ borderColor: '#E5E7EB' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🎬</span>
+                    <span className="text-sm font-semibold" style={{ color: '#0F172A' }}>
+                      Video {index + 1}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteExistingVideo(index)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Agregar nuevos videos */}
+          {existingVideos.length < 4 && (
+            <VideoUploader
+              onVideosChange={handleNewVideosChange}
+              maxVideos={4 - existingVideos.length}
+              maxDurationSeconds={Math.max(0, 60 - existingVideosDuration)}
+            />
+          )}
+
+          {existingVideos.length >= 4 && (
+            <p className="text-xs text-center opacity-60 mt-2" style={{ color: '#0F172A' }}>
+              Máximo 4 videos por propiedad
+            </p>
+          )}
+
+          {/* Progreso */}
+          {videoProgress && (
+            <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+              <p className="text-sm font-semibold text-purple-900">🎬 {videoProgress}</p>
+            </div>
           )}
         </div>
 

@@ -853,8 +853,8 @@ export default function CreatePropertyPage() {
               />
               <p className="text-xs text-gray-500 mt-2">
                 💡 {language === 'en' 
-                  ? 'Videos will be automatically uploaded and merged'
-                  : 'Los videos se subirán y fusionarán automáticamente'
+                  ? 'Up to 4 videos · Max 60 seconds total · Plays as a continuous playlist'
+                  : 'Hasta 4 videos · Máx 60 segundos en total · Se reproducen como playlist continua'
                 }
               </p>
             </div>

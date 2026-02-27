@@ -697,31 +697,29 @@ export default function DashboardPage() {
                       }
                     </button>
 
-                    {/* Descargar Video - (solo si tiene video) */}
-                    {property.video_url && (
+                    {/* Descargar Video - (solo si tiene videos) */}
+                    {property.video_urls && property.video_urls.length > 0 && (
                       <button
                         onClick={async (e) => {
                           e.stopPropagation();
                           setShowMenu(null);
                           
                           try {
-                            // Convertir la URL de Mux a descargable
-                            const videoUrl = property.video_url.replace('.m3u8', '.mp4');
-                            
-                            // Crear elemento <a> temporal para forzar descarga
-                            const link = document.createElement('a');
-                            link.href = videoUrl;
-                            link.download = `${property.slug}-video.mp4`;
-                            link.target = '_blank';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            
+                            property.video_urls.forEach((url: string, index: number) => {
+                              const mp4Url = url.replace('.m3u8', '/capped-1080p.mp4');
+                              const link = document.createElement('a');
+                              link.href = mp4Url;
+                              link.download = `${property.slug}-video-${index + 1}.mp4`;
+                              link.target = '_blank';
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            });
                           } catch (error) {
                             console.error('Error descargando video:', error);
                             alert(language === 'en'
-                              ? '❌ Error downloading video. Try opening the property and downloading from there.'
-                              : '❌ Error al descargar el video. Intenta abrir la propiedad y descargar desde ahí.'
+                              ? '❌ Error downloading video.'
+                              : '❌ Error al descargar el video.'
                             );
                           }
                         }}

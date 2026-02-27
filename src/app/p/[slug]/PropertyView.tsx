@@ -99,6 +99,7 @@ export default function PropertyView() {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [showLogoOverlay, setShowLogoOverlay] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const logoOverlayShownRef = useRef<Set<number>>(new Set());
 
   const [tikTokMode, setTikTokMode] = useState(false);
   const tikTokVideoRef = useRef<HTMLVideoElement>(null);
@@ -412,7 +413,7 @@ export default function PropertyView() {
           autoPlay
           playsInline
           onEnded={() => {
-            if (currentVideoIndex < property.video_urls.length - 1) {
+            if (currentVideoIndex < property.video_urls!.length - 1) {
               setCurrentVideoIndex(prev => prev + 1);
             }
           }}
@@ -431,7 +432,7 @@ export default function PropertyView() {
           <h2 className="text-white font-bold text-lg leading-tight drop-shadow-lg">
             {property.title}
           </h2>
-          <p className="text-white font-bold text-xl drop-shadow-lg" style={{ color: '#60A5FA' }}>
+          <p className="font-bold text-xl drop-shadow-lg" style={{ color: '#25D366' }}>
             {formatPrice(property.price)}
           </p>
           {property.city && (
@@ -634,100 +635,103 @@ export default function PropertyView() {
             </div>
           </div>
 
-          {/* Video Player */}
-          {property.video_urls && property.video_urls.length > 0 && (
-            <div className="px-4 lg:px-0 pt-4 pb-4">
-              <div className="bg-white rounded-2xl p-5 lg:p-6 shadow-lg">
-                <h2 className="text-lg lg:text-xl font-bold mb-3 flex items-center justify-between gap-2" style={{ color: '#0F172A' }}>
-                  <div className="flex items-center gap-2">
-                    <span>🎬</span>
-                    {interfaceLang === 'en' ? 'Property Video' : 'Video de la Propiedad'}
-                    {property.video_urls.length > 1 && (
-                      <span className="text-sm font-normal opacity-60">
-                        ({currentVideoIndex + 1}/{property.video_urls.length})
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => {
-                      setTikTokMode(true);
-                      setCurrentVideoIndex(0);
-                    }}
-                    className="px-3 py-1.5 rounded-xl text-xs font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center gap-1"
-                    style={{ backgroundColor: '#0F172A' }}
-                  >
-                    <span>▶</span> {interfaceLang === 'en' ? 'Full View' : 'Vista Completa'}
-                  </button>
-                </h2>
-
-                <div className="relative aspect-video rounded-xl overflow-hidden bg-black">
-                  {/* Logo overlay - primeros 3 segundos */}
-                  {showLogoOverlay && property.agent.watermark_logo && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black bg-opacity-40 pointer-events-none">
-                      <img
-                        src={property.agent.watermark_logo}
-                        alt="Agent logo"
-                        className="w-32 h-32 object-contain opacity-90"
-                      />
-                    </div>
-                  )}
-
-                  <video
-                    ref={videoRef}
-                    key={currentVideoIndex}
-                    src={property.video_urls[currentVideoIndex]}
-                    controls
-                    className="w-full h-full"
-                    onPlay={() => {
-                      videoRef.current?.pause();
-                      setShowLogoOverlay(true);
-                      setTimeout(() => {
-                        setShowLogoOverlay(false);
-                        videoRef.current?.play();
-                      }, 3000);
-                    }}
-                    onEnded={() => {
-                      if (currentVideoIndex < property.video_urls!.length - 1) {
-                        setCurrentVideoIndex(prev => prev + 1);
-                        setTimeout(() => videoRef.current?.play(), 100);
-                      }
-                    }}
-                  >
-                    {interfaceLang === 'en'
-                      ? 'Your browser does not support video playback.'
-                      : 'Tu navegador no soporta reproducción de video.'
-                    }
-                  </video>
-                </div>
-
-                {/* Miniaturas de clips si hay más de uno */}
-                {property.video_urls.length > 1 && (
-                  <div className="flex gap-2 mt-3 overflow-x-auto">
-                    {property.video_urls.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => {
-                          setCurrentVideoIndex(index);
-                          setTimeout(() => videoRef.current?.play(), 100);
-                        }}
-                        className="flex-shrink-0 w-16 h-10 rounded-lg flex items-center justify-center text-sm font-bold border-2 transition-all"
-                        style={{
-                          borderColor: index === currentVideoIndex ? '#2563EB' : '#E5E7EB',
-                          backgroundColor: index === currentVideoIndex ? '#EFF6FF' : '#F9FAFB',
-                          color: index === currentVideoIndex ? '#2563EB' : '#6B7280',
-                        }}
-                      >
-                        ▶ {index + 1}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* RIGHT COLUMN - Content */}
           <div className="px-4 lg:px-0 pt-4 pb-24 lg:pb-8 space-y-4">
+            {/* Video Player */}
+            {property.video_urls && property.video_urls.length > 0 && (
+              <div className="px-4 lg:px-0 pt-4 pb-4">
+                <div className="bg-white rounded-2xl p-5 lg:p-6 shadow-lg">
+                  <h2 className="text-lg lg:text-xl font-bold mb-3 flex items-center justify-between gap-2" style={{ color: '#0F172A' }}>
+                    <div className="flex items-center gap-2">
+                      <span>🎬</span>
+                      {interfaceLang === 'en' ? 'Property Video' : 'Video de la Propiedad'}
+                      {property.video_urls.length > 1 && (
+                        <span className="text-sm font-normal opacity-60">
+                          ({currentVideoIndex + 1}/{property.video_urls.length})
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setTikTokMode(true);
+                        setCurrentVideoIndex(0);
+                      }}
+                      className="lg:hidden px-3 py-1.5 rounded-xl text-xs font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center gap-1"
+                      style={{ backgroundColor: '#0F172A' }}
+                    >
+                      <span>▶</span> {interfaceLang === 'en' ? 'Full View' : 'Vista Completa'}
+                    </button>
+                  </h2>
+
+                  <div className="relative aspect-video rounded-xl overflow-hidden bg-black">
+                    {/* Logo overlay - primeros 3 segundos */}
+                    {showLogoOverlay && property.agent.watermark_logo && (
+                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-black bg-opacity-40 pointer-events-none">
+                        <img
+                          src={property.agent.watermark_logo}
+                          alt="Agent logo"
+                          className="w-32 h-32 object-contain opacity-90"
+                        />
+                      </div>
+                    )}
+
+                    <video
+                      ref={videoRef}
+                      key={currentVideoIndex}
+                      src={property.video_urls[currentVideoIndex]}
+                      controls
+                      autoPlay
+                      className="w-full h-full"
+                      onPlay={() => {
+                        if (property.agent.watermark_logo && !logoOverlayShownRef.current.has(currentVideoIndex)) {
+                          logoOverlayShownRef.current.add(currentVideoIndex);
+                          videoRef.current?.pause();
+                          setShowLogoOverlay(true);
+                          setTimeout(() => {
+                            setShowLogoOverlay(false);
+                            videoRef.current?.play().catch(() => {});
+                          }, 3000);
+                        }
+                      }}
+                      onEnded={() => {
+                        if (currentVideoIndex < property.video_urls!.length - 1) {
+                          setCurrentVideoIndex(prev => prev + 1);
+                        }
+                      }}
+                    >
+                      {interfaceLang === 'en'
+                        ? 'Your browser does not support video playback.'
+                        : 'Tu navegador no soporta reproducción de video.'
+                      }
+                    </video>
+                  </div>
+
+                  {/* Miniaturas de clips si hay más de uno */}
+                  {property.video_urls.length > 1 && (
+                    <div className="flex gap-2 mt-3 overflow-x-auto">
+                      {property.video_urls.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            setCurrentVideoIndex(index);
+                            setTimeout(() => videoRef.current?.play(), 100);
+                          }}
+                          className="flex-shrink-0 w-16 h-10 rounded-lg flex items-center justify-center text-sm font-bold border-2 transition-all"
+                          style={{
+                            borderColor: index === currentVideoIndex ? '#2563EB' : '#E5E7EB',
+                            backgroundColor: index === currentVideoIndex ? '#EFF6FF' : '#F9FAFB',
+                            color: index === currentVideoIndex ? '#2563EB' : '#6B7280',
+                          }}
+                        >
+                          ▶ {index + 1}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Price Card */}
             <div 
               className="rounded-2xl p-5 lg:p-6 shadow-lg"

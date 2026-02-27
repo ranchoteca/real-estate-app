@@ -112,6 +112,10 @@ export default function VideoUploader({
     return `${Math.floor(seconds)}s`;
   };
 
+  const formatMaxDuration = (seconds: number) => {
+    return `${Math.floor(seconds)}s`;
+  };
+
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-3">
@@ -141,7 +145,7 @@ export default function VideoUploader({
       {/* Duration indicator */}
       <div className="mb-3 px-3 py-2 rounded-lg" style={{ backgroundColor: totalDuration > maxDurationSeconds ? '#FEE2E2' : '#EFF6FF' }}>
         <p className="text-sm font-semibold" style={{ color: totalDuration > maxDurationSeconds ? '#DC2626' : '#1E40AF' }}>
-          ⏱️ {language === 'en' ? 'Total duration:' : 'Duración total:'} {formatDuration(totalDuration)} / {maxDurationSeconds}s
+          ⏱️ {language === 'en' ? 'Total duration:' : 'Duración total:'} {formatDuration(totalDuration)} / {formatMaxDuration(maxDurationSeconds)}
         </p>
       </div>
 
@@ -184,8 +188,8 @@ export default function VideoUploader({
             </p>
             <p className="text-xs text-gray-400 text-center">
               {language === 'en' 
-                ? `Up to ${maxVideos} videos • Max ${maxDurationSeconds}s total` 
-                : `Hasta ${maxVideos} videos • Máx ${maxDurationSeconds}s total`
+                ? `Up to ${maxVideos} videos • Max ${formatMaxDuration(maxDurationSeconds)} total` 
+                : `Hasta ${maxVideos} videos • Máx ${formatMaxDuration(maxDurationSeconds)} total`
               }
             </p>
           </div>

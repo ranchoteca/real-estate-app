@@ -633,25 +633,24 @@ export default function EditPropertyPage() {
                 Videos actuales:
               </p>
               {existingVideos.map((url, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 rounded-xl border-2"
-                  style={{ borderColor: '#E5E7EB' }}
+              <div key={index} className="relative rounded-xl overflow-hidden border-2" style={{ borderColor: '#E5E7EB' }}>
+                <video
+                  src={url}
+                  className="w-full aspect-video object-cover bg-black"
+                  controls
+                  preload="metadata"
+                />
+                <button
+                  onClick={() => handleDeleteExistingVideo(index)}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">🎬</span>
-                    <span className="text-sm font-semibold" style={{ color: '#0F172A' }}>
-                      Video {index + 1}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteExistingVideo(index)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
-                  >
-                    ✕
-                  </button>
+                  ✕
+                </button>
+                <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded text-xs font-bold text-white" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                  Video {index + 1}
                 </div>
-              ))}
+              </div>
+            ))}
             </div>
           )}
 

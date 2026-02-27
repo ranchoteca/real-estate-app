@@ -27,6 +27,7 @@ interface Property {
   listing_type: 'rent' | 'sale';
   language: 'es' | 'en';
   video_url: string | null;
+  video_urls: string[] | null;
 }
 
 const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string => {

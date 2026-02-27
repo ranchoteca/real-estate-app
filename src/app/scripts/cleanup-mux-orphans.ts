@@ -65,5 +65,5 @@ async function cleanupOrphans() {
 cleanupOrphans().catch(console.error);
 
 // Este script lo corres manualmente en local en vscode porque vercel gratuito no lo permite,
-// cuando quieras limpiar videos huérfanos en MUX: npx ts-node scripts/cleanup-mux-orphans.ts
+// cuando quieras limpiar videos huérfanos en MUX: npx ts-node src/app/scripts/cleanup-mux-orphans.ts
 // 

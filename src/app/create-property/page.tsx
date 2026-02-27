@@ -518,6 +518,7 @@ export default function CreatePropertyPage() {
           ...propertyData,
           photos: [],
           video_urls: [],
+          mux_upload_ids: [],
           video_processing: videos.length > 0, // Marcar como procesando si hay videos
           custom_fields_data: {
             ...propertyData.custom_fields_data,
@@ -550,6 +551,7 @@ export default function CreatePropertyPage() {
       
       if (videos.length > 0) {
         try {
+          const uploadIds: string[] = [];
           const playbackIds: string[] = [];
           
           for (let i = 0; i < videos.length; i++) {
@@ -560,6 +562,13 @@ export default function CreatePropertyPage() {
 
             const uploadId = await uploadVideoToMux(videos[i], (progress) => {
               console.log(`Video ${i + 1} progress:`, progress);
+            });
+
+            uploadIds.push(uploadId);
+            await fetch(`/api/property/update/${propertyId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ mux_upload_ids: uploadIds }),
             });
 
             setVideoProgress(language === 'en'
@@ -574,12 +583,15 @@ export default function CreatePropertyPage() {
           // Guardar array de playbackIds
           videoUrls = playbackIds.map(id => `https://stream.mux.com/${id}.m3u8`);
           
-        } catch (videoError) {
+        } catch (videoError: any) {
           console.error('Error procesando videos:', videoError);
-          alert(language === 'en'
-            ? '⚠️ Video processing failed, but property was created successfully'
-            : '⚠️ El procesamiento de video falló, pero la propiedad se creó exitosamente'
-          );
+
+          // Mostrar error específico al agente
+          const errorMessage = language === 'en'
+            ? `⚠️ Video processing failed: ${videoError.message || 'Unknown error'}.\n\nYour property was created successfully. You can edit it later to add videos when you have a better connection.`
+            : `⚠️ El procesamiento de video falló: ${videoError.message || 'Error desconocido'}.\n\nTu propiedad fue creada exitosamente. Puedes editarla después para agregar videos cuando tengas mejor señal.`;
+
+          alert(errorMessage);
         }
       }
       

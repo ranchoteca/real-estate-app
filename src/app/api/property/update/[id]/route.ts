@@ -94,7 +94,7 @@ export async function PUT(
       'title', 'description', 'price', 'currency_id', 'address', 'city', 
       'state', 'zip_code', 'property_type', 'listing_type', 'status', 
       'photos', 'latitude', 'longitude', 'plus_code', 'show_map', 
-      'custom_fields_data', 'video_urls', 'video_processing'
+      'custom_fields_data', 'video_urls', 'video_processing', 'mux_upload_ids'
     ];
 
     const updateData: Record<string, any> = {};

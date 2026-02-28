@@ -103,6 +103,7 @@ export default function PropertyView() {
   const tikTokVideoRef = useRef<HTMLVideoElement>(null);
   const [tikTokPaused, setTikTokPaused] = useState(false);
   const [showSwipeHint, setShowSwipeHint] = useState(false);
+  const tikTokContainerRef = useRef<HTMLDivElement>(null);
 
   const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -403,239 +404,237 @@ export default function PropertyView() {
   // Modo TikTok - pantalla completa
   if (tikTokMode && property.video_urls && property.video_urls.length > 0) {
     return (
-      <div
-        className="fixed inset-0 bg-black z-50 select-none"
-        onTouchStart={(e) => {
-          (e.currentTarget as any)._touchStartY = e.touches[0].clientY;
-          (e.currentTarget as any)._touchStartX = e.touches[0].clientX;
-        }}
-        onTouchEnd={(e) => {
-          const startY = (e.currentTarget as any)._touchStartY;
-          const startX = (e.currentTarget as any)._touchStartX;
-          const endY = e.changedTouches[0].clientY;
-          const endX = e.changedTouches[0].clientX;
-          const diffY = startY - endY;
-          const diffX = Math.abs(startX - endX);
-
-          // Solo swipe vertical y que no sea accidentalmente horizontal
-          if (Math.abs(diffY) > 50 && diffX < 30) {
-            if (diffY > 0) {
-              // Swipe up — siguiente video
-              if (currentVideoIndex < property.video_urls!.length - 1) {
-                setCurrentVideoIndex(prev => prev + 1);
-                setShowSwipeHint(false);
-                setTikTokPaused(false);
-              }
-            } else {
-              // Swipe down — video anterior
-              if (currentVideoIndex > 0) {
-                setCurrentVideoIndex(prev => prev - 1);
-                setShowSwipeHint(false);
-                setTikTokPaused(false);
-              }
-            }
-          }
-        }}
-        onClick={() => {
-          if (tikTokVideoRef.current) {
-            if (tikTokVideoRef.current.paused) {
-              tikTokVideoRef.current.play().catch(() => {});
-              setTikTokPaused(false);
-            } else {
-              tikTokVideoRef.current.pause();
-              setTikTokPaused(true);
-            }
-          }
-        }}
-      >
-        {/* Video */}
-        <video
-          ref={tikTokVideoRef}
-          key={`tiktok-${currentVideoIndex}`}
-          src={property.video_urls[currentVideoIndex]}
-          className="w-full h-full object-cover"
-          autoPlay
-          playsInline
-          onCanPlay={() => {
-            tikTokVideoRef.current?.play().catch(() => {});
-            setTikTokPaused(false);
-          }}
-          onEnded={() => {
-            setShowSwipeHint(true);
-            if (currentVideoIndex < property.video_urls!.length - 1) {
-              // Hay más videos — el hint ya se activa arriba
-            } else {
-              // Último video — volver al primero automáticamente
-              setTimeout(() => {
-                setCurrentVideoIndex(0);
-                setShowSwipeHint(false);
-              }, 2000);
-            }
-          }}
-          onClick={(e) => e.stopPropagation()}
-        />
-
-        {/* Overlay oscuro */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 40%, transparent 70%, rgba(0,0,0,0.3) 100%)'
-          }}
-        />
-
-        {/* Icono pausa/play en centro */}
-        {tikTokPaused && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-            </div>
-          </div>
-        )}
-
-        {/* Hint swipe — aparece al terminar video */}
-        {showSwipeHint && currentVideoIndex < property.video_urls.length - 1 && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div
-              className="px-6 py-4 rounded-2xl flex flex-col items-center gap-2 animate-bounce"
-              style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
-            >
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
-              <p className="text-white text-sm font-bold">
-                {interfaceLang === 'en' ? 'Swipe up for next video' : 'Desliza arriba para el siguiente video'}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Botón cerrar */}
+      <div className="fixed inset-0 bg-black z-50">
+        {/* Botón cerrar — siempre visible */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
+          onClick={() => {
             setTikTokMode(false);
-            setShowSwipeHint(false);
             setTikTokPaused(false);
+            setShowSwipeHint(false);
+            setCurrentVideoIndex(0);
           }}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center z-20"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center z-30"
+          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
         >
           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
 
-        {/* Header */}
-        <div className="absolute top-0 left-0 right-0 px-4 pt-12 pb-4 pointer-events-none">
-          <h2 className="text-white font-bold text-lg leading-tight drop-shadow-lg">
-            {property.title}
-          </h2>
-          <p className="font-bold text-xl drop-shadow-lg" style={{ color: '#25D366' }}>
-            {formatPrice(property.price)}
-          </p>
-          {property.city && (
-            <p className="text-white text-sm opacity-80 drop-shadow-lg">📍 {property.city}</p>
-          )}
-        </div>
-
-        {/* Iconos laterales */}
-        <div className="absolute right-3 bottom-32 flex flex-col items-center gap-6 z-20">
-          <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden shadow-lg">
-            {property.agent.profile_photo ? (
-              <img src={property.agent.profile_photo} alt="Agent" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg" style={{ backgroundColor: '#2563EB' }}>
-                {property.agent.name?.charAt(0).toUpperCase() || '?'}
-              </div>
-            )}
-          </div>
-
-          {property.agent.phone && (
-            <div className="flex flex-col items-center gap-1">
-              <a 
-                href={`https://wa.me/${property.agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
-                  interfaceLang === 'en'
-                    ? `Hi, I'm interested in: ${property.title}`
-                    : `Hola, me interesa: ${property.title}`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
-                style={{ backgroundColor: '#25D366' }}
-              >
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                </svg>
-              </a>
-              <span className="text-white text-xs font-semibold drop-shadow">WhatsApp</span>
-            </div>
-          )}
-
-          {property.agent.phone && (
-            <div className="flex flex-col items-center gap-1">
-              <a 
-                href={`tel:${property.agent.phone}`}
-                onClick={(e) => e.stopPropagation()}
-                className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
-                style={{ backgroundColor: '#2563EB' }}
-              >
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.948V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 7V5z" />
-                </svg>
-              </a>
-              <span className="text-white text-xs font-semibold drop-shadow">{interfaceLang === 'en' ? 'Call' : 'Llamar'}</span>
-            </div>
-          )}
-
-          <div className="flex flex-col items-center gap-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                shareWhatsApp();
+        {/* Contenedor scroll snap */}
+        <div
+          ref={tikTokContainerRef}
+          className="w-full h-full overflow-y-scroll"
+          style={{
+            scrollSnapType: 'y mandatory',
+            scrollBehavior: 'smooth',
+            WebkitOverflowScrolling: 'touch',
+          }}
+          onScroll={() => {
+            if (!tikTokContainerRef.current) return;
+            const scrollTop = tikTokContainerRef.current.scrollTop;
+            const height = tikTokContainerRef.current.clientHeight;
+            const newIndex = Math.round(scrollTop / height);
+            if (newIndex !== currentVideoIndex) {
+              setCurrentVideoIndex(newIndex);
+              setTikTokPaused(false);
+              setShowSwipeHint(false);
+            }
+          }}
+        >
+          {property.video_urls.map((url, index) => (
+            <div
+              key={index}
+              className="relative w-full flex-shrink-0"
+              style={{
+                height: '100dvh',
+                scrollSnapAlign: 'start',
               }}
-              className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
-              style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+              onClick={() => {
+                if (index !== currentVideoIndex) return;
+                const vid = document.getElementById(`tiktok-video-${index}`) as HTMLVideoElement;
+                if (!vid) return;
+                if (vid.paused) {
+                  vid.play().catch(() => {});
+                  setTikTokPaused(false);
+                } else {
+                  vid.pause();
+                  setTikTokPaused(true);
+                }
+              }}
             >
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
-            </button>
-            <span className="text-white text-xs font-semibold drop-shadow">{interfaceLang === 'en' ? 'Share' : 'Compartir'}</span>
-          </div>
-        </div>
+              <video
+                id={`tiktok-video-${index}`}
+                src={url}
+                className="w-full h-full object-cover"
+                autoPlay={index === 0}
+                playsInline
+                loop={property.video_urls!.length === 1}
+                onCanPlay={() => {
+                  if (index === currentVideoIndex) {
+                    const vid = document.getElementById(`tiktok-video-${index}`) as HTMLVideoElement;
+                    vid?.play().catch(() => {});
+                    setTikTokPaused(false);
+                  }
+                }}
+                onEnded={() => {
+                  if (index === currentVideoIndex) {
+                    if (index < property.video_urls!.length - 1) {
+                      setShowSwipeHint(true);
+                    } else {
+                      setTimeout(() => {
+                        if (tikTokContainerRef.current) {
+                          tikTokContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                        setCurrentVideoIndex(0);
+                        setShowSwipeHint(false);
+                      }, 1500);
+                    }
+                  }
+                }}
+              />
 
-        {/* Bottom info */}
-        <div className="absolute bottom-8 left-0 right-16 px-4 z-20">
-          <p className="text-white text-sm font-semibold mb-2 drop-shadow-lg">
-            @{property.agent.username} · {property.agent.brokerage || ''}
-          </p>
+              {/* Overlay oscuro */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 40%, transparent 70%, rgba(0,0,0,0.3) 100%)'
+                }}
+              />
 
-          {property.video_urls.length > 1 && (
-            <div className="flex gap-1.5 mb-2">
-              {property.video_urls.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentVideoIndex(index);
-                    setShowSwipeHint(false);
-                  }}
-                  className="h-1 rounded-full transition-all duration-300"
-                  style={{
-                    backgroundColor: index === currentVideoIndex ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
-                    width: index === currentVideoIndex ? '24px' : '8px',
-                  }}
-                />
-              ))}
+              {/* Icono pausa */}
+              {tikTokPaused && index === currentVideoIndex && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </div>
+                </div>
+              )}
+
+              {/* Hint swipe al terminar video */}
+              {showSwipeHint && index === currentVideoIndex && index < property.video_urls!.length - 1 && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div
+                    className="px-6 py-4 rounded-2xl flex flex-col items-center gap-2"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+                  >
+                    <svg className="w-8 h-8 text-white animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                    <p className="text-white text-sm font-bold text-center">
+                      {interfaceLang === 'en' ? 'Swipe up for next video' : 'Desliza arriba para el siguiente video'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Header info */}
+              <div className="absolute top-0 left-0 right-0 px-4 pt-14 pb-4 pointer-events-none">
+                <h2 className="text-white font-bold text-lg leading-tight drop-shadow-lg">
+                  {property.title}
+                </h2>
+                <p className="font-bold text-xl drop-shadow-lg" style={{ color: '#25D366' }}>
+                  {formatPrice(property.price)}
+                </p>
+                {property.city && (
+                  <p className="text-white text-sm opacity-80 drop-shadow-lg">📍 {property.city}</p>
+                )}
+              </div>
+
+              {/* Iconos laterales */}
+              <div className="absolute right-3 bottom-32 flex flex-col items-center gap-6 z-20">
+                <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden shadow-lg">
+                  {property.agent.profile_photo ? (
+                    <img src={property.agent.profile_photo} alt="Agent" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg" style={{ backgroundColor: '#2563EB' }}>
+                      {property.agent.name?.charAt(0).toUpperCase() || '?'}
+                    </div>
+                  )}
+                </div>
+
+                {property.agent.phone && (
+                  <div className="flex flex-col items-center gap-1">
+                    <a
+                      href={`https://wa.me/${property.agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                        interfaceLang === 'en'
+                          ? `Hi, I'm interested in: ${property.title}`
+                          : `Hola, me interesa: ${property.title}`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
+                      style={{ backgroundColor: '#25D366' }}
+                    >
+                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                      </svg>
+                    </a>
+                    <span className="text-white text-xs font-semibold drop-shadow">WhatsApp</span>
+                  </div>
+                )}
+
+                {property.agent.phone && (
+                  <div className="flex flex-col items-center gap-1">
+                    <a
+                      href={`tel:${property.agent.phone}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
+                      style={{ backgroundColor: '#2563EB' }}
+                    >
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.948V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 7V5z" />
+                      </svg>
+                    </a>
+                    <span className="text-white text-xs font-semibold drop-shadow">{interfaceLang === 'en' ? 'Call' : 'Llamar'}</span>
+                  </div>
+                )}
+
+                <div className="flex flex-col items-center gap-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      shareWhatsApp();
+                    }}
+                    className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+                  >
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    </svg>
+                  </button>
+                  <span className="text-white text-xs font-semibold drop-shadow">{interfaceLang === 'en' ? 'Share' : 'Compartir'}</span>
+                </div>
+              </div>
+
+              {/* Bottom info */}
+              <div className="absolute bottom-8 left-0 right-16 px-4 z-20">
+                <p className="text-white text-sm font-semibold mb-2 drop-shadow-lg">
+                  @{property.agent.username} · {property.agent.brokerage || ''}
+                </p>
+                {property.video_urls!.length > 1 && (
+                  <div className="flex gap-1.5 mb-2">
+                    {property.video_urls!.map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-1 rounded-full transition-all duration-300"
+                        style={{
+                          backgroundColor: i === currentVideoIndex ? '#FFFFFF' : 'rgba(255,255,255,0.4)',
+                          width: i === currentVideoIndex ? '24px' : '8px',
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+                <p className="text-white text-xs opacity-80 drop-shadow line-clamp-2">
+                  {property.description.substring(0, 100)}...
+                </p>
+              </div>
             </div>
-          )}
-
-          <p className="text-white text-xs opacity-80 drop-shadow line-clamp-2">
-            {property.description.substring(0, 100)}...
-          </p>
+          ))}
         </div>
       </div>
     );

@@ -698,40 +698,6 @@ export default function DashboardPage() {
                       }
                     </button>
 
-                    {/* Descargar Video - (solo si tiene videos) */}
-                    {property.video_urls && property.video_urls.length > 0 && (
-                      <button
-                        onClick={async (e) => {
-                        e.stopPropagation();
-                        setShowMenu(null);
-                        
-                        try {
-                          for (const url of property.video_urls) {
-                            const playbackId = url.split('stream.mux.com/')[1].replace('.m3u8', '');
-                            const response = await fetch(`/api/mux/download?playbackId=${playbackId}`);
-                            const data = await response.json();
-                            
-                            if (data.downloadUrl) {
-                              window.open(data.downloadUrl, '_blank');
-                            } else {
-                              throw new Error('No download URL');
-                            }
-                          }
-                        } catch (error) {
-                          console.error('Error descargando video:', error);
-                          alert(language === 'en'
-                            ? '❌ Error downloading video.'
-                            : '❌ Error al descargar el video.'
-                          );
-                        }
-                      }}
-                        className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
-                        style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
-                      >
-                        <span>⬇️</span> {language === 'en' ? 'Download Video' : 'Descargar Video'}
-                      </button>
-                    )}
-
                     {/* Eliminar - MANTENER EN ROJO */}
                     <button
                       onClick={(e) => {

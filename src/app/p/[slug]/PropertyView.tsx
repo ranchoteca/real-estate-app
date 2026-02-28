@@ -47,6 +47,7 @@ interface Property {
     email: string;
     brokerage: string | null;
     profile_photo: string | null;
+    card_profile_photo: string | null;
     username: string;
     watermark_logo: string | null;
   };
@@ -104,8 +105,21 @@ export default function PropertyView() {
   const [tikTokPaused, setTikTokPaused] = useState(false);
   const [showSwipeHint, setShowSwipeHint] = useState(false);
   const tikTokContainerRef = useRef<HTMLDivElement>(null);
+  const [tikTokProgress, setTikTokProgress] = useState(0);
+  const [showProgressBar, setShowProgressBar] = useState(false);
+  const progressBarTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const showProgressBarBriefly = () => {
+    setShowProgressBar(true);
+    if (progressBarTimeoutRef.current) {
+      clearTimeout(progressBarTimeoutRef.current);
+    }
+    progressBarTimeoutRef.current = setTimeout(() => {
+      setShowProgressBar(false);
+    }, 3000);
+  };
 
   useEffect(() => {
     // Detectar si es PWA instalada
@@ -461,6 +475,7 @@ export default function PropertyView() {
                   vid.pause();
                   setTikTokPaused(true);
                 }
+                showProgressBarBriefly();
               }}
             >
               <video
@@ -475,6 +490,14 @@ export default function PropertyView() {
                     const vid = document.getElementById(`tiktok-video-${index}`) as HTMLVideoElement;
                     vid?.play().catch(() => {});
                     setTikTokPaused(false);
+                  }
+                }}
+                onTimeUpdate={(e) => {
+                  if (index === currentVideoIndex) {
+                    const vid = e.currentTarget;
+                    if (vid.duration) {
+                      setTikTokProgress(vid.currentTime / vid.duration);
+                    }
                   }
                 }}
                 onEnded={() => {
@@ -546,8 +569,12 @@ export default function PropertyView() {
               {/* Iconos laterales */}
               <div className="absolute right-3 bottom-32 flex flex-col items-center gap-6 z-20">
                 <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden shadow-lg">
-                  {property.agent.profile_photo ? (
-                    <img src={property.agent.profile_photo} alt="Agent" className="w-full h-full object-cover" />
+                  {(property.agent.card_profile_photo || property.agent.profile_photo) ? (
+                    <img
+                      src={property.agent.card_profile_photo || property.agent.profile_photo!}
+                      alt="Agent"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg" style={{ backgroundColor: '#2563EB' }}>
                       {property.agent.name?.charAt(0).toUpperCase() || '?'}
@@ -609,6 +636,43 @@ export default function PropertyView() {
                   <span className="text-white text-xs font-semibold drop-shadow">{interfaceLang === 'en' ? 'Share' : 'Compartir'}</span>
                 </div>
               </div>
+
+              {/* Barra de progreso — aparece al tocar */}
+              {index === currentVideoIndex && showProgressBar && (
+                <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 z-30">
+                  <div
+                    className="relative w-full h-1.5 rounded-full overflow-hidden"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div
+                      className="absolute left-0 top-0 h-full rounded-full"
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        width: `${tikTokProgress * 100}%`,
+                      }}
+                    />
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.001}
+                      value={tikTokProgress}
+                      onChange={(e) => {
+                        const vid = document.getElementById(`tiktok-video-${index}`) as HTMLVideoElement;
+                        if (!vid) return;
+                        const newProgress = parseFloat(e.target.value);
+                        vid.currentTime = newProgress * vid.duration;
+                        setTikTokProgress(newProgress);
+                        showProgressBarBriefly();
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      style={{ margin: 0 }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Bottom info */}
               <div className="absolute bottom-8 left-0 right-16 px-4 z-20">

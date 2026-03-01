@@ -358,8 +358,15 @@ export default function EditPropertyPage() {
     setNewPhotosPreviews(newPhotosPreviews.filter((_, i) => i !== index));
   };
 
-  const handleDeleteExistingVideo = (index: number) => {
-    setExistingVideos(existingVideos.filter((_, i) => i !== index));
+  const handleDeleteExistingVideo = async (index: number) => {
+    const urlToDelete = existingVideos[index];
+    const newVideos = existingVideos.filter((_, i) => i !== index);
+    setExistingVideos(newVideos);
+
+    // Recalcular duración
+    const durations = await Promise.all(newVideos.map(getVideoDuration));
+    const total = durations.reduce((sum, d) => sum + d, 0);
+    setExistingVideosDuration(total);
   };
 
   const handleNewVideosChange = (files: File[]) => {
@@ -448,10 +455,13 @@ export default function EditPropertyPage() {
 
         } catch (videoError: any) {
           console.error('Error procesando videos:', videoError);
+          const errorMsg = typeof videoError === 'string' 
+            ? videoError 
+            : videoError?.message || JSON.stringify(videoError) || 'Error desconocido';
           alert(
             language === 'en'
-              ? `⚠️ Video processing failed: ${videoError.message || 'Unknown error'}. Property will be saved without new videos.`
-              : `⚠️ Error procesando videos: ${videoError.message || 'Error desconocido'}. La propiedad se guardará sin los videos nuevos.`
+              ? `⚠️ Video processing failed: ${errorMsg}. Property will be saved without new videos.`
+              : `⚠️ Error procesando videos: ${errorMsg}. La propiedad se guardará sin los videos nuevos.`
           );
         } finally {
           setVideoProgress('');
@@ -655,17 +665,17 @@ export default function EditPropertyPage() {
           )}
 
           {/* Agregar nuevos videos */}
-          {existingVideos.length < 4 && (
+          {Math.floor(60 - existingVideosDuration) > 0 && (
             <VideoUploader
               onVideosChange={handleNewVideosChange}
-              maxVideos={4 - existingVideos.length}
-              maxDurationSeconds={Math.max(0, 60 - existingVideosDuration)}
+              maxVideos={4}
+              maxDurationSeconds={Math.floor(60 - existingVideosDuration)}
             />
           )}
 
-          {existingVideos.length >= 4 && (
+          {Math.floor(60 - existingVideosDuration) <= 0 && (
             <p className="text-xs text-center opacity-60 mt-2" style={{ color: '#0F172A' }}>
-              Máximo 4 videos por propiedad
+              {language === 'en' ? 'Maximum 60 seconds reached' : 'Has alcanzado el máximo de 60 segundos'}
             </p>
           )}
 

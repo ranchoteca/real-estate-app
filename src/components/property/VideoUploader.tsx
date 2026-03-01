@@ -66,8 +66,8 @@ export default function VideoUploader({
       
       if (newTotalDuration + duration > maxDurationSeconds) {
         alert(language === 'en' 
-          ? `Total duration cannot exceed ${maxDurationSeconds} seconds. This video would exceed the limit.`
-          : `La duración total no puede exceder ${maxDurationSeconds} segundos. Este video excedería el límite.`
+          ? `Total duration cannot exceed ${Math.floor(maxDurationSeconds)} seconds. This video would exceed the limit.`
+          : `La duración total no puede exceder ${Math.floor(maxDurationSeconds)} segundos. Este video excedería el límite.`
         );
         break;
       }
@@ -129,12 +129,12 @@ export default function VideoUploader({
             accept="video/*"
             multiple
             onChange={handleFileSelect}
-            disabled={videos.length >= maxVideos}
+            disabled={totalDuration >= maxDurationSeconds}
             className="hidden"
           />
           <span 
             className={`px-4 py-2 rounded-xl font-semibold text-white shadow-lg active:scale-95 transition-transform inline-block ${
-              videos.length >= maxVideos ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600'
+              totalDuration >= maxDurationSeconds ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600'
             }`}
           >
             ➕ {language === 'en' ? 'Add Video' : 'Agregar Video'}

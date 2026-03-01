@@ -832,6 +832,7 @@ export default function PropertyView() {
                     controlsList="nofullscreen"
                     autoPlay
                     playsInline
+                    preload="auto"
                     className="w-full h-full"
                     onEnded={() => {
                       if (currentVideoIndex < property.video_urls!.length - 1) {

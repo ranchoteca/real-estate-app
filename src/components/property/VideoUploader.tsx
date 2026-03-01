@@ -120,7 +120,7 @@ export default function VideoUploader({
     <div className="w-full">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-gray-900">
-          🎬 {language === 'en' ? 'Videos' : 'Videos'} ({videos.length}/{maxVideos})
+          🎬 {language === 'en' ? 'Videos' : 'Videos'}
         </h3>
         <label className="cursor-pointer">
           <input

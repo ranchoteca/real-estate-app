@@ -155,6 +155,23 @@ export default function PropertyView() {
     }
   }, [selectedPhotoIndex]);
 
+  useEffect(() => {
+    if (!tikTokMode) return;
+    
+    // Pausar todos los videos excepto el actual
+    property?.video_urls?.forEach((_, i) => {
+      const vid = document.getElementById(`tiktok-video-${i}`) as HTMLVideoElement;
+      if (!vid) return;
+      if (i === currentVideoIndex) {
+        vid.currentTime = 0;
+        vid.play().catch(() => {});
+      } else {
+        vid.pause();
+        vid.currentTime = 0;
+      }
+    });
+  }, [currentVideoIndex, tikTokMode]);
+
   const loadProperty = async () => {
     try {
       setLoading(true);

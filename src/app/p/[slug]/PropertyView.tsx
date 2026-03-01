@@ -108,6 +108,7 @@ export default function PropertyView() {
   const [tikTokProgress, setTikTokProgress] = useState(0);
   const [showProgressBar, setShowProgressBar] = useState(false);
   const progressBarTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [videoOrientations, setVideoOrientations] = useState<Record<number, 'horizontal' | 'vertical'>>({});
 
   const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -481,10 +482,21 @@ export default function PropertyView() {
               <video
                 id={`tiktok-video-${index}`}
                 src={url}
-                className="w-full h-full object-cover"
+                className="w-full h-full"
+                style={{
+                  objectFit: videoOrientations[index] === 'horizontal' ? 'contain' : 'cover',
+                }}
                 autoPlay={index === 0}
                 playsInline
                 loop={property.video_urls!.length === 1}
+                onLoadedMetadata={(e) => {
+                  const vid = e.currentTarget;
+                  const isHorizontal = vid.videoWidth > vid.videoHeight;
+                  setVideoOrientations(prev => ({
+                    ...prev,
+                    [index]: isHorizontal ? 'horizontal' : 'vertical',
+                  }));
+                }}
                 onCanPlay={() => {
                   if (index === currentVideoIndex) {
                     const vid = document.getElementById(`tiktok-video-${index}`) as HTMLVideoElement;

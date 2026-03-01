@@ -15,6 +15,7 @@ interface Agent {
   brokerage: string | null;
   bio: string | null;
   profile_photo: string | null;
+  card_profile_photo: string | null;
 }
 
 interface Property {
@@ -238,13 +239,13 @@ export default function AgentPortfolioPage() {
                 className="w-24 h-24 lg:w-32 lg:h-32 rounded-full flex items-center justify-center text-4xl lg:text-5xl font-bold text-white shadow-xl flex-shrink-0"
                 style={{ backgroundColor: '#2563EB' }}
               >
-                {agent.profile_photo ? (
+                {(agent.card_profile_photo || agent.profile_photo) ? (
                   <Image
-                    src={agent.profile_photo}
+                    src={agent.card_profile_photo || agent.profile_photo!}
                     alt={agent.name || 'Agent'}
                     width={128}
                     height={128}
-                    className="rounded-full"
+                    className="rounded-full object-cover w-full h-full"
                   />
                 ) : (
                   (agent.full_name || agent.name || 'A').charAt(0).toUpperCase()

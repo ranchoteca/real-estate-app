@@ -191,7 +191,7 @@ export default function AgentPortfolioPage() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
               <span className="text-2xl">🏠</span>
-              <span className="text-xl font-bold text-white">Flow Estate AI</span>
+              <span className="text-xl font-bold text-white">{agent?.brokerage || 'Flow Estate AI'}</span>
             </div>
             <button
               onClick={() => router.push('/')}

@@ -26,6 +26,9 @@ const PROPERTY_TYPES = [
   { value: 'apartment', label: '🏘️ Apartamento' },
   { value: 'land', label: '🌳 Terreno' },
   { value: 'commercial', label: '🏪 Comercial' },
+  { value: 'hotel', label: '🏨 Hotel' },
+  { value: 'ranch', label: '🌄 Quinta' },
+  { value: 'other', label: '🏷️ Otros' },
 ];
 
 const LISTING_TYPES = [
@@ -290,6 +293,9 @@ export default function CustomFieldsPage() {
       apartment: { es: '🏘️ Apartamento', en: '🏘️ Apartment' },
       land: { es: '🌳 Terreno', en: '🌳 Land' },
       commercial: { es: '🏪 Comercial', en: '🏪 Commercial' },
+      hotel: { es: '🏨 Hotel', en: '🏨 Hotel' },
+      ranch: { es: '🌄 Quinta', en: '🌄 Ranch' },
+      other: { es: '🏷️ Otros', en: '🏷️ Other' },
     };
     return labels[value][currentLanguage] || labels[value].es;
   };

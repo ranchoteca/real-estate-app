@@ -41,6 +41,9 @@ const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string =
     apartment: { es: 'Apartamento', en: 'Apartment' },
     land: { es: 'Terreno', en: 'Land' },
     commercial: { es: 'Comercial', en: 'Commercial' },
+    hotel: { es: 'Hotel', en: 'Hotel' },
+    ranch: { es: 'Quinta', en: 'Ranch' },
+    other: { es: 'Otros', en: 'Other' },
   };
   return type ? (translations[type]?.[lang] || type) : (lang === 'en' ? 'Property' : 'Propiedad');
 };

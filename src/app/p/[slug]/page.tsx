@@ -71,6 +71,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     apartment: { es: 'Apartamento', en: 'Apartment' },
     land: { es: 'Terreno', en: 'Land' },
     commercial: { es: 'Comercial', en: 'Commercial' },
+    hotel: { es: 'Hotel', en: 'Hotel' },
+    ranch: { es: 'Quinta', en: 'Ranch' },
+    other: { es: 'Otros', en: 'Other' },
   };
   
   const propertyType = property.property_type 

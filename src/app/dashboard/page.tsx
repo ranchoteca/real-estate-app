@@ -37,6 +37,9 @@ const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string =
     apartment: { es: 'Apartamento', en: 'Apartment' },
     land: { es: 'Terreno', en: 'Land' },
     commercial: { es: 'Comercial', en: 'Commercial' },
+    hotel: { es: 'Hotel', en: 'Hotel' },
+    ranch: { es: 'Quinta', en: 'Ranch' },
+    other: { es: 'Otros', en: 'Other' },
   };
   return type ? (translations[type]?.[lang] || type) : (lang === 'en' ? 'Property' : 'Propiedad');
 };
@@ -54,6 +57,9 @@ export default function DashboardPage() {
     { value: 'apartment', label: '🏘️ ' + (language === 'en' ? 'Apartment' : 'Apartamento') },
     { value: 'land', label: '🌳 ' + (language === 'en' ? 'Land' : 'Terreno') },
     { value: 'commercial', label: '🏪 ' + (language === 'en' ? 'Commercial' : 'Comercial') },
+    { value: 'hotel', label: '🏨 ' + (language === 'en' ? 'Hotel' : 'Hotel') },
+    { value: 'ranch', label: '🌄 ' + (language === 'en' ? 'Ranch' : 'Quinta') },
+    { value: 'other', label: '🏷️ ' + (language === 'en' ? 'Other' : 'Otros') },
   ];
 
   const STATUS_OPTIONS = [

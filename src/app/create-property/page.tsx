@@ -668,6 +668,9 @@ export default function CreatePropertyPage() {
       apartment: t('createProperty.apartment'),
       land: t('createProperty.land'),
       commercial: t('createProperty.commercial'),
+      hotel: t('createProperty.hotel'),
+      ranch: t('createProperty.ranch'),
+      other: t('createProperty.other'),
     };
     return labels[type] || type;
   };
@@ -853,8 +856,8 @@ export default function CreatePropertyPage() {
               />
               <p className="text-xs text-gray-500 mt-2">
                 💡 {language === 'en' 
-                  ? 'Up to 4 videos · Max 60 seconds total · Plays as a continuous playlist'
-                  : 'Hasta 4 videos · Máx 60 segundos en total · Se reproducen como playlist continua'
+                  ? 'Max 60 seconds total · Plays as a continuous playlist'
+                  : 'Máx 60 segundos en total · Se reproducen como playlist continua'
                 }
               </p>
             </div>
@@ -881,6 +884,9 @@ export default function CreatePropertyPage() {
                   <option value="apartment">{t('createProperty.apartment')}</option>
                   <option value="land">{t('createProperty.land')}</option>
                   <option value="commercial">{t('createProperty.commercial')}</option>
+                  <option value="hotel">{t('createProperty.hotel')}</option>
+                  <option value="ranch">{t('createProperty.ranch')}</option>
+                  <option value="other">{t('createProperty.other')}</option>
                 </select>
               </div>
 

@@ -86,6 +86,50 @@ const SUGGESTED_FIELDS = {
       { icon: '🏪', name_es: 'Uso recomendado', name_en: 'Recommended use', type: 'text', placeholder_es: 'Ej: Restaurante', placeholder_en: 'e.g: Restaurant' },
     ],
   },
+  hotel: {
+    sale: [
+      { icon: '📏', name_es: 'Área (m²)', name_en: 'Area (sqm)', type: 'number', placeholder_es: 'Ej: 500', placeholder_en: 'e.g: 500' },
+      { icon: '🛏️', name_es: 'Habitaciones', name_en: 'Rooms', type: 'number', placeholder_es: 'Ej: 20', placeholder_en: 'e.g: 20' },
+      { icon: '🏊', name_es: 'Amenidades', name_en: 'Amenities', type: 'text', placeholder_es: 'Ej: Piscina, spa', placeholder_en: 'e.g: Pool, spa' },
+      { icon: '🚗', name_es: 'Estacionamientos', name_en: 'Parking spaces', type: 'number', placeholder_es: 'Ej: 10', placeholder_en: 'e.g: 10' },
+      { icon: '🏗️', name_es: 'Año construcción', name_en: 'Year built', type: 'number', placeholder_es: 'Ej: 2015', placeholder_en: 'e.g: 2015' },
+    ],
+    rent: [
+      { icon: '📏', name_es: 'Área (m²)', name_en: 'Area (sqm)', type: 'number', placeholder_es: 'Ej: 500', placeholder_en: 'e.g: 500' },
+      { icon: '🛏️', name_es: 'Habitaciones', name_en: 'Rooms', type: 'number', placeholder_es: 'Ej: 20', placeholder_en: 'e.g: 20' },
+      { icon: '🏊', name_es: 'Amenidades', name_en: 'Amenities', type: 'text', placeholder_es: 'Ej: Piscina, spa', placeholder_en: 'e.g: Pool, spa' },
+      { icon: '💰', name_es: 'Gastos comunes', name_en: 'Common expenses', type: 'text', placeholder_es: 'Ej: Incluidos', placeholder_en: 'e.g: Included' },
+      { icon: '🚗', name_es: 'Estacionamientos', name_en: 'Parking spaces', type: 'number', placeholder_es: 'Ej: 10', placeholder_en: 'e.g: 10' },
+    ],
+  },
+  ranch: {
+    sale: [
+      { icon: '📏', name_es: 'Área (m²)', name_en: 'Area (sqm)', type: 'number', placeholder_es: 'Ej: 5000', placeholder_en: 'e.g: 5000' },
+      { icon: '🛏️', name_es: 'Habitaciones', name_en: 'Bedrooms', type: 'number', placeholder_es: 'Ej: 4', placeholder_en: 'e.g: 4' },
+      { icon: '🚿', name_es: 'Baños', name_en: 'Bathrooms', type: 'number', placeholder_es: 'Ej: 3', placeholder_en: 'e.g: 3' },
+      { icon: '🏊', name_es: 'Amenidades', name_en: 'Amenities', type: 'text', placeholder_es: 'Ej: Piscina, jardín', placeholder_en: 'e.g: Pool, garden' },
+      { icon: '🌳', name_es: 'Área verde (m²)', name_en: 'Green area (sqm)', type: 'number', placeholder_es: 'Ej: 3000', placeholder_en: 'e.g: 3000' },
+    ],
+    rent: [
+      { icon: '📏', name_es: 'Área (m²)', name_en: 'Area (sqm)', type: 'number', placeholder_es: 'Ej: 5000', placeholder_en: 'e.g: 5000' },
+      { icon: '🛏️', name_es: 'Habitaciones', name_en: 'Bedrooms', type: 'number', placeholder_es: 'Ej: 4', placeholder_en: 'e.g: 4' },
+      { icon: '🚿', name_es: 'Baños', name_en: 'Bathrooms', type: 'number', placeholder_es: 'Ej: 3', placeholder_en: 'e.g: 3' },
+      { icon: '🏊', name_es: 'Amenidades', name_en: 'Amenities', type: 'text', placeholder_es: 'Ej: Piscina, jardín', placeholder_en: 'e.g: Pool, garden' },
+      { icon: '🌳', name_es: 'Área verde (m²)', name_en: 'Green area (sqm)', type: 'number', placeholder_es: 'Ej: 3000', placeholder_en: 'e.g: 3000' },
+    ],
+  },
+  other: {
+    sale: [
+      { icon: '📏', name_es: 'Área (m²)', name_en: 'Area (sqm)', type: 'number', placeholder_es: 'Ej: 200', placeholder_en: 'e.g: 200' },
+      { icon: '📝', name_es: 'Descripción del tipo', name_en: 'Type description', type: 'text', placeholder_es: 'Ej: Bodega', placeholder_en: 'e.g: Warehouse' },
+      { icon: '🚗', name_es: 'Estacionamientos', name_en: 'Parking spaces', type: 'number', placeholder_es: 'Ej: 2', placeholder_en: 'e.g: 2' },
+    ],
+    rent: [
+      { icon: '📏', name_es: 'Área (m²)', name_en: 'Area (sqm)', type: 'number', placeholder_es: 'Ej: 200', placeholder_en: 'e.g: 200' },
+      { icon: '📝', name_es: 'Descripción del tipo', name_en: 'Type description', type: 'text', placeholder_es: 'Ej: Bodega', placeholder_en: 'e.g: Warehouse' },
+      { icon: '🚗', name_es: 'Estacionamientos', name_en: 'Parking spaces', type: 'number', placeholder_es: 'Ej: 2', placeholder_en: 'e.g: 2' },
+    ],
+  },
 };
 
 export async function POST(req: NextRequest) {

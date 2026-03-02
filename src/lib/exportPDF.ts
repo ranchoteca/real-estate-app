@@ -814,6 +814,9 @@ function getPropertyTypeName(type: string, lang: 'es' | 'en' = 'es'): string {
     'apartment': { es: 'Apartamento', en: 'Apartment' },
     'land': { es: 'Terreno', en: 'Land' },
     'commercial': { es: 'Comercial', en: 'Commercial' },
+    'hotel': { es: 'Hotel', en: 'Hotel' },
+    'ranch': { es: 'Quinta', en: 'Ranch' },
+    'other': { es: 'Otros', en: 'Other' },
   };
   return types[type]?.[lang] || type.charAt(0).toUpperCase() + type.slice(1);
 }

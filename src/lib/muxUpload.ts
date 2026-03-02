@@ -26,7 +26,13 @@ export async function uploadVideoToMux(
     });
 
     upload.on('success', () => resolve());
-    upload.on('error', (error) => reject(new Error(String(error.detail))));
+    upload.on('error', (error) => {
+      const detail = error.detail;
+      const message = typeof detail === 'string' 
+        ? detail 
+        : detail?.message || JSON.stringify(detail) || 'Upload failed';
+      reject(new Error(message));
+    });
   });
 
   return uploadId;

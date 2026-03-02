@@ -796,7 +796,7 @@ export default function EditPropertyPage() {
                 <option value="land">{t('common.editProperty.land')}</option>
                 <option value="commercial">{t('common.editProperty.commercial')}</option>
                 <option value="hotel">{t('createProperty.hotel')}</option>
-                <option value="ranch">{t('createProperty.ranch')}</option>
+                <option value="quinta">{t('createProperty.ranch')}</option>
                 <option value="other">{t('createProperty.other')}</option>
               </select>
             </div>

@@ -33,7 +33,10 @@ export async function GET(
           username,
           watermark_logo,
           watermark_position,
-          watermark_size
+          watermark_size,
+          agent_cards (
+            profile_photo
+          )
         )
       `)
       .eq('slug', slug)
@@ -61,9 +64,15 @@ export async function GET(
     console.log('💰 Divisa:', property.currency_id);
 
     // Formatear respuesta
+    const rawAgent = Array.isArray(property.agent) ? property.agent[0] : property.agent;
+    const agentCard = Array.isArray(rawAgent?.agent_cards) ? rawAgent.agent_cards[0] : rawAgent?.agent_cards;
+
     const formattedProperty = {
       ...property,
-      agent: Array.isArray(property.agent) ? property.agent[0] : property.agent,
+      agent: {
+        ...rawAgent,
+        card_profile_photo: agentCard?.profile_photo || null,
+      },
       views: property.views + 1,
     };
 

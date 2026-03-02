@@ -52,6 +52,9 @@
       "apartment": "Apartamento",
       "land": "Terreno",
       "commercial": "Comercial",
+      "hotel": "Hotel",
+      "quinta": "Quinta",
+      "other": "Otros",
       "sale": "Venta",
       "rent": "Alquiler",
       "active": "Activa",
@@ -302,7 +305,10 @@
       "condo": "🏢 Condominio",
       "apartment": "🏘️ Apartamento",
       "land": "🌳 Terreno",
-      "commercial": "🏪 Comercial"
+      "commercial": "🏪 Comercial",
+      "hotel": "🏨 Hotel",
+      "quinta": "🌄 Quinta",
+      "other": "🏷️ Otros"
     }
   },
   "profile": {
@@ -416,6 +422,9 @@
     "apartment": "Apartamento",
     "land": "Terreno",
     "commercial": "Comercial",
+    "hotel": "Hotel",
+    "quinta": "Quinta",
+    "other": "Otros",
     "sale": "Venta",
     "rent": "Alquiler",
     "configuration": "Configuración",

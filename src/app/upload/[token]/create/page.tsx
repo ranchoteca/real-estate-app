@@ -647,6 +647,9 @@ export default function UploadWithTokenCreatePage() {
       apartment: t('createProperty.apartment'),
       land: t('createProperty.land'),
       commercial: t('createProperty.commercial'),
+      hotel: t('createProperty.hotel'),
+      ranch: t('createProperty.ranch'),
+      other: t('createProperty.other'),
     };
     return labels[type] || type;
   };
@@ -713,6 +716,9 @@ export default function UploadWithTokenCreatePage() {
                   <option value="apartment">{t('createProperty.apartment')}</option>
                   <option value="land">{t('createProperty.land')}</option>
                   <option value="commercial">{t('createProperty.commercial')}</option>
+                  <option value="hotel">{t('createProperty.hotel')}</option>
+                  <option value="quinta">{t('createProperty.ranch')}</option>
+                  <option value="other">{t('createProperty.other')}</option>
                 </select>
               </div>
 

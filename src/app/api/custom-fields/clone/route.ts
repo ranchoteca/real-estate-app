@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const validPropertyTypes = ['house', 'condo', 'apartment', 'land', 'commercial'];
+    const validPropertyTypes = ['house', 'condo', 'apartment', 'land', 'commercial', 'hotel', 'quinta', 'other'];
     const validListingTypes = ['sale', 'rent'];
 
     if (!validPropertyTypes.includes(target_property_type) || !validListingTypes.includes(target_listing_type)) {

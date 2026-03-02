@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import PhotoUploader from '@/components/property/PhotoUploader';
 import VoiceRecorder from '@/components/property/VoiceRecorder';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
+import VideoUploader from '@/components/property/VideoUploader';
+import { uploadVideoToMux, waitForPlaybackId } from '@/lib/muxUpload';
 import MobileLayout from '@/components/MobileLayout';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useI18nStore } from '@/lib/i18n-store';
@@ -61,6 +63,10 @@ export default function CreatePropertyPage() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [tempPhotoUrls, setTempPhotoUrls] = useState<string[]>([]);
   const [watermarkConfig, setWatermarkConfig] = useState<any>(null);
+  
+  // Videos
+  const [videos, setVideos] = useState<File[]>([]);
+  const [videoProgress, setVideoProgress] = useState<string>('');
 
   // Step 2: Property Configuration
   const [propertyType, setPropertyType] = useState<string>('house');
@@ -501,15 +507,19 @@ export default function CreatePropertyPage() {
 
     setIsProcessing(true);
     setError(null);
+    setVideoProgress('');
 
     try {
-      // 1. Crear la propiedad SIN fotos
+      // 1. Crear la propiedad SIN fotos ni video
       const response = await fetch('/api/property/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...propertyData,
-          photos: [], // Temporal: sin fotos aún
+          photos: [],
+          video_urls: [],
+          mux_upload_ids: [],
+          video_processing: videos.length > 0, // Marcar como procesando si hay videos
           custom_fields_data: {
             ...propertyData.custom_fields_data,
             ...customFieldsValues,
@@ -525,39 +535,87 @@ export default function CreatePropertyPage() {
       const { propertyId, slug } = await response.json();
       console.log(`✅ Propiedad creada: ${propertyId}, slug: ${slug}`);
       
-      // 2. DETERMINAR SI LAS FOTOS SON DE FACEBOOK O NUEVAS
+      // 2. Subir fotos
       let photoUrls: string[] = [];
       
       if (activeTab === 'facebook' && tempPhotoUrls.length > 0) {
-        // Caso: fotos importadas de Facebook (ya están en Supabase)
         console.log('📸 Usando fotos importadas de Facebook');
         photoUrls = tempPhotoUrls;
       } else if (photos.length > 0) {
-        // Caso: fotos nuevas del usuario (subirlas)
         console.log(`📤 Subiendo ${photos.length} fotos nuevas...`);
         photoUrls = await uploadPhotosWithSlug(photos, slug);
       }
       
-      // 3. Actualizar la propiedad con las URLs de las fotos
-      if (photoUrls.length > 0) {
-        const updateResponse = await fetch(`/api/property/update/${propertyId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            photos: photoUrls 
-          }),
-        });
+      // 3. Procesar videos si hay
+      let videoUrls: string[] | null = null;
+      
+      if (videos.length > 0) {
+        try {
+          const uploadIds: string[] = [];
+          const playbackIds: string[] = [];
+          
+          for (let i = 0; i < videos.length; i++) {
+            setVideoProgress(language === 'en'
+              ? `Uploading video ${i + 1} of ${videos.length}...`
+              : `Subiendo video ${i + 1} de ${videos.length}...`
+            );
 
-        if (!updateResponse.ok) {
-          console.error('⚠️ Error actualizando fotos, pero la propiedad fue creada');
-        } else {
-          console.log(`✅ Fotos actualizadas en la propiedad`);
+            const uploadId = await uploadVideoToMux(videos[i], (progress) => {
+              console.log(`Video ${i + 1} progress:`, progress);
+            });
+
+            uploadIds.push(uploadId);
+            await fetch(`/api/property/update/${propertyId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ mux_upload_ids: uploadIds }),
+            });
+
+            setVideoProgress(language === 'en'
+              ? `Processing video ${i + 1} of ${videos.length}...`
+              : `Procesando video ${i + 1} de ${videos.length}...`
+            );
+
+            const playbackId = await waitForPlaybackId(uploadId);
+            playbackIds.push(playbackId);
+          }
+
+          // Guardar array de playbackIds
+          videoUrls = playbackIds.map(id => `https://stream.mux.com/${id}/capped-1080p.mp4`);
+          
+        } catch (videoError: any) {
+          console.error('Error procesando videos:', videoError);
+
+          // Mostrar error específico al agente
+          const errorMessage = language === 'en'
+            ? `⚠️ Video processing failed: ${videoError.message || 'Unknown error'}.\n\nYour property was created successfully. You can edit it later to add videos when you have a better connection.`
+            : `⚠️ El procesamiento de video falló: ${videoError.message || 'Error desconocido'}.\n\nTu propiedad fue creada exitosamente. Puedes editarla después para agregar videos cuando tengas mejor señal.`;
+
+          alert(errorMessage);
         }
+      }
+      
+      // 4. Actualizar propiedad con fotos y video
+      const updateResponse = await fetch(`/api/property/update/${propertyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          photos: photoUrls,
+          video_urls: videoUrls,
+          video_processing: false, // Ya terminó de procesar
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        console.error('⚠️ Error actualizando fotos/video, pero la propiedad fue creada');
+      } else {
+        console.log(`✅ Fotos y video actualizados en la propiedad`);
       }
       
       // Limpiar estados
       setTempPhotoUrls([]);
       setPhotos([]);
+      setVideos([]);
       
       // Redirigir a la propiedad
       router.push(`/p/${slug}`);
@@ -567,6 +625,7 @@ export default function CreatePropertyPage() {
       setError(err instanceof Error ? err.message : 'Error al publicar');
     } finally {
       setIsProcessing(false);
+      setVideoProgress('');
     }
   };
 
@@ -609,6 +668,9 @@ export default function CreatePropertyPage() {
       apartment: t('createProperty.apartment'),
       land: t('createProperty.land'),
       commercial: t('createProperty.commercial'),
+      hotel: t('createProperty.hotel'),
+      ranch: t('createProperty.ranch'),
+      other: t('createProperty.other'),
     };
     return labels[type] || type;
   };
@@ -772,17 +834,33 @@ export default function CreatePropertyPage() {
 
         {/* Form Sections */}
         <div className="space-y-6">
-          {/* Section 1: Photos */}
+          {/* Section 1: Photos and Videos */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <span>📸</span> {t('createProperty.step1')}
+              <span>📸</span> {language === 'en' ? 'Photos and Videos' : 'Fotos y Videos'}
             </h2>
+            
             <PhotoUploader 
               onPhotosChange={handlePhotosChange}
               minPhotos={2}
               maxPhotos={15}
               watermarkConfig={watermarkConfig}
             />
+            
+            {/* Videos - NUEVO */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <VideoUploader
+                onVideosChange={(files) => setVideos(files)}
+                maxVideos={4}
+                maxDurationSeconds={60}
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                💡 {language === 'en' 
+                  ? 'Max 60 seconds total · Plays as a continuous playlist'
+                  : 'Máx 60 segundos en total · Se reproducen como playlist continua'
+                }
+              </p>
+            </div>
           </div>
 
           {/* Section 2: Property Configuration */}
@@ -806,6 +884,9 @@ export default function CreatePropertyPage() {
                   <option value="apartment">{t('createProperty.apartment')}</option>
                   <option value="land">{t('createProperty.land')}</option>
                   <option value="commercial">{t('createProperty.commercial')}</option>
+                  <option value="hotel">{t('createProperty.hotel')}</option>
+                  <option value="quinta">{t('createProperty.quinta')}</option>
+                  <option value="other">{t('createProperty.other')}</option>
                 </select>
               </div>
 
@@ -1288,6 +1369,15 @@ export default function CreatePropertyPage() {
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Indicador de progreso de video */}
+                {isProcessing && videoProgress && (
+                  <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                    <p className="text-sm font-semibold text-purple-900">
+                      🎬 {videoProgress}
+                    </p>
                   </div>
                 )}
 

@@ -4,6 +4,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import MobileLayout from '@/components/MobileLayout';
+import Image from 'next/image';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function ProfilePage() {
@@ -15,6 +16,7 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState('');
   const [brokerage, setBrokerage] = useState('');
   const [saving, setSaving] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -30,6 +32,19 @@ export default function ProfilePage() {
       setBrokerage(session.user.brokerage || '');
     }
   }, [session]);
+
+  useEffect(() => {
+    if (session?.user?.username) {
+      fetch(`/api/agent-card/get?username=${session.user.username}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.card?.profile_photo) {
+            setProfilePhoto(data.card.profile_photo);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [session?.user?.username]);
 
   if (status === 'loading') {
     return (
@@ -92,14 +107,25 @@ export default function ProfilePage() {
           className="rounded-2xl p-6 text-center shadow-lg"
           style={{ backgroundColor: '#FFFFFF' }}
         >
-          <div 
-            className="w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl shadow-lg"
-            style={{ backgroundColor: '#2563EB' }}
-          >
-            <span className="text-white font-bold">
-              {session.user.name?.charAt(0).toUpperCase()}
-            </span>
-          </div>
+           <div 
+              className="w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl shadow-lg overflow-hidden"
+              style={{ backgroundColor: '#2563EB' }}
+            >
+              {profilePhoto ? (
+                <Image
+                  src={profilePhoto}
+                  alt={session?.user?.name || 'Profile'}
+                  width={96}
+                  height={96}
+                  className="object-cover w-full h-full"
+                  unoptimized
+                />
+              ) : (
+                <span className="text-white font-bold">
+                  {session?.user?.name?.charAt(0).toUpperCase() || '?'}
+                </span>
+              )}
+            </div>
           <h2 className="text-2xl font-bold mb-1" style={{ color: '#0F172A' }}>
             {session.user.name}
           </h2>

@@ -11,6 +11,8 @@
     "clean:old-photos": "node scripts/limpiar-archivos-viejos.mjs"
   },
   "dependencies": {
+    "@mux/mux-node": "^12.8.1",
+    "@mux/upchunk": "^3.5.0",
     "@paypal/checkout-server-sdk": "^1.0.3",
     "@react-google-maps/api": "^2.20.7",
     "@supabase/supabase-js": "^2.58.0",

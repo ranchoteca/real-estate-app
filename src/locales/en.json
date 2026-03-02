@@ -52,6 +52,9 @@
       "apartment": "Apartment",
       "land": "Land",
       "commercial": "Commercial",
+      "hotel": "Hotel",
+      "quinta": "Ranch",
+      "other": "Other",
       "sale": "Sale",
       "rent": "Rent",
       "active": "Active",
@@ -302,7 +305,10 @@
       "condo": "🏢 Condo",
       "apartment": "🏘️ Apartment",
       "land": "🌳 Land",
-      "commercial": "🏪 Commercial"
+      "commercial": "🏪 Commercial",
+      "hotel": "🏨 Hotel",
+      "ranch": "🌄 Ranch",
+      "other": "🏷️ Other"
     }
   },
   "profile": {
@@ -416,6 +422,9 @@
     "apartment": "Apartment",
     "land": "Land",
     "commercial": "Commercial",
+    "hotel": "Hotel",
+    "quinta": "Ranch",
+    "other": "Other",
     "sale": "Sale",
     "rent": "Rent",
     "configuration": "Configuration",

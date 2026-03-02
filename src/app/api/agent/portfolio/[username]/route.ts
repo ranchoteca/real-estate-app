@@ -20,7 +20,7 @@ export async function GET(
     // Obtener agente por username
     const { data: agent, error: agentError } = await supabaseAdmin
       .from('agents')
-      .select('id, name, full_name, username, email, phone, brokerage, bio, profile_photo')
+      .select('id, name, full_name, username, email, phone, brokerage, bio, profile_photo, agent_cards(profile_photo)')
       .eq('username', username)
       .single();
 
@@ -51,9 +51,14 @@ export async function GET(
     console.log('✅ Portfolio encontrado:', agent.username);
     console.log('📊 Propiedades:', properties?.length || 0);
 
+    const agentCard = Array.isArray(agent.agent_cards) ? agent.agent_cards[0] : agent.agent_cards;
+
     return NextResponse.json({
       success: true,
-      agent,
+      agent: {
+        ...agent,
+        card_profile_photo: agentCard?.profile_photo || null,
+      },
       properties: properties || [],
     });
 

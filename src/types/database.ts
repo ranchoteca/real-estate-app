@@ -143,7 +143,11 @@ export type Database = {
           currency_id: string | null
           custom_fields_data: Json | null
           plus_code: string | null
-          location?: string | null // Campo auxiliar para compatibilidad
+          location?: string | null
+          video_url: string | null
+          video_urls: string[] | null
+          video_processing: boolean | null
+          mux_upload_ids: string[] | null
         }
         Insert: {
           id?: string
@@ -171,6 +175,10 @@ export type Database = {
           currency_id?: string | null
           custom_fields_data?: Json | null
           plus_code?: string | null
+          video_url?: string | null
+          video_urls?: string[] | null
+          video_processing?: boolean | null
+          mux_upload_ids?: string[] | null
         }
         Update: {
           id?: string
@@ -198,6 +206,10 @@ export type Database = {
           currency_id?: string | null
           custom_fields_data?: Json | null
           plus_code?: string | null
+          video_url?: string | null
+          video_urls?: string[] | null
+          video_processing?: boolean | null
+          mux_upload_ids?: string[] | null
         }
       }
       purchases: {

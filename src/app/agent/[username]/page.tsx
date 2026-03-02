@@ -15,6 +15,7 @@ interface Agent {
   brokerage: string | null;
   bio: string | null;
   profile_photo: string | null;
+  card_profile_photo: string | null;
 }
 
 interface Property {
@@ -40,6 +41,9 @@ const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string =
     apartment: { es: 'Apartamento', en: 'Apartment' },
     land: { es: 'Terreno', en: 'Land' },
     commercial: { es: 'Comercial', en: 'Commercial' },
+    hotel: { es: 'Hotel', en: 'Hotel' },
+    ranch: { es: 'Quinta', en: 'Ranch' },
+    other: { es: 'Otros', en: 'Other' },
   };
   return type ? (translations[type]?.[lang] || type) : (lang === 'en' ? 'Property' : 'Propiedad');
 };
@@ -190,7 +194,7 @@ export default function AgentPortfolioPage() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
               <span className="text-2xl">🏠</span>
-              <span className="text-xl font-bold text-white">Flow Estate AI</span>
+              <span className="text-xl font-bold text-white">{agent?.brokerage || 'Flow Estate AI'}</span>
             </div>
             <button
               onClick={() => router.push('/')}
@@ -238,13 +242,13 @@ export default function AgentPortfolioPage() {
                 className="w-24 h-24 lg:w-32 lg:h-32 rounded-full flex items-center justify-center text-4xl lg:text-5xl font-bold text-white shadow-xl flex-shrink-0"
                 style={{ backgroundColor: '#2563EB' }}
               >
-                {agent.profile_photo ? (
+                {(agent.card_profile_photo || agent.profile_photo) ? (
                   <Image
-                    src={agent.profile_photo}
+                    src={agent.card_profile_photo || agent.profile_photo!}
                     alt={agent.name || 'Agent'}
                     width={128}
                     height={128}
-                    className="rounded-full"
+                    className="rounded-full object-cover w-full h-full"
                   />
                 ) : (
                   (agent.full_name || agent.name || 'A').charAt(0).toUpperCase()

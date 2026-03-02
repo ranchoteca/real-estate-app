@@ -885,7 +885,7 @@ export default function CreatePropertyPage() {
                   <option value="land">{t('createProperty.land')}</option>
                   <option value="commercial">{t('createProperty.commercial')}</option>
                   <option value="hotel">{t('createProperty.hotel')}</option>
-                  <option value="quinta">{t('createProperty.ranch')}</option>
+                  <option value="quinta">{t('createProperty.quinta')}</option>
                   <option value="other">{t('createProperty.other')}</option>
                 </select>
               </div>

@@ -22,10 +22,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <head>
-        <script src="//cdn.jsdelivr.net/npm/eruda" async />
-        <script dangerouslySetInnerHTML={{ __html: 'window.onload=function(){eruda.init()}' }} />
-      </head>
       <body>
         <Providers>
           {children}

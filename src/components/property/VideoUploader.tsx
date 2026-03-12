@@ -62,6 +62,14 @@ export default function VideoUploader({
         continue;
       }
 
+      if (file.size > 30 * 1024 * 1024) {
+        const confirmed = confirm(language === 'en'
+          ? `⚠️ ${file.name} is large (${(file.size / 1024 / 1024).toFixed(0)} MB). Make sure you have a good internet connection before publishing. Continue?`
+          : `⚠️ ${file.name} es grande (${(file.size / 1024 / 1024).toFixed(0)} MB). Asegúrate de tener buena señal de internet antes de publicar. ¿Continuar?`
+        );
+        if (!confirmed) continue;
+      }
+
       const duration = await getVideoDuration(file);
       
       if (newTotalDuration + duration > maxDurationSeconds) {

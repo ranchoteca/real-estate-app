@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    // ESTA ES LA LÍNEA CLAVE:
+    // Al activar esto, Next.js usará la URL original de Supabase 
+    // sin pasar por el optimizador de Vercel que te está dando el error 402.
+    unoptimized: true,
+    
     remotePatterns: [
       {
         protocol: 'https',

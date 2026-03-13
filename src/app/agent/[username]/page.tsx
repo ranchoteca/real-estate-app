@@ -249,6 +249,7 @@ export default function AgentPortfolioPage() {
                     width={128}
                     height={128}
                     className="rounded-full object-cover w-full h-full"
+                    sizes="128px"
                   />
                 ) : (
                   (agent.full_name || agent.name || 'A').charAt(0).toUpperCase()
@@ -456,7 +457,7 @@ export default function AgentPortfolioPage() {
                         alt={property.title}
                         fill
                         className="object-contain bg-gray-900"
-                        unoptimized
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-5xl">

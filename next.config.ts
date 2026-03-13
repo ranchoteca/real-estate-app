@@ -1,19 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Desactivar type checking durante el build en Vercel
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Opcional: también desactivar ESLint si da problemas
   eslint: {
     ignoreDuringBuilds: true,
   },
   images: {
-    // ESTA ES LA LÍNEA CLAVE:
-    // Al activar esto, Next.js usará la URL original de Supabase 
-    // sin pasar por el optimizador de Vercel que te está dando el error 402.
-    unoptimized: true,
+    // Activamos el loader global
+    loader: 'custom',
+    loaderFile: './supabase-image-loader.ts',
     
     remotePatterns: [
       {
@@ -28,7 +25,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'lh3.googleusercontent.com', // Para fotos de perfil de Google
+        hostname: 'lh3.googleusercontent.com',
       },
     ],
   },

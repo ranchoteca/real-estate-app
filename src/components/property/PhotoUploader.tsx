@@ -211,7 +211,6 @@ export default function PhotoUploader({
                   alt={`Photo ${index + 1}`}
                   fill
                   className="object-cover"
-                  unoptimized
                 />
                 
                 {/* Botón eliminar */}

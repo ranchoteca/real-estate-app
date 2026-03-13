@@ -615,7 +615,7 @@ export default function DashboardPage() {
                     alt={property.title}
                     fill
                     className="object-contain bg-gray-900"
-                    unoptimized
+                    sizes="(max-width: 1024px) 100vw, 50vw"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-6xl">

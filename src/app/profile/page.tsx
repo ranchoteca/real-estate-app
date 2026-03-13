@@ -118,7 +118,6 @@ export default function ProfilePage() {
                   width={96}
                   height={96}
                   className="object-cover w-full h-full"
-                  unoptimized
                 />
               ) : (
                 <span className="text-white font-bold">

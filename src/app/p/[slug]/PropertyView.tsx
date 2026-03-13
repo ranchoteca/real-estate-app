@@ -810,7 +810,6 @@ export default function PropertyView() {
                         alt={`Photo ${index + 1}`}
                         fill
                         className="object-cover"
-                        unoptimized
                       />
                     </button>
                   ))}

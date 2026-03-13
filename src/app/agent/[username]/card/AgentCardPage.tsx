@@ -255,6 +255,7 @@ export default function AgentCardPage() {
                 fill
                 className="object-cover"
                 priority
+                sizes="(max-width: 672px) 100vw, 672px"
               />
             )}
           </div>
@@ -269,6 +270,7 @@ export default function AgentCardPage() {
                     width={128}
                     height={128}
                     className="object-cover w-full h-full"
+                    sizes="128px"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-6xl">

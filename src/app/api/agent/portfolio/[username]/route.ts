@@ -35,7 +35,7 @@ export async function GET(
     // Obtener todas las propiedades del agente (activas y vendidas)
     const { data: properties, error: propertiesError } = await supabaseAdmin
       .from('properties')
-      .select('*')
+      .select('id, title, slug, price, city, state, property_type, listing_type, status, views, created_at, language, currency_id, photos')
       .eq('agent_id', agent.id)
       .in('status', ['active', 'sold', 'rented']) // Solo activas y vendidas (no pending)
       .order('created_at', { ascending: false });

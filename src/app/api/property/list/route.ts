@@ -43,9 +43,14 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const optimizedProperties = (properties || []).map(p => ({
+      ...p,
+      photos: p.photos ? [p.photos[0]] : []
+    }));
+
     return NextResponse.json({
       success: true,
-      properties: properties || [],
+      properties: optimizedProperties,
     });
 
   } catch (error) {

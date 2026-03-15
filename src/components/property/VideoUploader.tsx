@@ -62,10 +62,10 @@ export default function VideoUploader({
         continue;
       }
 
-      if (file.size > 85 * 1024 * 1024) {
+      if (file.size > 150 * 1024 * 1024) {
         alert(language === 'en'
-          ? `${file.name} exceeds the 85MB limit.`
-          : `${file.name} supera el límite de 85MB.`
+          ? `${file.name} exceeds the 150MB limit.`
+          : `${file.name} supera el límite de 150MB.`
         );
         continue;
       }

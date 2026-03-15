@@ -7,6 +7,7 @@ import PhotoUploader from '@/components/property/PhotoUploader';
 import VoiceRecorder from '@/components/property/VoiceRecorder';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
 import VideoUploader from '@/components/property/VideoUploader';
+import PublishingModal from '@/components/property/PublishingModal';
 import { uploadVideoToMux, waitForPlaybackId } from '@/lib/muxUpload';
 import MobileLayout from '@/components/MobileLayout';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -67,6 +68,14 @@ export default function CreatePropertyPage() {
   // Videos
   const [videos, setVideos] = useState<File[]>([]);
   const [videoProgress, setVideoProgress] = useState<string>('');
+
+  // Estados del modal de publicación
+  const [publishingModalOpen, setPublishingModalOpen] = useState(false);
+  const [publishingSteps, setPublishingSteps] = useState<{
+    id: number;
+    label: string;
+    status: 'pending' | 'active' | 'completed' | 'error';
+  }[]>([]);
 
   // Step 2: Property Configuration
   const [propertyType, setPropertyType] = useState<string>('house');
@@ -490,10 +499,31 @@ export default function CreatePropertyPage() {
     return data.property;
   };
 
+  const initPublishingSteps = (hasVideos: boolean) => {
+    const steps = [
+      { id: 1, label: language === 'en' ? 'Creating property...' : 'Creando propiedad...', status: 'pending' as const },
+      { id: 2, label: language === 'en' ? 'Uploading photos...' : 'Subiendo fotos...', status: 'pending' as const },
+    ];
+
+    if (hasVideos) {
+      steps.push({ id: 3, label: language === 'en' ? 'Uploading videos...' : 'Subiendo videos...', status: 'pending' as const });
+      steps.push({ id: 4, label: language === 'en' ? 'Processing videos...' : 'Procesando videos...', status: 'pending' as const });
+    }
+
+    steps.push({ id: hasVideos ? 5 : 3, label: language === 'en' ? 'Finishing up...' : 'Finalizando...', status: 'pending' as const });
+
+    return steps;
+  };
+
+  const updateStep = (stepId: number, status: 'pending' | 'active' | 'completed' | 'error', newLabel?: string) => {
+    setPublishingSteps(prev => prev.map(step =>
+      step.id === stepId ? { ...step, status, label: newLabel || step.label } : step
+    ));
+  };
+
   const handlePublish = async () => {
     if (!propertyData) return;
 
-    // Validar coordenadas Y Plus Code si show_map está activo
     if (propertyData.show_map) {
       if (!propertyData.latitude || !propertyData.longitude) {
         setError('Debes configurar la ubicación en el mapa');
@@ -505,12 +535,17 @@ export default function CreatePropertyPage() {
       }
     }
 
+    const hasVideos = videos.length > 0;
+    const steps = initPublishingSteps(hasVideos);
+    setPublishingSteps(steps);
+    setPublishingModalOpen(true);
     setIsProcessing(true);
     setError(null);
     setVideoProgress('');
 
     try {
-      // 1. Crear la propiedad SIN fotos ni video
+      // Paso 1: Crear propiedad
+      updateStep(1, 'active');
       const response = await fetch('/api/property/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -519,7 +554,7 @@ export default function CreatePropertyPage() {
           photos: [],
           video_urls: [],
           mux_upload_ids: [],
-          video_processing: videos.length > 0, // Marcar como procesando si hay videos
+          video_processing: hasVideos,
           custom_fields_data: {
             ...propertyData.custom_fields_data,
             ...customFieldsValues,
@@ -534,10 +569,12 @@ export default function CreatePropertyPage() {
 
       const { propertyId, slug } = await response.json();
       console.log(`✅ Propiedad creada: ${propertyId}, slug: ${slug}`);
-      
-      // 2. Subir fotos
+      updateStep(1, 'completed', language === 'en' ? '✓ Property created' : '✓ Propiedad creada');
+
+      // Paso 2: Subir fotos
+      updateStep(2, 'active');
       let photoUrls: string[] = [];
-      
+
       if (activeTab === 'facebook' && tempPhotoUrls.length > 0) {
         console.log('📸 Usando fotos importadas de Facebook');
         photoUrls = tempPhotoUrls;
@@ -545,17 +582,18 @@ export default function CreatePropertyPage() {
         console.log(`📤 Subiendo ${photos.length} fotos nuevas...`);
         photoUrls = await uploadPhotosWithSlug(photos, slug);
       }
-      
-      // 3. Procesar videos si hay
+      updateStep(2, 'completed', language === 'en' ? `✓ Photos uploaded (${photoUrls.length})` : `✓ Fotos subidas (${photoUrls.length})`);
+
+      // Paso 3 y 4: Videos (si hay)
       let videoUrls: string[] | null = null;
-      
-      if (videos.length > 0) {
+
+      if (hasVideos) {
         try {
           const uploadIds: string[] = [];
           const playbackIds: string[] = [];
-          
+
           for (let i = 0; i < videos.length; i++) {
-            setVideoProgress(language === 'en'
+            updateStep(3, 'active', language === 'en'
               ? `Uploading video ${i + 1} of ${videos.length}...`
               : `Subiendo video ${i + 1} de ${videos.length}...`
             );
@@ -570,23 +608,28 @@ export default function CreatePropertyPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ mux_upload_ids: uploadIds }),
             });
+          }
 
-            setVideoProgress(language === 'en'
-              ? `Processing video ${i + 1} of ${videos.length}...`
-              : `Procesando video ${i + 1} de ${videos.length}...`
+          updateStep(3, 'completed', language === 'en' ? `✓ Videos uploaded (${videos.length})` : `✓ Videos subidos (${videos.length})`);
+          updateStep(4, 'active');
+
+          for (let i = 0; i < uploadIds.length; i++) {
+            updateStep(4, 'active', language === 'en'
+              ? `Processing video ${i + 1} of ${uploadIds.length}...`
+              : `Procesando video ${i + 1} de ${uploadIds.length}...`
             );
-
-            const playbackId = await waitForPlaybackId(uploadId);
+            const playbackId = await waitForPlaybackId(uploadIds[i]);
             playbackIds.push(playbackId);
           }
 
-          // Guardar array de playbackIds
           videoUrls = playbackIds.map(id => `https://stream.mux.com/${id}/capped-1080p.mp4`);
-          
+          updateStep(4, 'completed', language === 'en' ? '✓ Videos processed' : '✓ Videos procesados');
+
         } catch (videoError: any) {
+          updateStep(3, 'error');
+          updateStep(4, 'error');
           console.error('Error procesando videos:', videoError);
 
-          // Mostrar error específico al agente
           const errorMessage = language === 'en'
             ? `⚠️ Video processing failed: ${videoError.message || 'Unknown error'}.\n\nYour property was created successfully. You can edit it later to add videos when you have a better connection.`
             : `⚠️ El procesamiento de video falló: ${videoError.message || 'Error desconocido'}.\n\nTu propiedad fue creada exitosamente. Puedes editarla después para agregar videos cuando tengas mejor señal.`;
@@ -594,15 +637,18 @@ export default function CreatePropertyPage() {
           alert(errorMessage);
         }
       }
-      
-      // 4. Actualizar propiedad con fotos y video
+
+      // Último paso: Finalizar
+      const lastStep = hasVideos ? 5 : 3;
+      updateStep(lastStep, 'active');
+
       const updateResponse = await fetch(`/api/property/update/${propertyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           photos: photoUrls,
           video_urls: videoUrls,
-          video_processing: false, // Ya terminó de procesar
+          video_processing: false,
         }),
       });
 
@@ -611,18 +657,21 @@ export default function CreatePropertyPage() {
       } else {
         console.log(`✅ Fotos y video actualizados en la propiedad`);
       }
-      
-      // Limpiar estados
+
+      updateStep(lastStep, 'completed', language === 'en' ? '✓ All done!' : '✓ ¡Todo listo!');
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       setTempPhotoUrls([]);
       setPhotos([]);
       setVideos([]);
-      
-      // Redirigir a la propiedad
+      setPublishingModalOpen(false);
       router.push(`/p/${slug}`);
-      
+
     } catch (err) {
       console.error('Error al publicar:', err);
       setError(err instanceof Error ? err.message : 'Error al publicar');
+      setPublishingModalOpen(false);
     } finally {
       setIsProcessing(false);
       setVideoProgress('');
@@ -1439,6 +1488,14 @@ export default function CreatePropertyPage() {
         </>
       )}
       */}
+
+      {/* Modal de publicación */}
+      <PublishingModal
+        isOpen={publishingModalOpen}
+        steps={publishingSteps}
+        hasVideos={videos.length > 0}
+        language={language}
+      />
     </MobileLayout>
   );
 }

@@ -42,6 +42,7 @@ const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string =
     land: { es: 'Terreno', en: 'Land' },
     commercial: { es: 'Comercial', en: 'Commercial' },
     hotel: { es: 'Hotel', en: 'Hotel' },
+    finca: { es: 'Finca', en: 'Farm' },
     ranch: { es: 'Quinta', en: 'Ranch' },
     other: { es: 'Otros', en: 'Other' },
   };

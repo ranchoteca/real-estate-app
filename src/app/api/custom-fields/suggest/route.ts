@@ -102,6 +102,27 @@ const SUGGESTED_FIELDS = {
       { icon: '🚗', name_es: 'Estacionamientos', name_en: 'Parking spaces', type: 'number', placeholder_es: 'Ej: 10', placeholder_en: 'e.g: 10' },
     ],
   },
+  finca: {
+  sale: [
+    { icon: '📏', name_es: 'Área del terreno (m²)', name_en: 'Land area (sqm)', type: 'number', placeholder_es: 'Ej: 50000', placeholder_en: 'e.g: 50000' },
+    { icon: '🌾', name_es: 'Área en hectáreas', name_en: 'Area in hectares', type: 'number', placeholder_es: 'Ej: 5', placeholder_en: 'e.g: 5' },
+    { icon: '⛰️', name_es: 'Topografía', name_en: 'Topography', type: 'text', placeholder_es: 'Ej: Plana, quebrada, mixta', placeholder_en: 'e.g: Flat, hilly, mixed' },
+    { icon: '🌱', name_es: 'Tipo de terreno', name_en: 'Land type', type: 'text', placeholder_es: 'Ej: Agrícola, ganadero', placeholder_en: 'e.g: Agricultural, livestock' },
+    { icon: '💧', name_es: 'Fuente de agua', name_en: 'Water source', type: 'text', placeholder_es: 'Ej: Pozo, río, naciente', placeholder_en: 'e.g: Well, river, spring' },
+    { icon: '🏠', name_es: 'Construcciones', name_en: 'Buildings', type: 'text', placeholder_es: 'Ej: Casa, bodega', placeholder_en: 'e.g: House, warehouse' },
+    { icon: '⚡', name_es: 'Electricidad', name_en: 'Electricity', type: 'text', placeholder_es: 'Ej: Disponible', placeholder_en: 'e.g: Available' },
+    { icon: '🚜', name_es: 'Acceso', name_en: 'Access', type: 'text', placeholder_es: 'Ej: Calle asfaltada o lastre', placeholder_en: 'e.g: Asphalt or gravel road' },
+  ],
+  rent: [
+    { icon: '📏', name_es: 'Área del terreno (m²)', name_en: 'Land area (sqm)', type: 'number', placeholder_es: 'Ej: 50000', placeholder_en: 'e.g: 50000' },
+    { icon: '🌾', name_es: 'Área en hectáreas', name_en: 'Area in hectares', type: 'number', placeholder_es: 'Ej: 5', placeholder_en: 'e.g: 5' },
+    { icon: '⛰️', name_es: 'Topografía', name_en: 'Topography', type: 'text', placeholder_es: 'Ej: Plana, quebrada, mixta', placeholder_en: 'e.g: Flat, hilly, mixed' },
+    { icon: '🌱', name_es: 'Tipo de terreno', name_en: 'Land type', type: 'text', placeholder_es: 'Ej: Agrícola, ganadero', placeholder_en: 'e.g: Agricultural, livestock' },
+    { icon: '💧', name_es: 'Fuente de agua', name_en: 'Water source', type: 'text', placeholder_es: 'Ej: Pozo, río, naciente', placeholder_en: 'e.g: Well, river, spring' },
+    { icon: '🏠', name_es: 'Construcciones', name_en: 'Buildings', type: 'text', placeholder_es: 'Ej: Casa, bodega', placeholder_en: 'e.g: House, warehouse' },
+    { icon: '🚜', name_es: 'Acceso', name_en: 'Access', type: 'text', placeholder_es: 'Ej: Calle asfaltada o lastre', placeholder_en: 'e.g: Asphalt or gravel road' },
+  ],
+},
   ranch: {
     sale: [
       { icon: '📏', name_es: 'Área (m²)', name_en: 'Area (sqm)', type: 'number', placeholder_es: 'Ej: 5000', placeholder_en: 'e.g: 5000' },

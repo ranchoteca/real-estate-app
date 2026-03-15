@@ -54,6 +54,7 @@
       "commercial": "Commercial",
       "hotel": "Hotel",
       "quinta": "Ranch",
+      "finca": "Farm",
       "other": "Other",
       "sale": "Sale",
       "rent": "Rent",
@@ -307,6 +308,7 @@
       "land": "🌳 Land",
       "commercial": "🏪 Commercial",
       "hotel": "🏨 Hotel",
+      "finca": "🌾 Farm",
       "ranch": "🌄 Ranch",
       "other": "🏷️ Other"
     }
@@ -423,6 +425,7 @@
     "land": "Land",
     "commercial": "Commercial",
     "hotel": "Hotel",
+    "finca": "Farm",
     "quinta": "Ranch",
     "other": "Other",
     "sale": "Sale",

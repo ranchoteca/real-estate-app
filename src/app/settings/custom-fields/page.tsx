@@ -27,6 +27,7 @@ const PROPERTY_TYPES = [
   { value: 'land', label: '🌳 Terreno' },
   { value: 'commercial', label: '🏪 Comercial' },
   { value: 'hotel', label: '🏨 Hotel' },
+  { value: 'finca', label: '🌾 Finca' },
   { value: 'ranch', label: '🌄 Quinta' },
   { value: 'other', label: '🏷️ Otros' },
 ];
@@ -294,6 +295,7 @@ export default function CustomFieldsPage() {
       land: { es: '🌳 Terreno', en: '🌳 Land' },
       commercial: { es: '🏪 Comercial', en: '🏪 Commercial' },
       hotel: { es: '🏨 Hotel', en: '🏨 Hotel' },
+      finca: { es: '🌾 Finca', en: '🌾 Farm' },
       ranch: { es: '🌄 Quinta', en: '🌄 Ranch' },
       other: { es: '🏷️ Otros', en: '🏷️ Other' },
     };

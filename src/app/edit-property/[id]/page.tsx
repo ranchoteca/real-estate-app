@@ -667,7 +667,7 @@ export default function EditPropertyPage() {
             <VideoUploader
               onVideosChange={handleNewVideosChange}
               maxVideos={4}
-              maxDurationSeconds={Math.floor(60 - existingVideosDuration)}
+              maxDurationSeconds={Math.ceil(60 - existingVideosDuration)}
             />
           )}
 

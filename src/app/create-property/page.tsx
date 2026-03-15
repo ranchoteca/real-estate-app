@@ -669,6 +669,7 @@ export default function CreatePropertyPage() {
       land: t('createProperty.land'),
       commercial: t('createProperty.commercial'),
       hotel: t('createProperty.hotel'),
+      finca: t('createProperty.finca'),
       ranch: t('createProperty.ranch'),
       other: t('createProperty.other'),
     };
@@ -885,6 +886,7 @@ export default function CreatePropertyPage() {
                   <option value="land">{t('createProperty.land')}</option>
                   <option value="commercial">{t('createProperty.commercial')}</option>
                   <option value="hotel">{t('createProperty.hotel')}</option>
+                  <option value="finca">{t('createProperty.finca')}</option>
                   <option value="quinta">{t('createProperty.quinta')}</option>
                   <option value="other">{t('createProperty.other')}</option>
                 </select>

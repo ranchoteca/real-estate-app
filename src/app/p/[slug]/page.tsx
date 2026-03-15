@@ -72,6 +72,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     land: { es: 'Terreno', en: 'Land' },
     commercial: { es: 'Comercial', en: 'Commercial' },
     hotel: { es: 'Hotel', en: 'Hotel' },
+    finca: { es: 'Finca', en: 'Farm' },
     ranch: { es: 'Quinta', en: 'Ranch' },
     other: { es: 'Otros', en: 'Other' },
   };

@@ -62,7 +62,15 @@ export default function VideoUploader({
         continue;
       }
 
-      if (file.size > 30 * 1024 * 1024) {
+      if (file.size > 85 * 1024 * 1024) {
+        alert(language === 'en'
+          ? `${file.name} exceeds the 85MB limit.`
+          : `${file.name} supera el límite de 85MB.`
+        );
+        continue;
+      }
+
+      if (file.size > 50 * 1024 * 1024) {
         const confirmed = confirm(language === 'en'
           ? `⚠️ ${file.name} is large (${(file.size / 1024 / 1024).toFixed(0)} MB). Make sure you have a good internet connection before publishing. Continue?`
           : `⚠️ ${file.name} es grande (${(file.size / 1024 / 1024).toFixed(0)} MB). Asegúrate de tener buena señal de internet antes de publicar. ¿Continuar?`
@@ -71,8 +79,8 @@ export default function VideoUploader({
       }
 
       const duration = await getVideoDuration(file);
-      
-      if (newTotalDuration + duration > maxDurationSeconds) {
+
+      if (newTotalDuration + duration > maxDurationSeconds + 0.5) {
         alert(language === 'en' 
           ? `Total duration cannot exceed ${Math.floor(maxDurationSeconds)} seconds. This video would exceed the limit.`
           : `La duración total no puede exceder ${Math.floor(maxDurationSeconds)} segundos. Este video excedería el límite.`

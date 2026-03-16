@@ -366,9 +366,12 @@ export default function PropertyView() {
   };
 
   const shareWhatsApp = () => {
-    const text = `${property?.title} - ${formatPrice(property?.price)}`;
     const url = window.location.href;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text + '\n' + url)}`, '_blank');
+    window.open(`https://wa.me/?text=${encodeURIComponent(
+      interfaceLang === 'en'
+        ? `Hi, I'm interested in: ${url}`
+        : `Hola, me interesa: ${url}`
+    )}`, '_blank');
     setShowShareMenu(false);
   };
 
@@ -620,8 +623,8 @@ export default function PropertyView() {
                     <a
                       href={`https://wa.me/${property.agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
                         interfaceLang === 'en'
-                          ? `Hi, I'm interested in: ${property.title}`
-                          : `Hola, me interesa: ${property.title}`
+                          ? `Hi, I'm interested in learning more about this property: ${window.location.href}`
+                          : `Hola, me interesa saber más de esta propiedad: ${window.location.href}`
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -655,16 +658,25 @@ export default function PropertyView() {
 
                 <div className="flex flex-col items-center gap-1">
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      shareWhatsApp();
-                    }}
-                    className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
-                  >
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                    </svg>
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (navigator.share) {
+                          navigator.share({
+                            title: property.title,
+                            text: `${property.title} - ${formatPrice(property.price)}`,
+                            url: window.location.href,
+                          });
+                        } else {
+                          navigator.clipboard.writeText(window.location.href);
+                          alert(interfaceLang === 'en' ? 'Link copied!' : '¡Link copiado!');
+                        }
+                      }}
+                      className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}
+                    >
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                      </svg>
                   </button>
                   <span className="text-white text-xs font-semibold drop-shadow">{interfaceLang === 'en' ? 'Share' : 'Compartir'}</span>
                 </div>
@@ -833,9 +845,8 @@ export default function PropertyView() {
                     src={property.video_urls[currentVideoIndex]}
                     controls
                     controlsList="nofullscreen"
-                    autoPlay
                     playsInline
-                    preload="auto"
+                    preload="metadata"
                     className="w-full h-full"
                     onEnded={() => {
                       if (currentVideoIndex < property.video_urls!.length - 1) {
@@ -1128,8 +1139,8 @@ export default function PropertyView() {
                     <a
                       href={`https://wa.me/${property.agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
                         interfaceLang === 'en' 
-                          ? `Hi, I'm interested in: ${property.title}`
-                          : `Hola, me interesa: ${property.title}`
+                          ? `Hi, I'm interested in: ${window.location.href}`
+                          : `Hola, me interesa: ${window.location.href}`
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"

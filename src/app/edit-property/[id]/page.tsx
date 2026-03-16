@@ -9,6 +9,7 @@ import MobileLayout from '@/components/MobileLayout';
 import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
 import VideoUploader from '@/components/property/VideoUploader';
+import PublishingModal from '@/components/property/PublishingModal';
 import { uploadVideoToMux, waitForPlaybackId } from '@/lib/muxUpload';
 import { WatermarkConfig } from '@/lib/watermark';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
@@ -94,6 +95,14 @@ export default function EditPropertyPage() {
 
   // Compresión
   const [compressing, setCompressing] = useState(false);
+
+  // Estados del modal de guardado
+  const [savingModalOpen, setSavingModalOpen] = useState(false);
+  const [savingSteps, setSavingSteps] = useState<{
+    id: number;
+    label: string;
+    status: 'pending' | 'active' | 'completed' | 'error';
+  }[]>([]);
 
   // País de la ubicación
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>('CR'); // Default Costa Rica
@@ -373,6 +382,31 @@ export default function EditPropertyPage() {
     setNewVideos(files);
   };
 
+  const initSavingSteps = (hasNewVideos: boolean) => {
+    const steps = [
+      { id: 1, label: language === 'en' ? 'Saving changes...' : 'Guardando cambios...', status: 'pending' as const },
+    ];
+
+    if (newPhotos.length > 0) {
+      steps.push({ id: 2, label: language === 'en' ? 'Uploading new photos...' : 'Subiendo fotos nuevas...', status: 'pending' as const });
+    }
+
+    if (hasNewVideos) {
+      steps.push({ id: steps.length + 1, label: language === 'en' ? 'Uploading videos...' : 'Subiendo videos...', status: 'pending' as const });
+      steps.push({ id: steps.length + 1, label: language === 'en' ? 'Processing videos...' : 'Procesando videos...', status: 'pending' as const });
+    }
+
+    steps.push({ id: steps.length + 1, label: language === 'en' ? 'Finishing up...' : 'Finalizando...', status: 'pending' as const });
+
+    return steps;
+  };
+
+  const updateSavingStep = (stepId: number, status: 'pending' | 'active' | 'completed' | 'error', newLabel?: string) => {
+    setSavingSteps(prev => prev.map(step =>
+      step.id === stepId ? { ...step, status, label: newLabel || step.label } : step
+    ));
+  };
+
   const handleSave = async () => {
     if (!property) return;
 
@@ -382,7 +416,6 @@ export default function EditPropertyPage() {
       return;
     }
 
-    // Validar coordenadas Y Plus Code si show_map está activo
     if (property.show_map) {
       if (!property.latitude || !property.longitude) {
         setError('Debes configurar la ubicación en el mapa');
@@ -394,13 +427,31 @@ export default function EditPropertyPage() {
       }
     }
 
+    const hasNewVideos = newVideos.length > 0;
+    const steps = initSavingSteps(hasNewVideos);
+    setSavingSteps(steps);
+    setSavingModalOpen(true);
     setSaving(true);
     setError(null);
 
+    // Calcular IDs dinámicos según los pasos generados
+    const stepIds = {
+      save: 1,
+      photos: newPhotos.length > 0 ? 2 : null,
+      videos: hasNewVideos ? (newPhotos.length > 0 ? 3 : 2) : null,
+      processing: hasNewVideos ? (newPhotos.length > 0 ? 4 : 3) : null,
+      finish: steps[steps.length - 1].id,
+    };
+
     try {
-      // 1. Subir fotos nuevas si hay
+      // Paso 1: Subir fotos nuevas si hay
+      updateSavingStep(stepIds.save, 'active');
       let uploadedUrls: string[] = [];
+
       if (newPhotos.length > 0) {
+        updateSavingStep(stepIds.save, 'completed', language === 'en' ? '✓ Changes saved' : '✓ Cambios guardados');
+        updateSavingStep(stepIds.photos!, 'active');
+
         const formData = new FormData();
         newPhotos.forEach(file => formData.append('photos', file));
         formData.append('propertySlug', propertySlug);
@@ -411,64 +462,71 @@ export default function EditPropertyPage() {
         });
 
         if (!uploadResponse.ok) throw new Error('Error al subir fotos');
-        
+
         const uploadData = await uploadResponse.json();
         uploadedUrls = uploadData.urls;
+        updateSavingStep(stepIds.photos!, 'completed', language === 'en' ? `✓ Photos uploaded (${uploadedUrls.length})` : `✓ Fotos subidas (${uploadedUrls.length})`);
+      } else {
+        updateSavingStep(stepIds.save, 'completed', language === 'en' ? '✓ Changes saved' : '✓ Cambios guardados');
       }
 
-      // 2. Combinar fotos existentes + nuevas
       const allPhotos = [...existingPhotos, ...uploadedUrls];
 
-      // Procesar videos nuevos si hay
+      // Paso videos: si hay videos nuevos
       let finalVideoUrls = [...existingVideos];
 
-      if (newVideos.length > 0) {
+      if (hasNewVideos) {
         try {
-          setVideoProgress(language === 'en' ? 'Uploading videos...' : 'Subiendo videos...');
-          const newPlaybackIds: string[] = [];
+          const uploadIds: string[] = [];
+          const playbackIds: string[] = [];
 
           for (let i = 0; i < newVideos.length; i++) {
-            setVideoProgress(
-              language === 'en'
-                ? `Uploading video ${i + 1} of ${newVideos.length}...`
-                : `Subiendo video ${i + 1} de ${newVideos.length}...`
+            updateSavingStep(stepIds.videos!, 'active', language === 'en'
+              ? `Uploading video ${i + 1} of ${newVideos.length}...`
+              : `Subiendo video ${i + 1} de ${newVideos.length}...`
             );
 
             const uploadId = await uploadVideoToMux(newVideos[i], (progress) => {
               console.log(`Video ${i + 1} progress:`, progress);
             });
 
-            setVideoProgress(
-              language === 'en'
-                ? `Processing video ${i + 1} of ${newVideos.length}...`
-                : `Procesando video ${i + 1} de ${newVideos.length}...`
-            );
+            uploadIds.push(uploadId);
+          }
 
-            const playbackId = await waitForPlaybackId(uploadId);
-            newPlaybackIds.push(playbackId);
+          updateSavingStep(stepIds.videos!, 'completed', language === 'en' ? `✓ Videos uploaded (${newVideos.length})` : `✓ Videos subidos (${newVideos.length})`);
+          updateSavingStep(stepIds.processing!, 'active');
+
+          for (let i = 0; i < uploadIds.length; i++) {
+            updateSavingStep(stepIds.processing!, 'active', language === 'en'
+              ? `Processing video ${i + 1} of ${uploadIds.length}...`
+              : `Procesando video ${i + 1} de ${uploadIds.length}...`
+            );
+            const playbackId = await waitForPlaybackId(uploadIds[i]);
+            playbackIds.push(playbackId);
           }
 
           finalVideoUrls = [
             ...existingVideos,
-            ...newPlaybackIds.map(id => `https://stream.mux.com/${id}/capped-1080p.mp4`),
+            ...playbackIds.map(id => `https://stream.mux.com/${id}/capped-1080p.mp4`),
           ];
 
+          updateSavingStep(stepIds.processing!, 'completed', language === 'en' ? '✓ Videos processed' : '✓ Videos procesados');
+
         } catch (videoError: any) {
+          updateSavingStep(stepIds.videos!, 'error');
+          updateSavingStep(stepIds.processing!, 'error');
           console.error('Error procesando videos:', videoError);
-          const errorMsg = typeof videoError === 'string' 
-            ? videoError 
-            : videoError?.message || JSON.stringify(videoError) || 'Error desconocido';
-          alert(
-            language === 'en'
-              ? `⚠️ Video processing failed: ${errorMsg}. Property will be saved without new videos.`
-              : `⚠️ Error procesando videos: ${errorMsg}. La propiedad se guardará sin los videos nuevos.`
+          const errorMsg = videoError?.message || 'Error desconocido';
+          alert(language === 'en'
+            ? `⚠️ Video processing failed: ${errorMsg}. Property will be saved without new videos.`
+            : `⚠️ Error procesando videos: ${errorMsg}. La propiedad se guardará sin los videos nuevos.`
           );
-        } finally {
-          setVideoProgress('');
         }
       }
 
-      // 3. Actualizar propiedad (CON plus_code)
+      // Último paso: Actualizar propiedad
+      updateSavingStep(stepIds.finish, 'active');
+
       const response = await fetch(`/api/property/update/${propertyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -486,10 +544,15 @@ export default function EditPropertyPage() {
         throw new Error(data.error || 'Error al guardar');
       }
 
-      alert('✅ Propiedad actualizada');
+      updateSavingStep(stepIds.finish, 'completed', language === 'en' ? '✓ All done!' : '✓ ¡Todo listo!');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      setSavingModalOpen(false);
       router.push('/dashboard');
+
     } catch (err: any) {
       setError(err.message);
+      setSavingModalOpen(false);
     } finally {
       setSaving(false);
     }
@@ -1119,6 +1182,12 @@ export default function EditPropertyPage() {
           </button>
         </div>
       </div>
+      <PublishingModal
+        isOpen={savingModalOpen}
+        steps={savingSteps}
+        hasVideos={newVideos.length > 0}
+        language={language}
+      />
     </MobileLayout>
   );
 }

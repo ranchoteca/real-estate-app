@@ -414,7 +414,7 @@ export default function CreatePropertyPage() {
   };
 
   const uploadPhotosWithSlug = async (files: File[], slug: string): Promise<string[]> => {
-    const batchSize = 5;
+    const batchSize = 2;
     const allUrls: string[] = [];
 
     for (let i = 0; i < files.length; i += batchSize) {

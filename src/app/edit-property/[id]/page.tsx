@@ -452,19 +452,22 @@ export default function EditPropertyPage() {
         updateSavingStep(stepIds.save, 'completed', language === 'en' ? '✓ Changes saved' : '✓ Cambios guardados');
         updateSavingStep(stepIds.photos!, 'active');
 
-        const formData = new FormData();
-        newPhotos.forEach(file => formData.append('photos', file));
-        formData.append('propertySlug', propertySlug);
+        for (const file of newPhotos) {
+          const formData = new FormData();
+          formData.append('photos', file);
+          formData.append('propertySlug', propertySlug);
 
-        const uploadResponse = await fetch('/api/property/upload-photos', {
-          method: 'POST',
-          body: formData,
-        });
+          const uploadResponse = await fetch('/api/property/upload-photos', {
+            method: 'POST',
+            body: formData,
+          });
 
-        if (!uploadResponse.ok) throw new Error('Error al subir fotos');
+          if (!uploadResponse.ok) throw new Error('Error al subir fotos');
 
-        const uploadData = await uploadResponse.json();
-        uploadedUrls = uploadData.urls;
+          const uploadData = await uploadResponse.json();
+          uploadedUrls.push(...uploadData.urls);
+        }
+
         updateSavingStep(stepIds.photos!, 'completed', language === 'en' ? `✓ Photos uploaded (${uploadedUrls.length})` : `✓ Fotos subidas (${uploadedUrls.length})`);
       } else {
         updateSavingStep(stepIds.save, 'completed', language === 'en' ? '✓ Changes saved' : '✓ Cambios guardados');

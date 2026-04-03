@@ -106,7 +106,7 @@ export default function CreatePropertyPage() {
   // Dropdown del país
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>('CR'); // Default Costa Rica
 
-  /* TEMPORALMENTE DESHABILITADO - Pendiente aprobación de Facebook
+  /* Facebook */
   // Facebook import states
   const [showImportModal, setShowImportModal] = useState(false);
   const [facebookPosts, setFacebookPosts] = useState<any[]>([]);
@@ -115,10 +115,9 @@ export default function CreatePropertyPage() {
   const [importingPost, setImportingPost] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'voice' | 'facebook'>('voice');
-  */
-
+  
   // Solo tab de voz activo por ahora
-  const [activeTab] = useState<'voice'>('voice');
+  //const [activeTab] = useState<'voice'>('voice');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -729,7 +728,7 @@ export default function CreatePropertyPage() {
     return type === 'sale' ? t('createProperty.sale') : t('createProperty.rent');
   };
 
-  /* TEMPORALMENTE DESHABILITADO - Pendiente aprobación de Facebook
+  /* Facebook */
   const loadFacebookPosts = async () => {
     setLoadingPosts(true);
     setError(null);
@@ -864,7 +863,7 @@ export default function CreatePropertyPage() {
       setImportingPost(false);
       setShowImportModal(false);
     }
-  };*/
+  };
 
   return (
     <MobileLayout title={t('createProperty.createTitle')} showBack={true} showTabs={true}>
@@ -1456,7 +1455,7 @@ export default function CreatePropertyPage() {
           )}
         </div>
       </div>
-      {/* TEMPORALMENTE DESHABILITADO - Pendiente aprobación de Facebook
+      
       {showImportModal && (
         <>
           <div 
@@ -1487,7 +1486,6 @@ export default function CreatePropertyPage() {
           </div>
         </>
       )}
-      */}
 
       {/* Modal de publicación */}
       <PublishingModal

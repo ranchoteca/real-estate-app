@@ -69,8 +69,8 @@ export default function FacebookSettingsContent() {
       if (response.ok) {
         const data = await response.json();
         setFacebookData({
-          connected: !!data.agent.facebook_page_id,
-          pageName: data.agent.facebook_page_name,
+          connected: !!data.agent.postforme_account_id,
+          pageName: data.agent.postforme_username,
           connectedAt: data.agent.facebook_connected_at,
         });
       }

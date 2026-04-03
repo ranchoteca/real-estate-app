@@ -1,68 +1,85 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { getFacebookPages } from '@/lib/facebook';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const code = searchParams.get('code');
-    const state = searchParams.get('state'); // email del usuario
+
+    // Log para ver qué manda Post for Me (útil las primeras veces)
+    console.log('📥 Callback params:', Object.fromEntries(searchParams));
+
     const error = searchParams.get('error');
-
     if (error) {
-      console.error('Error de Facebook:', error);
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=denied`);
+      console.error('Error OAuth Post for Me:', error);
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=denied`
+      );
     }
 
-    if (!code || !state) {
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=invalid`);
+    // Recuperar la cuenta usando el external_id (email del agente)
+    // que pasamos al crear la auth URL
+    const externalId = searchParams.get('external_id');
+
+    if (!externalId) {
+      console.error('No se recibió external_id en callback');
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=invalid`
+      );
     }
 
-    // Intercambiar code por access token
-    const tokenResponse = await fetch(
-      `https://graph.facebook.com/v18.0/oauth/access_token?` +
-      `client_id=${process.env.FACEBOOK_APP_ID}&` +
-      `client_secret=${process.env.FACEBOOK_APP_SECRET}&` +
-      `code=${code}&` +
-      `redirect_uri=${encodeURIComponent(`${process.env.NEXT_PUBLIC_APP_URL}/api/facebook/callback`)}`
+    // Buscar la cuenta recién conectada por external_id
+    const accountsResponse = await fetch(
+      `https://api.postforme.dev/v1/social-accounts?external_id=${encodeURIComponent(externalId)}&platform=facebook&status=connected`,
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.POSTFORME_API_KEY}`,
+        },
+      }
     );
 
-    if (!tokenResponse.ok) {
-      throw new Error('Error al obtener access token');
+    if (!accountsResponse.ok) {
+      console.error('Error consultando cuentas en Post for Me');
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=server`
+      );
     }
 
-    const tokenData = await tokenResponse.json();
-    const userAccessToken = tokenData.access_token;
+    const accountsData = await accountsResponse.json();
+    console.log('📋 Cuentas encontradas:', JSON.stringify(accountsData, null, 2));
 
-    // Obtener páginas del usuario
-    const pages = await getFacebookPages(userAccessToken);
+    const account = accountsData.data?.[0];
 
-    if (pages.length === 0) {
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=no_pages`);
+    if (!account) {
+      console.error('No se encontró cuenta conectada para:', externalId);
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=server`
+      );
     }
 
-    // Usar la primera página (o permitir que el usuario elija después)
-    const selectedPage = pages[0];
-
-    // Guardar en base de datos
+    // Guardar en Supabase
     const { error: dbError } = await supabaseAdmin
       .from('agents')
       .update({
-        facebook_page_id: selectedPage.id,
-        facebook_page_name: selectedPage.name,
-        facebook_access_token: selectedPage.access_token,
+        postforme_account_id: account.id,         // "spc_xxxxxx"
+        postforme_username: account.username,      // nombre de la página/cuenta
         facebook_connected_at: new Date().toISOString(),
       })
-      .eq('email', state);
+      .eq('email', externalId);
 
     if (dbError) {
       console.error('Error guardando en BD:', dbError);
-      throw new Error('Error al guardar configuración');
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=server`
+      );
     }
 
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?success=true`);
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?success=true`
+    );
   } catch (error: any) {
     console.error('Error en callback:', error);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=server`);
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=server`
+    );
   }
 }

@@ -47,9 +47,9 @@ export default function FacebookSettingsContent() {
     const error = searchParams.get('error');
 
     if (success === 'true') {
-      alert(t('facebook.connectedSuccess'));
-      loadFacebookData();
       router.replace('/settings/facebook');
+      loadFacebookData();
+      alert(t('facebook.connectedSuccess'));
     } else if (error) {
       const errorMessages: Record<string, string> = {
         denied: t('facebook.errorDenied'),

@@ -5,31 +5,25 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
 
-    // Log para ver qué manda Post for Me (útil las primeras veces)
     console.log('📥 Callback params:', Object.fromEntries(searchParams));
 
-    const error = searchParams.get('error');
-    if (error) {
-      console.error('Error OAuth Post for Me:', error);
+    const isSuccess = searchParams.get('isSuccess');
+    const accountIds = searchParams.get('accountIds');
+
+    if (isSuccess !== 'true' || !accountIds) {
+      console.error('Callback sin éxito o sin accountIds');
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=denied`
       );
     }
 
-    // Recuperar la cuenta usando el external_id (email del agente)
-    // que pasamos al crear la auth URL
-    const externalId = searchParams.get('external_id');
+    // Tomar el primer account ID (puede venir varios separados por coma)
+    const accountId = accountIds.split(',')[0].trim();
 
-    if (!externalId) {
-      console.error('No se recibió external_id en callback');
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=invalid`
-      );
-    }
-
-    // Buscar la cuenta recién conectada por external_id
-    const accountsResponse = await fetch(
-      `https://api.postforme.dev/v1/social-accounts?external_id=${encodeURIComponent(externalId)}&platform=facebook&status=connected`,
+    // Consultar Post for Me para obtener los detalles de la cuenta
+    // incluyendo el external_id (email del agente) que pasamos al crear la auth URL
+    const accountResponse = await fetch(
+      `https://api.postforme.dev/v1/social-accounts?id=${accountId}`,
       {
         headers: {
           'Authorization': `Bearer ${process.env.POSTFORME_API_KEY}`,
@@ -37,20 +31,30 @@ export async function GET(req: NextRequest) {
       }
     );
 
-    if (!accountsResponse.ok) {
-      console.error('Error consultando cuentas en Post for Me');
+    if (!accountResponse.ok) {
+      console.error('Error consultando cuenta en Post for Me');
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=server`
       );
     }
 
-    const accountsData = await accountsResponse.json();
-    console.log('📋 Cuentas encontradas:', JSON.stringify(accountsData, null, 2));
+    const accountsData = await accountResponse.json();
+    console.log('📋 Account data:', JSON.stringify(accountsData, null, 2));
 
     const account = accountsData.data?.[0];
 
     if (!account) {
-      console.error('No se encontró cuenta conectada para:', externalId);
+      console.error('No se encontró la cuenta:', accountId);
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=server`
+      );
+    }
+
+    const agentEmail = account.external_id;
+    const username = account.username || null;
+
+    if (!agentEmail) {
+      console.error('La cuenta no tiene external_id (email del agente)');
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=server`
       );
@@ -60,11 +64,11 @@ export async function GET(req: NextRequest) {
     const { error: dbError } = await supabaseAdmin
       .from('agents')
       .update({
-        postforme_account_id: account.id,         // "spc_xxxxxx"
-        postforme_username: account.username,      // nombre de la página/cuenta
+        postforme_account_id: accountId,
+        postforme_username: username,
         facebook_connected_at: new Date().toISOString(),
       })
-      .eq('email', externalId);
+      .eq('email', agentEmail);
 
     if (dbError) {
       console.error('Error guardando en BD:', dbError);
@@ -72,6 +76,8 @@ export async function GET(req: NextRequest) {
         `${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?error=server`
       );
     }
+
+    console.log('✅ Cuenta conectada:', accountId, 'para agente:', agentEmail);
 
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL}/settings/facebook?success=true`

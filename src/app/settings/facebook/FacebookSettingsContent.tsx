@@ -47,9 +47,15 @@ export default function FacebookSettingsContent() {
     const error = searchParams.get('error');
 
     if (success === 'true') {
-      router.replace('/settings/facebook');
+      // 1. Limpiamos la URL nativamente para evitar bucles de Next.js
+      window.history.replaceState(null, '', '/settings/facebook');
+      
+      // 2. Cargamos los datos
       loadFacebookData();
+      
+      // 3. Mostramos la alerta
       alert(t('facebook.connectedSuccess'));
+      
     } else if (error) {
       const errorMessages: Record<string, string> = {
         denied: t('facebook.errorDenied'),
@@ -57,10 +63,12 @@ export default function FacebookSettingsContent() {
         no_pages: t('facebook.errorNoPages'),
         server: t('facebook.errorServer'),
       };
+      
+      // Limpiamos la URL nativamente también para los errores
+      window.history.replaceState(null, '', '/settings/facebook');
       alert(`❌ ${errorMessages[error] || t('common.error')}`);
-      router.replace('/settings/facebook');
     }
-  }, [searchParams, t, router]);
+  }, [searchParams, t]);
 
   const loadFacebookData = async () => {
     try {

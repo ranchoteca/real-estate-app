@@ -88,7 +88,6 @@ export default function SettingsPage() {
       href: '/settings/custom-fields',
       color: '#2563EB',
     },
-    /* TEMPORALMENTE DESHABILITADO - Pendiente aprobación de Facebook
     {
       icon: '📘',
       title: t('settings.options.facebook.title'),
@@ -96,7 +95,6 @@ export default function SettingsPage() {
       href: '/settings/facebook',
       color: '#1877F2',
     },
-    */
     {
       icon: '🔑',
       title: t('settings.options.uploadToken.title'),

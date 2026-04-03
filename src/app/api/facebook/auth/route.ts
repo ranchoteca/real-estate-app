@@ -1,34 +1,23 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getPostForMeAuthUrl } from '@/lib/facebook';
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.email) {
-      return new Response(JSON.stringify({ error: 'No autenticado' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    const appId = process.env.FACEBOOK_APP_ID;
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/facebook/callback`;
-    const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts';
-    
-    const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${encodeURIComponent(session.user.email)}`;
-
-    // ✅ Retornar la URL para que el cliente la abra con window.open()
-    return new Response(JSON.stringify({ authUrl }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const authUrl = await getPostForMeAuthUrl(session.user.email);
+    return NextResponse.json({ authUrl });
   } catch (error: any) {
-    console.error('Error:', error);
-    return new Response(JSON.stringify({ error: 'Error del servidor' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    console.error('Error generando auth URL:', error);
+    return NextResponse.json(
+      { error: error.message || 'Error al generar URL de autenticación' },
+      { status: 500 }
+    );
   }
 }

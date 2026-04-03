@@ -24,6 +24,7 @@
     "next": "^16.1.6",
     "next-auth": "^4.24.11",
     "openai": "^5.23.2",
+    "post-for-me": "^2.7.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "zustand": "^5.0.8"

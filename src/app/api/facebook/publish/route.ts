@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { publishViaPostForMe } from '@/lib/facebook';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { supabaseAdmin } from '@/lib/supabase';
@@ -193,7 +194,7 @@ function handlePublish(propertyId: string) {
       // 1. Obtener datos del agente (agregamos username, full_name, phone)
       const { data: agent, error: agentError } = await supabaseAdmin
         .from('agents')
-        .select('id, username, full_name, name, phone, facebook_page_id, facebook_access_token, fb_ai_enabled, fb_brand_color_primary, fb_brand_color_secondary, fb_template')
+        .select('id, username, full_name, name, phone, postforme_account_id, fb_ai_enabled, fb_brand_color_primary, fb_brand_color_secondary, fb_template')
         .eq('email', userEmail)
         .single();
 
@@ -206,7 +207,7 @@ function handlePublish(propertyId: string) {
 
       console.log('✅ Agent obtenido correctamente:', agent.id);
 
-      if (!agent.facebook_page_id || !agent.facebook_access_token) {
+      if (!agent.postforme_account_id) {
         await sendEvent({ error: 'Facebook no conectado', progress: 0 });
         await writer.close();
         return;
@@ -366,76 +367,15 @@ function handlePublish(propertyId: string) {
       console.log('📝 Mensaje de Facebook construido:');
       console.log(message);
 
-      const pageId = agent.facebook_page_id;
-      const accessToken = agent.facebook_access_token;
+      await sendEvent({ message: 'Publicando en Facebook...', progress: 60 });
 
-      await sendEvent({ message: 'Subiendo imágenes a Facebook...', progress: 60 });
-
-      // 5. Subir todas las imágenes
-      const uploadedPhotoIds: string[] = [];
-      
-      for (let i = 0; i < imageUrls.length; i++) {
-        const imageUrl = imageUrls[i];
-        try {
-          console.log(`📤 Subiendo imagen ${i + 1}/${imageUrls.length}: ${imageUrl}`);
-          
-          const uploadResponse = await fetch(
-            `https://graph.facebook.com/v18.0/${pageId}/photos`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                url: imageUrl,
-                published: false,
-                access_token: accessToken,
-              }),
-            }
-          );
-
-          const uploadData = await uploadResponse.json();
-          
-          if (uploadData.error) {
-            console.error(`❌ Error subiendo imagen ${i + 1}:`, uploadData.error);
-            continue;
-          }
-
-          uploadedPhotoIds.push(uploadData.id);
-          console.log(`✅ Imagen ${i + 1} subida: ${uploadData.id}`);
-        } catch (uploadError) {
-          console.error(`❌ Error en upload de imagen ${i + 1}:`, uploadError);
-        }
-      }
-
-      if (uploadedPhotoIds.length === 0) {
-        throw new Error('No se pudo subir ninguna imagen a Facebook');
-      }
-
-      console.log(`✅ Total de imágenes subidas: ${uploadedPhotoIds.length}`);
-
-      await sendEvent({ message: 'Publicando en Facebook...', progress: 80 });
-
-      // 6. Publicar el post
-      const publishResponse = await fetch(
-        `https://graph.facebook.com/v18.0/${pageId}/feed`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message,
-            attached_media: uploadedPhotoIds.map(id => ({ media_fbid: id })),
-            access_token: accessToken,
-          }),
-        }
+      const post = await publishViaPostForMe(
+        agent.postforme_account_id,
+        message,
+        imageUrls
       );
 
-      const publishData = await publishResponse.json();
-
-      if (publishData.error) {
-        console.error('❌ Error publicando en Facebook:', publishData.error);
-        throw new Error(publishData.error.message);
-      }
-
-      console.log('✅ Publicado en Facebook:', publishData.id);
+      console.log('✅ Publicado via Post for Me:', post.id);
 
       await sendEvent({ message: 'Guardando registro...', progress: 90 });
 
@@ -443,7 +383,7 @@ function handlePublish(propertyId: string) {
       const { error: insertError } = await supabaseAdmin.from('facebook_posts').insert({
         property_id: propertyId,
         agent_id: agent.id,
-        facebook_post_id: publishData.id,
+        facebook_post_id: post.id,
         flyer_url: flyerUrl,
         published_at: new Date().toISOString(),
       });
@@ -456,7 +396,7 @@ function handlePublish(propertyId: string) {
         message: '✅ ¡Publicado exitosamente!', 
         progress: 100,
         success: true,
-        postUrl: `https://facebook.com/${publishData.id}`
+        postUrl: post.id ? `https://facebook.com/${post.id}` : null
       });
 
       console.log('🎉 Proceso completado exitosamente');

@@ -1,101 +1,64 @@
-const FACEBOOK_API_VERSION = 'v18.0';
-const FACEBOOK_GRAPH_URL = `https://graph.facebook.com/${FACEBOOK_API_VERSION}`;
+import PostForMe from 'post-for-me';
 
-export interface FacebookPage {
-  id: string;
-  name: string;
-  access_token: string;
+export const postForMeClient = new PostForMe({
+  apiKey: process.env.POSTFORME_API_KEY!,
+});
+
+// Obtener auth URL para que el agente conecte su Facebook
+// external_id = email del agente, lo recibiremos de vuelta en el callback
+export async function getPostForMeAuthUrl(agentEmail: string): Promise<string> {
+  const response = await fetch('https://api.postforme.dev/v1/social-accounts/auth-url', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.POSTFORME_API_KEY}`,
+    },
+    body: JSON.stringify({
+      platform: 'facebook',
+      external_id: agentEmail,
+      redirect_url_override: `${process.env.NEXT_PUBLIC_APP_URL}/api/facebook/callback`,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Error al obtener URL de autenticación');
+  }
+
+  const data = await response.json();
+  return data.url;
 }
 
-// Obtener páginas del usuario
-export async function getFacebookPages(userAccessToken: string): Promise<FacebookPage[]> {
-  try {
-    const response = await fetch(
-      `${FACEBOOK_GRAPH_URL}/me/accounts?access_token=${userAccessToken}`
-    );
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Error al obtener páginas');
+// Desconectar cuenta en Post for Me
+export async function disconnectPostForMeAccount(accountId: string): Promise<void> {
+  const response = await fetch(
+    `https://api.postforme.dev/v1/social-accounts/${accountId}/disconnect`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.POSTFORME_API_KEY}`,
+      },
     }
-    
-    const data = await response.json();
-    return data.data || [];
-  } catch (error) {
-    console.error('Error en getFacebookPages:', error);
-    throw error;
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Error al desconectar cuenta');
   }
 }
 
-// Publicar en página de Facebook
-export async function publishToFacebookPage(
-  pageAccessToken: string,
-  pageId: string,
-  message: string,
-  link: string,
-  imageUrl?: string
+// Publicar en Facebook via Post for Me
+// Las imágenes son URLs públicas de Supabase, se pasan directo sin re-subir
+export async function publishViaPostForMe(
+  accountId: string,
+  caption: string,
+  mediaUrls: string[]
 ) {
-  try {
-    // ✅ Si hay imagen, publicar como FOTO (no como feed con picture)
-    if (imageUrl) {
-      const params = {
-        url: imageUrl, // URL de la imagen
-        caption: `${message}\n\n🔗 Ver más: ${link}`, // Mensaje + link en el caption
-        access_token: pageAccessToken,
-      };
+  const post = await postForMeClient.socialPosts.create({
+    caption,
+    social_accounts: [accountId],
+    media: mediaUrls.slice(0, 10).map(url => ({ url })),
+  });
 
-      const formBody = new URLSearchParams(params);
-
-      const response = await fetch(
-        `${FACEBOOK_GRAPH_URL}/${pageId}/photos`, // ← endpoint de /photos
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: formBody.toString(),
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Error de Facebook API (foto):', error);
-        throw new Error(error.error?.message || 'Error al publicar foto');
-      }
-
-      return await response.json();
-    }
-
-    // ✅ Sin imagen, publicar como enlace normal (solo link)
-    const params = {
-      message,
-      link,
-      access_token: pageAccessToken,
-      // ❌ NO incluir "picture" aquí - causa el error #100
-    };
-
-    const formBody = new URLSearchParams(params);
-
-    const response = await fetch(
-      `${FACEBOOK_GRAPH_URL}/${pageId}/feed`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formBody.toString(),
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Error de Facebook API (feed):', error);
-      throw new Error(error.error?.message || 'Error al publicar');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error en publishToFacebookPage:', error);
-    throw error;
-  }
+  return post;
 }

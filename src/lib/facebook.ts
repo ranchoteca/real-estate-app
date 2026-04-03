@@ -16,7 +16,6 @@ export async function getPostForMeAuthUrl(agentEmail: string): Promise<string> {
     body: JSON.stringify({
       platform: 'facebook',
       external_id: agentEmail,
-      redirect_url_override: `${process.env.NEXT_PUBLIC_APP_URL}/api/facebook/callback`,
     }),
   });
 

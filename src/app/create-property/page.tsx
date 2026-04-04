@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PhotoUploader from '@/components/property/PhotoUploader';
 import VoiceRecorder from '@/components/property/VoiceRecorder';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
@@ -115,6 +115,8 @@ export default function CreatePropertyPage() {
   const [importingPost, setImportingPost] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'voice' | 'facebook'>('voice');
+  const [visiblePostsCount, setVisiblePostsCount] = useState(5);
+  const lazyLoadRef = useRef<HTMLDivElement>(null);
   
   // Solo tab de voz activo por ahora
   //const [activeTab] = useState<'voice'>('voice');
@@ -145,6 +147,19 @@ export default function CreatePropertyPage() {
       loadCustomFields(propertyType, listingType);
     }
   }, [propertyType, listingType]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisiblePostsCount(prev => Math.min(prev + 5, facebookPosts.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (lazyLoadRef.current) observer.observe(lazyLoadRef.current);
+    return () => observer.disconnect();
+  }, [facebookPosts.length]);
 
   const loadCurrencies = async () => {
     try {
@@ -760,7 +775,24 @@ export default function CreatePropertyPage() {
       setError('Primero selecciona el tipo de propiedad y tipo de operación');
       return;
     }
-    
+
+    // Verificar duplicado
+    try {
+      const checkResp = await fetch(`/api/facebook/check-import?postId=${post.id}`);
+      const { alreadyImported } = await checkResp.json();
+      if (alreadyImported) {
+        const proceed = confirm(
+          propertyLanguage === 'en'
+            ? '⚠️ This post was already imported as a property. Do you want to import it again?'
+            : '⚠️ Este post ya fue importado como propiedad anteriormente. ¿Deseas importarlo de nuevo?'
+        );
+        if (!proceed) return;
+      }
+    } catch (err) {
+      console.warn('No se pudo verificar duplicado:', err);
+    }
+
+    // resto del código sin cambios
     setImportingPost(true);
     setShowImportModal(true);
     setError(null);
@@ -1108,19 +1140,175 @@ export default function CreatePropertyPage() {
             )}
           </div>
 
-          {/* Section 3: Voice Recording */}
+          {/* Section 3: Voice Recording / Facebook Import */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <span>📝</span> {t('createProperty.step3')}
             </h2>
 
-            {/* SOLO VOZ - Facebook temporalmente deshabilitado */}
-            <VoiceRecorder 
-              onRecordingComplete={handleRecordingComplete}
-              minDuration={10}
-              maxDuration={120}
-              instructionLanguage={propertyLanguage}
-            />
+            {/* Tabs Voz / Facebook */}
+            <div className="flex rounded-xl overflow-hidden border-2 border-gray-200 mb-5">
+              <button
+                onClick={() => setActiveTab('voice')}
+                className={`flex-1 py-3 text-sm font-bold transition-colors flex items-center justify-center gap-2 ${
+                  activeTab === 'voice'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                🎙️ {propertyLanguage === 'en' ? 'Voice' : 'Voz'}
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('facebook');
+                  if (facebookPosts.length === 0 && !loadingPosts) loadFacebookPosts();
+                }}
+                className={`flex-1 py-3 text-sm font-bold transition-colors flex items-center justify-center gap-2 ${
+                  activeTab === 'facebook'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                📘 Facebook
+              </button>
+            </div>
+
+            {/* Contenido tab Voz */}
+            {activeTab === 'voice' && (
+              <VoiceRecorder 
+                onRecordingComplete={handleRecordingComplete}
+                minDuration={10}
+                maxDuration={120}
+                instructionLanguage={propertyLanguage}
+              />
+            )}
+
+            {/* Contenido tab Facebook */}
+            {activeTab === 'facebook' && (
+              <div className="space-y-4">
+                {/* Loading */}
+                {loadingPosts && (
+                  <div className="text-center py-10">
+                    <div className="text-5xl mb-3 animate-pulse">📘</div>
+                    <p className="text-sm text-gray-500">
+                      {propertyLanguage === 'en'
+                        ? 'Loading your Facebook posts...'
+                        : 'Cargando tus publicaciones de Facebook...'}
+                    </p>
+                  </div>
+                )}
+
+                {/* Sin posts */}
+                {!loadingPosts && facebookPosts.length === 0 && (
+                  <div className="text-center py-10 px-4">
+                    <div className="text-5xl mb-3">😕</div>
+                    <p className="font-semibold text-gray-700 mb-1">
+                      {propertyLanguage === 'en'
+                        ? 'No posts found'
+                        : 'No se encontraron publicaciones'}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {propertyLanguage === 'en'
+                        ? 'Make sure your Facebook page is connected and has posts.'
+                        : 'Asegúrate de que tu página de Facebook está conectada y tiene publicaciones.'}
+                    </p>
+                    <button
+                      onClick={loadFacebookPosts}
+                      className="mt-4 px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg"
+                    >
+                      🔄 {propertyLanguage === 'en' ? 'Retry' : 'Reintentar'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Lista de posts con lazy load */}
+                {!loadingPosts && facebookPosts.length > 0 && (
+                  <>
+                    <p className="text-xs text-gray-400 text-center">
+                      {propertyLanguage === 'en'
+                        ? `${facebookPosts.length} posts found`
+                        : `${facebookPosts.length} publicaciones encontradas`}
+                    </p>
+
+                    {facebookPosts.slice(0, visiblePostsCount).map((post) => (
+                      <div
+                        key={post.id}
+                        className="border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50"
+                      >
+                        {/* Thumbnail */}
+                        {post.thumbnail && (
+                          <div className="relative w-full h-40 bg-gray-200">
+                            <img
+                              src={post.thumbnail}
+                              alt="Post"
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                            {post.image_count > 1 && (
+                              <div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                📸 {post.image_count}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="p-3">
+                          <p className="text-xs text-gray-400 mb-2">{post.created_time}</p>
+
+                          {post.message && (
+                            <p className="text-sm text-gray-700 line-clamp-3 mb-3">
+                              {post.message}
+                            </p>
+                          )}
+
+                          {!post.has_images && (
+                            <div className="mb-3 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                              <p className="text-xs text-yellow-700 font-semibold">
+                                ⚠️ {propertyLanguage === 'en'
+                                  ? 'This post has no images'
+                                  : 'Esta publicación no tiene imágenes'}
+                              </p>
+                            </div>
+                          )}
+
+                          <button
+                            onClick={() => handleImportPost(post)}
+                            disabled={!post.has_images || importingPost}
+                            className="w-full py-2.5 rounded-xl font-bold text-white text-sm transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                            style={{ backgroundColor: post.has_images ? '#1877F2' : '#9CA3AF' }}
+                          >
+                            {importingPost && selectedPost?.id === post.id ? (
+                              <>
+                                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                </svg>
+                                {propertyLanguage === 'en' ? 'Importing...' : 'Importando...'}
+                              </>
+                            ) : (
+                              <>
+                                <span>📥</span>
+                                {propertyLanguage === 'en' ? 'Import property' : 'Importar propiedad'}
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Lazy load trigger */}
+                    {visiblePostsCount < facebookPosts.length && (
+                      <div
+                        ref={lazyLoadRef}
+                        className="text-center py-4 text-sm text-gray-400 animate-pulse"
+                      >
+                        {propertyLanguage === 'en' ? 'Loading more...' : 'Cargando más...'}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Generate Button */}

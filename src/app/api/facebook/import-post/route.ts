@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     // Obtener agente
     const { data: agent, error: agentError } = await supabaseAdmin
       .from('agents')
-      .select('id, facebook_access_token')
+      .select('id, postforme_account_id')
       .eq('email', session.user.email)
       .single();
 
@@ -32,31 +32,50 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Agente no encontrado' }, { status: 404 });
     }
 
-    if (!agent.facebook_access_token) {
+    if (!agent.postforme_account_id) {
       return NextResponse.json(
         { error: 'No hay página de Facebook vinculada' },
         { status: 400 }
       );
     }
 
+    // Verificar si este post ya fue importado por este agente
+    const { data: existing } = await supabaseAdmin
+      .from('facebook_posts')
+      .select('id')
+      .eq('agent_id', agent.id)
+      .eq('facebook_post_id', postId)
+      .maybeSingle();
+
+    if (existing) {
+      // Retornar un código especial para que el frontend muestre el confirm()
+      return NextResponse.json(
+        { alreadyImported: true },
+        { status: 200 }
+      );
+    }
+
     console.log('📥 Importando post:', postId);
 
-    // 1. OBTENER DETALLES COMPLETOS DEL POST
+    // 1. OBTENER DETALLES DEL POST via Post for Me
     const postResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${postId}?` +
-      `fields=message,attachments{media,subattachments{media}}` +
-      `&access_token=${agent.facebook_access_token}`
+      `https://api.postforme.dev/v1/social-posts/${postId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.POSTFORME_API_KEY}`,
+        },
+      }
     );
 
     if (!postResponse.ok) {
       const errorData = await postResponse.json();
-      throw new Error(errorData.error?.message || 'Error al obtener post de Facebook');
+      throw new Error(errorData.message || 'Error al obtener post de Facebook');
     }
 
     const postData = await postResponse.json();
 
     // 2. EXTRAER TEXTO
-    const text = postData.message || '';
+    const text = postData.caption || postData.message || '';
 
     if (!text || text.trim().length < 50) {
       return NextResponse.json(
@@ -67,66 +86,44 @@ export async function POST(req: NextRequest) {
 
     console.log('📝 Texto extraído:', text.substring(0, 100) + '...');
 
-    // 3. EXTRAER URLs DE IMÁGENES EN ALTA RESOLUCIÓN
-    const fbImageUrls: string[] = [];
-    
-    if (postData.attachments?.data) {
-      for (const attachment of postData.attachments.data) {
-        // Imagen principal
-        if (attachment.media?.image?.src) {
-          fbImageUrls.push(attachment.media.image.src);
-        }
-        
-        // Subattachments (álbumes con múltiples fotos)
-        if (attachment.subattachments?.data) {
-          for (const sub of attachment.subattachments.data) {
-            if (sub.media?.image?.src) {
-              fbImageUrls.push(sub.media.image.src);
-            }
-          }
-        }
+    // 3. EXTRAER URLs DE IMÁGENES
+    const imageUrls: string[] = [];
+
+    if (postData.media && Array.isArray(postData.media)) {
+      for (const media of postData.media) {
+        if (media.url) imageUrls.push(media.url);
       }
     }
 
-    if (fbImageUrls.length === 0) {
+    if (imageUrls.length === 0) {
       return NextResponse.json(
         { error: 'El post no tiene imágenes' },
         { status: 400 }
       );
     }
 
-    console.log(`📸 ${fbImageUrls.length} imágenes encontradas`);
+    console.log(`📸 ${imageUrls.length} imágenes encontradas`);
 
-    // 4. DESCARGAR IMÁGENES DE FACEBOOK Y SUBIR A SUPABASE
-    console.log('📥 Descargando imágenes de Facebook...');
-    
+    // 4. DESCARGAR IMÁGENES Y SUBIR A SUPABASE
     const timestamp = Date.now();
     const tempSlug = `fb-import-${timestamp}`;
     const uploadedImageUrls: string[] = [];
 
-    for (let i = 0; i < fbImageUrls.length; i++) {
-      const fbUrl = fbImageUrls[i];
-      
+    for (let i = 0; i < imageUrls.length; i++) {
       try {
-        console.log(`📥 Descargando imagen ${i + 1}/${fbImageUrls.length}...`);
+        console.log(`📥 Descargando imagen ${i + 1}/${imageUrls.length}...`);
 
-        // Fetch de la imagen desde Facebook
-        const imageResponse = await fetch(fbUrl);
-
+        const imageResponse = await fetch(imageUrls[i]);
         if (!imageResponse.ok) {
           console.warn(`⚠️ No se pudo descargar imagen ${i + 1}`);
           continue;
         }
 
-        // Convertir a buffer
         const arrayBuffer = await imageResponse.arrayBuffer();
         const buffer = new Uint8Array(arrayBuffer);
-
-        // Generar nombre único
         const fileName = `${agent.id}/${tempSlug}/img-${i}.jpg`;
 
-        // Subir a Supabase Storage
-        const { data, error } = await supabaseAdmin.storage
+        const { error } = await supabaseAdmin.storage
           .from('property-photos')
           .upload(fileName, buffer, {
             contentType: 'image/jpeg',
@@ -139,17 +136,14 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // Obtener URL pública
         const { data: publicUrlData } = supabaseAdmin.storage
           .from('property-photos')
           .getPublicUrl(fileName);
 
         uploadedImageUrls.push(publicUrlData.publicUrl);
         console.log(`✅ Imagen ${i + 1} subida a Supabase`);
-
       } catch (err) {
         console.error(`❌ Error procesando imagen ${i + 1}:`, err);
-        continue;
       }
     }
 
@@ -160,11 +154,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`✅ ${uploadedImageUrls.length}/${fbImageUrls.length} imágenes descargadas`);
-
-    // 5. PROCESAR TEXTO CON IA (reutilizar lógica de /api/property/generate)
-    console.log('🤖 Procesando texto con IA...');
-    
+    // 5. PROCESAR TEXTO CON IA
     const propertyData = await processTextWithAI(
       text,
       property_type,
@@ -173,14 +163,19 @@ export async function POST(req: NextRequest) {
       custom_fields || []
     );
 
-    console.log('✅ Datos extraídos por IA:', propertyData);
+    // 6. REGISTRAR LA IMPORTACIÓN en facebook_posts para evitar duplicados futuros
+    await supabaseAdmin.from('facebook_posts').insert({
+      agent_id: agent.id,
+      facebook_post_id: postId,
+      published_at: new Date().toISOString(),
+    });
 
-    // 6. RETORNAR DATOS COMPLETOS
     return NextResponse.json({
       success: true,
+      alreadyImported: false,
       property: {
         ...propertyData,
-        photos: uploadedImageUrls, // URLs de Supabase
+        photos: uploadedImageUrls,
       },
       imageCount: uploadedImageUrls.length,
       source: 'facebook_import',

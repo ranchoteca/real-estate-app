@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     console.log('📱 Obteniendo posts de cuenta Post for Me:', agent.postforme_account_id);
 
     const response = await fetch(
-      `https://api.postforme.dev/v1/social-posts?social_account_id=${agent.postforme_account_id}&limit=50`,
+      `https://api.postforme.dev/v1/social-account-feeds/${agent.postforme_account_id}?limit=50`,
       {
         headers: {
           'Authorization': `Bearer ${process.env.POSTFORME_API_KEY}`,
@@ -56,22 +56,22 @@ export async function GET(req: NextRequest) {
     }
 
     const posts = rawPosts.map((post: any) => {
-      const mediaItems = post.media || [];
+      const mediaItems = Array.isArray(post.media) ? post.media.flat() : [];
       const imageCount = mediaItems.length;
       const thumbnail = mediaItems[0]?.url || null;
 
       return {
-        id: post.id,
+        id: post.platform_post_id,
         message: post.caption || '',
         thumbnail,
-        created_time: new Date(post.created_at || post.published_at).toLocaleDateString('es-ES', {
+        created_time: new Date(post.posted_at).toLocaleDateString('es-ES', {
           year: 'numeric',
           month: 'long',
           day: 'numeric',
         }),
         image_count: imageCount,
         has_images: imageCount > 0,
-        permalink_url: post.permalink_url || null,
+        permalink_url: post.platform_url || null,
       };
     });
 

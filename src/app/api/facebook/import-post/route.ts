@@ -104,16 +104,23 @@ export async function POST(req: NextRequest) {
 
     console.log(`📸 ${imageUrls.length} imágenes encontradas`);
 
-    // 4. DESCARGAR IMÁGENES Y SUBIR A SUPABASE
+    // 4. DESCARGAR IMÁGENES Y SUBIR A SUPABASE (máximo 15)
+    const MAX_PHOTOS = 15;
+    const limitedImageUrls = imageUrls.slice(0, MAX_PHOTOS);
+
+    if (imageUrls.length > MAX_PHOTOS) {
+      console.log(`⚠️ Post tiene ${imageUrls.length} imágenes, limitando a ${MAX_PHOTOS}`);
+    }
+
     const timestamp = Date.now();
     const tempSlug = `fb-import-${timestamp}`;
     const uploadedImageUrls: string[] = [];
 
-    for (let i = 0; i < imageUrls.length; i++) {
+    for (let i = 0; i < limitedImageUrls.length; i++) {
       try {
-        console.log(`📥 Descargando imagen ${i + 1}/${imageUrls.length}...`);
+        console.log(`📥 Descargando imagen ${i + 1}/${limitedImageUrls.length}...`);
 
-        const imageResponse = await fetch(imageUrls[i]);
+        const imageResponse = await fetch(limitedImageUrls[i]);
         if (!imageResponse.ok) {
           console.warn(`⚠️ No se pudo descargar imagen ${i + 1}`);
           continue;

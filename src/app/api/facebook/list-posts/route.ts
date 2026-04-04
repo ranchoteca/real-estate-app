@@ -78,6 +78,13 @@ export async function GET(req: NextRequest) {
       const imageCount = mediaItems.length;
       const thumbnail = mediaItems[0]?.url || null;
 
+      // Detectar si los media son solo videos (no imágenes)
+      const imageItems = mediaItems.filter((m: any) => {
+        const url = m?.url || '';
+        return !url.match(/\.(mp4|mov|avi|webm|mkv)/i);
+      });
+      const onlyVideos = mediaItems.length > 0 && imageItems.length === 0;
+
       return {
         id: post.platform_post_id,
         message: post.caption || '',
@@ -87,8 +94,9 @@ export async function GET(req: NextRequest) {
           month: 'long',
           day: 'numeric',
         }),
-        image_count: imageCount,
-        has_images: imageCount > 0,
+        image_count: imageItems.length,
+        has_images: imageItems.length > 0,
+        only_videos: onlyVideos,
         permalink_url: post.platform_url || null,
         already_imported: importedIds.has(post.platform_post_id),
       };

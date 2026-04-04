@@ -1224,87 +1224,102 @@ export default function CreatePropertyPage() {
                 {/* Lista de posts con lazy load */}
                 {!loadingPosts && facebookPosts.length > 0 && (
                   <>
-                    <p className="text-xs text-gray-400 text-center">
+                    <p className="text-xs text-gray-400 text-center mb-2">
                       {propertyLanguage === 'en'
                         ? `${facebookPosts.length} posts found`
                         : `${facebookPosts.length} publicaciones encontradas`}
                     </p>
 
-                    {facebookPosts.slice(0, visiblePostsCount).map((post) => (
-                      <div
-                        key={post.id}
-                        className="border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50"
-                      >
-                        {/* Thumbnail */}
-                        {post.thumbnail && (
-                          <div className="relative w-full h-40 bg-gray-200">
-                            <img
-                              src={post.thumbnail}
-                              alt="Post"
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
-                            {post.image_count > 1 && (
-                              <div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full font-bold">
-                                📸 {post.image_count}
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        <div className="p-3">
-                          <p className="text-xs text-gray-400 mb-2">{post.created_time}</p>
-
-                          {post.message && (
-                            <p className="text-sm text-gray-700 line-clamp-3 mb-3">
-                              {post.message}
-                            </p>
-                          )}
-
-                          {!post.has_images && (
-                            <div className="mb-3 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-                              <p className="text-xs text-yellow-700 font-semibold">
-                                ⚠️ {propertyLanguage === 'en'
-                                  ? 'This post has no images'
-                                  : 'Esta publicación no tiene imágenes'}
-                              </p>
+                    {/* Contenedor con scroll interno */}
+                    <div
+                      className="overflow-y-auto space-y-4 pr-1"
+                      style={{ maxHeight: '60vh' }}
+                    >
+                      {facebookPosts.slice(0, visiblePostsCount).map((post) => (
+                        <div
+                          key={post.id}
+                          className="border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50"
+                        >
+                          {post.thumbnail && (
+                            <div className="relative w-full h-40 bg-gray-200">
+                              <img
+                                src={post.thumbnail}
+                                alt="Post"
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                              {post.image_count > 1 && (
+                                <div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                  📸 {post.image_count}
+                                </div>
+                              )}
                             </div>
                           )}
 
-                          <button
-                            onClick={() => handleImportPost(post)}
-                            disabled={!post.has_images || importingPost}
-                            className="w-full py-2.5 rounded-xl font-bold text-white text-sm transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                            style={{ backgroundColor: post.has_images ? '#1877F2' : '#9CA3AF' }}
-                          >
-                            {importingPost && selectedPost?.id === post.id ? (
-                              <>
-                                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                </svg>
-                                {propertyLanguage === 'en' ? 'Importing...' : 'Importando...'}
-                              </>
-                            ) : (
-                              <>
-                                <span>📥</span>
-                                {propertyLanguage === 'en' ? 'Import property' : 'Importar propiedad'}
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                          <div className="p-3">
+                            <p className="text-xs text-gray-400 mb-2">{post.created_time}</p>
 
-                    {/* Lazy load trigger */}
-                    {visiblePostsCount < facebookPosts.length && (
-                      <div
-                        ref={lazyLoadRef}
-                        className="text-center py-4 text-sm text-gray-400 animate-pulse"
-                      >
-                        {propertyLanguage === 'en' ? 'Loading more...' : 'Cargando más...'}
-                      </div>
-                    )}
+                            {post.message && (
+                              <p className="text-sm text-gray-700 line-clamp-3 mb-3">
+                                {post.message}
+                              </p>
+                            )}
+
+                            {!post.has_images && (
+                              <div className="mb-3 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <p className="text-xs text-yellow-700 font-semibold">
+                                  ⚠️ {propertyLanguage === 'en'
+                                    ? 'This post has no images'
+                                    : 'Esta publicación no tiene imágenes'}
+                                </p>
+                              </div>
+                            )}
+                            
+                            {post.already_imported && (
+                              <div className="mb-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
+                                <p className="text-xs text-green-700 font-semibold">
+                                  ✅ {propertyLanguage === 'en'
+                                    ? 'Already imported — you can import again if needed'
+                                    : 'Ya importado — puedes volver a importar si lo necesitas'}
+                                </p>
+                              </div>
+                            )}
+
+                            <button
+                              onClick={() => handleImportPost(post)}
+                              disabled={!post.has_images || importingPost}
+                              className="w-full py-2.5 rounded-xl font-bold text-white text-sm transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                              style={{ backgroundColor: post.has_images ? '#1877F2' : '#9CA3AF' }}
+                            >
+                              {importingPost && selectedPost?.id === post.id ? (
+                                <>
+                                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                  </svg>
+                                  {propertyLanguage === 'en' ? 'Importing...' : 'Importando...'}
+                                </>
+                              ) : (
+                                <>
+                                  <span>📥</span>
+                                  {propertyLanguage === 'en' ? 'Import property' : 'Importar propiedad'}
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Lazy load trigger — dentro del scroll */}
+                      {visiblePostsCount < facebookPosts.length && (
+                        <div
+                          ref={lazyLoadRef}
+                          className="text-center py-4 text-sm text-gray-400 animate-pulse"
+                        >
+                          {propertyLanguage === 'en' ? 'Loading more...' : 'Cargando más...'}
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
               </div>

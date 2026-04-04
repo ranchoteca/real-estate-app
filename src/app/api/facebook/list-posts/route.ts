@@ -10,9 +10,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
+    // Obtener agente con ambos campos que necesitamos
     const { data: agent, error: agentError } = await supabaseAdmin
       .from('agents')
-      .select('postforme_account_id')
+      .select('id, postforme_account_id')
       .eq('email', session.user.email)
       .single();
 
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest) {
 
     console.log('📱 Obteniendo posts de cuenta Post for Me:', agent.postforme_account_id);
 
+    // Obtener posts del feed de la cuenta
     const response = await fetch(
       `https://api.postforme.dev/v1/social-account-feeds/${agent.postforme_account_id}?limit=50`,
       {
@@ -55,6 +57,22 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Obtener qué posts ya fueron importados por este agente
+    const platformPostIds = rawPosts
+      .map((p: any) => p.platform_post_id)
+      .filter(Boolean);
+
+    const { data: importedPosts } = await supabaseAdmin
+      .from('facebook_posts')
+      .select('facebook_post_id')
+      .eq('agent_id', agent.id)
+      .in('facebook_post_id', platformPostIds);
+
+    const importedIds = new Set(
+      (importedPosts || []).map(p => p.facebook_post_id)
+    );
+
+    // Formatear posts para el frontend
     const posts = rawPosts.map((post: any) => {
       const mediaItems = Array.isArray(post.media) ? post.media.flat() : [];
       const imageCount = mediaItems.length;
@@ -72,6 +90,7 @@ export async function GET(req: NextRequest) {
         image_count: imageCount,
         has_images: imageCount > 0,
         permalink_url: post.platform_url || null,
+        already_imported: importedIds.has(post.platform_post_id),
       };
     });
 

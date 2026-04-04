@@ -1257,7 +1257,14 @@ export default function CreatePropertyPage() {
                           )}
 
                           <div className="p-3">
-                            <p className="text-xs text-gray-400 mb-2">{post.created_time}</p>
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs text-gray-400">{post.created_time}</p>
+                              {post.has_images && (
+                                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                                  📸 {post.image_count} {propertyLanguage === 'en' ? 'photos' : 'fotos'}
+                                </span>
+                              )}
+                            </div>
 
                             {post.message && (
                               <p className="text-sm text-gray-700 line-clamp-3 mb-3">
@@ -1265,12 +1272,32 @@ export default function CreatePropertyPage() {
                               </p>
                             )}
 
-                            {!post.has_images && (
+                            {post.only_videos && (
+                            <div className="mb-3 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg">
+                              <p className="text-xs text-orange-700 font-semibold">
+                                🎬 {propertyLanguage === 'en'
+                                  ? 'Video only — cannot be imported'
+                                  : 'Solo video — no se puede importar'}
+                              </p>
+                            </div>
+                            )}
+                            {!post.has_images && !post.only_videos && (
                               <div className="mb-3 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
                                 <p className="text-xs text-yellow-700 font-semibold">
                                   ⚠️ {propertyLanguage === 'en'
                                     ? 'This post has no images'
                                     : 'Esta publicación no tiene imágenes'}
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Advertencia de más de 15 fotos */}
+                            {post.image_count > 15 && (
+                              <div className="mb-2 px-3 py-1.5 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <p className="text-xs text-yellow-700 font-semibold">
+                                  ⚠️ {propertyLanguage === 'en'
+                                    ? `This post has ${post.image_count} photos — only the first 15 will be imported`
+                                    : `Esta publicación tiene ${post.image_count} fotos — solo se importarán las primeras 15`}
                                 </p>
                               </div>
                             )}
@@ -1287,7 +1314,7 @@ export default function CreatePropertyPage() {
 
                             <button
                               onClick={() => handleImportPost(post)}
-                              disabled={!post.has_images || importingPost}
+                              disabled={!post.has_images || post.only_videos || importingPost}
                               className="w-full py-2.5 rounded-xl font-bold text-white text-sm transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                               style={{ backgroundColor: post.has_images ? '#1877F2' : '#9CA3AF' }}
                             >

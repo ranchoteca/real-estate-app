@@ -57,9 +57,10 @@ export async function POST(req: NextRequest) {
 
     console.log('📥 Importando post:', postId);
 
-    // 1. OBTENER DETALLES DEL POST via Post for Me
+    // 1. OBTENER DETALLES DEL POST via social-account-feeds
+    // Usamos platform_post_id para filtrar el feed y obtener el post específico
     const postResponse = await fetch(
-      `https://api.postforme.dev/v1/social-posts/${postId}`,
+      `https://api.postforme.dev/v1/social-account-feeds/${agent.postforme_account_id}?platform_post_id=${postId}`,
       {
         headers: {
           'Authorization': `Bearer ${process.env.POSTFORME_API_KEY}`,
@@ -72,10 +73,15 @@ export async function POST(req: NextRequest) {
       throw new Error(errorData.message || 'Error al obtener post de Facebook');
     }
 
-    const postData = await postResponse.json();
+    const feedData = await postResponse.json();
+    const postData = feedData.data?.[0];
+
+    if (!postData) {
+      throw new Error('Post no encontrado en el feed');
+    }
 
     // 2. EXTRAER TEXTO
-    const text = postData.caption || postData.message || '';
+    const text = postData.caption || '';
 
     if (!text || text.trim().length < 50) {
       return NextResponse.json(
@@ -86,12 +92,15 @@ export async function POST(req: NextRequest) {
 
     console.log('📝 Texto extraído:', text.substring(0, 100) + '...');
 
-    // 3. EXTRAER URLs DE IMÁGENES
+    // 3. EXTRAER URLs DE IMÁGENES (excluyendo videos)
     const imageUrls: string[] = [];
 
-    if (postData.media && Array.isArray(postData.media)) {
-      for (const media of postData.media) {
-        if (media.url) imageUrls.push(media.url);
+    if (Array.isArray(postData.media)) {
+      for (const media of postData.media.flat()) {
+        const url = media?.url || '';
+        if (url && !url.match(/\.(mp4|mov|avi|webm|mkv)/i)) {
+          imageUrls.push(url);
+        }
       }
     }
 

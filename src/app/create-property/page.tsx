@@ -1274,6 +1274,16 @@ export default function CreatePropertyPage() {
                                 </p>
                               </div>
                             )}
+                            
+                            {post.already_imported && (
+                              <div className="mb-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
+                                <p className="text-xs text-green-700 font-semibold">
+                                  ✅ {propertyLanguage === 'en'
+                                    ? 'Already imported — you can import again if needed'
+                                    : 'Ya importado — puedes volver a importar si lo necesitas'}
+                                </p>
+                              </div>
+                            )}
 
                             <button
                               onClick={() => handleImportPost(post)}

@@ -164,10 +164,13 @@ export async function POST(req: NextRequest) {
     );
 
     // 6. REGISTRAR LA IMPORTACIÓN en facebook_posts para evitar duplicados futuros
-    await supabaseAdmin.from('facebook_posts').insert({
+    await supabaseAdmin.from('facebook_posts').upsert({
       agent_id: agent.id,
       facebook_post_id: postId,
       published_at: new Date().toISOString(),
+    }, {
+      onConflict: 'agent_id,facebook_post_id',
+      ignoreDuplicates: true,
     });
 
     return NextResponse.json({

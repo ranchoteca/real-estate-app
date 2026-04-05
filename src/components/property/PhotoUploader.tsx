@@ -1,278 +1,112 @@
+// components/property/PhotoUploader.tsx
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useI18nStore } from '@/lib/i18n-store';
-import imageCompression from 'browser-image-compression';
-import { WatermarkConfig } from '@/lib/watermark';
+// ❌ ELIMINADO: import imageCompression from 'browser-image-compression';
 
 interface PhotoUploaderProps {
   onPhotosChange: (files: File[]) => void;
   maxPhotos?: number;
   minPhotos?: number;
-  watermarkConfig?: WatermarkConfig | null;
+  // Ya no usamos watermarkConfig aquí porque lo hará la Edge Function
 }
 
 export default function PhotoUploader({ 
   onPhotosChange, 
   maxPhotos = 10,
   minPhotos = 2,
-  watermarkConfig = null
 }: PhotoUploaderProps) {
   const [previews, setPreviews] = useState<string[]>([]);
   const { t } = useTranslation();
   const { language } = useI18nStore();
   const [files, setFiles] = useState<File[]>([]);
-  const [compressing, setCompressing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const compressImage = async (file: File): Promise<File> => {
-    const options = {
-      maxSizeMB: 0.8,
-      maxWidthOrHeight: 1920,
-      useWebWorker: true,
-      fileType: 'image/jpeg',
+  // Limpiar memoria cuando el componente se desmonta
+  useEffect(() => {
+    return () => {
+      previews.forEach(url => URL.revokeObjectURL(url));
     };
+  }, [previews]);
 
-    try {
-      console.log(`📦 Comprimiendo ${file.name}...`);
-      console.log(`   Tamaño original: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
-      
-      const compressedFile = await imageCompression(file, options);
-      
-      console.log(`   Tamaño comprimido: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
-      console.log(`   ✅ Reducción: ${((1 - compressedFile.size / file.size) * 100).toFixed(1)}%`);
-      
-      return compressedFile;
-    } catch (error) {
-      console.error('Error comprimiendo imagen:', error);
-      return file;
-    }
-  };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length) return;
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
+    const selectedFiles = Array.from(e.target.files);
+    const validFiles = selectedFiles.slice(0, maxPhotos - files.length);
+
+    // 1. Generar URLs locales ultraligeras para el navegador (Magia pura para la RAM)
+    const newPreviews = validFiles.map(file => URL.createObjectURL(file));
     
-    if (files.length + selectedFiles.length > maxPhotos) {
-      alert(language === 'en' 
-        ? `Maximum ${maxPhotos} photos allowed` 
-        : `Máximo ${maxPhotos} fotos permitidas`
-      );
-      return;
-    }
-
-    const validFiles = selectedFiles.filter(file => {
-      const isImage = file.type.startsWith('image/');
-      
-      if (!isImage) {
-        alert(language === 'en'
-          ? `${file.name} is not a valid image`
-          : `${file.name} no es una imagen válida`
-        );
-        return false;
-      }
-      return true;
-    });
-
-    if (validFiles.length === 0) return;
-
-    setCompressing(true);
-
-    try {
-      // Comprimir todas las imágenes de forma secuencial para evitar race conditions
-      const processedFiles: File[] = [];
-
-      for (const file of validFiles) {
-        const compressed = await compressImage(file);
-        let finalFile = compressed;
-        
-        try {
-          // 1. Aplicar logo en esquina (si está habilitado)
-          if (watermarkConfig?.useCornerLogo && watermarkConfig?.cornerLogoUrl) {
-            const { applyCornerLogo } = await import('@/lib/watermark');
-            finalFile = await applyCornerLogo(finalFile, {
-              logoUrl: watermarkConfig.cornerLogoUrl,
-              position: watermarkConfig.position,
-              size: watermarkConfig.size,
-            });
-            console.log('✅ Logo en esquina aplicado a', file.name);
-          }
-
-          // 2. Aplicar watermark centrado (si está habilitado)
-          if (watermarkConfig?.useWatermark && watermarkConfig?.watermarkUrl) {
-            const { applyCenterWatermark } = await import('@/lib/watermark');
-            finalFile = await applyCenterWatermark(finalFile, {
-              logoUrl: watermarkConfig.watermarkUrl,
-              opacity: watermarkConfig.opacity,
-              scale: watermarkConfig.scale,
-            });
-            console.log('✅ Watermark centrado aplicado a', file.name);
-          }
-
-          // 3. Si no hay ni logo ni watermark, aplicar texto por defecto
-          if (!watermarkConfig?.useCornerLogo && !watermarkConfig?.useWatermark) {
-            const { applyDefaultText } = await import('@/lib/watermark');
-            finalFile = await applyDefaultText(finalFile);
-            console.log('✅ Texto por defecto aplicado a', file.name);
-          }
-        } catch (err) {
-          console.error('Error aplicando marcas:', err);
-          // Si falla, usar imagen comprimida sin marcas
-          finalFile = compressed;
-        }
-        
-        processedFiles.push(finalFile);
-      }
-
-      // Crear previews después de que todas estén comprimidas
-      const newPreviews = processedFiles.map(file => {
-        try {
-          return URL.createObjectURL(file);
-        } catch (err) {
-          console.error('Error creando preview:', err);
-          return ''; // Preview vacío en caso de error
-        }
-      }).filter(url => url !== ''); // Filtrar previews fallidos
-      
-      const updatedFiles = [...files, ...processedFiles];
-      const updatedPreviews = [...previews, ...newPreviews];
-      
-      setFiles(updatedFiles);
-      setPreviews(updatedPreviews);
-      onPhotosChange(updatedFiles);
-    } catch (error) {
-      console.error('Error procesando imágenes:', error);
-      alert(language === 'en'
-        ? 'Error processing images. Please try again.'
-        : 'Error al procesar las imágenes. Intenta subirlas de nuevo.'
-      );
-    } finally {
-      setCompressing(false);
-      // Reset input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  const removePhoto = (index: number) => {
-    URL.revokeObjectURL(previews[index]);
+    setPreviews(prev => [...prev, ...newPreviews]);
     
-    const updatedFiles = files.filter((_, i) => i !== index);
-    const updatedPreviews = previews.filter((_, i) => i !== index);
-    
+    // 2. Actualizar estado y pasar los archivos CRUDOS al padre
+    const updatedFiles = [...files, ...validFiles];
     setFiles(updatedFiles);
+    onPhotosChange(updatedFiles);
+  };
+
+  const removePhoto = (indexToRemove: number) => {
+    URL.revokeObjectURL(previews[indexToRemove]); // Liberar memoria
+    const updatedPreviews = previews.filter((_, index) => index !== indexToRemove);
+    const updatedFiles = files.filter((_, index) => index !== indexToRemove);
+    
     setPreviews(updatedPreviews);
+    setFiles(updatedFiles);
     onPhotosChange(updatedFiles);
   };
 
   return (
     <div className="w-full">
-      {/* Contador y botón */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold text-gray-900">
-          {t('photoUploader.photosCount')} ({files.length}/{maxPhotos})
-        </h3>
-        <label className="cursor-pointer">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleFileSelect}
-            disabled={files.length >= maxPhotos || compressing}
-            className="hidden"
-          />
-          <span 
-            className={`px-4 py-2 rounded-xl font-semibold text-white shadow-lg active:scale-95 transition-transform inline-block ${
-              files.length >= maxPhotos || compressing ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600'
-            }`}
-          >
-            {compressing 
-              ? `⏳ ${language === 'en' ? 'Compressing...' : 'Comprimiendo...'}` 
-              : `➕ ${t('photoUploader.addButton')}`
-            }
-          </span>
-        </label>
-      </div>
+      {/* Input oculto */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        multiple
+        accept="image/jpeg, image/png, image/webp"
+        className="hidden"
+      />
 
-      {/* Preview Grid */}
       {previews.length > 0 ? (
-        <div>
-          <p className="text-xs mb-2 opacity-70 text-gray-900">
-            {t('photoUploader.new')}:
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            {previews.map((preview, index) => (
-              <div key={index} className="relative aspect-square rounded-xl overflow-hidden">
-                <Image
-                  src={preview}
-                  alt={`Photo ${index + 1}`}
-                  fill
-                  className="object-cover"
-                />
-                
-                {/* Botón eliminar */}
-                <button
-                  type="button"
-                  onClick={() => removePhoto(index)}
-                  className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
-                >
-                  ✕
-                </button>
-                
-                {/* Badge Principal (primera foto) o Nueva (resto) */}
-                {index === 0 ? (
-                  <div 
-                    className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-xs font-bold text-white"
-                    style={{ backgroundColor: '#2563EB' }}
-                  >
-                    {t('photoUploader.principal')}
-                  </div>
-                ) : (
-                  <div className="absolute bottom-1 right-1 px-2 py-0.5 rounded text-xs font-bold text-white bg-green-500">
-                    {t('photoUploader.new')}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          
-          {/* Advertencia si no hay suficientes fotos */}
-          {files.length < minPhotos && (
-            <p className="text-xs mt-2 text-red-600">
-              ⚠️ {language === 'en' 
-                ? `Minimum ${minPhotos} photos required` 
-                : `Mínimo ${minPhotos} fotos requeridas`
-              }
-            </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {previews.map((preview, index) => (
+            <div key={index} className="relative aspect-square rounded-xl overflow-hidden shadow-sm group">
+              <Image src={preview} alt={`Preview ${index}`} fill className="object-cover" />
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  removePhoto(index);
+                }}
+                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full shadow-md hover:bg-red-600 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          ))}
+          {previews.length < maxPhotos && (
+             <div 
+               onClick={() => fileInputRef.current?.click()}
+               className="aspect-square border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center cursor-pointer hover:border-blue-500 bg-gray-50"
+             >
+               <span className="text-2xl text-gray-400">+</span>
+             </div>
           )}
         </div>
       ) : (
-        /* Estado vacío */
         <div 
-          className="w-full py-12 px-6 border-2 border-dashed rounded-xl cursor-pointer hover:border-blue-500 transition-colors"
-          style={{ borderColor: '#E5E7EB' }}
           onClick={() => fileInputRef.current?.click()}
+          className="w-full py-12 px-6 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-500 flex flex-col items-center gap-2"
         >
-          <div className="flex flex-col items-center gap-2">
-            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p className="text-sm text-gray-600 font-semibold">
-              {t('photoUploader.clickToUpload')}
-            </p>
-            <p className="text-xs text-gray-400">
-              {language === 'en' 
-                ? `Minimum ${minPhotos} photos • Maximum ${maxPhotos} photos` 
-                : `Mínimo ${minPhotos} fotos • Máximo ${maxPhotos} fotos`
-              }
-            </p>
-            <p className="text-xs text-gray-400">
-              {t('photoUploader.autoCompress')}
-            </p>
-          </div>
+          <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span className="text-gray-600 font-medium">{t('uploadPhotos')}</span>
         </div>
       )}
     </div>

@@ -12,6 +12,7 @@ import { uploadVideoToMux, waitForPlaybackId } from '@/lib/muxUpload';
 import MobileLayout from '@/components/MobileLayout';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useI18nStore } from '@/lib/i18n-store';
+import { createClient } from '@supabase/supabase-js';
 
 import { SUPPORTED_COUNTRIES, CountryCode } from '@/lib/google-maps-config';
 
@@ -54,11 +55,18 @@ interface Currency {
   is_default: boolean;
 }
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 export default function CreatePropertyPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { t } = useTranslation();
   const { language } = useI18nStore();
+
+  // Supabase client
+  const [agentId, setAgentId] = useState<string | null>(null);
 
   // Step 1: Photos
   const [photos, setPhotos] = useState<File[]>([]);
@@ -199,6 +207,7 @@ export default function CreatePropertyPage() {
       const response = await fetch('/api/agent/profile');
       if (response.ok) {
         const data = await response.json();
+        setAgentId(data.agent.id);
         setWatermarkConfig({
           // Logo en esquina
           useCornerLogo: data.agent.use_corner_logo ?? true,
@@ -427,45 +436,43 @@ export default function CreatePropertyPage() {
     }
   };
 
-  const uploadPhotosWithSlug = async (files: File[], slug: string): Promise<string[]> => {
-    const batchSize = 1;
+  const uploadPhotosDirectly = async (files: File[], slug: string, agent_id: string): Promise<string[]> => {
     const allUrls: string[] = [];
 
-    for (let i = 0; i < files.length; i += batchSize) {
-      const batch = files.slice(i, i + batchSize);
-      const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const timestamp = Date.now();
       
-      batch.forEach(file => {
-        formData.append('photos', file);
-      });
-      
-      formData.append('propertySlug', slug);
+      // La misma estructura de carpetas que usabas antes
+      const filePath = `${agent_id}/${slug}/foto-${timestamp}-${i}.${fileExt}`;
 
-      const batchNumber = Math.floor(i / batchSize) + 1;
-      const totalBatches = Math.ceil(files.length / batchSize);
-      console.log(`📤 Subiendo lote ${batchNumber}/${totalBatches} (${batch.length} fotos)...`);
+      console.log(`📤 Subiendo directo a Supabase: ${filePath}...`);
 
-      try {
-        const response = await fetch('/api/property/upload-photos', {
-          method: 'POST',
-          body: formData,
+      // 1. Subir al bucket TEMPORAL directamente desde el navegador
+      const { data, error } = await supabase.storage
+        .from('temp-originals')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
         });
 
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || `Error al subir fotos en lote ${batchNumber}`);
-        }
-
-        const data = await response.json();
-        allUrls.push(...data.urls);
-        console.log(`✅ Lote ${batchNumber} completado (${data.count} fotos)`);
-      } catch (error) {
-        console.error('Error subiendo fotos:', error);
-        throw error;
+      if (error) {
+        console.error(`❌ Error subiendo foto ${i + 1}:`, error);
+        throw new Error(`Error al subir la foto ${i + 1}`);
       }
+
+      // 2. Predecir la URL pública FINAL
+      // Generamos la URL apuntando al bucket 'property-photos' porque 
+      // ahí es donde la Edge Function moverá la imagen en un par de segundos.
+      const { data: publicUrlData } = supabase.storage
+        .from('property-photos')
+        .getPublicUrl(filePath);
+
+      allUrls.push(publicUrlData.publicUrl);
     }
 
-    console.log(`✅ Total: ${allUrls.length} fotos subidas`);
+    console.log(`✅ Total: ${allUrls.length} fotos subidas a temp-originals`);
     return allUrls;
   };
 
@@ -588,13 +595,16 @@ export default function CreatePropertyPage() {
       // Paso 2: Subir fotos
       updateStep(2, 'active');
       let photoUrls: string[] = [];
-
       if (activeTab === 'facebook' && tempPhotoUrls.length > 0) {
         console.log('📸 Usando fotos importadas de Facebook');
         photoUrls = tempPhotoUrls;
       } else if (photos.length > 0) {
-        console.log(`📤 Subiendo ${photos.length} fotos nuevas...`);
-        photoUrls = await uploadPhotosWithSlug(photos, slug);
+        console.log(`📤 Subiendo ${photos.length} fotos nuevas directo a Supabase...`);
+        
+        if (!agentId) throw new Error("No se pudo obtener el ID del agente para la subida");
+        
+        // LLAMAMOS A LA NUEVA FUNCIÓN AQUÍ
+        photoUrls = await uploadPhotosDirectly(photos, slug, agentId); 
       }
       updateStep(2, 'completed', language === 'en' ? `✓ Photos uploaded (${photoUrls.length})` : `✓ Fotos subidas (${photoUrls.length})`);
 
@@ -652,9 +662,27 @@ export default function CreatePropertyPage() {
         }
       }
 
+      // ==========================================
       // Último paso: Finalizar
+      // ==========================================
       const lastStep = hasVideos ? 5 : 3;
-      updateStep(lastStep, 'active');
+      
+      // 1. Avisamos al agente que las fotos se están procesando
+      updateStep(
+        lastStep, 
+        'active', 
+        language === 'en' ? 'Finalizing image processing...' : 'Finalizando el procesamiento de imágenes...'
+      );
+
+      // 2. Agregamos una pausa artificial de 5 segundos para darle tiempo a la Edge Function
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      // 3. Volvemos a actualizar el texto justo antes de guardar en la base de datos
+      updateStep(
+        lastStep, 
+        'active', 
+        language === 'en' ? 'Finalizing property...' : 'Finalizando propiedad...'
+      );
 
       const updateResponse = await fetch(`/api/property/update/${propertyId}`, {
         method: 'PUT',
@@ -672,14 +700,17 @@ export default function CreatePropertyPage() {
         console.log(`✅ Fotos y video actualizados en la propiedad`);
       }
 
+      // 4. Completamos el modal
       updateStep(lastStep, 'completed', language === 'en' ? '✓ All done!' : '✓ ¡Todo listo!');
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       setTempPhotoUrls([]);
       setPhotos([]);
       setVideos([]);
       setPublishingModalOpen(false);
+      
+      // Redirección final
       router.push(`/p/${slug}`);
 
     } catch (err) {

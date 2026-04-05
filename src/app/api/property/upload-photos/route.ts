@@ -1,3 +1,4 @@
+// Used just in uploading images from url token functionality (Custom module)
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseAdmin } from '@/lib/supabase';

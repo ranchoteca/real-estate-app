@@ -12,7 +12,7 @@ import { uploadVideoToMux, waitForPlaybackId } from '@/lib/muxUpload';
 import MobileLayout from '@/components/MobileLayout';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useI18nStore } from '@/lib/i18n-store';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@supabase/supabase-js';
 
 import { SUPPORTED_COUNTRIES, CountryCode } from '@/lib/google-maps-config';
 
@@ -55,8 +55,11 @@ interface Currency {
   is_default: boolean;
 }
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 export default function CreatePropertyPage() {
-  const supabase = createClientComponentClient();
   const { data: session, status } = useSession();
   const router = useRouter();
   const { t } = useTranslation();

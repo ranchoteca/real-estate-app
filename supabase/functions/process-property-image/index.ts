@@ -30,8 +30,7 @@ serve(async (req) => {
       .getPublicUrl(filePath, {
         transform: {
           width: 1200,
-          quality: 80,
-          format: 'webp',
+          quality: 80
         },
       });
 
@@ -86,7 +85,7 @@ serve(async (req) => {
     // ==========================================
     // PASO D: Subir al Bucket Final
     // ==========================================
-    const outputBuffer = await finalImage.encode(3); // Calidad WebP 3 (Buena)
+    const outputBuffer = await finalImage.encodeWEBP(80);
 
     const { error: uploadError } = await supabase
       .storage

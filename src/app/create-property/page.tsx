@@ -71,7 +71,6 @@ export default function CreatePropertyPage() {
   // Step 1: Photos
   const [photos, setPhotos] = useState<File[]>([]);
   const [tempPhotoUrls, setTempPhotoUrls] = useState<string[]>([]);
-  const [watermarkConfig, setWatermarkConfig] = useState<any>(null);
   
   // Videos
   const [videos, setVideos] = useState<File[]>([]);
@@ -145,7 +144,6 @@ export default function CreatePropertyPage() {
     if (session) {
       loadCurrencies();
       loadAgentDefaultCurrency();
-      loadWatermarkConfig();
     }
   }, [session]);
 
@@ -199,31 +197,6 @@ export default function CreatePropertyPage() {
       }
     } catch (err) {
       console.error('Error al cargar divisa del agente:', err);
-    }
-  };
-
-  const loadWatermarkConfig = async () => {
-    try {
-      const response = await fetch('/api/agent/profile');
-      if (response.ok) {
-        const data = await response.json();
-        setAgentId(data.agent.id);
-        setWatermarkConfig({
-          // Logo en esquina
-          useCornerLogo: data.agent.use_corner_logo ?? true,
-          cornerLogoUrl: data.agent.watermark_logo || null,
-          position: data.agent.watermark_position || 'bottom-right',
-          size: data.agent.watermark_size || 'medium',
-          
-          // Watermark centrado
-          useWatermark: data.agent.use_watermark ?? false,
-          watermarkUrl: data.agent.watermark_image || null,
-          opacity: data.agent.watermark_opacity || 30,
-          scale: data.agent.watermark_scale || 50,
-        });
-      }
-    } catch (err) {
-      console.error('Error loading watermark config:', err);
     }
   };
 
@@ -956,7 +929,6 @@ export default function CreatePropertyPage() {
               onPhotosChange={handlePhotosChange}
               minPhotos={2}
               maxPhotos={15}
-              watermarkConfig={watermarkConfig}
             />
             
             {/* Videos - NUEVO */}

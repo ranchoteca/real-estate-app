@@ -34,56 +34,99 @@ serve(async (req) => {
         },
       });
 
-    console.log(`URL de transformación generada: ${urlData.publicUrl}`);
-
     const imageResponse = await fetch(urlData.publicUrl);
-    if (!imageResponse.ok) {
-       const errorText = await imageResponse.text();
-       throw new Error(`Fallo en ImgProxy (HTTP ${imageResponse.status}): ${errorText}`);
-    }
+    if (!imageResponse.ok) throw new Error(`Fallo en ImgProxy`);
 
     const compressedBlob = await imageResponse.blob();
     const mainImageBuffer = new Uint8Array(await compressedBlob.arrayBuffer());
     let finalImage = await decode(mainImageBuffer) as Image;
 
     // ==========================================
-    // PASO B: Obtener Marcas de Agua (Búsqueda Dinámica)
+    // PASO B: Consultar Configuración Exacta en Base de Datos
     // ==========================================
-    const { data: watermarkFiles } = await supabase.storage.from('watermarks').list(agentId);
+    // Asumimos que tu tabla se llama 'agents'. Si se llama diferente, ajusta el nombre.
+    const { data: agentSettings, error: dbError } = await supabase
+      .from('agents')
+      .select('use_corner_logo, watermark_logo, use_watermark, watermark_image, watermark_opacity, watermark_scale')
+      .eq('id', agentId)
+      .single();
 
     let logoBlob = null;
     let centerBlob = null;
+    let opacity = 0.3; // Default 30%
+    let scalePercentage = 0.5; // Default 50% del tamaño de la foto
 
-    if (watermarkFiles && watermarkFiles.length > 0) {
-      // Buscar archivos que empiecen con 'logo' o 'watermark' (independientemente del timestamp)
-      const logoFile = watermarkFiles.find(f => f.name.toLowerCase().startsWith('logo'));
-      const centerFile = watermarkFiles.find(f => f.name.toLowerCase().startsWith('logo_watermark') || f.name.toLowerCase().startsWith('watermark'));
-
-      if (logoFile) {
-        const { data } = await supabase.storage.from('watermarks').download(`${agentId}/${logoFile.name}`);
-        logoBlob = data;
+    if (agentSettings && !dbError) {
+      console.log("✅ Configuración de agente obtenida de la BD");
+      
+      // Respetar la opacidad (Si BD dice 40, lo convertimos a 0.4)
+      if (agentSettings.watermark_opacity) {
+        opacity = agentSettings.watermark_opacity / 100;
       }
-      if (centerFile) {
-        const { data } = await supabase.storage.from('watermarks').download(`${agentId}/${centerFile.name}`);
-        centerBlob = data;
+
+      // Respetar la escala (Si BD dice 60%, lo convertimos a 0.6)
+      if (agentSettings.watermark_scale) {
+        scalePercentage = agentSettings.watermark_scale / 100;
+      }
+
+      // Descargar Logo (Si está activo y existe)
+      if (agentSettings.use_corner_logo && agentSettings.watermark_logo) {
+        try {
+            // Si la URL guardada ya es un link http directo
+            if (agentSettings.watermark_logo.startsWith('http')) {
+                const res = await fetch(agentSettings.watermark_logo);
+                if (res.ok) logoBlob = await res.blob();
+            } else {
+                // Si es solo el path dentro del bucket
+                const { data } = await supabase.storage.from('watermarks').download(agentSettings.watermark_logo);
+                logoBlob = data;
+            }
+        } catch (e) { console.warn("No se pudo descargar el logo esquinero"); }
+      }
+
+      // Descargar Marca de Agua Central (Si está activa y existe)
+      if (agentSettings.use_watermark && agentSettings.watermark_image) {
+        try {
+            if (agentSettings.watermark_image.startsWith('http')) {
+                const res = await fetch(agentSettings.watermark_image);
+                if (res.ok) centerBlob = await res.blob();
+            } else {
+                const { data } = await supabase.storage.from('watermarks').download(agentSettings.watermark_image);
+                centerBlob = data;
+            }
+        } catch (e) { console.warn("No se pudo descargar la marca de agua central"); }
       }
     }
 
     // ==========================================
-    // PASO C: Aplicar Marcas
+    // PASO C: Aplicar Marcas Respetando Configuraciones
     // ==========================================
     if (centerBlob) {
       const centerBuffer = new Uint8Array(await centerBlob.arrayBuffer())
-      const centerWatermark = await decode(centerBuffer) as Image
-      centerWatermark.opacity(0.3)
-      const centerX = (finalImage.width / 2) - (centerWatermark.width / 2)
-      const centerY = (finalImage.height / 2) - (centerWatermark.height / 2)
-      finalImage.composite(centerWatermark, centerX, Math.max(0, centerY))
+      let centerWatermark = await decode(centerBuffer) as Image
+      
+      // Ajustar el tamaño de la marca de agua respecto al tamaño final de la foto
+      const targetWidth = Math.floor(finalImage.width * scalePercentage);
+      const ratio = targetWidth / centerWatermark.width;
+      centerWatermark.resize(targetWidth, Math.floor(centerWatermark.height * ratio));
+
+      // Aplicar Opacidad Dinámica
+      centerWatermark.opacity(opacity);
+      
+      const centerX = Math.floor((finalImage.width / 2) - (centerWatermark.width / 2))
+      const centerY = Math.floor((finalImage.height / 2) - (centerWatermark.height / 2))
+      finalImage.composite(centerWatermark, Math.max(0, centerX), Math.max(0, centerY))
     }
 
     if (logoBlob) {
       const logoBuffer = new Uint8Array(await logoBlob.arrayBuffer())
-      const logoImage = await decode(logoBuffer) as Image
+      let logoImage = await decode(logoBuffer) as Image
+      
+      // Ajustar logo a un 15% del tamaño de la foto (puedes ajustar este número)
+      const targetLogoWidth = Math.floor(finalImage.width * 0.15);
+      const logoRatio = targetLogoWidth / logoImage.width;
+      logoImage.resize(targetLogoWidth, Math.floor(logoImage.height * logoRatio));
+
       const padding = 20;
       const cornerX = finalImage.width - logoImage.width - padding
       const cornerY = finalImage.height - logoImage.height - padding
@@ -91,11 +134,10 @@ serve(async (req) => {
     }
 
     // ==========================================
-    // PASO D: Subir al Bucket Final
+    // PASO D: Subir al Bucket Final (.jpg)
     // ==========================================
     const outputBuffer = await finalImage.encodeJPEG(80); 
 
-    // Asegúrate de que el nombre del archivo termine en .jpg
     let finalPath = filePath;
     if (finalPath.endsWith('.webp') || finalPath.endsWith('.png')) {
         finalPath = finalPath.replace(/\.(webp|png)$/i, '.jpg');
@@ -109,13 +151,12 @@ serve(async (req) => {
         upsert: true
       });
 
+    if (uploadError) throw uploadError;
+
     // ==========================================
     // PASO E: Auto-limpieza
     // ==========================================
-    const { error: removeError } = await supabase.storage.from('temp-originals').remove([filePath]);
-    if (removeError) {
-        console.warn(`No se pudo borrar la imagen temporal: ${removeError.message}`);
-    }
+    await supabase.storage.from('temp-originals').remove([filePath]);
 
     console.log(`✅ Proceso completado exitosamente para: ${filePath}`);
 
@@ -125,8 +166,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("❌ Error CRÍTICO en Edge Function:", error);
-    // Ahora sí enviamos el error real al panel de Logs
-    return new Response(JSON.stringify({ error: error.message, stack: error.stack }), { status: 500 });
+    console.error("❌ Error en Edge Function:", error);
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 })

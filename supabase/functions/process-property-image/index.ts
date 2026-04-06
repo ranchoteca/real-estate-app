@@ -23,20 +23,19 @@ serve(async (req) => {
     // ==========================================
     // PASO A: Obtener la imagen transformada vía Fetch Directo
     // ==========================================
-    // Obtenemos la URL pública con los parámetros de transformación integrados
     const { data: urlData } = supabase
       .storage
       .from('temp-originals')
       .getPublicUrl(filePath, {
         transform: {
           width: 1200,
-          quality: 80
+          quality: 80,
+          resize: 'contain'
         },
       });
 
     console.log(`URL de transformación generada: ${urlData.publicUrl}`);
 
-    // Descargamos la imagen ya procesada por el motor de Supabase
     const imageResponse = await fetch(urlData.publicUrl);
     if (!imageResponse.ok) {
        const errorText = await imageResponse.text();
@@ -48,18 +47,19 @@ serve(async (req) => {
     let finalImage = await decode(mainImageBuffer) as Image;
 
     // ==========================================
-    // PASO B: Obtener Marcas de Agua (Con fetch seguro)
+    // PASO B: Obtener Marcas de Agua (Con Supabase Download)
     // ==========================================
-    const { data: logoUrlData } = supabase.storage.from('watermarks').getPublicUrl(`${agentId}/logo.png`);
-    const { data: centerUrlData } = supabase.storage.from('watermarks').getPublicUrl(`${agentId}/watermark.png`);
+    // Usamos .download() en lugar de getPublicUrl + fetch para evitar problemas de permisos
+    
+    const { data: logoBlob, error: logoError } = await supabase.storage.from('watermarks').download(`${agentId}/logo.png`);
+    if (logoError) {
+      console.warn(`No se encontró logo para el agente ${agentId}:`, logoError.message);
+    }
 
-    const logoResponse = await fetch(logoUrlData.publicUrl);
-    let logoBlob = null;
-    if (logoResponse.ok) logoBlob = await logoResponse.blob();
-
-    const centerResponse = await fetch(centerUrlData.publicUrl);
-    let centerBlob = null;
-    if (centerResponse.ok) centerBlob = await centerResponse.blob();
+    const { data: centerBlob, error: centerError } = await supabase.storage.from('watermarks').download(`${agentId}/watermark.png`);
+    if (centerError) {
+      console.warn(`No se encontró marca de agua central para el agente ${agentId}:`, centerError.message);
+    }
 
     // ==========================================
     // PASO C: Aplicar Marcas

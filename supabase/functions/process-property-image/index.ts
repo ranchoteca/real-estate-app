@@ -85,7 +85,7 @@ serve(async (req) => {
     // ==========================================
     // PASO D: Subir al Bucket Final
     // ==========================================
-    const outputBuffer = await finalImage.encode(3); 
+    const outputBuffer = await finalImage.encodeJPEG(80); 
 
     // Asegúrate de que el nombre del archivo termine en .jpg
     let finalPath = filePath;
@@ -97,13 +97,9 @@ serve(async (req) => {
       .storage
       .from('property-photos')
       .upload(finalPath, outputBuffer, {
-        contentType: 'image/jpeg', // Cambiado a JPEG
+        contentType: 'image/jpeg', 
         upsert: true
       });
-
-    if (uploadError) {
-        throw new Error(`Error subiendo al bucket final: ${uploadError.message}`);
-    }
 
     // ==========================================
     // PASO E: Auto-limpieza

@@ -18,10 +18,8 @@ serve(async (req) => {
     const filePath = record.name;
     const agentId = filePath.split('/')[0];
 
-    console.log(`🚀 Iniciando proceso para imagen: ${filePath}`);
-
     // ==========================================
-    // PASO A: Obtener la imagen transformada vía Fetch Directo
+    // PASO A: Obtener la imagen transformada
     // ==========================================
     const { data: urlData } = supabase
       .storage
@@ -42,49 +40,46 @@ serve(async (req) => {
     let finalImage = await decode(mainImageBuffer) as Image;
 
     // ==========================================
-    // PASO B: Consultar Configuración Exacta en Base de Datos
+    // PASO B: Consultar Configuración Exacta (Añadí position y size)
     // ==========================================
-    // Asumimos que tu tabla se llama 'agents'. Si se llama diferente, ajusta el nombre.
     const { data: agentSettings, error: dbError } = await supabase
       .from('agents')
-      .select('use_corner_logo, watermark_logo, use_watermark, watermark_image, watermark_opacity, watermark_scale')
+      // Añadimos watermark_position y watermark_size a la consulta
+      .select('use_corner_logo, watermark_logo, watermark_position, watermark_size, use_watermark, watermark_image, watermark_opacity, watermark_scale')
       .eq('id', agentId)
       .single();
 
     let logoBlob = null;
     let centerBlob = null;
-    let opacity = 0.3; // Default 30%
-    let scalePercentage = 0.5; // Default 50% del tamaño de la foto
+    
+    // Variables por defecto
+    let opacity = 0.3; 
+    let scalePercentage = 0.5; 
+    let logoPosition = 'bottom-right';
+    let logoSize = 'medium';
 
     if (agentSettings && !dbError) {
-      console.log("✅ Configuración de agente obtenida de la BD");
+      if (agentSettings.watermark_opacity) opacity = agentSettings.watermark_opacity / 100;
+      if (agentSettings.watermark_scale) scalePercentage = agentSettings.watermark_scale / 100;
       
-      // Respetar la opacidad (Si BD dice 40, lo convertimos a 0.4)
-      if (agentSettings.watermark_opacity) {
-        opacity = agentSettings.watermark_opacity / 100;
-      }
+      // Capturamos las preferencias del logo
+      if (agentSettings.watermark_position) logoPosition = agentSettings.watermark_position;
+      if (agentSettings.watermark_size) logoSize = agentSettings.watermark_size;
 
-      // Respetar la escala (Si BD dice 60%, lo convertimos a 0.6)
-      if (agentSettings.watermark_scale) {
-        scalePercentage = agentSettings.watermark_scale / 100;
-      }
-
-      // Descargar Logo (Si está activo y existe)
+      // Descargar Logo
       if (agentSettings.use_corner_logo && agentSettings.watermark_logo) {
         try {
-            // Si la URL guardada ya es un link http directo
             if (agentSettings.watermark_logo.startsWith('http')) {
                 const res = await fetch(agentSettings.watermark_logo);
                 if (res.ok) logoBlob = await res.blob();
             } else {
-                // Si es solo el path dentro del bucket
                 const { data } = await supabase.storage.from('watermarks').download(agentSettings.watermark_logo);
                 logoBlob = data;
             }
         } catch (e) { console.warn("No se pudo descargar el logo esquinero"); }
       }
 
-      // Descargar Marca de Agua Central (Si está activa y existe)
+      // Descargar Marca de Agua Central
       if (agentSettings.use_watermark && agentSettings.watermark_image) {
         try {
             if (agentSettings.watermark_image.startsWith('http')) {
@@ -99,18 +94,18 @@ serve(async (req) => {
     }
 
     // ==========================================
-    // PASO C: Aplicar Marcas Respetando Configuraciones
+    // PASO C: Aplicar Marcas
     // ==========================================
+    
+    // 1. MARCA DE AGUA CENTRAL (¡INTOCABLE! Hace su magia como antes)
     if (centerBlob) {
       const centerBuffer = new Uint8Array(await centerBlob.arrayBuffer())
       let centerWatermark = await decode(centerBuffer) as Image
       
-      // Ajustar el tamaño de la marca de agua respecto al tamaño final de la foto
       const targetWidth = Math.floor(finalImage.width * scalePercentage);
       const ratio = targetWidth / centerWatermark.width;
       centerWatermark.resize(targetWidth, Math.floor(centerWatermark.height * ratio));
 
-      // Aplicar Opacidad Dinámica
       centerWatermark.opacity(opacity);
       
       const centerX = Math.floor((finalImage.width / 2) - (centerWatermark.width / 2))
@@ -118,18 +113,45 @@ serve(async (req) => {
       finalImage.composite(centerWatermark, Math.max(0, centerX), Math.max(0, centerY))
     }
 
+    // 2. LOGO ESQUINERO (NUEVA LÓGICA DINÁMICA)
     if (logoBlob) {
       const logoBuffer = new Uint8Array(await logoBlob.arrayBuffer())
       let logoImage = await decode(logoBuffer) as Image
       
-      // Ajustar logo a un 15% del tamaño de la foto (puedes ajustar este número)
-      const targetLogoWidth = Math.floor(finalImage.width * 0.15);
+      // A. Definir el Tamaño (Porcentajes basados en el ancho de la foto)
+      let sizeMultiplier = 0.15; // medium
+      if (logoSize === 'small') sizeMultiplier = 0.08; // 8%
+      if (logoSize === 'large') sizeMultiplier = 0.25; // 25%
+
+      const targetLogoWidth = Math.floor(finalImage.width * sizeMultiplier);
       const logoRatio = targetLogoWidth / logoImage.width;
       logoImage.resize(targetLogoWidth, Math.floor(logoImage.height * logoRatio));
 
+      // B. Definir la Posición
       const padding = 20;
-      const cornerX = finalImage.width - logoImage.width - padding
-      const cornerY = finalImage.height - logoImage.height - padding
+      let cornerX = 0;
+      let cornerY = 0;
+
+      switch (logoPosition) {
+        case 'top-left':
+          cornerX = padding;
+          cornerY = padding;
+          break;
+        case 'top-right':
+          cornerX = finalImage.width - logoImage.width - padding;
+          cornerY = padding;
+          break;
+        case 'bottom-left':
+          cornerX = padding;
+          cornerY = finalImage.height - logoImage.height - padding;
+          break;
+        case 'bottom-right':
+        default:
+          cornerX = finalImage.width - logoImage.width - padding;
+          cornerY = finalImage.height - logoImage.height - padding;
+          break;
+      }
+
       finalImage.composite(logoImage, Math.max(0, cornerX), Math.max(0, cornerY))
     }
 
@@ -157,8 +179,6 @@ serve(async (req) => {
     // PASO E: Auto-limpieza
     // ==========================================
     await supabase.storage.from('temp-originals').remove([filePath]);
-
-    console.log(`✅ Proceso completado exitosamente para: ${filePath}`);
 
     return new Response(JSON.stringify({ success: true, path: filePath }), {
       headers: { "Content-Type": "application/json" },

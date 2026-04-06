@@ -757,6 +757,7 @@ export default function PropertyView() {
           
           {/* LEFT COLUMN - Gallery (Desktop) / Full Width (Mobile) */}
           <div className="lg:sticky lg:top-8 lg:self-start lg:max-h-screen lg:overflow-hidden">
+            
             {/* Photo Gallery */}
             <div className="relative">
               <div className="relative aspect-[4/3] lg:aspect-square bg-gray-200 lg:rounded-2xl lg:overflow-hidden">
@@ -764,7 +765,7 @@ export default function PropertyView() {
                   src={photos[selectedPhotoIndex]}
                   alt={property.title}
                   fill
-                  className="object-contain bg-black"
+                  className="object-contain"
                   priority
                 />
                 

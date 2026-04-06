@@ -9,7 +9,7 @@ export default function supabaseLoader({ src, width, quality }: { src: string, w
     // Esto asegura que Supabase solo transforme la imagen UNA vez, ahorrando tu cuota.
     const fixedWidth = 800; 
     
-    return `${transformSrc}?width=${fixedWidth}&quality=${quality || 75}`;
+    return `${transformSrc}?width=${fixedWidth}&quality=${quality || 75}&resize=contain`;
   }
   
   return src;

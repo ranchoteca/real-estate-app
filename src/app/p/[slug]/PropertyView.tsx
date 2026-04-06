@@ -760,7 +760,7 @@ export default function PropertyView() {
             
             {/* Photo Gallery */}
             <div className="relative">
-              <div className="relative aspect-[4/3] lg:aspect-square bg-gray-200 lg:rounded-2xl lg:overflow-hidden">
+              <div className="relative aspect-[4/3] lg:aspect-square bg-black lg:rounded-2xl lg:overflow-hidden">
                 <Image
                   src={photos[selectedPhotoIndex]}
                   alt={property.title}

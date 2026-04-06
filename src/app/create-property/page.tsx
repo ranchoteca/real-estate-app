@@ -144,6 +144,7 @@ export default function CreatePropertyPage() {
     if (session) {
       loadCurrencies();
       loadAgentDefaultCurrency();
+      loadAgentProfile();
     }
   }, [session]);
 
@@ -197,6 +198,18 @@ export default function CreatePropertyPage() {
       }
     } catch (err) {
       console.error('Error al cargar divisa del agente:', err);
+    }
+  };
+
+  const loadAgentProfile = async () => {
+    try {
+      const response = await fetch('/api/agent/profile');
+      if (response.ok) {
+        const data = await response.json();
+        setAgentId(data.agent.id);
+      }
+    } catch (err) {
+      console.error('Error al cargar perfil del agente:', err);
     }
   };
 

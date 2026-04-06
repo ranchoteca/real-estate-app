@@ -47,18 +47,26 @@ serve(async (req) => {
     let finalImage = await decode(mainImageBuffer) as Image;
 
     // ==========================================
-    // PASO B: Obtener Marcas de Agua (Con Supabase Download)
+    // PASO B: Obtener Marcas de Agua (Búsqueda Dinámica)
     // ==========================================
-    // Usamos .download() en lugar de getPublicUrl + fetch para evitar problemas de permisos
-    
-    const { data: logoBlob, error: logoError } = await supabase.storage.from('watermarks').download(`${agentId}/logo.png`);
-    if (logoError) {
-      console.warn(`No se encontró logo para el agente ${agentId}:`, logoError.message);
-    }
+    const { data: watermarkFiles } = await supabase.storage.from('watermarks').list(agentId);
 
-    const { data: centerBlob, error: centerError } = await supabase.storage.from('watermarks').download(`${agentId}/watermark.png`);
-    if (centerError) {
-      console.warn(`No se encontró marca de agua central para el agente ${agentId}:`, centerError.message);
+    let logoBlob = null;
+    let centerBlob = null;
+
+    if (watermarkFiles && watermarkFiles.length > 0) {
+      // Buscar archivos que empiecen con 'logo' o 'watermark' (independientemente del timestamp)
+      const logoFile = watermarkFiles.find(f => f.name.toLowerCase().startsWith('logo'));
+      const centerFile = watermarkFiles.find(f => f.name.toLowerCase().startsWith('logo_watermark') || f.name.toLowerCase().startsWith('watermark'));
+
+      if (logoFile) {
+        const { data } = await supabase.storage.from('watermarks').download(`${agentId}/${logoFile.name}`);
+        logoBlob = data;
+      }
+      if (centerFile) {
+        const { data } = await supabase.storage.from('watermarks').download(`${agentId}/${centerFile.name}`);
+        centerBlob = data;
+      }
     }
 
     // ==========================================

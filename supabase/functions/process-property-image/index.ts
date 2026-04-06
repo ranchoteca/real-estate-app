@@ -85,13 +85,19 @@ serve(async (req) => {
     // ==========================================
     // PASO D: Subir al Bucket Final
     // ==========================================
-    const outputBuffer = await finalImage.encodeWEBP(80);
+    const outputBuffer = await finalImage.encode(3); 
+
+    // Asegúrate de que el nombre del archivo termine en .jpg
+    let finalPath = filePath;
+    if (finalPath.endsWith('.webp') || finalPath.endsWith('.png')) {
+        finalPath = finalPath.replace(/\.(webp|png)$/i, '.jpg');
+    }
 
     const { error: uploadError } = await supabase
       .storage
       .from('property-photos')
-      .upload(filePath, outputBuffer, {
-        contentType: 'image/webp',
+      .upload(finalPath, outputBuffer, {
+        contentType: 'image/jpeg', // Cambiado a JPEG
         upsert: true
       });
 

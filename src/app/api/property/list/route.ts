@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Obtener propiedades del agente (incluyendo currency_id)
+    // Obtener propiedades del agente
     const { data: properties, error: propertiesError } = await supabaseAdmin
       .from('properties')
       .select('id, title, slug, price, currency_id, city, state, property_type, photos, status, views, created_at, listing_type, language, video_urls')
@@ -43,9 +43,30 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Obtener la última publicación en Facebook por propiedad
+    const propertyIds = (properties || []).map(p => p.id);
+    let lastFacebookPost: Record<string, string> = {};
+
+    if (propertyIds.length > 0) {
+      const { data: fbPosts } = await supabaseAdmin
+        .from('facebook_posts')
+        .select('property_id, published_at')
+        .eq('agent_id', agent.id)
+        .in('property_id', propertyIds)
+        .order('published_at', { ascending: false });
+
+      // Para cada property_id quedarnos solo con el más reciente
+      (fbPosts || []).forEach(post => {
+        if (post.property_id && !lastFacebookPost[post.property_id]) {
+          lastFacebookPost[post.property_id] = post.published_at;
+        }
+      });
+    }
+
     const optimizedProperties = (properties || []).map(p => ({
       ...p,
-      photos: p.photos ? [p.photos[0]] : []
+      photos: p.photos ? [p.photos[0]] : [],
+      last_facebook_published_at: lastFacebookPost[p.id] || null,
     }));
 
     return NextResponse.json({

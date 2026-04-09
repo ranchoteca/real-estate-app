@@ -424,21 +424,26 @@ export default function CreatePropertyPage() {
 
   const uploadPhotosDirectly = async (files: File[], slug: string, agent_id: string): Promise<string[]> => {
     const allUrls: string[] = [];
-
+    
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      
+      // Obtenemos la extensión original para que Supabase no se confunda en el bucket temporal
       const fileExt = file.name.split('.').pop() || 'jpg';
       const timestamp = Date.now();
+      const baseFileName = `foto-${timestamp}-${i}`;
+
+      // 1. Ruta temporal (ej: foto-123-0.png)
+      const tempFilePath = `${agent_id}/${slug}/${baseFileName}.${fileExt}`;
       
-      // La misma estructura de carpetas que usabas antes
-      const filePath = `${agent_id}/${slug}/foto-${timestamp}-${i}.${fileExt}`;
+      // 2. Ruta FINAL predecida (ej: foto-123-0.jpg)
+      const finalFilePath = `${agent_id}/${slug}/${baseFileName}.jpg`;
 
-      console.log(`📤 Subiendo directo a Supabase: ${filePath}...`);
+      console.log(`📤 Subiendo temporal a Supabase: ${tempFilePath}...`);
 
-      // 1. Subir al bucket TEMPORAL directamente desde el navegador
       const { data, error } = await supabase.storage
         .from('temp-originals')
-        .upload(filePath, file, {
+        .upload(tempFilePath, file, {
           cacheControl: '3600',
           upsert: false
         });
@@ -448,17 +453,15 @@ export default function CreatePropertyPage() {
         throw new Error(`Error al subir la foto ${i + 1}`);
       }
 
-      // 2. Predecir la URL pública FINAL
-      // Generamos la URL apuntando al bucket 'property-photos' porque 
-      // ahí es donde la Edge Function moverá la imagen en un par de segundos.
+      // 3. Generamos la URL pública con la ruta FINAL (.jpg) para guardar en la base de datos
       const { data: publicUrlData } = supabase.storage
         .from('property-photos')
-        .getPublicUrl(filePath);
-
+        .getPublicUrl(finalFilePath);
+        
       allUrls.push(publicUrlData.publicUrl);
     }
 
-    console.log(`✅ Total: ${allUrls.length} fotos subidas a temp-originals`);
+    console.log(`✅ Total: ${allUrls.length} fotos subidas y URLs generadas como JPG`);
     return allUrls;
   };
 

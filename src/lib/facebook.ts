@@ -54,9 +54,15 @@ export async function publishViaPostForMe(
   mediaUrls: string[]
 ) {
   const post = await postForMeClient.socialPosts.create({
-    caption,
+    caption: "",
     social_accounts: [accountId],
     media: mediaUrls.slice(0, 10).map(url => ({ url })),
+    platform_configurations: {
+      facebook: {
+        caption: caption,
+        media: mediaUrls.slice(0, 10).map(url => ({ url })),
+      }
+    }
   });
 
   return post;

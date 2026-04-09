@@ -74,7 +74,8 @@ export async function publishViaPostForMe(
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || 'Error al publicar en Facebook');
+    console.error('❌ PostForMe error detallado:', JSON.stringify(error, null, 2));
+    throw new Error(JSON.stringify(error));
   }
 
   return await response.json();

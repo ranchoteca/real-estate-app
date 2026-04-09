@@ -53,17 +53,29 @@ export async function publishViaPostForMe(
   caption: string,
   mediaUrls: string[]
 ) {
-  const post = await postForMeClient.socialPosts.create({
-    caption: "",
-    social_accounts: [accountId],
-    media: mediaUrls.slice(0, 10).map(url => ({ url })),
-    platform_configurations: {
-      facebook: {
-        caption: caption,
-        media: mediaUrls.slice(0, 10).map(url => ({ url })),
+  const response = await fetch('https://api.postforme.dev/v1/social-posts', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.POSTFORME_API_KEY}`,
+    },
+    body: JSON.stringify({
+      caption: "",
+      social_accounts: [accountId],
+      media: mediaUrls.slice(0, 10).map(url => ({ url })),
+      platform_configurations: {
+        facebook: {
+          caption: caption,
+          placement: "timeline",
+        }
       }
-    }
+    }),
   });
 
-  return post;
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Error al publicar en Facebook');
+  }
+
+  return await response.json();
 }

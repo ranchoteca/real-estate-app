@@ -19,6 +19,9 @@ export async function uploadVideoToMux(
     const upload = UpChunk.createUpload({
       endpoint: uploadUrl,
       file,
+      chunkSize: 5120, // 💡 MAGIA: Pedacitos de 5MB ideales para celulares
+      attempts: 5,     // 💡 MAGIA: Si falla el internet, intenta 5 veces antes de rendirse
+      delayBeforeAttempt: 2, // Espera 2 segundos entre intentos fallidos
     });
 
     upload.on('progress', (detail) => {
@@ -40,21 +43,26 @@ export async function uploadVideoToMux(
 
 export async function waitForPlaybackId(
   uploadId: string,
-  maxAttempts = 30,
+  maxAttempts = 40, // Subimos a 40 intentos (2 minutos) por si el video es un poco más largo
   intervalMs = 3000
 ): Promise<string> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const response = await fetch(`/api/mux/get-asset?uploadId=${uploadId}`);
     const data = await response.json();
 
-    if (data.playbackId) {
-      console.log(`✅ PlaybackId listo: ${data.playbackId}`);
+    // 💡 MAGIA: Ahora exigimos que el status sea 'ready'
+    if (data.assetStatus === 'ready' && data.playbackId) {
+      console.log(`✅ Video procesado y 100% listo: ${data.playbackId}`);
       return data.playbackId;
     }
 
-    console.log(`⏳ Esperando playbackId... intento ${attempt + 1}`);
+    if (data.assetStatus === 'errored') {
+      throw new Error('Mux reportó un error crítico al procesar el video.');
+    }
+
+    console.log(`⏳ Optimizando video... intento ${attempt + 1} (Estado: ${data.assetStatus || 'uploading'})`);
     await new Promise(resolve => setTimeout(resolve, intervalMs));
   }
 
-    throw new Error('Timeout: playbackId not ready');
+  throw new Error('Timeout: El video tardó demasiado en procesarse');
 }

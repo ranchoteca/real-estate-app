@@ -42,9 +42,7 @@ async function buildFacebookMessage(
       rent: '🎯 ALQUILER',
       excellentOpportunity: 'Excelente oportunidad inmobiliaria',
       features: '✨ Características',
-      scheduleVisit: '📅 Agende su visita con',
-      propertyLink: '🔗 Link de la propiedad:',
-      agentPortfolio: '💼 Mira el portafolio del agente:',
+      whatsappCta: '📲 Escríbame directo al WhatsApp para enviarle la galería completa y el precio:',
       yes: 'Sí',
       no: 'No',
       priceOnRequest: 'Precio a consultar',
@@ -55,9 +53,7 @@ async function buildFacebookMessage(
       rent: '🎯 FOR RENT',
       excellentOpportunity: 'Excellent real estate opportunity',
       features: '✨ Features',
-      scheduleVisit: '📅 Schedule your visit with',
-      propertyLink: '🔗 Property link:',
-      agentPortfolio: '💼 View agent portfolio:',
+      whatsappCta: '📲 Contact me directly on WhatsApp for the full gallery and pricing:',
       yes: 'Yes',
       no: 'No',
       priceOnRequest: 'Price upon request',
@@ -67,31 +63,24 @@ async function buildFacebookMessage(
 
   const t = translations[propertyLanguage];
   
-  // 1. Tipo de operación con icono de bombillo
+  // 1. Tipo de operación
   const operationType = property.listing_type === 'rent' ? t.rent : t.sale;
   
   // 2. Descripción corta inteligente (primeras 2 oraciones completas)
   let shortDescription = t.excellentOpportunity;
-  
   if (property.description) {
-    // Dividir por puntos para obtener oraciones completas
     const sentences = property.description
-      .split(/\.(?=\s|$)/) // Dividir solo por punto seguido de espacio o fin de texto
+      .split(/\.(?=\s|$)/)
       .map((s: string) => s.trim())
       .filter((s: string) => s.length > 0);
-    
+
     if (sentences.length >= 2) {
-      // Tomar las primeras 2 oraciones completas
       shortDescription = sentences[0] + '. ' + sentences[1] + '.';
     } else if (sentences.length === 1) {
-      // Si solo hay 1 oración, usarla completa
       shortDescription = sentences[0] + '.';
     } else {
-      // Fallback si no hay oraciones bien formadas
       shortDescription = property.description.substring(0, 150).trim();
-      if (property.description.length > 150) {
-        shortDescription += '...';
-      }
+      if (property.description.length > 150) shortDescription += '...';
     }
   }
   
@@ -101,45 +90,51 @@ async function buildFacebookMessage(
     ? locationParts.join(', ') 
     : property.address || t.locationAvailable;
   
-  // 4. Precio formateado con símbolo de divisa correcto
+  // 4. Precio formateado
   const displayPrice = property.price 
     ? `${currencySymbol}${Number(property.price).toLocaleString()}` 
     : t.priceOnRequest;
   
-  // 5. Campos personalizados (custom fields) - usando los nombres reales
+  // 5. Campos personalizados
   let customFieldsText = '';
   if (property.custom_fields_data && typeof property.custom_fields_data === 'object') {
     const fields = Object.entries(property.custom_fields_data)
       .filter(([_, value]) => value !== null && value !== undefined && value !== '')
       .map(([fieldKey, value]) => {
-        // Obtener el nombre real del campo desde el Map
         const fieldName = customFieldsMap.get(fieldKey) || fieldKey;
-        
-        // Formatear el valor (manejar booleanos, números, etc)
-        let displayValue: string;
-        if (typeof value === 'boolean') {
-          displayValue = value ? t.yes : t.no;
-        } else {
-          displayValue = String(value);
-        }
-        
+        let displayValue: string = typeof value === 'boolean' ? (value ? t.yes : t.no) : String(value);
         return `✅ ${fieldName}: ${displayValue}`;
       });
-    
+
     if (fields.length > 0) {
       customFieldsText = '\n\n' + t.features + '\n' + fields.join('\n');
     }
   }
   
-  // 6. Links - ✅ USANDO DOMINIO PERSONALIZADO
-  const propertyUrl = `${APP_DOMAIN}/p/${property.slug}`;
-  const agentPortfolioUrl = `${APP_DOMAIN}/agent/${agent.username}`;
-  
-  // 7. Nombre del agente y teléfono
+  // 6. Configurar Nombre del Agente y Enlace de WhatsApp
   const agentName = agent.full_name || agent.name || 'Agente inmobiliario';
   const agentPhone = agent.phone || '';
   
-  // 8. Construir mensaje completo
+  // Limpiar el número de teléfono para la URL (elimina espacios, guiones, conserva solo números)
+  const cleanPhone = agentPhone.replace(/\D/g, ''); 
+  const waLink = cleanPhone ? `https://wa.me/${cleanPhone}` : '';
+  
+  // 7. Generación Dinámica de Tags (sin necesidad de IA externa)
+  const sanitizeTag = (str: string) => str.replace(/[^a-zA-Z0-9]/g, '');
+  
+  const baseTag = propertyLanguage === 'en' ? '#RealEstate' : '#BienesRaicesCostaRica';
+  const operationTag = property.listing_type === 'rent' 
+    ? (propertyLanguage === 'en' ? '#ForRent' : '#Alquiler') 
+    : (propertyLanguage === 'en' ? '#ForSale' : '#Venta');
+  const typeTag = property.property_type ? `#${sanitizeTag(property.property_type)}` : '';
+  const cityTag = property.city ? `#${sanitizeTag(property.city)}` : '';
+  
+  // Unir los tags válidos y eliminar espacios extra
+  const tags = [baseTag, operationTag, typeTag, cityTag, '#InversionesInmobiliarias']
+    .filter(Boolean)
+    .join(' ');
+
+  // 8. Construir mensaje final sin URLs externas
   const message = `
 ${operationType}
 
@@ -151,11 +146,11 @@ ${operationType}
 
 💰 ${displayPrice}${customFieldsText}
 
-${t.scheduleVisit} ${agentName}${agentPhone ? ` 📱 ${agentPhone}` : ''}
+${t.whatsappCta}
+👤 ${agentName}
+${waLink ? `👉 ${waLink}` : (agentPhone ? `📱 ${agentPhone}` : '')}
 
-${t.propertyLink} ${propertyUrl}
-
-${t.agentPortfolio} ${agentPortfolioUrl}
+${tags}
   `.trim();
   
   return message;

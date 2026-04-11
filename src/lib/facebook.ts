@@ -47,17 +47,37 @@ export async function disconnectPostForMeAccount(accountId: string): Promise<voi
 }
 
 // Publicar en Facebook via Post for Me
-// Las imágenes son URLs públicas de Supabase, se pasan directo sin re-subir
 export async function publishViaPostForMe(
   accountId: string,
   caption: string,
   mediaUrls: string[]
 ) {
-  const post = await postForMeClient.socialPosts.create({
+  const payload = {
     caption,
     social_accounts: [accountId],
     media: mediaUrls.slice(0, 10).map(url => ({ url })),
+    platform_configurations: {
+      facebook: {
+        set_caption_for_each_image: false
+      }
+    }
+  };
+
+  const response = await fetch('https://api.postforme.dev/v1/social-posts', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.POSTFORME_API_KEY}`,
+    },
+    body: JSON.stringify(payload),
   });
 
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error('❌ Error de Post For Me API directa:', errorData);
+    throw new Error(errorData.message || 'Error al publicar vía API directa de Post For Me');
+  }
+
+  const post = await response.json();
   return post;
 }

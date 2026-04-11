@@ -42,7 +42,9 @@ async function buildFacebookMessage(
       rent: '🎯 ALQUILER',
       excellentOpportunity: 'Excelente oportunidad inmobiliaria',
       features: '✨ Características',
-      whatsappCta: '📲 Escríbame directo al WhatsApp para enviarle la galería completa y el precio:',
+      whatsappCta: '📲 ¿Desea más información o coordinar una visita? Contácteme aquí:',
+      waMessage: 'Hola, me interesa la propiedad: ',
+      waDetails: '. Me gustaría recibir más información.',
       yes: 'Sí',
       no: 'No',
       priceOnRequest: 'Precio a consultar',
@@ -53,7 +55,9 @@ async function buildFacebookMessage(
       rent: '🎯 FOR RENT',
       excellentOpportunity: 'Excellent real estate opportunity',
       features: '✨ Features',
-      whatsappCta: '📲 Contact me directly on WhatsApp for the full gallery and pricing:',
+      whatsappCta: '📲 Looking for more details or want to schedule a tour? Contact me here:',
+      waMessage: 'Hello, I am interested in this property: ',
+      waDetails: '. I would like to get more information.',
       yes: 'Yes',
       no: 'No',
       priceOnRequest: 'Price upon request',
@@ -117,24 +121,46 @@ async function buildFacebookMessage(
   
   // Limpiar el número de teléfono para la URL (elimina espacios, guiones, conserva solo números)
   const cleanPhone = agentPhone.replace(/\D/g, ''); 
-  const waLink = cleanPhone ? `https://wa.me/${cleanPhone}` : '';
   
-  // 7. Generación Dinámica de Tags (sin necesidad de IA externa)
-  const sanitizeTag = (str: string) => str.replace(/[^a-zA-Z0-9]/g, '');
+  let waLink = '';
+  if (cleanPhone) {
+    // Construimos el mensaje: "Hola, me interesa la propiedad: [Título]. Me gustaría recibir más información."
+    const customMessage = `${t.waMessage}${property.title}${t.waDetails}`;
+    const encodedMessage = encodeURIComponent(customMessage);
+    waLink = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+  }
   
-  const baseTag = propertyLanguage === 'en' ? '#RealEstate' : '#BienesRaicesCostaRica';
+  // 7. Generación Dinámica de Tags Optimizada
+  const sanitizeTag = (str: string) => str ? str.replace(/[^a-zA-Z0-9]/g, '') : '';
+  
+  // Tags base según el idioma
+  const isEn = propertyLanguage === 'en';
+  const marketTag = isEn ? '#CostaRicaRealEstate' : '#BienesRaicesCR';
+  const lifestyleTag = isEn ? '#RealEstateInvestment' : '#InversionInmobiliaria';
+  
+  // Tags dinámicos basados en la propiedad
   const operationTag = property.listing_type === 'rent' 
-    ? (propertyLanguage === 'en' ? '#ForRent' : '#Alquiler') 
-    : (propertyLanguage === 'en' ? '#ForSale' : '#Venta');
+    ? (isEn ? '#ForRent' : '#Alquiler') 
+    : (isEn ? '#ForSale' : '#Venta');
+    
   const typeTag = property.property_type ? `#${sanitizeTag(property.property_type)}` : '';
   const cityTag = property.city ? `#${sanitizeTag(property.city)}` : '';
-  
-  // Unir los tags válidos y eliminar espacios extra
-  const tags = [baseTag, operationTag, typeTag, cityTag, '#InversionesInmobiliarias']
-    .filter(Boolean)
-    .join(' ');
+  const stateTag = property.state ? `#${sanitizeTag(property.state)}` : '';
 
-  // 8. Construir mensaje final sin URLs externas
+  // Construir array, filtrar vacíos y limitar a 6 tags para no saturar
+  const tagsArray = [
+    marketTag, 
+    operationTag, 
+    typeTag, 
+    cityTag, 
+    stateTag, 
+    lifestyleTag
+  ].filter(tag => tag && tag.length > 1);
+
+  // Unir con espacios
+  const tags = tagsArray.join(' ');
+
+  // 8. Construir mensaje final
   const message = `
 ${operationType}
 
@@ -148,7 +174,7 @@ ${operationType}
 
 ${t.whatsappCta}
 👤 ${agentName}
-${waLink ? `👉 ${waLink}` : (agentPhone ? `📱 ${agentPhone}` : '')}
+👉 ${waLink}
 
 ${tags}
   `.trim();

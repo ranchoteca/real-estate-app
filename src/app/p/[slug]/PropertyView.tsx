@@ -294,10 +294,7 @@ export default function PropertyView() {
       ? `🏡 ${translatePropertyType(property.property_type, interfaceLang)}`
       : '';
 
-    // Descripción truncada (primeros 200-300 caracteres)
-    const truncatedDescription = property.description.length > 250 
-      ? property.description.substring(0, 250) + '...'
-      : property.description;
+    const truncatedDescription = property.description;
 
     // Características especiales
     let featuresText = '';
@@ -324,11 +321,17 @@ export default function PropertyView() {
 
     // Información del agente
     const agentName = property.agent.full_name || property.agent.name || (interfaceLang === 'en' ? 'Agent' : 'Agente');
+    const phoneNumber = property.agent.phone?.replace(/\D/g, '') || '';
+    const whatsappMessage = encodeURIComponent(
+      interfaceLang === 'en'
+        ? `Hi, I'm interested in learning more about: ${property.title}`
+        : `Hola, me interesa saber más sobre: ${property.title}`
+    );
     const agentInfo = [
       `\n\n${interfaceLang === 'en' ? '👤 CONTACT AGENT' : '👤 CONTACTAR AGENTE'}`,
       agentName,
       property.agent.brokerage || '',
-      property.agent.phone ? `📞 ${property.agent.phone}` : '',
+      property.agent.phone ? `📞 ${property.agent.phone} → https://wa.me/${phoneNumber}?text=${whatsappMessage}` : '',
       `✉️ ${property.agent.email}`
     ].filter(Boolean).join('\n');
 
@@ -345,7 +348,7 @@ export default function PropertyView() {
   ${interfaceLang === 'en' ? '📝 DESCRIPTION' : '📝 DESCRIPCIÓN'}
   ${truncatedDescription}${featuresText}${agentInfo}
 
-  🔗 ${interfaceLang === 'en' ? 'View full details:' : 'Ver detalles completos:'}
+  👇 ${interfaceLang === 'en' ? 'For more details, click on the image below:' : 'Para más detalles, da clic en la imagen de abajo:'}
     ${window.location.href}
       `.trim();
 
@@ -365,13 +368,84 @@ export default function PropertyView() {
         });
   };
 
+  const copyPropertyInfoShort = () => {
+    if (!property) return;
+
+    const listingTypeText = property.listing_type === 'rent'
+      ? (interfaceLang === 'en' ? '🏠 FOR RENT' : '🏠 PARA ALQUILER')
+      : (interfaceLang === 'en' ? '💰 FOR SALE' : '💰 EN VENTA');
+
+    const propertyTypeText = property.property_type
+      ? `🏡 ${translatePropertyType(property.property_type, interfaceLang)}`
+      : '';
+
+    // Descripción COMPLETA (sin truncar)
+    const fullDescription = property.description;
+
+    let featuresText = '';
+    if (filledCustomFields.length > 0) {
+      const featuresList = filledCustomFields
+        .slice(0, 5)
+        .map(field => {
+          const value = getCustomFieldValue(field.field_key);
+          const name = getCustomFieldName(field);
+          const icon = field.icon || '🏷️';
+          return `  ${icon} ${name}: ${value}`;
+        })
+        .join('\n');
+      featuresText = `\n\n${interfaceLang === 'en' ? '✨ SPECIAL FEATURES' : '✨ CARACTERÍSTICAS ESPECIALES'}\n${featuresList}`;
+    }
+
+    const locationParts = [property.address, property.city, property.state, property.zip_code].filter(Boolean);
+    const locationText = locationParts.length > 0 ? `📍 ${locationParts.join(', ')}` : '';
+
+    const agentName = property.agent.full_name || property.agent.name || (interfaceLang === 'en' ? 'Agent' : 'Agente');
+    const phoneNumber = property.agent.phone?.replace(/\D/g, '') || '';
+    const whatsappMessage = encodeURIComponent(
+      interfaceLang === 'en'
+        ? `Hi, I'm interested in learning more about: ${property.title}`
+        : `Hola, me interesa saber más sobre: ${property.title}`
+    );
+    const phoneText = property.agent.phone
+      ? `📞 ${property.agent.phone} → https://wa.me/${phoneNumber}?text=${whatsappMessage}`
+      : '';
+
+    const agentInfo = [
+      `\n\n${interfaceLang === 'en' ? '👤 CONTACT AGENT' : '👤 CONTACTAR AGENTE'}`,
+      agentName,
+      property.agent.brokerage || '',
+      phoneText,
+      `✉️ ${property.agent.email}`
+    ].filter(Boolean).join('\n');
+
+    const fullText = `
+  ${listingTypeText}${propertyTypeText ? ' | ' + propertyTypeText : ''}
+
+  ${property.title}
+
+  💵 ${formatPrice(property.price)}
+
+  ${locationText}
+
+  ${interfaceLang === 'en' ? '📝 DESCRIPTION' : '📝 DESCRIPCIÓN'}
+  ${fullDescription}${featuresText}${agentInfo}
+    `.trim();
+
+    navigator.clipboard.writeText(fullText)
+      .then(() => {
+        alert(interfaceLang === 'en'
+          ? '✅ Property info copied!'
+          : '✅ ¡Información copiada!');
+        setShowShareMenu(false);
+      })
+      .catch(() => {
+        alert(interfaceLang === 'en' ? '❌ Error copying info' : '❌ Error al copiar la información');
+      });
+  };
+
   const shareWhatsApp = () => {
     const url = window.location.href;
-    window.open(`https://wa.me/?text=${encodeURIComponent(
-      interfaceLang === 'en'
-        ? `Hi, I'm interested in: ${url}`
-        : `Hola, me interesa: ${url}`
-    )}`, '_blank');
+    window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank');
     setShowShareMenu(false);
   };
 
@@ -1199,6 +1273,13 @@ export default function PropertyView() {
                 style={{ color: '#0F172A' }}
               >
                 <span>📋</span> {interfaceLang === 'en' ? 'Copy full info' : 'Copiar info completa'}
+            </button>
+            <button
+              onClick={copyPropertyInfoShort}
+              className="w-full px-4 py-3 text-left font-semibold rounded-xl hover:bg-gray-100 active:bg-gray-100 transition-colors flex items-center gap-3"
+              style={{ color: '#0F172A' }}
+            >
+              <span>📝</span> {interfaceLang === 'en' ? 'Copy info' : 'Copiar info'}
             </button>
             {navigator.share && (
               <button

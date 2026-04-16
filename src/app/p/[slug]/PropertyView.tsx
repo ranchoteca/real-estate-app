@@ -321,18 +321,12 @@ export default function PropertyView() {
 
     // Información del agente
     const agentName = property.agent.full_name || property.agent.name || (interfaceLang === 'en' ? 'Agent' : 'Agente');
-    const phoneNumber = property.agent.phone?.replace(/\D/g, '') || '';
-    const whatsappMessage = encodeURIComponent(
-      interfaceLang === 'en'
-        ? `Hi, I'm interested in learning more about: ${property.title}`
-        : `Hola, me interesa saber más sobre: ${property.title}`
-    );
     const agentInfo = [
       `\n\n${interfaceLang === 'en' ? '👤 CONTACT AGENT' : '👤 CONTACTAR AGENTE'}`,
       agentName,
       property.agent.brokerage || '',
-      property.agent.phone ? `📞 ${property.agent.phone} → https://wa.me/${phoneNumber}?text=${whatsappMessage}` : '',
-      `✉️ ${property.agent.email}`
+      `✉️ ${property.agent.email}`,
+      property.agent.phone ? `📞 ${property.agent.phone}` : ''
     ].filter(Boolean).join('\n');
 
     // Texto completo
@@ -414,8 +408,8 @@ export default function PropertyView() {
       `\n\n${interfaceLang === 'en' ? '👤 CONTACT AGENT' : '👤 CONTACTAR AGENTE'}`,
       agentName,
       property.agent.brokerage || '',
-      phoneText,
-      `✉️ ${property.agent.email}`
+      `✉️ ${property.agent.email}`,
+      phoneText
     ].filter(Boolean).join('\n');
 
     const fullText = `

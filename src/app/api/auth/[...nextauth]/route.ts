@@ -65,6 +65,10 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       try {
         if (session?.user?.email) {
+          await supabaseAdmin
+            .from('agents')
+            .update({ last_active_at: new Date().toISOString() })
+            .eq('email', session.user.email);
           const { data: dbAgent, error } = await supabaseAdmin
             .from('agents')
             .select('id, plan, role, expires_at, username, full_name, phone, brokerage')

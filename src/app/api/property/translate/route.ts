@@ -36,6 +36,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
+    // Verificar que el agente tiene plan Pro activo
+    const { data: agent } = await supabaseAdmin
+      .from('agents')
+      .select('plan, role, expires_at')
+      .eq('email', session.user.email)
+      .single();
+
+    const isProActivo = 
+      agent?.role === 'admin' || 
+      (agent?.plan === 'pro' && !!agent?.expires_at && new Date(agent.expires_at) > new Date());
+
+    if (!isProActivo) {
+      return NextResponse.json(
+        { error: 'Esta función requiere un plan Pro activo.' },
+        { status: 403 }
+      );
+    }
+
     const { propertyId, targetLanguage, useAI } = await req.json();
 
     // 1. Obtener propiedad original

@@ -207,6 +207,23 @@ function handlePublish(propertyId: string) {
       }
 
       const userEmail = session.user.email;
+
+      const { data: agentPlan } = await supabaseAdmin
+        .from('agents')
+        .select('plan, role, expires_at')
+        .eq('email', userEmail)
+        .single();
+
+      const isProActivo =
+        agentPlan?.role === 'admin' ||
+        (agentPlan?.plan === 'pro' && !!agentPlan?.expires_at && new Date(agentPlan.expires_at) > new Date());
+
+      if (!isProActivo) {
+        await sendEvent({ error: '🔒 Esta función requiere un plan Pro activo.', progress: 0 });
+        await writer.close();
+        return;
+      }
+
       console.log('📧 Email del usuario:', userEmail);
       console.log('🏠 Property ID recibido:', propertyId);
 

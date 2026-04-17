@@ -22,12 +22,9 @@ export type Database = {
           license_number: string | null
           bio: string | null
           profile_photo: string | null
-          credits: number | null
           created_at: string | null
           plan: string | null
-          properties_this_month: number | null
           plan_started_at: string | null
-          paypal_subscription_id: string | null
           watermark_logo: string | null
           watermark_position: string | null
           watermark_size: string | null
@@ -57,12 +54,9 @@ export type Database = {
           license_number?: string | null
           bio?: string | null
           profile_photo?: string | null
-          credits?: number | null
           created_at?: string
           plan?: string | null
-          properties_this_month?: number | null
           plan_started_at?: string | null
-          paypal_subscription_id?: string | null
           watermark_logo?: string | null
           watermark_position?: string | null
           watermark_size?: string | null
@@ -92,12 +86,9 @@ export type Database = {
           license_number?: string | null
           bio?: string | null
           profile_photo?: string | null
-          credits?: number | null
           created_at?: string
           plan?: string | null
-          properties_this_month?: number | null
           plan_started_at?: string | null
-          paypal_subscription_id?: string | null
           watermark_logo?: string | null
           watermark_position?: string | null
           watermark_size?: string | null
@@ -210,38 +201,6 @@ export type Database = {
           video_urls?: string[] | null
           video_processing?: boolean | null
           mux_upload_ids?: string[] | null
-        }
-      }
-      purchases: {
-        Row: {
-          id: string
-          agent_id: string | null
-          pack_type: string
-          credits_purchased: number
-          amount_paid: number
-          paypal_order_id: string | null
-          status: string | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          agent_id?: string | null
-          pack_type: string
-          credits_purchased: number
-          amount_paid: number
-          paypal_order_id?: string | null
-          status?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          agent_id?: string | null
-          pack_type?: string
-          credits_purchased?: number
-          amount_paid?: number
-          paypal_order_id?: string | null
-          status?: string | null
-          created_at?: string
         }
       }
       facebook_posts: {

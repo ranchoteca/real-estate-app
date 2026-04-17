@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
       // Buscar por email (sesión normal)
       const result = await supabaseAdmin
         .from('agents')
-        .select('id, credits, plan, properties_this_month, default_currency_id')
+        .select('id, plan, default_currency_id')
         .eq('email', agentEmail)
         .single();
       
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
       // Buscar por ID (token)
       const result = await supabaseAdmin
         .from('agents')
-        .select('id, credits, plan, properties_this_month, default_currency_id')
+        .select('id, plan, default_currency_id')
         .eq('id', agentId)
         .single();
       
@@ -147,16 +147,21 @@ export async function POST(req: NextRequest) {
         .select('*', { count: 'exact', head: true })
         .eq('agent_id', agent.id);
 
-      if (count && count >= 20) {
+      if (count && count >= 5) {
         return NextResponse.json(
-          { error: 'Has alcanzado el límite de 20 propiedades. Actualiza a Pro para crear más.' },
+          { error: 'Has alcanzado el límite de 5 propiedades. Actualiza a Pro para crear más.' },
           { status: 403 }
         );
       }
     } else if (agent.plan === 'pro') {
-      if (agent.properties_this_month >= 30) {
+      const { count } = await supabaseAdmin
+        .from('properties')
+        .select('*', { count: 'exact', head: true })
+        .eq('agent_id', agent.id);
+
+      if (count && count >= 150) {
         return NextResponse.json(
-          { error: 'Has alcanzado el límite de 30 propiedades este mes.' },
+          { error: 'Has alcanzado el límite de 150 propiedades del plan Pro.' },
           { status: 403 }
         );
       }
@@ -253,16 +258,6 @@ export async function POST(req: NextRequest) {
     console.log('🔍 DATOS DEVUELTOS POR SUPABASE:');
     console.log('custom_fields_data:', JSON.stringify(property.custom_fields_data));
     console.log('currency_id:', property.currency_id);
-
-    // Incrementar contador (si es Pro)
-    if (agent.plan === 'pro') {
-      await supabaseAdmin
-        .from('agents')
-        .update({ 
-          properties_this_month: agent.properties_this_month + 1 
-        })
-        .eq('id', agent.id);
-    }
 
     return NextResponse.json({
       success: true,

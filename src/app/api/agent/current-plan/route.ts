@@ -11,17 +11,18 @@ export async function GET(req: NextRequest) {
 
     const { data: agent, error } = await supabaseAdmin
       .from('agents')
-      .select('plan, properties_this_month')
+      .select('plan, role, expires_at')
       .eq('email', session.user.email)
       .single();
 
     if (error || !agent) {
-      return NextResponse.json({ plan: 'free', properties_this_month: 0 });
+      return NextResponse.json({ plan: 'free', role: 'agent', expires_at: null });
     }
 
     return NextResponse.json({
       plan: agent.plan || 'free',
-      properties_this_month: agent.properties_this_month || 0,
+      role: agent.role || 'agent',
+      expires_at: agent.expires_at || null,
     });
 
   } catch (error: any) {

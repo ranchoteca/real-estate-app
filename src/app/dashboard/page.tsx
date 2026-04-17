@@ -84,7 +84,7 @@ export default function DashboardPage() {
   const [showMenu, setShowMenu] = useState<string | null>(null);
   const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
-  const [planInfo, setPlanInfo] = useState<{ plan: string; properties_this_month: number } | null>(null);
+  const [planInfo, setPlanInfo] = useState<{ plan: string; role: string; expires_at: string | null } | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   // Estados para duplicar y traducir
@@ -337,6 +337,10 @@ export default function DashboardPage() {
     }).format(price)}`;
   };
 
+  const isProActivo = 
+    planInfo?.role === 'admin' || 
+    (planInfo?.plan === 'pro' && !!planInfo?.expires_at && new Date(planInfo.expires_at) > new Date());
+
   const filteredProperties = getFilteredProperties();
 
   return (
@@ -362,34 +366,47 @@ export default function DashboardPage() {
             </div>
             <div className="text-right">
               <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                {planInfo?.plan === 'free' 
-                  ? (language === 'en' ? 'Limit' : 'Límite')
-                  : (language === 'en' ? 'This month' : 'Este mes')
-                }
+                {language === 'en' ? 'Limit' : 'Límite'}
               </p>
               <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>
                 {planInfo?.plan === 'free' 
-                  ? `${properties.length} / 20`
-                  : `${planInfo?.properties_this_month || 0} / 30`
+                  ? `${properties.length} / 5`
+                  : `${properties.length} / 150`
                 }
               </p>
             </div>
           </div>
           
-          {planInfo?.plan === 'free' && properties.length >= 20 && (
+          {planInfo?.plan === 'free' && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>
-              <p className="text-sm mb-3" style={{ color: '#DC2626' }}>
-                ⚠️ {language === 'en' 
-                  ? 'You have reached the limit. Delete a property or upgrade to Pro.'
-                  : 'Has alcanzado el límite. Elimina una propiedad o actualiza a Pro.'
-                }
+              <p className="text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
+                🚀 {language === 'en' ? 'Upgrade to Pro' : 'Pásate a Pro'}
               </p>
+              <p className="text-xs mb-3 opacity-80" style={{ color: '#0F172A' }}>
+                {language === 'en' 
+                  ? 'Get unlimited properties and AI features for only ₡15,000/month.' 
+                  : 'Propiedades ilimitadas y funciones IA por solo ₡15,000 al mes.'}
+              </p>
+              
+              {/* Instrucciones SINPE */}
+              <div className="bg-blue-50 p-3 rounded-lg mb-4 border border-blue-100">
+                <p className="text-xs font-semibold text-blue-800">
+                  {language === 'en' ? 'Pay via SINPE Móvil:' : 'Paga por SINPE Móvil:'}
+                </p>
+                <p className="text-sm font-bold text-blue-900">8368 8684</p>
+                <p className="text-xs text-blue-700">A nombre de: Steven Espinoza</p>
+              </div>
+
               <button
-                onClick={() => router.push('/pricing')}
-                className="w-full py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform"
-                style={{ backgroundColor: '#2563EB' }}
+                onClick={() => {
+                  const message = encodeURIComponent(`Hola! He realizado el pago SINPE para mi plan Pro en Flow Estate AI. Mi correo es: ${session.user.email}`);
+                  window.open(`https://wa.me/50683688684?text=${message}`, '_blank');
+                }}
+                className="w-full py-2.5 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+                style={{ backgroundColor: '#25D366' }} // Color de WhatsApp
               >
-                {language === 'en' ? 'Upgrade to Pro' : 'Actualizar a Pro'}
+                <span>💬</span>
+                {language === 'en' ? 'Send Receipt via WhatsApp' : 'Enviar Comprobante por WhatsApp'}
               </button>
             </div>
           )}
@@ -514,41 +531,6 @@ export default function DashboardPage() {
       </div>
     </div>
 
-      {/* No Credits Warning */}
-      {session.user.credits === 0 && (
-        <div className="px-4 pt-3">
-          <div 
-            className="rounded-2xl p-4 border-2"
-            style={{ 
-              backgroundColor: '#FEF3C7',
-              borderColor: '#F59E0B'
-            }}
-          >
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">⚠️</span>
-              <div className="flex-1">
-                <p className="font-semibold mb-1" style={{ color: '#0F172A' }}>
-                  {language === 'en' ? 'No credits' : 'Sin créditos'}
-                </p>
-                <p className="text-sm mb-3 opacity-80" style={{ color: '#0F172A' }}>
-                  {language === 'en' 
-                    ? 'Buy more credits to create listings'
-                    : 'Compra más créditos para crear listings'
-                  }
-                </p>
-                <button
-                  onClick={() => router.push('/credits')}
-                  className="w-full py-2.5 rounded-xl font-semibold text-white shadow-md active:scale-95 transition-transform"
-                  style={{ backgroundColor: '#F59E0B' }}
-                >
-                  {language === 'en' ? 'Buy Credits' : 'Comprar Créditos'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Properties List */}
       {filteredProperties.length === 0 ? (
         <div className="px-4 pt-8">
@@ -590,7 +572,7 @@ export default function DashboardPage() {
             ) : (
               <button
                 onClick={() => router.push('/create-property')}
-                disabled={session.user.credits < 1}
+                disabled={!isProActivo && properties.length >= 5}
                 className="w-full py-3 rounded-xl font-semibold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
                 style={{ backgroundColor: '#2563EB' }}
               >
@@ -698,6 +680,7 @@ export default function DashboardPage() {
                           currentLang: property.language 
                         });
                       }}
+                      disabled={!isProActivo}
                       className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
                       style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
                     >
@@ -778,6 +761,7 @@ export default function DashboardPage() {
                         setSelectedPropertyId(property.id);
                         setPublishModalOpen(true);
                       }}
+                      disabled={!isProActivo}
                       className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
                       style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
                     >

@@ -858,7 +858,7 @@ export default function DashboardPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
             <h3 className="text-xl font-bold mb-4" style={{ color: '#0F172A' }}>
-              🌐 {language === 'en' ? 'Translate property' : 'Traducir propiedad'}
+              🌐 {language === 'en' ? 'Translate property' : 'Traducir la propiedad'}
             </h3>
 
             <div className="mb-4">

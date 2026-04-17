@@ -46,7 +46,35 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // ===== CASO 2: Usuario AUTENTICADO (Dashboard) ===== ← SIN CAMBIOS
+    // ===== CASO 2: Vista pública con username (prioridad sobre sesión) =====
+    if (username && property_type && listing_type) {
+      // Buscar agente por username
+      const { data: agent, error: agentError } = await supabaseAdmin
+        .from('agents')
+        .select('id')
+        .eq('username', username)
+        .single();
+
+      if (agentError || !agent) {
+        return NextResponse.json({ error: 'Agente no encontrado' }, { status: 404 });
+      }
+
+      const { data: fields, error: fieldsError } = await supabaseAdmin
+        .from('custom_fields')
+        .select('id, field_key, field_name, field_name_en, field_type, icon, display_order')
+        .eq('agent_id', agent.id)
+        .eq('property_type', property_type)
+        .eq('listing_type', listing_type)
+        .order('display_order', { ascending: true });
+
+      if (fieldsError) {
+        return NextResponse.json({ error: 'Error al cargar campos personalizados' }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, fields: fields || [] });
+    }
+
+    // ===== CASO 3: Usuario AUTENTICADO (Dashboard) ===== ← SIN CAMBIOS
     const session = await getServerSession();
     if (session?.user?.email) {
       // Obtener agente por email (usuario autenticado)
@@ -94,53 +122,6 @@ export async function GET(req: NextRequest) {
         fields: fields || [],
       });
     }
-
-    // ===== CASO 3: Usuario NO AUTENTICADO (Vista Pública) ===== ← SIN CAMBIOS
-    // Requiere username + property_type + listing_type
-    if (!username || !property_type || !listing_type) {
-      return NextResponse.json(
-        { error: 'Se requiere username, property_type y listing_type para acceso público' },
-        { status: 400 }
-      );
-    }
-
-    // Buscar agente por username
-    const { data: agent, error: agentError } = await supabaseAdmin
-      .from('agents')
-      .select('id')
-      .eq('username', username)
-      .single();
-
-    if (agentError || !agent) {
-      return NextResponse.json(
-        { error: 'Agente no encontrado' },
-        { status: 404 }
-      );
-    }
-
-    // Obtener campos personalizados (solo campos necesarios para renderizar)
-    const { data: fields, error: fieldsError } = await supabaseAdmin
-      .from('custom_fields')
-      .select('id, field_key, field_name, field_name_en, field_type, icon, display_order')
-      .eq('agent_id', agent.id)
-      .eq('property_type', property_type)
-      .eq('listing_type', listing_type)
-      .order('display_order', { ascending: true });
-
-    if (fieldsError) {
-      console.error('Error al cargar campos públicos:', fieldsError);
-      return NextResponse.json(
-        { error: 'Error al cargar campos personalizados' },
-        { status: 500 }
-      );
-    }
-
-    console.log(`✅ Campos cargados (público): ${fields?.length || 0}`);
-
-    return NextResponse.json({
-      success: true,
-      fields: fields || [],
-    });
 
   } catch (error: any) {
     console.error('Error en list custom fields:', error);

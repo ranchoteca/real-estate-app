@@ -143,8 +143,8 @@ export default function MobileLayout({
                 !session?.user || 
                 (session.user.plan === 'free' && 
                 (currentPropertyCount !== undefined 
-                  ? currentPropertyCount >= 20 
-                  : (session.user.totalProperties || 0) >= 20))
+                  ? currentPropertyCount >= 150 
+                  : (session.user.totalProperties || 0) >= 150))
               }
               className="flex-1 flex flex-col items-center justify-center transition-all active:scale-95 disabled:opacity-50"
             >

@@ -33,10 +33,14 @@ export default function AdminPanel() {
     }
   }
 
-  // Esta función ahora usa TU API existente
   async function activateAgent(agentId: string, email: string) {
     const reference = prompt(`Introduce el número de comprobante SINPE para ${email}:`);
-    if (!reference) return;
+    
+    // VALIDACIÓN: Evita que se procese si está vacío o solo tiene espacios
+    if (!reference || reference.trim() === "") {
+      alert("❌ Debes ingresar un número de referencia válido.");
+      return;
+    }
 
     try {
       const res = await fetch('/api/activate-agent', {
@@ -44,8 +48,8 @@ export default function AdminPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           agentId, 
-          reference,
-          months: 1 // Por defecto 1 mes como pide tu API
+          reference: reference.trim(),
+          months: 1 
         }),
       });
 
@@ -75,7 +79,7 @@ export default function AdminPanel() {
 
   if (loading && agents.length === 0) return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <p className="font-bold text-slate-400 animate-pulse">Sincronizando con base de datos...</p>
+      <p className="font-bold text-slate-400 animate-pulse font-sans">Sincronizando base de datos...</p>
     </div>
   );
 
@@ -86,23 +90,40 @@ export default function AdminPanel() {
         {/* Cabecera */}
         <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-black tracking-tighter">Panel de Control</h1>
-            <p className="text-slate-500">Gestión de agentes y suscripciones Flow Estate</p>
+            <h1 className="text-4xl font-black tracking-tighter">Panel Maestro</h1>
+            <p className="text-slate-500 font-medium text-sm">Flow Estate AI — Control Central</p>
           </div>
           
           <div className="flex gap-3">
+            {/* Botón Refrescar Moderno */}
             <button 
               onClick={fetchAgents}
-              className="bg-white border border-slate-200 p-4 rounded-[20px] hover:bg-slate-100 transition-all shadow-sm active:scale-95"
+              disabled={loading}
+              className="group bg-white border border-slate-200 p-4 rounded-[20px] hover:bg-slate-50 hover:border-blue-200 transition-all shadow-sm active:scale-95 disabled:opacity-50"
               title="Refrescar datos"
             >
-              🔄
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={`text-slate-500 group-hover:text-blue-600 transition-colors ${loading ? 'animate-spin' : ''}`}
+              >
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
             </button>
+
             <button 
               onClick={() => signOut({ callbackUrl: '/' })}
-              className="bg-red-50 text-red-600 px-6 py-4 rounded-[20px] font-bold text-xs hover:bg-red-100 transition-all"
+              className="bg-red-50 text-red-600 px-6 py-4 rounded-[20px] font-bold text-xs hover:bg-red-100 transition-all active:scale-95"
             >
-              Salir del Panel
+              Cerrar Sesión
             </button>
           </div>
         </header>
@@ -114,17 +135,21 @@ export default function AdminPanel() {
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100 font-bold text-[10px] text-slate-400 uppercase tracking-widest">
                   <th className="p-6">Perfil Agente</th>
-                  <th className="p-6">Plan</th>
+                  <th className="p-6">Plan y Estado</th>
                   <th className="p-6 text-center">Propiedades</th>
                   <th className="p-6 text-center">Vistas</th>
-                  <th className="p-6">Última Actividad</th>
+                  <th className="p-6">Actividad</th>
                   <th className="p-6 text-right">Mando</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {agents.map((agent) => {
                   const activity = formatLastActive(agent.last_active_at);
-                  const isPro = agent.plan === 'pro' && agent.expires_at && new Date(agent.expires_at) > new Date();
+                  
+                  // Lógica de Badge Solicitada
+                  const expirationDate = agent.expires_at ? new Date(agent.expires_at) : null;
+                  const isExpired = agent.plan === 'pro' && expirationDate && expirationDate < new Date();
+                  const isPro = agent.plan === 'pro' && expirationDate && expirationDate > new Date();
                   
                   return (
                     <tr key={agent.id} className="hover:bg-blue-50/10 transition-colors">
@@ -133,11 +158,19 @@ export default function AdminPanel() {
                         <p className="text-[11px] text-slate-400 font-medium">{agent.email}</p>
                       </td>
                       <td className="p-6">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${
-                          isPro ? 'bg-green-50 text-green-700 border-green-100' : 'bg-slate-100 text-slate-500 border-slate-200'
-                        }`}>
-                          {isPro ? 'Pro Activo' : 'Free / Vencido'}
-                        </span>
+                        {isPro ? (
+                          <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-green-50 text-green-700 border border-green-100">
+                            Pro Activo
+                          </span>
+                        ) : isExpired ? (
+                          <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-red-50 text-red-600 border border-red-100">
+                            Vencido
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-slate-100 text-slate-500 border border-slate-200">
+                            Free
+                          </span>
+                        )}
                       </td>
                       <td className="p-6 text-center font-bold text-slate-700">{agent.totalProperties}</td>
                       <td className="p-6 text-center font-bold text-blue-600">{agent.totalViews?.toLocaleString() || 0}</td>
@@ -165,22 +198,22 @@ export default function AdminPanel() {
           <div className="bg-white rounded-[40px] max-w-md w-full p-10 shadow-2xl animate-in fade-in zoom-in duration-300">
             <div className="flex justify-between items-start mb-8">
               <div>
-                <h2 className="text-2xl font-black text-slate-900 leading-tight">Acciones Rápidas</h2>
+                <h2 className="text-2xl font-black text-slate-900 leading-tight">Acciones</h2>
                 <p className="text-sm text-slate-500 font-medium">{selectedAgent.email}</p>
               </div>
-              <button onClick={() => setSelectedAgent(null)} className="text-slate-300 hover:text-slate-600 text-xl">✕</button>
+              <button onClick={() => setSelectedAgent(null)} className="text-slate-300 hover:text-slate-600 text-xl transition-colors">✕</button>
             </div>
 
             <div className="space-y-6">
               <div className="bg-slate-50 p-6 rounded-[24px] border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Estado de cuenta</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Detalle de Suscripción</p>
                 <div className="flex justify-between items-center mb-2 text-sm font-bold">
                   <span className="text-slate-600">Último SINPE:</span>
                   <span className="text-slate-800">{selectedAgent.last_payment_reference || 'Ninguno'}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm font-bold">
                   <span className="text-slate-600">Vencimiento:</span>
-                  <span className="text-blue-600">{selectedAgent.expires_at ? new Date(selectedAgent.expires_at).toLocaleDateString() : 'N/A'}</span>
+                  <span className="text-blue-600">{selectedAgent.expires_at ? new Date(selectedAgent.expires_at).toLocaleDateString() : 'Nunca'}</span>
                 </div>
               </div>
 

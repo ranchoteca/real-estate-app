@@ -41,7 +41,7 @@ export const authOptions: NextAuthOptions = {
                 name: user.name || '',
                 google_id: account.providerAccountId,
                 username: username,
-                credits: 3, // 3 créditos gratis para nuevos agentes
+                plan: 'free',
               })
               .select()
               .single();
@@ -50,8 +50,7 @@ export const authOptions: NextAuthOptions = {
               console.error('❌ Error creating agent:', insertError);
               console.error('Full error:', JSON.stringify(insertError, null, 2));
             } else {
-              console.log('✅ Agent created successfully:', newAgent);
-              console.log('🎁 3 free credits granted');
+              console.log('✅ Agent created successfully:', newAgent?.email);
             }
           } else {
             console.log('✅ Agent already exists:', existingAgent.email);
@@ -68,7 +67,7 @@ export const authOptions: NextAuthOptions = {
         if (session?.user?.email) {
           const { data: dbAgent, error } = await supabaseAdmin
             .from('agents')
-            .select('id, plan, properties_this_month, username, full_name, phone, brokerage')
+            .select('id, plan, role, expires_at, username, full_name, phone, brokerage')
             .eq('email', session.user.email)
             .single();
           
@@ -76,11 +75,11 @@ export const authOptions: NextAuthOptions = {
             console.error('❌ Error fetching session agent:', error);
             session.user.id = 'temp-id';
             session.user.plan = 'free';
-            session.user.properties_this_month = 0;
           } else if (dbAgent) {
             session.user.id = dbAgent.id;
             session.user.plan = dbAgent.plan || 'free';
-            session.user.properties_this_month = dbAgent.properties_this_month || 0;
+            session.user.role = dbAgent.role || 'agent';
+            session.user.expires_at = dbAgent.expires_at || null;
             session.user.username = dbAgent.username;
             session.user.fullName = dbAgent.full_name;
             session.user.phone = dbAgent.phone;

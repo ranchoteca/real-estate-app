@@ -149,15 +149,10 @@ export default function ProfilePage() {
                     {session.user.plan === 'pro' ? t('profile.pro') : t('profile.free')}
                   </p>
                   <p className="text-xs opacity-80" style={{ color: session.user.plan === 'pro' ? '#FFFFFF' : '#0F172A' }}>
-                    {session.user.plan === 'pro' ? t('profile.perMonth') : t('profile.total')}
+                    {session.user.plan === 'pro' ? '150 props' : '5 props'}
                   </p>
                 </div>
               </div>
-              {session.user.plan === 'pro' && (
-                <p className="text-xs mt-2 opacity-70" style={{ color: '#0F172A' }}>
-                  {session.user.properties_this_month}/30 {t('profile.thisMonth')}
-                </p>
-              )}
             </div>
 
             <div className="flex justify-center">
@@ -272,20 +267,6 @@ export default function ProfilePage() {
             </button>
           </div>
         </div>
-
-        {/* 
-        <div className="space-y-3">
-          {session.user.plan === 'free' && (
-            <button
-              onClick={() => router.push('/pricing')}
-              className="w-full py-3 rounded-xl font-bold shadow-lg active-scale-95 transition-transform flex items-center justify-center gap-2 text-white"
-              style={{ backgroundColor: '#2563EB' }}
-            >
-              <span>⭐</span> {t('profile.upgradeToPro')}
-            </button>
-          )}
-        </div>
-        */}
 
         <button
           onClick={handleLogout}

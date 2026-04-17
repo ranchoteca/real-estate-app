@@ -7,9 +7,10 @@ declare module 'next-auth' {
       email: string;
       name?: string | null;
       image?: string | null;
-      plan: string; // 'free' o 'pro'
+      plan: string;
+      role: string;
+      expires_at: string | null;
       totalProperties: number;
-      properties_this_month: number;
       username?: string | null;
       fullName?: string | null;
       phone?: string | null;

@@ -9,15 +9,16 @@ const PLANS = [
   {
     id: 'free',
     name: 'Free',
-    price: 0,
-    properties: 3,
+    price: '0',
+    currency: '₡',
+    properties: 5,
     period: 'total',
     features: [
-      '3 propiedades totales',
-      'Portfolio público',
-      'Descripción con IA',
-      'Hasta 10 fotos por propiedad',
-      'Exporta tus propiedades a CSV'
+      'Hasta 5 propiedades en total',
+      'Generación de descripciones con IA',
+      'Portfolio web público',
+      'Exportación básica a PDF',
+      'Soporte estándar'
     ],
     cta: 'Plan Actual',
     highlight: false
@@ -25,19 +26,19 @@ const PLANS = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 19,
-    properties: 30,
+    price: '15,000', // Actualiza este monto si tu precio en la web es distinto
+    currency: '₡',
+    properties: 150,
     period: 'mes',
-    paypalPlanId: 'P-TU-PLAN-ID-AQUI', // Reemplazar con tu plan real de PayPal
     features: [
-      '30 propiedades nuevas/mes',
-      'Todo en Free +',
-      'Sin marca de agua',
-      'Incluye tu logo personalizado',
-      'Soporte prioritario',
-      'Analytics básico'
+      'Hasta 150 propiedades',
+      'Todo lo del plan Free +',
+      'Publicación automática en Facebook',
+      'Traducciones con IA (Inglés/Español)',
+      'Sin marca de agua de Flow Estate',
+      'Agrega tu logo personalizado en fotos'
     ],
-    cta: 'Comenzar',
+    cta: 'Pagar con SINPE Móvil',
     highlight: true
   }
 ];
@@ -55,7 +56,6 @@ export default function PricingPage() {
 
   useEffect(() => {
     if (session?.user) {
-      // Obtener plan actual del usuario
       fetchCurrentPlan();
     }
   }, [session]);
@@ -70,34 +70,16 @@ export default function PricingPage() {
     }
   };
 
-  const handleSubscribe = async (planId: string, paypalPlanId: string) => {
-    if (planId === 'free') return;
-
-    try {
-      // Crear suscripción en PayPal
-      const response = await fetch('/api/payments/create-subscription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId, paypalPlanId }),
-      });
-
-      const data = await response.json();
-
-      if (data.approvalUrl) {
-        // Redirigir a PayPal
-        window.location.href = data.approvalUrl;
-      } else {
-        alert('Error al crear suscripción');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error al procesar el pago');
-    }
+  const handleSinpePayment = () => {
+    const userEmail = session?.user?.email || 'mi correo';
+    const message = encodeURIComponent(`¡Hola! Deseo adquirir el plan Pro de Flow Estate AI. Ya realicé el pago por SINPE. Mi correo de usuario es: ${userEmail}`);
+    // Asegúrate de cambiar el 88888888 por tu número real de Costa Rica
+    window.open(`https://wa.me/50688888888?text=${message}`, '_blank');
   };
 
   if (status === 'loading') {
     return (
-      <MobileLayout title="Planes" showBack={true} showTabs={true}>
+      <MobileLayout title="Planes" showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-5xl animate-pulse">💳</div>
         </div>
@@ -106,7 +88,7 @@ export default function PricingPage() {
   }
 
   return (
-    <MobileLayout title="Planes" showBack={true} showTabs={true}>
+    <MobileLayout title="Planes" showTabs={true}>
       <div className="px-4 pt-4 pb-24">
         {/* Header */}
         <div className="text-center mb-8">
@@ -114,7 +96,7 @@ export default function PricingPage() {
             Elige tu plan de Flow Estate AI
           </h1>
           <p className="opacity-80" style={{ color: '#0F172A' }}>
-            Crea más propiedades y crece tu negocio
+            Escala tu negocio y automatiza tus propiedades
           </p>
         </div>
 
@@ -158,9 +140,9 @@ export default function PricingPage() {
 
               <div className="mb-4">
                 <span className="text-4xl font-bold" style={{ color: '#2563EB' }}>
-                  ${plan.price}
+                  {plan.currency}{plan.price}
                 </span>
-                {plan.price > 0 && (
+                {plan.price !== '0' && (
                   <span className="text-sm opacity-70" style={{ color: '#0F172A' }}>
                     /{plan.period}
                   </span>
@@ -168,7 +150,7 @@ export default function PricingPage() {
               </div>
 
               <p className="text-sm mb-4 font-semibold" style={{ color: '#0F172A' }}>
-                {plan.properties} propiedades {plan.period === 'mes' ? 'nuevas por mes' : 'en total'}
+                {plan.properties} propiedades {plan.period === 'mes' ? 'en total por mes' : 'en total'}
               </p>
 
               <ul className="space-y-2 mb-6">
@@ -180,17 +162,35 @@ export default function PricingPage() {
                 ))}
               </ul>
 
+              {plan.id === 'pro' && currentPlan !== 'pro' && (
+                <div className="bg-blue-50 p-3 rounded-lg mb-4 text-center border border-blue-100">
+                  <p className="text-xs font-semibold text-blue-800">
+                    Paga por SINPE Móvil al:
+                  </p>
+                  <p className="text-lg font-bold text-blue-900">(+506)8368 8684</p>
+                  <p className="text-xs text-blue-700">A nombre de: Steven Espinoza</p>
+                </div>
+              )}
+
               <button
-                onClick={() => plan.paypalPlanId && handleSubscribe(plan.id, plan.paypalPlanId)}
+                onClick={() => plan.id === 'pro' ? handleSinpePayment() : null}
                 disabled={currentPlan === plan.id || plan.id === 'free'}
-                className="w-full py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`w-full py-3 rounded-xl font-bold shadow-lg transition-transform ${
+                  currentPlan === plan.id || plan.id === 'free' 
+                    ? 'opacity-50 cursor-not-allowed' 
+                    : 'active:scale-95'
+                }`}
                 style={{
-                  backgroundColor: plan.highlight ? '#2563EB' : currentPlan === plan.id ? '#10B981' : '#FFFFFF',
-                  color: plan.highlight || currentPlan === plan.id ? '#FFFFFF' : '#2563EB',
+                  backgroundColor: plan.highlight && currentPlan !== plan.id ? '#25D366' : currentPlan === plan.id ? '#10B981' : '#FFFFFF',
+                  color: plan.highlight && currentPlan !== plan.id ? '#FFFFFF' : currentPlan === plan.id ? '#FFFFFF' : '#2563EB',
                   border: plan.highlight || currentPlan === plan.id ? 'none' : '2px solid #2563EB',
                 }}
               >
-                {currentPlan === plan.id ? '✓ Plan Actual' : plan.cta}
+                {currentPlan === plan.id 
+                  ? '✓ Plan Actual' 
+                  : plan.id === 'pro' 
+                    ? '💬 Enviar Comprobante (WhatsApp)' 
+                    : plan.cta}
               </button>
             </div>
           ))}
@@ -204,20 +204,20 @@ export default function PricingPage() {
 
           {[
             {
-              q: '¿Qué pasa si no uso todas mis propiedades del mes?',
-              a: 'Se pierden. El contador se resetea cada mes. No se acumulan.'
+              q: '¿Cómo funciona el pago por SINPE?',
+              a: 'Es muy sencillo. Realizas la transferencia al número indicado y nos envías el comprobante por WhatsApp tocando el botón verde. Activaremos tu cuenta en minutos.'
             },
             {
-              q: '¿Puedo cancelar en cualquier momento?',
-              a: 'Sí, cancelas cuando quieras. Tus propiedades permanecen activas.'
+              q: '¿Qué pasa con mis propiedades si se acaba el mes?',
+              a: 'El plan Pro te permite gestionar hasta 150 propiedades de forma simultánea. Si dejas de pagar, tus propiedades seguirán guardadas, pero pasarás al límite del plan Free (5 propiedades).'
             },
             {
               q: '¿Hay límite de fotos por propiedad?',
-              a: 'Sí, máximo 10 fotos por propiedad.'
+              a: 'No importa el plan, puedes subir las fotos que necesites para mostrar mejor tus propiedades.'
             },
             {
-              q: '¿Puedo cambiar de plan?',
-              a: 'Sí, upgrades son inmediatos. Downgrades al final del periodo.'
+              q: '¿Puedo cancelar en cualquier momento?',
+              a: 'Sí, como los pagos son manuales mes a mes, simplemente dejas de enviar el SINPE y tu plan volverá automáticamente al plan gratuito.'
             }
           ].map((faq, index) => (
             <div

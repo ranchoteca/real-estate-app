@@ -1,14 +1,30 @@
 "use client";
 import { useEffect, useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 export default function AdminPanel() {
   const [agents, setAgents] = useState<any[]>([]);
-  const supabase = createClientComponentClient();
+  
+  // 1. Inicializar los hooks de sesión y router
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
+  // 2. Un solo useEffect para manejar la validación y la carga
   useEffect(() => {
+    // Si todavía está verificando quién es el usuario, no hacemos nada aún
+    if (status === 'loading') return;
+
+    // Si no hay sesión o el rol no es admin, lo pateamos al dashboard
+    if (!session || session.user?.role !== 'admin') {
+      router.push('/dashboard');
+      return;
+    }
+
+    // Si pasó las validaciones, cargamos los agentes
     fetchAgents();
-  }, []);
+  }, [session, status, router]);
 
   async function fetchAgents() {
     const { data } = await supabase
@@ -29,8 +45,13 @@ export default function AdminPanel() {
 
     if (res.ok) {
       alert(`Plan activado para ${email}`);
-      fetchAgents();
+      fetchAgents(); // Recargar la lista para ver la nueva fecha
     }
+  }
+
+  // Opcional: Mostrar una pantalla de carga mientras verifica si es admin
+  if (status === 'loading') {
+    return <div className="p-8 font-sans">Verificando permisos...</div>;
   }
 
   return (

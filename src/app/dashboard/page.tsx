@@ -384,8 +384,8 @@ export default function DashboardPage() {
               </p>
               <p className="text-xs mb-3 opacity-80" style={{ color: '#0F172A' }}>
                 {language === 'en' 
-                  ? 'Get unlimited properties and AI features for only ₡15,000/month.' 
-                  : 'Propiedades ilimitadas y funciones IA por solo ₡15,000 al mes.'}
+                  ? 'Up to 150 properties and AI features for only ₡14,125/month.' 
+                  : 'Hasta 150 propiedades y funciones IA por solo ₡14,125 al mes.'}
               </p>
               
               {/* Instrucciones SINPE */}
@@ -393,7 +393,7 @@ export default function DashboardPage() {
                 <p className="text-xs font-semibold text-blue-800">
                   {language === 'en' ? 'Pay via SINPE Móvil:' : 'Paga por SINPE Móvil:'}
                 </p>
-                <p className="text-sm font-bold text-blue-900">8368 8684</p>
+                <p className="text-sm font-bold text-blue-900">(+506) 8368 8684</p>
                 <p className="text-xs text-blue-700">A nombre de: Steven Espinoza</p>
               </div>
 

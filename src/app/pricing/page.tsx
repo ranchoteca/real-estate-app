@@ -26,7 +26,7 @@ const PLANS = [
   {
     id: 'pro',
     name: 'Pro',
-    price: '15,000', // Actualiza este monto si tu precio en la web es distinto
+    price: '14,125',
     currency: '₡',
     properties: 150,
     period: 'mes',
@@ -213,7 +213,7 @@ export default function PricingPage() {
             },
             {
               q: '¿Hay límite de fotos por propiedad?',
-              a: 'No importa el plan, puedes subir las fotos que necesites para mostrar mejor tus propiedades.'
+              a: 'Sí, puedes subir hasta 15 fotos por propiedad independientemente del plan activo que uses.'
             },
             {
               q: '¿Puedo cancelar en cualquier momento?',

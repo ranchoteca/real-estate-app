@@ -73,6 +73,7 @@ export default function SettingsPage() {
       description: t('settings.options.watermark.description'),
       href: '/settings/watermark',
       color: '#8B5CF6',
+      proOnly: true,
     },
     {
       icon: '📇',
@@ -80,6 +81,7 @@ export default function SettingsPage() {
       description: t('settings.options.digitalCard.description'),
       href: '/settings/digital-card',
       color: '#6366F1',
+      proOnly: true,
     },
     {
       icon: '🏷️',
@@ -87,6 +89,7 @@ export default function SettingsPage() {
       description: t('settings.options.customFields.description'),
       href: '/settings/custom-fields',
       color: '#2563EB',
+      proOnly: true,
     },
     {
       icon: '📘',
@@ -94,6 +97,7 @@ export default function SettingsPage() {
       description: t('settings.options.facebook.description'),
       href: '/settings/facebook',
       color: '#1877F2',
+      proOnly: true,
     },
     {
       icon: '🔑',
@@ -101,6 +105,7 @@ export default function SettingsPage() {
       description: t('settings.options.uploadToken.description'),
       href: '/settings/upload-token',
       color: '#8B5CF6',
+      proOnly: true,
     },
     {
       icon: '🔗',
@@ -140,7 +145,10 @@ export default function SettingsPage() {
     }
   };
 
+  const isProUser = session.user.plan === 'pro' || session.user.role === 'admin';
+
   const handleOptionClick = (option: typeof settingsOptions[0]) => {
+    if (option.proOnly && !isProUser) return;
     if (option.action === 'export') {
       handleExport();
     } else if (option.href) {
@@ -195,14 +203,18 @@ export default function SettingsPage() {
             <button
               key={index}
               onClick={() => handleOptionClick(option)}
-              className="w-full rounded-2xl p-5 shadow-lg active:scale-98 transition-transform disabled:opacity-50"
-              style={{ backgroundColor: '#FFFFFF' }}
+              className="w-full rounded-2xl p-5 shadow-lg active:scale-98 transition-transform"
+              style={{ 
+                backgroundColor: '#FFFFFF',
+                opacity: option.proOnly && !isProUser ? 0.45 : 1,
+                cursor: option.proOnly && !isProUser ? 'default' : 'pointer',
+              }}
               disabled={option.disabled}
             >
               <div className="flex items-center gap-4">
                 <div 
                   className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm"
-                  style={{ backgroundColor: `${option.color}20` }}
+                  style={{ backgroundColor: option.proOnly && !isProUser ? '#E5E7EB' : `${option.color}20` }}
                 >
                   {option.icon}
                 </div>

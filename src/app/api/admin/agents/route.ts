@@ -11,27 +11,47 @@ export async function GET() {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
-    // Seleccionamos los agentes y sus propiedades (solo la columna views)
     const { data: agents, error } = await supabaseAdmin
       .from('agents')
       .select(`
         *,
         properties (
           views
+        ),
+        payment_history (
+          id,
+          reference,
+          payment_method,
+          amount,
+          months,
+          payment_date,
+          expires_at,
+          invoice_number,
+          notes,
+          created_by
         )
       `)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    // Procesamos la data para que el frontend la reciba lista
     const agentsWithMetrics = agents?.map(agent => {
       const props = agent.properties || [];
+      const payments = agent.payment_history || [];
+
+      // Ordenar pagos del más reciente al más antiguo
+      const sortedPayments = payments.sort(
+        (a: any, b: any) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime()
+      );
+
       return {
         ...agent,
         totalProperties: props.length,
         totalViews: props.reduce((acc: number, curr: any) => acc + (curr.views || 0), 0),
-        properties: undefined // Limpiamos el array de props para no saturar la respuesta
+        totalPayments: payments.length,
+        paymentHistory: sortedPayments,
+        properties: undefined,
+        payment_history: undefined,
       };
     });
 

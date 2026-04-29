@@ -49,6 +49,11 @@ export default function AdminPanel() {
       return;
     }
 
+    if (!paymentForm.amount || parseFloat(paymentForm.amount) <= 0) {
+      alert('❌ El monto es obligatorio y debe ser mayor a 0.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch('/api/activate-agent', {
@@ -361,7 +366,9 @@ export default function AdminPanel() {
                 {/* Monto y Meses */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">Monto (₡)</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">
+                      Monto (₡) <span className="text-red-400">*</span>
+                    </label>
                     <input
                       type="number"
                       value={paymentForm.amount}

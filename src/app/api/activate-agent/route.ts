@@ -12,18 +12,27 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: Request) {
   try {
-    const { agentId, months = 1, reference } = await request.json();
+    const { 
+      agentId, 
+      months = 1, 
+      reference,
+      paymentMethod = 'sinpe',
+      amount = null,
+      invoiceNumber = null,
+      notes = null,
+      createdBy = null,
+    } = await request.json();
 
     const expirationDate = addDays(new Date(), 30 * months);
 
-    // 1. Actualizar base de datos
+    // 1. Actualizar agente
     const { data, error } = await supabaseAdmin
       .from('agents')
       .update({
         plan: 'pro',
         expires_at: expirationDate.toISOString(),
         plan_started_at: new Date().toISOString(),
-        last_payment_reference: reference
+        last_payment_reference: reference,
       })
       .eq('id', agentId)
       .select()
@@ -31,14 +40,31 @@ export async function POST(request: Request) {
 
     if (error) throw error;
 
-    // 2. Enviar correo de confirmación
+    // 2. Insertar en historial de pagos
+    const { error: historyError } = await supabaseAdmin
+      .from('payment_history')
+      .insert({
+        agent_id: agentId,
+        reference,
+        payment_method: paymentMethod,
+        amount,
+        months,
+        expires_at: expirationDate.toISOString(),
+        invoice_number: invoiceNumber,
+        notes,
+        created_by: createdBy,
+      });
+
+    if (historyError) throw historyError;
+
+    // 3. Enviar correo de confirmación
     await resend.emails.send({
-      from: 'Flow Estate <onboarding@resend.dev>', // Cambia esto por tu dominio verificado después
+      from: 'Flow Estate <onboarding@resend.dev>',
       to: data.email,
       subject: '¡Tu cuenta Pro de Flow Estate AI está activa! 🚀',
       html: `
         <h1>¡Hola, ${data.full_name || 'Agente'}!</h1>
-        <p>Hemos recibido tu pago vía SINPE (Ref: ${reference}) y tu plan <strong>Pro</strong> ha sido activado.</p>
+        <p>Hemos recibido tu pago (Ref: ${reference}) y tu plan <strong>Pro</strong> ha sido activado.</p>
         <p>Tu suscripción estará vigente hasta el: <strong>${expirationDate.toLocaleDateString()}</strong>.</p>
         <p>Ya puedes disfrutar de todas las herramientas ilimitadas.</p>
         <br />

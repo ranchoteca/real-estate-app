@@ -341,6 +341,8 @@ export default function DashboardPage() {
     planInfo?.role === 'admin' || 
     (planInfo?.plan === 'pro' && !!planInfo?.expires_at && new Date(planInfo.expires_at) > new Date());
 
+  const isFree = planInfo?.plan === 'free';
+
   const filteredProperties = getFilteredProperties();
 
   return (
@@ -379,22 +381,48 @@ export default function DashboardPage() {
           
           {planInfo?.plan === 'free' && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>
-              <p className="text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                🚀 {language === 'en' ? 'Upgrade to Pro' : 'Pásate a Pro'}
-              </p>
-              <p className="text-xs mb-3 opacity-80" style={{ color: '#0F172A' }}>
-                {language === 'en' 
-                  ? 'Up to 150 properties and AI features for only ₡14,125/month.' 
-                  : 'Hasta 150 propiedades y funciones IA por solo ₡14,125 al mes.'}
-              </p>
-              
+              {/* Header */}
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-2xl">🚀</span>
+                <div>
+                  <p className="text-base font-bold" style={{ color: '#0F172A' }}>
+                    {language === 'en' ? 'Upgrade to Pro' : 'Pásate a Pro'}
+                  </p>
+                  <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                    {language === 'en'
+                      ? 'Up to 150 properties + AI features'
+                      : 'Hasta 150 propiedades + funciones IA'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Precio destacado */}
+              <div
+                className="rounded-xl px-4 py-3 mb-3 flex items-center justify-between"
+                style={{ backgroundColor: '#EFF6FF', border: '2px solid #BFDBFE' }}
+              >
+                <span className="text-sm font-semibold" style={{ color: '#1E40AF' }}>
+                  {language === 'en' ? 'Monthly price' : 'Precio mensual'}
+                </span>
+                <span className="text-xl font-bold" style={{ color: '#2563EB' }}>
+                  ₡14,125
+                </span>
+              </div>
+
               {/* Instrucciones SINPE */}
-              <div className="bg-blue-50 p-3 rounded-lg mb-4 border border-blue-100">
-                <p className="text-xs font-semibold text-blue-800">
-                  {language === 'en' ? 'Pay via SINPE Móvil:' : 'Paga por SINPE Móvil:'}
+              <div
+                className="rounded-xl p-4 mb-3"
+                style={{ backgroundColor: '#F0FDF4', border: '2px solid #BBF7D0' }}
+              >
+                <p className="text-xs font-bold mb-2" style={{ color: '#166534' }}>
+                  💳 {language === 'en' ? 'Pay via SINPE Móvil:' : 'Paga por SINPE Móvil:'}
                 </p>
-                <p className="text-sm font-bold text-blue-900">(+506) 8368 8684</p>
-                <p className="text-xs text-blue-700">A nombre de: Steven Espinoza</p>
+                <p className="text-lg font-bold mb-1" style={{ color: '#15803D' }}>
+                  (+506) 8368 8684
+                </p>
+                <p className="text-sm font-semibold" style={{ color: '#166534' }}>
+                  {language === 'en' ? 'Name: Steven Espinoza' : 'A nombre de: Steven Espinoza'}
+                </p>
               </div>
 
               <button
@@ -402,8 +430,8 @@ export default function DashboardPage() {
                   const message = encodeURIComponent(`Hola! He realizado el pago SINPE para mi plan Pro en Flow Estate AI. Mi correo es: ${session.user.email}`);
                   window.open(`https://wa.me/50683688684?text=${message}`, '_blank');
                 }}
-                className="w-full py-2.5 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
-                style={{ backgroundColor: '#25D366' }} // Color de WhatsApp
+                className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+                style={{ backgroundColor: '#25D366' }}
               >
                 <span>💬</span>
                 {language === 'en' ? 'Send Receipt via WhatsApp' : 'Enviar Comprobante por WhatsApp'}
@@ -672,22 +700,28 @@ export default function DashboardPage() {
                     {/* Traducir */}
                     <button
                       onClick={(e) => {
-                        e.stopPropagation();
-                        setShowMenu(null);
-                        setTranslateModal({ 
-                          open: true, 
-                          propertyId: property.id, 
-                          currentLang: property.language 
-                        });
-                      }}
-                      disabled={!isProActivo}
-                      className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
-                      style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
-                    >
-                      <span>🌐</span> {language === 'en' 
-                        ? `Translate to ${property.language === 'es' ? 'English' : 'Spanish'}`
-                        : `Traducir a ${property.language === 'es' ? 'Inglés' : 'Español'}`
-                      }
+                          e.stopPropagation();
+                          if (isFree) return;
+                          setShowMenu(null);
+                          setTranslateModal({ 
+                            open: true, 
+                            propertyId: property.id, 
+                            currentLang: property.language 
+                          });
+                        }}
+                        className="w-full px-4 py-3 text-left font-semibold transition-colors flex items-center gap-2 border-t"
+                        style={{ 
+                          color: isFree ? '#9CA3AF' : '#0F172A',
+                          borderTopColor: '#F3F4F6',
+                          cursor: isFree ? 'default' : 'pointer'
+                        }}
+                      >
+                        <span>🌐</span>
+                        {language === 'en' 
+                          ? `Translate to ${property.language === 'es' ? 'English' : 'Spanish'}`
+                          : `Traducir a ${property.language === 'es' ? 'Inglés' : 'Español'}`
+                        }
+                        {isFree && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>Pro</span>}
                     </button>
 
                     {/* Eliminar - MANTENER EN ROJO */}
@@ -755,17 +789,23 @@ export default function DashboardPage() {
 
                     {/* Publicar en Facebook */}
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowMenu(null);
-                        setSelectedPropertyId(property.id);
-                        setPublishModalOpen(true);
-                      }}
-                      disabled={!isProActivo}
-                      className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
-                      style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
-                    >
-                      <span>📘</span> {language === 'en' ? 'Publish on Facebook' : 'Publicar en Facebook'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isFree) return;
+                          setShowMenu(null);
+                          setSelectedPropertyId(property.id);
+                          setPublishModalOpen(true);
+                        }}
+                        className="w-full px-4 py-3 text-left font-semibold transition-colors flex items-center gap-2 border-t"
+                        style={{ 
+                          color: isFree ? '#9CA3AF' : '#0F172A',
+                          borderTopColor: '#F3F4F6',
+                          cursor: isFree ? 'default' : 'pointer'
+                        }}
+                      >
+                      <span>📘</span>
+                      {language === 'en' ? 'Publish on Facebook' : 'Publicar en Facebook'}
+                      {isFree && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>Pro</span>}
                     </button>
                   </div>
                 )}

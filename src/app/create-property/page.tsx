@@ -950,17 +950,38 @@ export default function CreatePropertyPage() {
             
             {/* Videos - NUEVO */}
             <div className="mt-6 pt-6 border-t border-gray-200">
-              <VideoUploader
-                onVideosChange={(files) => setVideos(files)}
-                maxVideos={4}
-                maxDurationSeconds={60}
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                💡 {language === 'en' 
-                  ? 'Max 60 seconds total · Plays as a continuous playlist'
-                  : 'Máx 60 segundos en total · Se reproducen como playlist continua'
-                }
-              </p>
+              {session.user.plan === 'pro' ? (
+                <>
+                  <VideoUploader
+                    onVideosChange={(files) => setVideos(files)}
+                    maxVideos={4}
+                    maxDurationSeconds={60}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    💡 {language === 'en' 
+                      ? 'Max 60 seconds total · Plays as a continuous playlist'
+                      : 'Máx 60 segundos en total · Se reproducen como playlist continua'
+                    }
+                  </p>
+                </>
+              ) : (
+                <div
+                  className="rounded-xl p-4 flex items-center gap-3"
+                  style={{ backgroundColor: '#FEF3C7', border: '2px solid #FDE68A' }}
+                >
+                  <span className="text-2xl">🎬</span>
+                  <div>
+                    <p className="text-sm font-bold" style={{ color: '#92400E' }}>
+                      {language === 'en' ? 'Videos are a Pro feature' : 'Los videos son una función Pro'}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: '#B45309' }}>
+                      {language === 'en'
+                        ? 'Upgrade to Pro to add videos to your properties'
+                        : 'Pásate a Pro para agregar videos a tus propiedades'}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

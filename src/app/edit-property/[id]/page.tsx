@@ -700,53 +700,74 @@ export default function EditPropertyPage() {
             🎬 Videos
           </h3>
 
-          {/* Videos existentes */}
-          {existingVideos.length > 0 && (
-            <div className="space-y-2 mb-4">
-              <p className="text-xs opacity-70 mb-2" style={{ color: '#0F172A' }}>
-                Videos actuales:
-              </p>
-              {existingVideos.map((url, index) => (
-              <div key={index} className="relative rounded-xl overflow-hidden border-2" style={{ borderColor: '#E5E7EB' }}>
-                <video
-                  src={url}
-                  className="w-full aspect-video object-cover bg-black"
-                  controls
-                  preload="metadata"
-                />
-                <button
-                  onClick={() => handleDeleteExistingVideo(index)}
-                  className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
-                >
-                  ✕
-                </button>
-                <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded text-xs font-bold text-white" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
-                  Video {index + 1}
+          {session.user.plan === 'pro' ? (
+            <>
+              {/* Videos existentes */}
+              {existingVideos.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  <p className="text-xs opacity-70 mb-2" style={{ color: '#0F172A' }}>
+                    Videos actuales:
+                  </p>
+                  {existingVideos.map((url, index) => (
+                    <div key={index} className="relative rounded-xl overflow-hidden border-2" style={{ borderColor: '#E5E7EB' }}>
+                      <video
+                        src={url}
+                        className="w-full aspect-video object-cover bg-black"
+                        controls
+                        preload="metadata"
+                      />
+                      <button
+                        onClick={() => handleDeleteExistingVideo(index)}
+                        className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
+                      >
+                        ✕
+                      </button>
+                      <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded text-xs font-bold text-white" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                        Video {index + 1}
+                      </div>
+                    </div>
+                  ))}
                 </div>
+              )}
+
+              {/* Agregar nuevos videos */}
+              {Math.floor(60 - existingVideosDuration) > 0 && (
+                <VideoUploader
+                  onVideosChange={handleNewVideosChange}
+                  maxVideos={4}
+                  maxDurationSeconds={Math.ceil(60 - existingVideosDuration)}
+                />
+              )}
+
+              {Math.floor(60 - existingVideosDuration) <= 0 && (
+                <p className="text-xs text-center opacity-60 mt-2" style={{ color: '#0F172A' }}>
+                  {language === 'en' ? 'Maximum 60 seconds reached' : 'Has alcanzado el máximo de 60 segundos'}
+                </p>
+              )}
+
+              {/* Progreso */}
+              {videoProgress && (
+                <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                  <p className="text-sm font-semibold text-purple-900">🎬 {videoProgress}</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <div
+              className="rounded-xl p-4 flex items-center gap-3"
+              style={{ backgroundColor: '#FEF3C7', border: '2px solid #FDE68A' }}
+            >
+              <span className="text-2xl">🎬</span>
+              <div>
+                <p className="text-sm font-bold" style={{ color: '#92400E' }}>
+                  {language === 'en' ? 'Videos are a Pro feature' : 'Los videos son una función Pro'}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: '#B45309' }}>
+                  {language === 'en'
+                    ? 'Upgrade to Pro to add videos to your properties'
+                    : 'Pásate a Pro para agregar videos a tus propiedades'}
+                </p>
               </div>
-            ))}
-            </div>
-          )}
-
-          {/* Agregar nuevos videos */}
-          {Math.floor(60 - existingVideosDuration) > 0 && (
-            <VideoUploader
-              onVideosChange={handleNewVideosChange}
-              maxVideos={4}
-              maxDurationSeconds={Math.ceil(60 - existingVideosDuration)}
-            />
-          )}
-
-          {Math.floor(60 - existingVideosDuration) <= 0 && (
-            <p className="text-xs text-center opacity-60 mt-2" style={{ color: '#0F172A' }}>
-              {language === 'en' ? 'Maximum 60 seconds reached' : 'Has alcanzado el máximo de 60 segundos'}
-            </p>
-          )}
-
-          {/* Progreso */}
-          {videoProgress && (
-            <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-              <p className="text-sm font-semibold text-purple-900">🎬 {videoProgress}</p>
             </div>
           )}
         </div>
@@ -1065,13 +1086,15 @@ export default function EditPropertyPage() {
             <h3 className="font-bold" style={{ color: '#0F172A' }}>
               🏷️ {t('common.editProperty.customFields')}
             </h3>
-            <button
-              onClick={() => router.push('/settings/custom-fields')}
-              className="text-xs font-semibold underline"
-              style={{ color: '#2563EB' }}
-            >
-              {t('common.editProperty.manageFields')}
-            </button>
+            {session.user.plan === 'pro' && (
+              <button
+                onClick={() => router.push('/settings/custom-fields')}
+                className="text-xs font-semibold underline"
+                style={{ color: '#2563EB' }}
+              >
+                {t('common.editProperty.manageFields')}
+              </button>
+            )}
           </div>
 
           {loadingCustomFields ? (

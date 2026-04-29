@@ -1169,13 +1169,13 @@ export default function PropertyView() {
                   className="w-16 h-16 lg:w-20 lg:h-20 rounded-full flex items-center justify-center text-2xl lg:text-3xl font-bold text-white shadow-lg"
                   style={{ backgroundColor: '#2563EB' }}
                 >
-                  {property.agent.profile_photo ? (
+                 {(property.agent.card_profile_photo || property.agent.profile_photo) ? (
                     <Image
-                      src={property.agent.profile_photo}
+                      src={property.agent.card_profile_photo || property.agent.profile_photo!}
                       alt={property.agent.name || 'Agent'}
                       width={80}
                       height={80}
-                      className="rounded-full"
+                      className="rounded-full object-cover w-full h-full"
                     />
                   ) : (
                     property.agent.name?.charAt(0).toUpperCase() || '?'

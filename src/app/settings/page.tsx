@@ -81,7 +81,7 @@ export default function SettingsPage() {
       description: t('settings.options.digitalCard.description'),
       href: '/settings/digital-card',
       color: '#6366F1',
-      proOnly: true,
+      proOnly: false,
     },
     {
       icon: '🏷️',

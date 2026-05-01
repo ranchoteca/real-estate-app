@@ -50,6 +50,39 @@ export async function GET(
       );
     }
 
+    // Verificar si la propiedad es visible según el plan del agente
+    const rawAgentForPlan = Array.isArray(property.agent) ? property.agent[0] : property.agent;
+
+    const { data: agentPlan } = await supabaseAdmin
+      .from('agents')
+      .select('plan, expires_at')
+      .eq('id', property.agent_id)
+      .single();
+
+    const isProActivo =
+      agentPlan?.plan === 'pro' &&
+      !!agentPlan?.expires_at &&
+      new Date(agentPlan.expires_at) > new Date();
+
+    if (!isProActivo) {
+      // Obtener las 5 propiedades más recientes del agente
+      const { data: recentProps } = await supabaseAdmin
+        .from('properties')
+        .select('id')
+        .eq('agent_id', property.agent_id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      const recentIds = (recentProps || []).map(p => p.id);
+
+      if (!recentIds.includes(property.id)) {
+        return NextResponse.json(
+          { error: 'Esta propiedad no está disponible' },
+          { status: 404 }
+        );
+      }
+    }
+
     // Incrementar contador de vistas
     const { error: updateError } = await supabaseAdmin
       .from('properties')

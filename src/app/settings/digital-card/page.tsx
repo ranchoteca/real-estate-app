@@ -165,6 +165,10 @@ export default function DigitalCardSettings() {
     }
   };
 
+  const isProActivo = 
+    session?.user?.plan === 'pro' || 
+    session?.user?.role === 'admin';
+
   if (loading) {
     return (
         <MobileLayout title={t('digitalCard.title')} showBack={true} showTabs={true}>
@@ -373,62 +377,79 @@ export default function DigitalCardSettings() {
         </div>
 
         {/* English Fields */}
-        <div className="rounded-xl p-4" style={{ backgroundColor: '#EFF6FF', borderLeft: '4px solid #2563EB' }}>
-          <h3 className="font-bold text-base mb-2" style={{ color: '#1E40AF' }}>
-            {t('digitalCard.bilingualSection')}
-          </h3>
-          <p className="text-xs mb-4 opacity-80" style={{ color: '#1E40AF' }}>
-            {t('digitalCard.bilingualNote')}
-          </p>
+        {isProActivo ? (
+          <div className="rounded-xl p-4" style={{ backgroundColor: '#EFF6FF', borderLeft: '4px solid #2563EB' }}>
+            <h3 className="font-bold text-base mb-2" style={{ color: '#1E40AF' }}>
+              {t('digitalCard.bilingualSection')}
+            </h3>
+            <p className="text-xs mb-4 opacity-80" style={{ color: '#1E40AF' }}>
+              {t('digitalCard.bilingualNote')}
+            </p>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                {t('digitalCard.nameEnglish')}
-              </label>
-              <input
-                type="text"
-                value={formData.display_name_en}
-                onChange={(e) => setFormData({ ...formData, display_name_en: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg text-gray-900"
-                style={{ borderColor: 'rgb(229, 231, 235)', backgroundColor: 'rgb(249, 250, 251)' }}
-                placeholder="Ex: John Smith"
-              />
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+                  {t('digitalCard.nameEnglish')}
+                </label>
+                <input
+                  type="text"
+                  value={formData.display_name_en}
+                  onChange={(e) => setFormData({ ...formData, display_name_en: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg text-gray-900"
+                  style={{ borderColor: 'rgb(229, 231, 235)', backgroundColor: 'rgb(249, 250, 251)' }}
+                  placeholder="Ex: John Smith"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+                  {t('digitalCard.brokerEnglish')}
+                </label>
+                <input
+                  type="text"
+                  value={formData.brokerage_en}
+                  onChange={(e) => setFormData({ ...formData, brokerage_en: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg text-gray-900"
+                  style={{ borderColor: 'rgb(229, 231, 235)', backgroundColor: 'rgb(249, 250, 251)' }}
+                  placeholder="Ex: RE/MAX Costa Rica"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+                  {t('digitalCard.bioEnglish')}
+                </label>
+                <textarea
+                  value={formData.bio_en}
+                  onChange={(e) => setFormData({ ...formData, bio_en: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg text-gray-900 resize-none"
+                  style={{ borderColor: 'rgb(229, 231, 235)', backgroundColor: 'rgb(249, 250, 251)' }}
+                  placeholder={t('digitalCard.bioEnglishPlaceholder')}
+                  rows={4}
+                  maxLength={500}
+                />
+                <p className="text-xs mt-1 opacity-60" style={{ color: '#0F172A' }}>
+                  {formData.bio_en.length}/500 {t('digitalCard.characters')}
+                </p>
+              </div>
             </div>
-
+          </div>
+        ) : (
+          <div
+            className="rounded-xl p-4 flex items-center gap-3"
+            style={{ backgroundColor: '#FEF3C7', border: '2px solid #FDE68A' }}
+          >
+            <span className="text-2xl">🌐</span>
             <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                {t('digitalCard.brokerEnglish')}
-              </label>
-              <input
-                type="text"
-                value={formData.brokerage_en}
-                onChange={(e) => setFormData({ ...formData, brokerage_en: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg text-gray-900"
-                style={{ borderColor: 'rgb(229, 231, 235)', backgroundColor: 'rgb(249, 250, 251)' }}
-                placeholder="Ex: RE/MAX Costa Rica"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                {t('digitalCard.bioEnglish')}
-              </label>
-              <textarea
-                value={formData.bio_en}
-                onChange={(e) => setFormData({ ...formData, bio_en: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg text-gray-900 resize-none"
-                style={{ borderColor: 'rgb(229, 231, 235)', backgroundColor: 'rgb(249, 250, 251)' }}
-                placeholder={t('digitalCard.bioEnglishPlaceholder')}
-                rows={4}
-                maxLength={500}
-              />
-              <p className="text-xs mt-1 opacity-60" style={{ color: '#0F172A' }}>
-                {formData.bio_en.length}/500 {t('digitalCard.characters')}
+              <p className="text-sm font-bold" style={{ color: '#92400E' }}>
+                {t('digitalCard.bilingualSection')} — Pro
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: '#B45309' }}>
+                Upgrade to Pro to enable the bilingual version of your digital card.
               </p>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Social Media */}
         <div className="space-y-4">

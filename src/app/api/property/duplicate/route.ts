@@ -23,6 +23,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Propiedad no encontrada' }, { status: 404 });
     }
 
+    // Verificar plan y límite — AQUÍ, después de confirmar que original existe
+    const { data: agent } = await supabaseAdmin
+      .from('agents')
+      .select('plan, expires_at')
+      .eq('id', original.agent_id)
+      .single();
+
+    const isProActivo = 
+      agent?.plan === 'pro' && 
+      agent?.expires_at && 
+      new Date(agent.expires_at) > new Date();
+
+    const propertyLimit = isProActivo ? 150 : 5;
+
+    const { count } = await supabaseAdmin
+      .from('properties')
+      .select('*', { count: 'exact', head: true })
+      .eq('agent_id', original.agent_id);
+
+    if (count !== null && count >= propertyLimit) {
+      return NextResponse.json(
+        { 
+          error: isProActivo 
+            ? 'Has alcanzado el límite de 150 propiedades del plan Pro.'
+            : 'Has alcanzado el límite de 5 propiedades. Actualiza a Pro para crear más.'
+        },
+        { status: 403 }
+      );
+    }
+
     // 2. Buscar slugs existentes para generar número único
     const baseSlug = original.slug;
     const { data: existingSlugs } = await supabaseAdmin

@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     // Obtener el agente actual
     const { data: agent, error: agentError } = await supabaseAdmin
       .from('agents')
-      .select('id')
+      .select('id, plan, expires_at')
       .eq('email', session.user.email)
       .single();
 
@@ -69,9 +69,19 @@ export async function GET(req: NextRequest) {
       last_facebook_published_at: lastFacebookPost[p.id] || null,
     }));
 
+    const isProActivo =
+      agent.plan === 'pro' &&
+      !!agent.expires_at &&
+      new Date(agent.expires_at) > new Date();
+
+    // Si es Free, mostrar solo las 5 más recientes
+    const visibleProperties = isProActivo
+      ? optimizedProperties
+      : optimizedProperties.slice(0, 5);
+
     return NextResponse.json({
       success: true,
-      properties: optimizedProperties,
+      properties: visibleProperties,
     });
 
   } catch (error) {

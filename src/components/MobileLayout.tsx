@@ -11,6 +11,7 @@ interface MobileLayoutProps {
   showBack?: boolean;
   showTabs?: boolean;
   currentPropertyCount?: number;
+  onCreateLimitReached?: () => void;
 }
 
 export default function MobileLayout({ 
@@ -18,7 +19,8 @@ export default function MobileLayout({
   title, 
   showBack = false,
   showTabs = true,
-  currentPropertyCount
+  currentPropertyCount,
+  onCreateLimitReached,
 }: MobileLayoutProps) {
   const { data: session } = useSession();
   const router = useRouter();
@@ -138,15 +140,20 @@ export default function MobileLayout({
 
             {/* Create Tab - Center FAB (SIN TEXTO) */}
             <button
-              onClick={() => router.push('/create-property')}
-              disabled={
-                !session?.user || 
-                (session.user.plan === 'free' && 
-                (currentPropertyCount !== undefined 
-                  ? currentPropertyCount >= 150 
-                  : (session.user.totalProperties || 0) >= 150))
-              }
-              className="flex-1 flex flex-col items-center justify-center transition-all active:scale-95 disabled:opacity-50"
+              onClick={() => {
+                const isFreeAndAtLimit = 
+                  session?.user?.plan === 'free' &&
+                  (currentPropertyCount !== undefined
+                    ? currentPropertyCount >= 5
+                    : (session.user.totalProperties || 0) >= 5);
+
+                if (isFreeAndAtLimit) {
+                  onCreateLimitReached?.();
+                } else {
+                  router.push('/create-property');
+                }
+              }}
+              className="flex-1 flex flex-col items-center justify-center transition-all active:scale-95"
             >
               <div 
                 className="w-14 h-14 rounded-full shadow-2xl flex items-center justify-center"

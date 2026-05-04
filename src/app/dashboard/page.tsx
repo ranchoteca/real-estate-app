@@ -103,6 +103,8 @@ export default function DashboardPage() {
 
   const [currencies, setCurrencies] = useState<any[]>([]);
 
+  const [showLimitModal, setShowLimitModal] = useState(false);
+
   // Estados para modal de acción
   const [actionModal, setActionModal] = useState<{
     open: boolean;
@@ -350,6 +352,7 @@ export default function DashboardPage() {
       title={language === 'en' ? 'My Properties' : 'Mis Propiedades'} 
       showTabs={true}
       currentPropertyCount={properties.length}
+      onCreateLimitReached={() => setShowLimitModal(true)}
     >
       {/* Stats Card */}
       <div className="px-4 pt-3 pb-2">
@@ -378,6 +381,34 @@ export default function DashboardPage() {
               </p>
             </div>
           </div>
+
+          {/* Badge plan Pro */}
+          {isProActivo && (
+            <div
+              className="mt-3 px-3 py-2 rounded-xl flex items-center gap-2"
+              style={{ backgroundColor: '#F0FDF4', border: '1.5px solid #BBF7D0' }}
+            >
+              <span className="text-lg">⭐</span>
+              <p className="text-sm font-bold" style={{ color: '#15803D' }}>
+                {language === 'en' ? 'Your current plan is Pro' : 'Tu plan actual es Pro'}
+              </p>
+            </div>
+          )}
+
+          {/* Mensaje plan Free */}
+          {isFree && (
+            <div
+              className="mt-3 px-3 py-2 rounded-xl flex items-center gap-2"
+              style={{ backgroundColor: '#FEF3C7', border: '1.5px solid #FDE68A' }}
+            >
+              <span className="text-lg">🆓</span>
+              <p className="text-sm font-bold" style={{ color: '#92400E' }}>
+                {language === 'en'
+                  ? 'You are on the Free plan. Upgrade to Pro to enjoy all features.'
+                  : 'Tu plan actual es Free. Pásate a Pro para disfrutar de todas las funciones.'}
+              </p>
+            </div>
+          )}
           
           {planInfo?.plan === 'free' && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>
@@ -405,7 +436,7 @@ export default function DashboardPage() {
                   {language === 'en' ? 'Monthly price' : 'Precio mensual'}
                 </span>
                 <span className="text-xl font-bold" style={{ color: '#2563EB' }}>
-                  ₡14,125
+                  ₡14,803
                 </span>
               </div>
 
@@ -1047,6 +1078,47 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Modal límite Free */}
+      {showLimitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <div className="text-center mb-4">
+              <span className="text-4xl">🔒</span>
+            </div>
+            <h3 className="text-lg font-bold text-center mb-2" style={{ color: '#0F172A' }}>
+              {language === 'en' ? 'Property limit reached' : 'Límite de propiedades alcanzado'}
+            </h3>
+            <p className="text-sm text-center mb-5 opacity-70" style={{ color: '#0F172A' }}>
+              {language === 'en'
+                ? 'Your current plan is Free. Please upgrade to Pro to keep adding more properties.'
+                : 'Tu plan actual es Free. Por favor actualiza tu plan a Pro para poder seguir agregando más propiedades.'}
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  setShowLimitModal(false);
+                  const message = encodeURIComponent(`Hola! Quiero actualizar mi plan a Pro en Flow Estate AI. Mi correo es: ${session.user.email}`);
+                  window.open(`https://wa.me/50683688684?text=${message}`, '_blank');
+                }}
+                className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+                style={{ backgroundColor: '#25D366' }}
+              >
+                <span>💬</span>
+                {language === 'en' ? 'Upgrade to Pro' : 'Actualizar a Pro'}
+              </button>
+              <button
+                onClick={() => setShowLimitModal(false)}
+                className="w-full py-3 rounded-xl font-bold border-2 active:scale-95 transition-transform"
+                style={{ borderColor: '#E5E7EB', color: '#0F172A' }}
+              >
+                {language === 'en' ? 'Close' : 'Cerrar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de acción (Duplicar/Traducir) */}
       <PropertyActionModal
         isOpen={actionModal.open}

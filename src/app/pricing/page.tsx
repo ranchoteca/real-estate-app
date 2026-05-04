@@ -26,7 +26,7 @@ const PLANS = [
   {
     id: 'pro',
     name: 'Pro',
-    price: '14,125',
+    price: '14,803',
     currency: '₡',
     properties: 150,
     period: 'mes',

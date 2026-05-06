@@ -32,13 +32,32 @@ export async function GET(
       );
     }
 
-    // Obtener todas las propiedades del agente (activas y vendidas)
-    const { data: properties, error: propertiesError } = await supabaseAdmin
+    // Verificar plan del agente
+    const { data: agentPlan } = await supabaseAdmin
+      .from('agents')
+      .select('plan, expires_at')
+      .eq('id', agent.id)
+      .single();
+
+    const isProActivo =
+      agentPlan?.plan === 'pro' &&
+      !!agentPlan?.expires_at &&
+      new Date(agentPlan.expires_at) > new Date();
+
+    // Obtener propiedades del agente (activas y vendidas)
+    const query = supabaseAdmin
       .from('properties')
       .select('id, title, slug, price, city, state, property_type, listing_type, status, views, created_at, language, currency_id, photos')
       .eq('agent_id', agent.id)
-      .in('status', ['active', 'sold', 'rented']) // Solo activas y vendidas (no pending)
+      .in('status', ['active', 'sold', 'rented'])
       .order('created_at', { ascending: false });
+
+    // Si es Free, limitar a 5 propiedades
+    if (!isProActivo) {
+      query.limit(5);
+    }
+
+    const { data: properties, error: propertiesError } = await query;
 
     if (propertiesError) {
       console.error('❌ Error al obtener propiedades:', propertiesError);

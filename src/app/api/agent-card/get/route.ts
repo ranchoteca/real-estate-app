@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
     const { data: agent } = await supabaseAdmin
       .from('agents')
-      .select('id, username, name, full_name, email, phone')
+      .select('id, username, name, full_name, email, phone, plan, expires_at')
       .eq('username', username)
       .single();
 
@@ -63,6 +63,11 @@ export async function GET(req: NextRequest) {
       .eq('agent_id', agent.id)
       .single();
 
+    const isProActivo =
+      agent.plan === 'pro' &&
+      !!agent.expires_at &&
+      new Date(agent.expires_at) > new Date();
+
     return NextResponse.json({
       success: true,
       card: card || null,
@@ -71,7 +76,10 @@ export async function GET(req: NextRequest) {
         name: agent.name,
         full_name: agent.full_name,
         email: agent.email,
-        phone: agent.phone
+        phone: agent.phone,
+        plan: agent.plan,
+        expires_at: agent.expires_at,
+        is_pro: isProActivo,
       }
     });
 

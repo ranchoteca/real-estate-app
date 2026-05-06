@@ -24,6 +24,9 @@ interface Agent {
   username: string;
   email: string;
   phone: string | null;
+  plan: string | null;
+  expires_at: string | null;
+  is_pro: boolean;
 }
 
 type Language = 'es' | 'en';
@@ -45,7 +48,7 @@ export default function AgentCardPage() {
   const browserLang = typeof navigator !== 'undefined' 
     ? (navigator.language.split('-')[0] === 'en' ? 'en' : 'es') 
     : 'es';
-  const [language, setLanguage] = useState<Language>(urlLang || browserLang);
+  const [language, setLanguage] = useState<Language>('es');
 
   const t = (key: string): string => {
     const keys = key.split('.');
@@ -62,6 +65,8 @@ export default function AgentCardPage() {
 
   // Detectar si es el agente viendo su propia tarjeta
   const isOwnCard = session?.user?.email === agent?.email;
+
+  const agentIsProActivo = agent?.is_pro === true;
 
   useEffect(() => {
     if (username) {
@@ -101,6 +106,9 @@ export default function AgentCardPage() {
       console.error('Error loading card:', err);
       setError(t('agentCard.errorLoading'));
     } finally {
+      if (!data.agent.is_pro) {
+        setLanguage('es');
+      }
       setLoading(false);
     }
   };
@@ -236,14 +244,16 @@ export default function AgentCardPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
-      <button
-        onClick={toggleLanguage}
-        className="fixed top-4 right-4 z-50 px-4 py-2 rounded-full shadow-lg font-bold flex items-center gap-2 active:scale-95 transition-transform"
-        style={{ backgroundColor: '#FFFFFF', color: '#2563EB' }}
-      >
-        <span className="text-lg">{language === 'es' ? '🇪🇸' : '🇺🇸'}</span>
-        <span className="text-sm">{language === 'es' ? 'ES' : 'EN'}</span>
-      </button>
+      {agentIsProActivo && (
+        <button
+          onClick={toggleLanguage}
+          className="fixed top-4 right-4 z-50 px-4 py-2 rounded-full shadow-lg font-bold flex items-center gap-2 active:scale-95 transition-transform"
+          style={{ backgroundColor: '#FFFFFF', color: '#2563EB' }}
+        >
+          <span className="text-lg">{language === 'es' ? '🇪🇸' : '🇺🇸'}</span>
+          <span className="text-sm">{language === 'es' ? 'ES' : 'EN'}</span>
+        </button>
+      )}
 
       <div className="max-w-2xl mx-auto">
         <div className="overflow-hidden">

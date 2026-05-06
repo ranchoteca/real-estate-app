@@ -356,33 +356,8 @@ export default function DashboardPage() {
     >
       {/* Stats Card */}
       <div className="px-4 pt-3 pb-2">
-        <div 
-          className="rounded-xl p-3 shadow-md"
-          style={{ backgroundColor: '#FFFFFF' }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                {language === 'en' ? 'Total properties' : 'Total propiedades'}
-              </p>
-              <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>
-                {properties.length}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                {language === 'en' ? 'Limit' : 'Límite'}
-              </p>
-              <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>
-                {planInfo?.plan === 'free' 
-                  ? `${properties.length} / 5`
-                  : `${properties.length} / 150`
-                }
-              </p>
-            </div>
-          </div>
 
-          {/* Badge plan Pro */}
+        {/* Badge plan Pro */}
           {isProActivo && (
             <div
               className="mt-3 px-3 py-2 rounded-xl flex items-center gap-2"
@@ -409,6 +384,32 @@ export default function DashboardPage() {
               </p>
             </div>
           )}
+
+        <div 
+          className="rounded-xl p-3 shadow-md"
+          style={{ backgroundColor: '#FFFFFF' }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                {language === 'en' ? 'Total properties' : 'Total propiedades'}
+              </p>
+              <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>
+                {properties.length}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                {language === 'en' ? 'Limit' : 'Límite'}
+              </p>
+              <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>
+                {planInfo?.plan === 'free' 
+                  ? `${properties.length} / 5`
+                  : `${properties.length} / 150`
+                }
+              </p>
+            </div>
+          </div>
           
           {planInfo?.plan === 'free' && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>

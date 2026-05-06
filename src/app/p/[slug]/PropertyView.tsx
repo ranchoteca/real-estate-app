@@ -50,6 +50,8 @@ interface Property {
     card_profile_photo: string | null;
     username: string;
     watermark_logo: string | null;
+    plan: string | null;
+    expires_at: string | null;
   };
 }
 
@@ -509,7 +511,12 @@ export default function PropertyView() {
   });
 
   // Modo TikTok - pantalla completa
-  if (tikTokMode && property.video_urls && property.video_urls.length > 0) {
+  const agentIsProActivo =
+    property.agent.plan === 'pro' &&
+    !!property.agent.expires_at &&
+    new Date(property.agent.expires_at) > new Date();
+
+  if (tikTokMode && agentIsProActivo && property.video_urls && property.video_urls.length > 0) {
     return (
       <div className="fixed inset-0 bg-black z-50">
         {/* Botón cerrar — siempre visible */}
@@ -902,8 +909,15 @@ export default function PropertyView() {
 
           {/* RIGHT COLUMN - Content */}
           <div className="px-4 lg:px-0 pt-4 pb-24 lg:pb-8 space-y-4">
-            {/* Video Player */}
-            {property.video_urls && property.video_urls.length > 0 && (
+            {/* Video Player — solo visible si el agente es Pro */}
+            {(() => {
+              const agentIsProActivo =
+                property.agent.plan === 'pro' &&
+                !!property.agent.expires_at &&
+                new Date(property.agent.expires_at) > new Date();
+              
+              return agentIsProActivo && property.video_urls && property.video_urls.length > 0;
+            })() && (
               <div className="mx-1 lg:mx-0 mt-4 lg:mt-0 rounded-2xl overflow-hidden shadow-lg bg-black">
                 
                 {/* Contenedor del video con overlay */}

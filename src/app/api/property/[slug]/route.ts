@@ -34,6 +34,8 @@ export async function GET(
           watermark_logo,
           watermark_position,
           watermark_size,
+          plan,
+          expires_at,
           agent_cards (
             profile_photo
           )

@@ -753,22 +753,45 @@ export default function EditPropertyPage() {
               )}
             </>
           ) : (
-            <div
-              className="rounded-xl p-4 flex items-center gap-3"
-              style={{ backgroundColor: '#FEF3C7', border: '2px solid #FDE68A' }}
-            >
-              <span className="text-2xl">🎬</span>
-              <div>
-                <p className="text-sm font-bold" style={{ color: '#92400E' }}>
-                  {language === 'en' ? 'Videos are a Pro feature' : 'Los videos son una función Pro'}
-                </p>
-                <p className="text-xs mt-0.5" style={{ color: '#B45309' }}>
-                  {language === 'en'
-                    ? 'Upgrade to Pro to add videos to your properties'
-                    : 'Pásate a Pro para agregar videos a tus propiedades'}
-                </p>
+            /* Plan Free */
+            existingVideos.length > 0 ? (
+              <div
+                className="rounded-xl p-4 flex items-center gap-3"
+                style={{ backgroundColor: '#EFF6FF', border: '2px solid #BFDBFE' }}
+              >
+                <span className="text-2xl">🎬</span>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: '#1E40AF' }}>
+                    {language === 'en'
+                      ? `This property has ${existingVideos.length} video${existingVideos.length > 1 ? 's' : ''} associated`
+                      : `Esta propiedad tiene ${existingVideos.length} video${existingVideos.length > 1 ? 's' : ''} relacionado${existingVideos.length > 1 ? 's' : ''}`
+                    }
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: '#1D4ED8' }}>
+                    {language === 'en'
+                      ? 'Upgrade to Pro to view and manage your videos.'
+                      : 'Pásate a Pro para poder ver y gestionar tus videos.'}
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div
+                className="rounded-xl p-4 flex items-center gap-3"
+                style={{ backgroundColor: '#FEF3C7', border: '2px solid #FDE68A' }}
+              >
+                <span className="text-2xl">🎬</span>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: '#92400E' }}>
+                    {language === 'en' ? 'Videos are a Pro feature' : 'Los videos son una función Pro'}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: '#B45309' }}>
+                    {language === 'en'
+                      ? 'Upgrade to Pro to add videos to your properties.'
+                      : 'Pásate al plan Pro para subir videos a tu propiedad.'}
+                  </p>
+                </div>
+              </div>
+            )
           )}
         </div>
 

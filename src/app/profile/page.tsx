@@ -133,6 +133,41 @@ export default function ProfilePage() {
           </p>
         </div>
 
+        {/* Información de licencia */}
+        {session.user.plan === 'pro' && session.user.expires_at && (
+          <div
+            className="rounded-2xl p-4 shadow-lg flex items-center gap-3"
+            style={{ backgroundColor: '#F0FDF4', border: '1.5px solid #BBF7D0' }}
+          >
+            <span className="text-2xl">⭐</span>
+            <div>
+              <p className="text-xs font-semibold opacity-70 mb-0.5" style={{ color: '#166534' }}>
+                {t('profile.licenseExpires')}
+              </p>
+              <p className="text-sm font-bold" style={{ color: '#15803D' }}>
+                {new Date(session.user.expires_at).toLocaleDateString(
+                  session.user.language === 'en' ? 'en-US' : 'es-ES',
+                  { day: 'numeric', month: 'long', year: 'numeric' }
+                )}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {session.user.plan === 'free' && (
+          <div
+            className="rounded-2xl p-4 shadow-lg flex items-center gap-3"
+            style={{ backgroundColor: '#FEF3C7', border: '1.5px solid #FDE68A' }}
+          >
+            <span className="text-2xl">ℹ️</span>
+            <div>
+              <p className="text-sm font-bold" style={{ color: '#92400E' }}>
+                {t('profile.freeAccountNote')}
+              </p>
+            </div>
+          </div>
+        )}
+
         <div 
           className="rounded-2xl p-5 shadow-lg"
           style={{ backgroundColor: '#FFFFFF' }}

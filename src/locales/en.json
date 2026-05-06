@@ -316,6 +316,8 @@
   "profile": {
     "title": "My Profile",
     "loading": "Loading...",
+    "licenseExpires": "Your current license expires on",
+    "freeAccountNote": "You are on the Free plan. Inactive accounts for more than 30 days may be deleted.",
     "yourPlan": "Your Plan",
     "pro": "Pro",
     "free": "Free",

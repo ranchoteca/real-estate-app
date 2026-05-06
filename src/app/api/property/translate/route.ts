@@ -4,13 +4,11 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { supabaseAdmin } from '@/lib/supabase';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const BUCKET = 'property-photos';
 
 async function translateText(text: string, targetLang: 'es' | 'en'): Promise<string> {
   const langName = targetLang === 'es' ? 'Spanish' : 'English';
-  
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
@@ -18,15 +16,63 @@ async function translateText(text: string, targetLang: 'es' | 'en'): Promise<str
         role: 'system',
         content: `You are a professional real estate translator. Translate the following text to ${langName}. Maintain the tone and style suitable for real estate listings. Only provide the translation, no additional text.`,
       },
-      {
-        role: 'user',
-        content: text,
-      },
+      { role: 'user', content: text },
     ],
     temperature: 0.3,
   });
-
   return response.choices[0].message.content?.trim() || text;
+}
+
+async function copyPhotosToNewFolder(
+  originalPhotos: string[],
+  newPropertyId: string
+): Promise<string[]> {
+  const newPhotos: string[] = [];
+
+  for (const photoUrl of originalPhotos) {
+    try {
+      const urlParts = photoUrl.split(`/${BUCKET}/`);
+      if (urlParts.length < 2) {
+        console.warn('URL de foto con formato inesperado, se mantiene original:', photoUrl);
+        newPhotos.push(photoUrl);
+        continue;
+      }
+
+      const originalPath = urlParts[1];
+      const pathSegments = originalPath.split('/');
+
+      if (pathSegments.length < 3) {
+        console.warn('Path de foto con menos segmentos de los esperados:', originalPath);
+        newPhotos.push(photoUrl);
+        continue;
+      }
+
+      const agentId = pathSegments[0];
+      const fileName = pathSegments[pathSegments.length - 1];
+      const newPath = `${agentId}/${newPropertyId}/${fileName}`;
+
+      const { error: copyError } = await supabaseAdmin!.storage
+        .from(BUCKET)
+        .copy(originalPath, newPath);
+
+      if (copyError) {
+        console.error(`Error copiando ${originalPath} → ${newPath}:`, copyError);
+        newPhotos.push(photoUrl);
+        continue;
+      }
+
+      const { data: publicUrlData } = supabaseAdmin!.storage
+        .from(BUCKET)
+        .getPublicUrl(newPath);
+
+      newPhotos.push(publicUrlData.publicUrl);
+    } catch (err) {
+      console.error('Error inesperado copiando foto:', err);
+      newPhotos.push(photoUrl);
+    }
+  }
+
+  return newPhotos;
 }
 
 export async function POST(req: NextRequest) {
@@ -36,15 +82,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    // Verificar que el agente tiene plan Pro activo
-    const { data: agent } = await supabaseAdmin
+    const { data: agent } = await supabaseAdmin!
       .from('agents')
       .select('plan, role, expires_at')
       .eq('email', session.user.email)
       .single();
 
-    const isProActivo = 
-      agent?.role === 'admin' || 
+    const isProActivo =
+      agent?.role === 'admin' ||
       (agent?.plan === 'pro' && !!agent?.expires_at && new Date(agent.expires_at) > new Date());
 
     if (!isProActivo) {
@@ -57,7 +102,7 @@ export async function POST(req: NextRequest) {
     const { propertyId, targetLanguage, useAI } = await req.json();
 
     // 1. Obtener propiedad original
-    const { data: original, error: fetchError } = await supabaseAdmin
+    const { data: original, error: fetchError } = await supabaseAdmin!
       .from('properties')
       .select('*')
       .eq('id', propertyId)
@@ -72,9 +117,8 @@ export async function POST(req: NextRequest) {
     let translatedAddress = original.address;
     let translatedCustomFields = original.custom_fields_data || {};
 
-    // 2. Si se solicita traducción con IA
+    // 2. Traducción con IA (sin cambios)
     if (useAI) {
-      // Traducir campos principales
       [translatedTitle, translatedDescription] = await Promise.all([
         translateText(original.title, targetLanguage),
         translateText(original.description, targetLanguage),
@@ -84,10 +128,8 @@ export async function POST(req: NextRequest) {
         translatedAddress = await translateText(original.address, targetLanguage);
       }
 
-      // 3. Traducir custom fields (solo tipo TEXT)
       if (original.custom_fields_data && original.property_type && original.listing_type) {
-        // Obtener definiciones de custom fields
-        const { data: customFields } = await supabaseAdmin
+        const { data: customFields } = await supabaseAdmin!
           .from('custom_fields')
           .select('field_key, field_type')
           .eq('property_type', original.property_type)
@@ -95,36 +137,27 @@ export async function POST(req: NextRequest) {
 
         if (customFields && customFields.length > 0) {
           const translatedFields: Record<string, string> = {};
-
           for (const [fieldKey, value] of Object.entries(original.custom_fields_data)) {
-            const fieldDef = customFields.find(f => f.field_key === fieldKey);
-            
+            const fieldDef = customFields.find((f) => f.field_key === fieldKey);
             if (fieldDef && fieldDef.field_type === 'text' && value && typeof value === 'string') {
               const trimmedValue = value.trim();
-              
-              const shouldNotTranslate = 
-                /^\d+$/.test(trimmedValue) || // Es número
-                /^(sí|si|yes|no)$/i.test(trimmedValue) || // Es Sí/No
-                trimmedValue.split(/\s+/).length <= 2; // 1-2 palabras
-              
-              if (shouldNotTranslate) {
-                // Mantener valor original
-                translatedFields[fieldKey] = value;
-              } else {
-                // Traducir
-                translatedFields[fieldKey] = await translateText(value, targetLanguage);
-              }
+              const shouldNotTranslate =
+                /^\d+$/.test(trimmedValue) ||
+                /^(sí|si|yes|no)$/i.test(trimmedValue) ||
+                trimmedValue.split(/\s+/).length <= 2;
+              translatedFields[fieldKey] = shouldNotTranslate
+                ? value
+                : await translateText(value, targetLanguage);
             } else {
-              translatedFields[fieldKey] = value; // Mantener números y otros tipos
+              translatedFields[fieldKey] = value as string;
             }
           }
-
           translatedCustomFields = translatedFields;
         }
       }
     }
 
-    // 4. Generar slug en idioma destino
+    // 3. Generar slug (sin cambios)
     const slugBase = translatedTitle
       .toLowerCase()
       .normalize('NFD')
@@ -132,28 +165,25 @@ export async function POST(req: NextRequest) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
 
-    // Buscar slugs existentes
-    const { data: existingSlugs } = await supabaseAdmin
+    const { data: existingSlugs } = await supabaseAdmin!
       .from('properties')
       .select('slug')
       .like('slug', `${slugBase}%`);
 
     let newSlug = slugBase;
-    if (existingSlugs && existingSlugs.some(p => p.slug === slugBase)) {
-      // Si existe, agregar número
+    if (existingSlugs && existingSlugs.some((p) => p.slug === slugBase)) {
       const slugNumbers = existingSlugs
-        .map(p => {
+        .map((p) => {
           const match = p.slug.match(new RegExp(`${slugBase}-(\\d+)$`));
           return match ? parseInt(match[1]) : null;
         })
-        .filter(n => n !== null);
-
+        .filter((n) => n !== null);
       const nextNumber = slugNumbers.length > 0 ? Math.max(...slugNumbers) + 1 : 2;
       newSlug = `${slugBase}-${nextNumber}`;
     }
 
-    // 5. Crear nueva propiedad traducida
-    const { data: newProperty, error: insertError } = await supabaseAdmin
+    // 4. Insertar propiedad primero (sin fotos) para tener el nuevo ID
+    const { data: newProperty, error: insertError } = await supabaseAdmin!
       .from('properties')
       .insert({
         agent_id: original.agent_id,
@@ -169,7 +199,7 @@ export async function POST(req: NextRequest) {
         property_type: original.property_type,
         listing_type: original.listing_type,
         language: targetLanguage,
-        photos: original.photos,
+        photos: [], // placeholder
         latitude: original.latitude,
         longitude: original.longitude,
         plus_code: original.plus_code,
@@ -182,9 +212,25 @@ export async function POST(req: NextRequest) {
       .select()
       .single();
 
-    if (insertError) {
+    if (insertError || !newProperty) {
       console.error('Error al traducir:', insertError);
       return NextResponse.json({ error: 'Error al traducir' }, { status: 500 });
+    }
+
+    // 5. Copiar fotos físicamente a la carpeta del nuevo ID
+    let newPhotos: string[] = [];
+    if (original.photos && original.photos.length > 0) {
+      newPhotos = await copyPhotosToNewFolder(original.photos, newProperty.id);
+    }
+
+    // 6. Actualizar propiedad con las nuevas URLs
+    const { error: updateError } = await supabaseAdmin!
+      .from('properties')
+      .update({ photos: newPhotos })
+      .eq('id', newProperty.id);
+
+    if (updateError) {
+      console.error('Error actualizando fotos traducidas:', updateError);
     }
 
     return NextResponse.json({
@@ -192,7 +238,6 @@ export async function POST(req: NextRequest) {
       newPropertyId: newProperty.id,
       slug: newProperty.slug,
     });
-
   } catch (error) {
     console.error('Error en translate:', error);
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });

@@ -360,7 +360,7 @@ export default function DashboardPage() {
         {/* Badge plan Pro */}
           {isProActivo && (
             <div
-              className="mt-3 px-3 py-2 rounded-xl flex items-center gap-2"
+              className="mt-2 mb-2 px-3 py-2 rounded-xl flex items-center gap-2"
               style={{ backgroundColor: '#F0FDF4', border: '1.5px solid #BBF7D0' }}
             >
               <span className="text-lg">⭐</span>
@@ -373,7 +373,7 @@ export default function DashboardPage() {
           {/* Mensaje plan Free */}
           {isFree && (
             <div
-              className="mt-3 px-3 py-2 rounded-xl flex items-center gap-2"
+              className="mt-2 mb-2 px-3 py-2 rounded-xl flex items-center gap-2"
               style={{ backgroundColor: '#FEF3C7', border: '1.5px solid #FDE68A' }}
             >
               <span className="text-lg">🆓</span>

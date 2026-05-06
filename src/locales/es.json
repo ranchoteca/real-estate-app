@@ -316,6 +316,8 @@
   "profile": {
     "title": "Mi Perfil",
     "loading": "Cargando...",
+    "licenseExpires": "Tu licencia actual expira el",
+    "freeAccountNote": "Estás en el plan Free. Las cuentas inactivas por más de 30 días pueden ser eliminadas.",
     "yourPlan": "Tu Plan",
     "pro": "Pro",
     "free": "Free",

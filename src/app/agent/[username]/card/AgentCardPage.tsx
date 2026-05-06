@@ -102,13 +102,15 @@ export default function AgentCardPage() {
       if (!data.card) {
         setError(t('agentCard.notConfigured'));
       }
+
+      if (!data.agent.is_pro) {
+        setLanguage('es');
+      }
+
     } catch (err) {
       console.error('Error loading card:', err);
       setError(t('agentCard.errorLoading'));
     } finally {
-      if (!data.agent.is_pro) {
-        setLanguage('es');
-      }
       setLoading(false);
     }
   };

@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseAdmin } from '@/lib/supabase';
+import Mux from '@mux/mux-node';
+
+const mux = new Mux({
+  tokenId: process.env.MUX_TOKEN_ID!,
+  tokenSecret: process.env.MUX_TOKEN_SECRET!,
+});
 
 export async function PUT(
   req: NextRequest,
@@ -10,14 +16,12 @@ export async function PUT(
     const session = await getServerSession();
     const uploadToken = req.headers.get('X-Upload-Token');
 
-    // Permitir acceso con sesión O token
     if (!session?.user?.email && !uploadToken) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
     let agentId: string | null = null;
 
-    // Si hay token pero NO hay sesión, validar el token
     if (uploadToken && !session) {
       const { data: tokenData, error: tokenError } = await supabaseAdmin
         .from('upload_tokens')
@@ -34,13 +38,11 @@ export async function PUT(
       }
 
       agentId = tokenData.agent_id;
-      console.log('✅ Token validado - agentId:', agentId);
     }
 
     const { id } = await params;
     const updates = await req.json();
 
-    // Obtener agent_id según el método de autenticación
     if (!agentId && session?.user?.email) {
       const { data: agent } = await supabaseAdmin
         .from('agents')
@@ -51,7 +53,7 @@ export async function PUT(
       if (!agent) {
         return NextResponse.json({ error: 'Agente no encontrado' }, { status: 404 });
       }
-      
+
       agentId = agent.id;
     }
 
@@ -59,7 +61,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Agente no encontrado' }, { status: 404 });
     }
 
-    // Verificar propiedad pertenece al agente
     const { data: property } = await supabaseAdmin
       .from('properties')
       .select('id')
@@ -71,17 +72,15 @@ export async function PUT(
       return NextResponse.json({ error: 'No tienes permiso' }, { status: 403 });
     }
 
-    // Eliminar fotos del storage si hay en photosToDelete
+    // Eliminar fotos del storage
     if (updates.photosToDelete && updates.photosToDelete.length > 0) {
       for (const photoUrl of updates.photosToDelete) {
         try {
           const urlParts = photoUrl.split('/property-photos/');
           if (urlParts.length > 1) {
-            const filePath = urlParts[1];
             await supabaseAdmin.storage
               .from('property-photos')
-              .remove([filePath]);
-            console.log('🗑️ Foto eliminada del storage:', filePath);
+              .remove([urlParts[1]]);
           }
         } catch (err) {
           console.error('Error eliminando foto:', err);
@@ -89,28 +88,36 @@ export async function PUT(
       }
     }
 
-    // Construir objeto SOLO con campos que vienen definidos
+    // NUEVO: Eliminar assets de Mux que fueron removidos
+    if (updates.mux_asset_ids_to_delete && updates.mux_asset_ids_to_delete.length > 0) {
+      for (const assetId of updates.mux_asset_ids_to_delete) {
+        try {
+          await mux.video.assets.delete(assetId);
+          console.log(`🗑️ Asset Mux eliminado: ${assetId}`);
+        } catch (err) {
+          console.error(`Error eliminando asset Mux ${assetId}:`, err);
+        }
+      }
+    }
+
     const allowedFields = [
       'title', 'description', 'price', 'currency_id', 'address', 'city', 
       'state', 'zip_code', 'property_type', 'listing_type', 'status', 
       'photos', 'latitude', 'longitude', 'plus_code', 'show_map', 
-      'custom_fields_data', 'video_urls', 'video_processing', 'mux_upload_ids'
+      'custom_fields_data', 'video_urls', 'video_processing', 
+      'mux_upload_ids', 'mux_asset_ids'
     ];
 
     const updateData: Record<string, any> = {};
-    
     for (const field of allowedFields) {
       if (updates[field] !== undefined) {
         updateData[field] = updates[field];
       }
     }
 
-    // Solo actualizar si hay algo que actualizar
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ success: true, message: 'Nada que actualizar' });
     }
-
-    console.log('📝 Campos a actualizar:', Object.keys(updateData));
 
     const { error } = await supabaseAdmin
       .from('properties')
@@ -123,8 +130,8 @@ export async function PUT(
     }
 
     console.log('✅ Propiedad actualizada:', id);
-
     return NextResponse.json({ success: true });
+
   } catch (error: any) {
     console.error('❌ Error en update:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

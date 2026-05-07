@@ -477,6 +477,7 @@ export default function EditPropertyPage() {
 
       // Paso videos: si hay videos nuevos
       let finalVideoUrls = [...existingVideos];
+      let finalMuxAssetIds: string[] = [];
 
       if (hasNewVideos) {
         try {
@@ -504,8 +505,9 @@ export default function EditPropertyPage() {
               ? `Processing video ${i + 1} of ${uploadIds.length}...`
               : `Procesando video ${i + 1} de ${uploadIds.length}...`
             );
-            const playbackId = await waitForPlaybackId(uploadIds[i]);
+            const { playbackId, assetId } = await waitForPlaybackId(uploadIds[i]);
             playbackIds.push(playbackId);
+            finalMuxAssetIds.push(assetId);
           }
 
           finalVideoUrls = [
@@ -539,6 +541,7 @@ export default function EditPropertyPage() {
           photosToDelete,
           custom_fields_data: customFieldsValues,
           video_urls: finalVideoUrls,
+          mux_asset_ids: finalMuxAssetIds,
         }),
       });
 

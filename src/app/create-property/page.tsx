@@ -600,6 +600,8 @@ export default function CreatePropertyPage() {
 
       // Paso 3 y 4: Videos (si hay)
       let videoUrls: string[] | null = null;
+      let muxAssetIds: string[] = [];
+      let updateResponse: Response;
 
       if (hasVideos) {
         try {
@@ -632,8 +634,11 @@ export default function CreatePropertyPage() {
               ? `Processing video ${i + 1} of ${uploadIds.length}...`
               : `Procesando video ${i + 1} de ${uploadIds.length}...`
             );
-            const playbackId = await waitForPlaybackId(uploadIds[i]);
+
+            // CAMBIO: desestructurar playbackId y assetId
+            const { playbackId, assetId } = await waitForPlaybackId(uploadIds[i]);
             playbackIds.push(playbackId);
+            muxAssetIds.push(assetId); // NUEVO
           }
 
           videoUrls = playbackIds.map(id => `https://stream.mux.com/${id}/capped-1080p.mp4`);
@@ -643,14 +648,24 @@ export default function CreatePropertyPage() {
           updateStep(3, 'error');
           updateStep(4, 'error');
           console.error('Error procesando videos:', videoError);
-
           const errorMessage = language === 'en'
-            ? `⚠️ Video processing failed: ${videoError.message || 'Unknown error'}.\n\nYour property was created successfully. You can edit it later to add videos when you have a better connection.`
-            : `⚠️ El procesamiento de video falló: ${videoError.message || 'Error desconocido'}.\n\nTu propiedad fue creada exitosamente. Puedes editarla después para agregar videos cuando tengas mejor señal.`;
-
+            ? `⚠️ Video processing failed: ${videoError.message || 'Unknown error'}.\n\nYour property was created successfully. You can edit it later to add videos.`
+            : `⚠️ El procesamiento de video falló: ${videoError.message || 'Error desconocido'}.\n\nTu propiedad fue creada exitosamente. Puedes editarla después para agregar videos.`;
           alert(errorMessage);
         }
       }
+
+      // En el update final, agregar mux_asset_ids:
+      updateResponse = await fetch(`/api/property/update/${propertyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          photos: photoUrls,
+          video_urls: videoUrls,
+          mux_asset_ids: muxAssetIds, // NUEVO
+          video_processing: false,
+        }),
+      });
 
       // ==========================================
       // Último paso: Finalizar
@@ -674,7 +689,7 @@ export default function CreatePropertyPage() {
         language === 'en' ? 'Finalizing property...' : 'Finalizando propiedad...'
       );
 
-      const updateResponse = await fetch(`/api/property/update/${propertyId}`, {
+      updateResponse = await fetch(`/api/property/update/${propertyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -82,6 +82,8 @@ export default function EditPropertyPage() {
   const [newVideos, setNewVideos] = useState<File[]>([]);
   const [videoProgress, setVideoProgress] = useState<string>('');
   const [existingVideosDuration, setExistingVideosDuration] = useState<number>(0);
+  const [existingMuxAssetIds, setExistingMuxAssetIds] = useState<string[]>([]);
+  const [muxAssetIdsToDelete, setMuxAssetIdsToDelete] = useState<string[]>([]);
 
   // Estados para campos personalizados
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
@@ -192,6 +194,8 @@ export default function EditPropertyPage() {
       setExistingPhotos(data.property.photos || []);
       const urls = data.property.video_urls || [];
       setExistingVideos(urls);
+
+      setExistingMuxAssetIds(data.property.mux_asset_ids || []);
 
       if (urls.length > 0) {
         const durations = await Promise.all(urls.map(getVideoDuration));
@@ -368,12 +372,21 @@ export default function EditPropertyPage() {
   };
 
   const handleDeleteExistingVideo = async (index: number) => {
-    const urlToDelete = existingVideos[index];
-    const newVideos = existingVideos.filter((_, i) => i !== index);
-    setExistingVideos(newVideos);
+    // NUEVO: guardar el assetId correspondiente para borrarlo en Mux al guardar
+    const assetIdToDelete = existingMuxAssetIds[index];
+    if (assetIdToDelete) {
+      setMuxAssetIdsToDelete(prev => [...prev, assetIdToDelete]);
+    }
+
+    const updatedVideos = existingVideos.filter((_, i) => i !== index);
+    setExistingVideos(updatedVideos);
+
+    // NUEVO: mantener mux_asset_ids sincronizado con video_urls
+    const updatedAssetIds = existingMuxAssetIds.filter((_, i) => i !== index);
+    setExistingMuxAssetIds(updatedAssetIds);
 
     // Recalcular duración
-    const durations = await Promise.all(newVideos.map(getVideoDuration));
+    const durations = await Promise.all(updatedVideos.map(getVideoDuration));
     const total = durations.reduce((sum, d) => sum + d, 0);
     setExistingVideosDuration(total);
   };
@@ -477,7 +490,7 @@ export default function EditPropertyPage() {
 
       // Paso videos: si hay videos nuevos
       let finalVideoUrls = [...existingVideos];
-      let finalMuxAssetIds: string[] = [];
+      let finalMuxAssetIds = [...existingMuxAssetIds];
 
       if (hasNewVideos) {
         try {
@@ -542,6 +555,7 @@ export default function EditPropertyPage() {
           custom_fields_data: customFieldsValues,
           video_urls: finalVideoUrls,
           mux_asset_ids: finalMuxAssetIds,
+          mux_asset_ids_to_delete: muxAssetIdsToDelete,
         }),
       });
 

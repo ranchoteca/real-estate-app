@@ -261,7 +261,7 @@ export default function ProfilePage() {
 
             <div>
               <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                {t('profile.phone')}
+                {t('profile.phone1')}
               </label>
               <input
                 type="tel"

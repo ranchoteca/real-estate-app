@@ -244,6 +244,19 @@ export default function AgentCardPage() {
   const brokerage = getBrokerage();
   const bio = getBio();
 
+  const renderFormattedText = (text: string) => {
+    return text.split('\n').map((line, i) => {
+      const parts = line.split(/\*\*(.*?)\*\*/g);
+      return (
+        <p key={i} className={line.trim() === '' ? 'mt-3' : ''} style={{ textAlign: 'justify' }}>
+          {parts.map((part, j) =>
+            j % 2 === 1 ? <strong key={j}>{part}</strong> : part
+          )}
+        </p>
+      );
+    });
+  };
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       {agentIsProActivo && (
@@ -302,9 +315,9 @@ export default function AgentCardPage() {
               )}
 
               {bio && (
-                <p className="text-center opacity-80 leading-relaxed mb-6" style={{ color: '#0F172A' }}>
-                  {bio}
-                </p>
+                <div className="opacity-80 leading-relaxed mb-6 text-sm" style={{ color: '#0F172A' }}>
+                  {renderFormattedText(bio)}
+                </div>
               )}
             </div>
 

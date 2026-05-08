@@ -824,6 +824,19 @@ export default function PropertyView() {
     );
   }
 
+  const renderFormattedText = (text: string) => {
+    return text.split('\n').map((line, i) => {
+      const parts = line.split(/\*\*(.*?)\*\*/g);
+      return (
+        <p key={i} className={line.trim() === '' ? 'mt-3' : ''}>
+          {parts.map((part, j) =>
+            j % 2 === 1 ? <strong key={j}>{part}</strong> : part
+          )}
+        </p>
+      );
+    });
+  };
+
   return (
     <MobileLayout title={property.city || (interfaceLang === 'en' ? 'Property' : 'Propiedad')} showBack={true} showTabs={false}>
       {/* DESKTOP: Two Column Layout */}
@@ -1096,9 +1109,9 @@ export default function PropertyView() {
               <h2 className="text-lg lg:text-xl font-bold mb-3" style={{ color: '#0F172A' }}>
                 {interfaceLang === 'en' ? 'Description' : 'Descripción'}
               </h2>
-              <p className="whitespace-pre-line leading-relaxed opacity-90 text-sm lg:text-base" style={{ color: '#0F172A' }}>
-                {property.description}
-              </p>
+              <div className="leading-relaxed opacity-90 text-sm lg:text-base" style={{ color: '#0F172A' }}>
+                {renderFormattedText(property.description)}
+              </div>
               
               <div className="mt-4 pt-4 border-t text-sm opacity-60" style={{ color: '#0F172A', borderTopColor: '#E5E7EB' }}>
                 👁️ {property.views} {interfaceLang === 'en' 

@@ -71,7 +71,7 @@ export const authOptions: NextAuthOptions = {
             .eq('email', session.user.email);
           const { data: dbAgent, error } = await supabaseAdmin
             .from('agents')
-            .select('id, plan, role, expires_at, username, full_name, phone, brokerage')
+            .select('id, plan, role, expires_at, username, full_name, phone, phone_2, brokerage')
             .eq('email', session.user.email)
             .single();
           
@@ -87,6 +87,7 @@ export const authOptions: NextAuthOptions = {
             session.user.username = dbAgent.username;
             session.user.fullName = dbAgent.full_name;
             session.user.phone = dbAgent.phone;
+            session.user.phone_2 = dbAgent.phone_2;
             session.user.brokerage = dbAgent.brokerage;
 
             const { count } = await supabaseAdmin

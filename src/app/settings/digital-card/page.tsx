@@ -24,6 +24,9 @@ export default function DigitalCardSettings() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const { t } = useTranslation();
+
+  const phone = session?.user?.phone || '';
+  const phone2 = session?.user?.phone_2 || '';
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -156,6 +159,33 @@ export default function DigitalCardSettings() {
       alert(`❌ ${t('common.error')}: ${error.message}`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const buildPhoneText = (lang: 'es' | 'en') => {
+    const phones = [phone, phone2].filter(Boolean);
+    if (phones.length === 0) return null;
+
+    if (lang === 'es') {
+      const lines = phones.map(p => `📱 ${p}`).join('\n');
+      return `\n\n📞 Puedes contactarnos a los siguientes teléfonos:\n${lines}`;
+    } else {
+      const lines = phones.map(p => `📱 ${p}`).join('\n');
+      return `\n\n📞 Call us:\n${lines}`;
+    }
+  };
+
+  const handleInsertPhones = (lang: 'es' | 'en') => {
+    const phones = [phone, phone2].filter(Boolean);
+    if (phones.length === 0) {
+      alert('⚠️ No tienes teléfonos configurados. Ve a tu perfil y agrégalos primero.');
+      return;
+    }
+    const text = buildPhoneText(lang)!;
+    if (lang === 'es') {
+      setFormData(prev => ({ ...prev, bio: (prev.bio + text).slice(0, 500) }));
+    } else {
+      setFormData(prev => ({ ...prev, bio_en: (prev.bio_en + text).slice(0, 500) }));
     }
   };
 
@@ -358,9 +388,20 @@ export default function DigitalCardSettings() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-              {t('digitalCard.bio')} (Español)
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-semibold" style={{ color: '#0F172A' }}>
+                {t('digitalCard.bio')} (Español)
+              </label>
+              <button
+                type="button"
+                onClick={() => handleInsertPhones('es')}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold active:scale-95 transition-transform"
+                style={{ backgroundColor: '#DBEAFE', color: '#1D4ED8' }}
+                title="Insertar teléfonos en la bio"
+              >
+                📲 Insertar tel.
+              </button>
+            </div>
             <textarea
               value={formData.bio}
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
@@ -416,9 +457,20 @@ export default function DigitalCardSettings() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                  {t('digitalCard.bioEnglish')}
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-semibold" style={{ color: '#0F172A' }}>
+                    {t('digitalCard.bioEnglish')}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleInsertPhones('en')}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold active:scale-95 transition-transform"
+                    style={{ backgroundColor: '#DBEAFE', color: '#1D4ED8' }}
+                    title="Insert phones into bio"
+                  >
+                    📲 Insert phones
+                  </button>
+                </div>
                 <textarea
                   value={formData.bio_en}
                   onChange={(e) => setFormData({ ...formData, bio_en: e.target.value })}

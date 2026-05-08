@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { username, fullName, phone, brokerage } = await req.json();
+    const { username, fullName, phone, phone_2, brokerage } = await req.json();
 
     // Validar username (solo si se proporciona)
     if (username) {
@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
         username: username || null,
         full_name: fullName || null,
         phone: phone || null,
+        phone_2: phone_2 || null,
         brokerage: brokerage || null,
       })
       .eq('email', session.user.email);

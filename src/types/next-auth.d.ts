@@ -14,6 +14,7 @@ declare module 'next-auth' {
       username?: string | null;
       fullName?: string | null;
       phone?: string | null;
+      phone_2?: string | null;
       brokerage?: string | null;
     };
   }

@@ -420,6 +420,32 @@ export default function EditPropertyPage() {
     ));
   };
 
+  const phone = session?.user?.phone || '';
+  const phone2 = session?.user?.phone_2 || '';
+
+  const handleInsertPhonesInDescription = () => {
+    const phones = [phone, phone2].filter(Boolean);
+    if (phones.length === 0) {
+      alert(
+        language === 'en'
+          ? '⚠️ No phone numbers configured. Go to your profile and add them first.'
+          : '⚠️ No tienes teléfonos configurados. Ve a tu perfil y agrégalos primero.'
+      );
+      return;
+    }
+
+    const phoneLines = phones.map(p => `📱 ${p}`).join('\n');
+    const block =
+      language === 'en'
+        ? `\n\n📞 Call us:\n${phoneLines}\n\n`
+        : `\n\n📞 Puedes contactarnos a los siguientes teléfonos:\n${phoneLines}\n\n`;
+
+    setProperty(prev => {
+      if (!prev) return prev;
+      return { ...prev, description: (prev.description || '') + block };
+    });
+  };
+
   const handleSave = async () => {
     if (!property) return;
 
@@ -858,9 +884,20 @@ export default function EditPropertyPage() {
           className="rounded-2xl p-4 shadow-lg"
           style={{ backgroundColor: '#FFFFFF' }}
         >
-          <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-            {t('common.editProperty.description')}
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-bold" style={{ color: '#0F172A' }}>
+              {t('common.editProperty.description')}
+            </label>
+            <button
+              type="button"
+              onClick={handleInsertPhonesInDescription}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold active:scale-95 transition-transform"
+              style={{ backgroundColor: '#DBEAFE', color: '#1D4ED8' }}
+              title={language === 'en' ? 'Insert phone numbers' : 'Insertar teléfonos'}
+            >
+              📲 {language === 'en' ? 'Insert phones' : 'Insertar tel.'}
+            </button>
+          </div>
           <textarea
             value={property.description}
             onChange={(e) => setProperty({ ...property, description: e.target.value })}

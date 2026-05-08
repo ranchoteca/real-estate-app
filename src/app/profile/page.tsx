@@ -14,6 +14,7 @@ export default function ProfilePage() {
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [phone2, setPhone2] = useState('');
   const [brokerage, setBrokerage] = useState('');
   const [saving, setSaving] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
@@ -29,6 +30,7 @@ export default function ProfilePage() {
       setUsername(session.user.username || '');
       setFullName(session.user.fullName || session.user.name || '');
       setPhone(session.user.phone || '');
+      setPhone2(session.user.phone_2 || '');
       setBrokerage(session.user.brokerage || '');
     }
   }, [session]);
@@ -75,6 +77,7 @@ export default function ProfilePage() {
           username,
           fullName,
           phone,
+          phone_2: phone2,
           brokerage,
         }),
       });
@@ -265,6 +268,24 @@ export default function ProfilePage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+506 1234-5678"
+                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
+                style={{ 
+                  borderColor: '#E5E7EB',
+                  backgroundColor: '#F9FAFB',
+                  color: '#0F172A'
+                }}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
+                {t('profile.phone2')}
+              </label>
+              <input
+                type="tel"
+                value={phone2}
+                onChange={(e) => setPhone2(e.target.value)}
+                placeholder="+506 8888-8888"
                 className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none transition-colors"
                 style={{ 
                   borderColor: '#E5E7EB',

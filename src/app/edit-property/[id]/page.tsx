@@ -437,13 +437,19 @@ export default function EditPropertyPage() {
     const phoneLines = phones.map(p => `📱 ${p}`).join('\n');
     const block =
       language === 'en'
-        ? `\n\n📞 Call us:\n${phoneLines}\n\n`
-        : `\n\n📞 Puedes contactarnos a los siguientes teléfonos:\n${phoneLines}\n\n`;
+        ? `\n\n**📞 Call us:**\n${phoneLines}\n\n`
+        : `\n\n**📞 Puedes contactarnos a los teléfonos:**\n${phoneLines}\n\n`;
 
     setProperty(prev => {
       if (!prev) return prev;
       return { ...prev, description: (prev.description || '') + block };
     });
+
+    alert(
+      language === 'en'
+        ? '✅ Phone numbers inserted.'
+        : '✅ Teléfonos insertados.'
+    );
   };
 
   const handleSave = async () => {

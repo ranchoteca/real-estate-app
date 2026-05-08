@@ -168,10 +168,10 @@ export default function DigitalCardSettings() {
 
     if (lang === 'es') {
       const lines = phones.map(p => `📱 ${p}`).join('\n');
-      return `\n\n📞 Puedes contactarnos a los siguientes teléfonos:\n${lines}`;
+      return `\n\n**Puedes contactarnos a los teléfonos:**\n${lines}`;
     } else {
       const lines = phones.map(p => `📱 ${p}`).join('\n');
-      return `\n\n📞 Call us:\n${lines}`;
+      return `\n\n**Call us:**\n${lines}`;
     }
   };
 
@@ -184,8 +184,10 @@ export default function DigitalCardSettings() {
     const text = buildPhoneText(lang)!;
     if (lang === 'es') {
       setFormData(prev => ({ ...prev, bio: (prev.bio + text).slice(0, 500) }));
+      alert('✅ Teléfonos insertados al final de la biografía.');
     } else {
       setFormData(prev => ({ ...prev, bio_en: (prev.bio_en + text).slice(0, 500) }));
+      alert('✅ Phone numbers inserted at the end of the bio.');
     }
   };
 
@@ -325,9 +327,18 @@ export default function DigitalCardSettings() {
             </div>
 
             {formData.bio && (
-              <p className="mt-3 text-sm opacity-80" style={{ color: '#0F172A' }}>
-                {formData.bio}
-              </p>
+              <div className="mt-3 text-sm opacity-80" style={{ color: '#0F172A', textAlign: 'justify' }}>
+                {formData.bio.split('\n').map((line, i) => {
+                  const parts = line.split(/\*\*(.*?)\*\*/g);
+                  return (
+                    <p key={i} className={line === '' ? 'mt-2' : ''}>
+                      {parts.map((part, j) =>
+                        j % 2 === 1 ? <strong key={j}>{part}</strong> : part
+                      )}
+                    </p>
+                  );
+                })}
+              </div>
             )}
 
             {(formData.facebook_url || formData.instagram_url) && (

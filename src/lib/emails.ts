@@ -14,7 +14,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // Cambia esto una vez que verifiques tu dominio en Resend.
 // Mientras tanto, en desarrollo puedes usar: onboarding@resend.dev
 // (solo permite enviar a tu propio email verificado en Resend)
-const FROM = 'Flow Estate AI <info@flowestateai.com>';
+const FROM = 'Flow Estate AI <hello@info.flowestateai.com>';
 
 // Tipo de resultado estándar para todas las funciones
 type EmailResult =

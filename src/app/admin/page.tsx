@@ -74,7 +74,11 @@ export default function AdminPanel() {
       const result = await res.json();
 
       if (res.ok && result.success) {
-        alert(`✅ Pago registrado y Pro activado para ${selectedAgent.email}`);
+        const emailWarning = result.emailSent === false
+          ? `\n\n⚠️ Nota: El pago fue registrado, pero no se pudo enviar el correo al agente.`
+          : '';
+
+        alert(`✅ Pago registrado y Pro activado para ${selectedAgent.email}${emailWarning}`);
         setShowPaymentForm(false);
         setPaymentForm({
           reference: '',

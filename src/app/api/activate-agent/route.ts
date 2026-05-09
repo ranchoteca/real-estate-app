@@ -1,9 +1,9 @@
-import { Resend } from 'resend';
+// src/app/api/activate-agent/route.ts
+
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { addDays } from 'date-fns';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendPaymentConfirmedEmail } from '@/lib/emails';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,9 +12,9 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: Request) {
   try {
-    const { 
-      agentId, 
-      months = 1, 
+    const {
+      agentId,
+      months = 1,
       reference,
       paymentMethod = 'sinpe',
       amount = null,
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
     const expirationDate = addDays(new Date(), 30 * months);
 
-    // 1. Actualizar agente
+    // 1. Actualizar el agente a Pro
     const { data, error } = await supabaseAdmin
       .from('agents')
       .update({
@@ -58,21 +58,23 @@ export async function POST(request: Request) {
     if (historyError) throw historyError;
 
     // 3. Enviar correo de confirmación
-    await resend.emails.send({
-      from: 'Flow Estate <onboarding@resend.dev>',
+    // El correo NO revierte el pago si falla. El pago ya quedó guardado.
+    const emailResult = await sendPaymentConfirmedEmail({
       to: data.email,
-      subject: '¡Tu cuenta Pro de Flow Estate AI está activa! 🚀',
-      html: `
-        <h1>¡Hola, ${data.full_name || 'Agente'}!</h1>
-        <p>Hemos recibido tu pago (Ref: ${reference}) y tu plan <strong>Pro</strong> ha sido activado.</p>
-        <p>Tu suscripción estará vigente hasta el: <strong>${expirationDate.toLocaleDateString()}</strong>.</p>
-        <p>Ya puedes disfrutar de todas las herramientas ilimitadas.</p>
-        <br />
-        <p>Saludos,<br />El equipo de Flow Estate AI</p>
-      `,
+      agentName: data.full_name || 'Agente',
+      reference,
+      amount,
+      expiresAt: expirationDate,
     });
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({
+      success: true,
+      data,
+      // Informamos al admin si el correo falló, sin que afecte el resultado del pago
+      emailSent: emailResult.success,
+      ...(emailResult.success === false && { emailError: emailResult.error }),
+    });
+
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

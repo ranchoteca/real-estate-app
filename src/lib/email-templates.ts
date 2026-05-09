@@ -34,6 +34,8 @@ const FOOTER_HTML = `
   </div>
 `;
 
+const HOME_URL = 'https://www.flowestateai.com';
+
 function wrapInLayout(content: string): string {
   return `
     <!DOCTYPE html>
@@ -112,10 +114,10 @@ export function paymentConfirmedTemplate({
       analíticas avanzadas, videos, tarjeta digital y mucho más.
     </p>
 
-    <a href="https://flowestate.ai/dashboard"
+    <a href="${HOME_URL}"
        style="display: inline-block; background: #2563eb; color: #ffffff; font-size: 14px;
               font-weight: 800; padding: 14px 28px; border-radius: 14px; text-decoration: none;">
-      Ir al Dashboard →
+      Ir a Flow Estate AI →
     </a>
   `);
 
@@ -158,10 +160,10 @@ export function welcomeTemplate({
       </ul>
     </div>
 
-    <a href="https://flowestate.ai/dashboard"
+    <a href="${HOME_URL}"
        style="display: inline-block; background: #2563eb; color: #ffffff; font-size: 14px;
               font-weight: 800; padding: 14px 28px; border-radius: 14px; text-decoration: none;">
-      Explorar mi cuenta →
+      Explorar Flow Estate AI →
     </a>
   `);
 
@@ -207,10 +209,10 @@ export function expirationWarningTemplate({
       para coordinar la renovación.
     </p>
 
-    <a href="https://flowestate.ai/pricing"
+    <a href="${HOME_URL}"
        style="display: inline-block; background: #d97706; color: #ffffff; font-size: 14px;
               font-weight: 800; padding: 14px 28px; border-radius: 14px; text-decoration: none;">
-      Ver planes →
+      Ir a Flow Estate AI →
     </a>
   `);
 
@@ -248,10 +250,10 @@ export function licenseExpiredTemplate({
       Es rápido y tu cuenta quedará activa de inmediato.
     </p>
 
-    <a href="https://flowestate.ai/pricing"
+    <a href="${HOME_URL}"
        style="display: inline-block; background: #2563eb; color: #ffffff; font-size: 14px;
               font-weight: 800; padding: 14px 28px; border-radius: 14px; text-decoration: none;">
-      Renovar mi plan →
+      Ir a Flow Estate AI →
     </a>
   `);
 

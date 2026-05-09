@@ -1,6 +1,9 @@
+// src/app/api/auth/[...nextauth]/route.ts
+
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { supabaseAdmin } from '@/lib/supabase';
+import { sendWelcomeEmail } from '@/lib/emails';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -15,7 +18,6 @@ export const authOptions: NextAuthOptions = {
         if (account?.provider === 'google') {
           console.log('🔍 Checking agent:', user.email);
 
-          // Verificar si agente existe
           const { data: existingAgent, error: fetchError } = await supabaseAdmin
             .from('agents')
             .select('*')
@@ -28,12 +30,11 @@ export const authOptions: NextAuthOptions = {
 
           if (!existingAgent) {
             console.log('✨ Creating new agent for:', user.email);
-            
-            // Generar username único basado en email
+
             const baseUsername = user.email!.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
             const randomSuffix = Math.random().toString(36).substring(2, 6);
             const username = `${baseUsername}${randomSuffix}`;
-            
+
             const { data: newAgent, error: insertError } = await supabaseAdmin
               .from('agents')
               .insert({
@@ -51,6 +52,17 @@ export const authOptions: NextAuthOptions = {
               console.error('Full error:', JSON.stringify(insertError, null, 2));
             } else {
               console.log('✅ Agent created successfully:', newAgent?.email);
+
+              // Enviar correo de bienvenida con log de diagnóstico
+              try {
+                const emailResult = await sendWelcomeEmail({
+                  to: user.email!,
+                  agentName: user.name || 'Agente',
+                });
+                console.log('[Email] Resultado bienvenida:', JSON.stringify(emailResult));
+              } catch (err) {
+                console.error('[Email] Error bienvenida:', err);
+              }
             }
           } else {
             console.log('✅ Agent already exists:', existingAgent.email);
@@ -59,7 +71,7 @@ export const authOptions: NextAuthOptions = {
         return true;
       } catch (error) {
         console.error('❌ SignIn callback error:', error);
-        return true; // Permitir login aunque falle Supabase
+        return true;
       }
     },
     async session({ session, token }) {
@@ -69,12 +81,13 @@ export const authOptions: NextAuthOptions = {
             .from('agents')
             .update({ last_active_at: new Date().toISOString() })
             .eq('email', session.user.email);
+
           const { data: dbAgent, error } = await supabaseAdmin
             .from('agents')
             .select('id, plan, role, expires_at, username, full_name, phone, phone_2, brokerage')
             .eq('email', session.user.email)
             .single();
-          
+
           if (error) {
             console.error('❌ Error fetching session agent:', error);
             session.user.id = 'temp-id';

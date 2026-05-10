@@ -328,6 +328,8 @@
     "configured": "Configurado",
     "notConfigured": "No configurado",
     "agentInfo": "Información del Agente",
+    "usernameHint": "Elige un username corto y fácil de recordar. Ejemplo: juan.perez o juanperez506",
+    "usernameWarning": "⚠️ Evita cambiarlo frecuentemente. Tu URL de portafolio cambia con él y podrías perder visitas.",
     "uniqueUsername": "Username único",
     "yourPortfolio": "Tu portfolio",
     "fullName": "Nombre completo",

@@ -328,6 +328,8 @@
     "configured": "Configured",
     "notConfigured": "Not configured",
     "agentInfo": "Agent Information",
+    "usernameHint": "Choose a short, easy-to-remember username. Example: john.doe or johndoe506",
+    "usernameWarning": "⚠️ Avoid changing it frequently. Your portfolio URL changes with it and you may lose visitors.",
     "uniqueUsername": "Unique username",
     "yourPortfolio": "Your portfolio",
     "fullName": "Full name",

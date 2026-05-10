@@ -15,17 +15,21 @@ export default function LandingPage() {
   const [showInstallButton, setShowInstallButton] = useState(false);
 
   useEffect(() => {
+    // Detectar si es móvil
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
+    // Handler para el evento beforeinstallprompt
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      // Solo mostrar en móviles
       if (isMobile) {
         setShowInstallButton(true);
       }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
@@ -33,11 +37,14 @@ export default function LandingPage() {
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
+
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
+    
     if (outcome === 'accepted') {
       console.log('PWA instalada');
     }
+    
     setDeferredPrompt(null);
     setShowInstallButton(false);
   };
@@ -68,7 +75,9 @@ export default function LandingPage() {
     <div className="min-h-screen" style={{ backgroundColor: '#F5EAD3' }}>
       {/* Sticky Header */}
       <header 
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'shadow-lg' : ''}`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          isScrolled ? 'shadow-lg' : ''
+        }`}
         style={{ backgroundColor: '#0F172A' }}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -83,6 +92,7 @@ export default function LandingPage() {
                 priority
               />
             </div>
+            
             <Link
               href="/login"
               className="px-4 sm:px-6 py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform text-sm sm:text-base flex-shrink-0"
@@ -96,6 +106,7 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative pt-24 pb-16 px-4 overflow-hidden">
+        {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div 
             className="absolute top-20 left-10 w-72 h-72 rounded-full opacity-20 blur-3xl animate-pulse"
@@ -108,7 +119,7 @@ export default function LandingPage() {
         </div>
 
         <div className="relative max-w-4xl mx-auto text-center">
-          {/* Badge móvil */}
+          {/* Badge */}
           <div 
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 shadow-lg"
             style={{ backgroundColor: '#FFFFFF' }}
@@ -125,10 +136,22 @@ export default function LandingPage() {
             style={{ color: '#0F172A' }}
           >
             Deja de Enviar Fotos Sueltas por{' '}
-            <span className="relative inline-block" style={{ color: '#2563EB' }}>
+            <span 
+              className="relative inline-block"
+              style={{ color: '#2563EB' }}
+            >
               WhatsApp
-              <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 12" fill="none">
-                <path d="M2 10C50 2 150 2 198 10" stroke="#2563EB" strokeWidth="3" strokeLinecap="round"/>
+              <svg 
+                className="absolute -bottom-2 left-0 w-full" 
+                viewBox="0 0 200 12" 
+                fill="none"
+              >
+                <path 
+                  d="M2 10C50 2 150 2 198 10" 
+                  stroke="#2563EB" 
+                  strokeWidth="3" 
+                  strokeLinecap="round"
+                />
               </svg>
             </span>
           </h1>
@@ -153,10 +176,16 @@ export default function LandingPage() {
             <button
               onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
               className="px-8 py-4 rounded-xl font-bold border-2 text-lg active:scale-95 transition-transform"
-              style={{ borderColor: '#0F172A', color: '#0F172A', backgroundColor: '#FFFFFF' }}
+              style={{ 
+                borderColor: '#0F172A',
+                color: '#0F172A',
+                backgroundColor: '#FFFFFF'
+              }}
             >
               Ver Cómo Funciona
             </button>
+            
+            {/* Botón de Instalación PWA - Solo móviles */}
             {showInstallButton && (
               <button
                 onClick={handleInstallClick}
@@ -180,40 +209,27 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Mockup de celular con pantallas de la app */}
+          {/* Mockup de celular */}
           <div className="flex justify-center mb-12">
             <div className="relative">
               {/* Teléfono principal */}
               <div
                 className="relative rounded-[36px] shadow-2xl overflow-hidden border-4"
-                style={{
-                  width: '200px',
-                  height: '400px',
-                  backgroundColor: '#0F172A',
-                  borderColor: '#1E293B',
-                }}
+                style={{ width: '200px', height: '400px', backgroundColor: '#0F172A', borderColor: '#1E293B' }}
               >
-                {/* Notch */}
                 <div
                   className="absolute top-3 left-1/2 -translate-x-1/2 rounded-full z-10"
                   style={{ width: '60px', height: '10px', backgroundColor: '#0F172A' }}
                 />
-                {/* Pantalla */}
                 <div
                   className="absolute inset-1 rounded-[30px] overflow-hidden"
                   style={{ backgroundColor: '#F5EAD3' }}
                 >
-                  {/* Header simulado */}
-                  <div
-                    className="px-3 py-2 flex items-center justify-between"
-                    style={{ backgroundColor: '#0F172A' }}
-                  >
+                  <div className="px-3 py-2 flex items-center justify-between" style={{ backgroundColor: '#0F172A' }}>
                     <span className="text-white text-[9px] font-bold">Flow Estate AI</span>
                     <span className="text-[9px]">⭐</span>
                   </div>
-                  {/* Contenido simulado */}
                   <div className="px-2 pt-2 space-y-2">
-                    {/* Card propiedad 1 */}
                     <div className="rounded-xl overflow-hidden shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
                       <div className="h-16 flex items-center justify-center text-2xl" style={{ backgroundColor: '#DBEAFE' }}>🏠</div>
                       <div className="p-1.5">
@@ -225,7 +241,6 @@ export default function LandingPage() {
                         </div>
                       </div>
                     </div>
-                    {/* Card propiedad 2 */}
                     <div className="rounded-xl overflow-hidden shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
                       <div className="h-16 flex items-center justify-center text-2xl" style={{ backgroundColor: '#D1FAE5' }}>🏢</div>
                       <div className="p-1.5">
@@ -237,15 +252,10 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Teléfono pequeño flotando a la derecha */}
+              {/* Teléfono pequeño flotando */}
               <div
                 className="absolute -right-16 top-16 rounded-[28px] shadow-xl border-4"
-                style={{
-                  width: '120px',
-                  height: '240px',
-                  backgroundColor: '#0F172A',
-                  borderColor: '#1E293B',
-                }}
+                style={{ width: '120px', height: '240px', backgroundColor: '#0F172A', borderColor: '#1E293B' }}
               >
                 <div
                   className="absolute inset-1 rounded-[22px] overflow-hidden"
@@ -307,13 +317,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Sección: Funciona en tu celular */}
+      {/* Sección: Hecha para tu celular */}
       <section className="py-12 px-4">
         <div className="max-w-2xl mx-auto">
-          <div
-            className="rounded-3xl p-8 shadow-xl"
-            style={{ backgroundColor: '#0F172A' }}
-          >
+          <div className="rounded-3xl p-8 shadow-xl" style={{ backgroundColor: '#0F172A' }}>
             <div className="text-center mb-6">
               <span className="text-4xl">📱</span>
               <h2 className="text-2xl font-bold mt-3 text-white">
@@ -350,7 +357,7 @@ export default function LandingPage() {
                 <div>
                   <p className="font-bold text-white text-sm">¿Y desde computadora?</p>
                   <p className="text-xs opacity-70 text-white mt-0.5">
-                    También funciona, pero está optimizada para móvil. La experiencia más cómoda es desde tu celular.
+                    También funciona, pero está optimizada para celular. La experiencia más cómoda es desde tu teléfono.
                   </p>
                 </div>
               </div>

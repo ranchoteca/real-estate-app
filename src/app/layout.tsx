@@ -1,5 +1,7 @@
+import { GoogleAnalytics } from '@next/third-parties/google'
 import type { Metadata } from 'next';
 import { Providers } from '@/components/Providers';
+import FacebookPixel from '@/components/FacebookPixel';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -27,6 +29,8 @@ export default function RootLayout({
           {children}
         </Providers>
       </body>
+      <GoogleAnalytics gaId="G-KCF1DFNMG6" />
+      <FacebookPixel />
     </html>
   );
 }

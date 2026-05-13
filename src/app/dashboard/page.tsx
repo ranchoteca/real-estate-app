@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { trackEvent } from '@/lib/fbpixel';
 import GeneratingPDFModal from '@/components/GeneratingPDFModal';
 import FacebookPublishModal from '@/components/FacebookPublishModal';
 import MobileLayout from '@/components/MobileLayout';
@@ -125,6 +126,37 @@ export default function DashboardPage() {
       loadCurrencies();
     }
   }, [session]);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      const checkIfNewUser = async () => {
+        try {
+          const response = await fetch('/api/agent/current-plan');
+          const data = await response.json();
+          
+          // Si el agente fue creado hace menos de 2 minutos, es registro nuevo
+          if (data.created_at) {
+            const createdAt = new Date(data.created_at).getTime();
+            const now = Date.now();
+            const diffMinutes = (now - createdAt) / 1000 / 60;
+            
+            if (diffMinutes < 2) {
+              trackEvent('CompleteRegistration', {
+                value: 0,
+                currency: 'CRC',
+                content_name: 'Google Sign Up',
+              });
+              console.log('✅ Facebook: CompleteRegistration fired');
+            }
+          }
+        } catch (error) {
+          console.error('Error checking new user:', error);
+        }
+      };
+      
+      checkIfNewUser();
+    }
+  }, [session?.user?.id]);
 
   // Estado para mostrar/ocultar filtros avanzados
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);

@@ -21,50 +21,34 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#F5EAD3' }}>
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div 
-          className="absolute top-20 -left-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
-          style={{ backgroundColor: '#2563EB' }}
-        />
-        <div 
-          className="absolute bottom-20 -right-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
-          style={{ backgroundColor: '#2563EB', animationDelay: '1s' }}
-        />
+        <div className="absolute top-20 -left-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse" style={{ backgroundColor: '#2563EB' }} />
+        <div className="absolute bottom-20 -right-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse" style={{ backgroundColor: '#2563EB', animationDelay: '1s' }} />
       </div>
 
       {/* Content */}
       <div className="relative flex-1 flex flex-col items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
+
           {/* Logo & Hero */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center rounded-3xl shadow-2xl mb-6 animate-bounce p-2"
-                 style={{ backgroundColor: '#FFFFFF' }}>
-              <Image
-                src="/favicon.ico"
-                alt="Flow Estate AI"
-                width={64}
-                height={64}
-                priority
-                style={{ width: '64px', height: '64px' }}
-              />
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center rounded-3xl shadow-2xl mb-4 animate-bounce p-2" style={{ backgroundColor: '#FFFFFF' }}>
+              <Image src="/favicon.ico" alt="Flow Estate AI" width={64} height={64} priority style={{ width: '64px', height: '64px' }} />
             </div>
-            
-            <h1 className="text-4xl font-bold mb-3" style={{ color: '#0F172A' }}>
-              Flow Estate AI
-            </h1>
-            
-            <p className="text-lg opacity-80" style={{ color: '#0F172A' }}>
-              Tu portafolio digital profesional
-            </p>
+            <h1 className="text-4xl font-bold mb-2" style={{ color: '#0F172A' }}>Flow Estate AI</h1>
+            <p className="text-lg opacity-80" style={{ color: '#0F172A' }}>Tu portafolio digital profesional</p>
+          </div>
+
+          {/* Badge gratis */}
+          <div className="flex justify-center mb-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full shadow-md" style={{ backgroundColor: '#D1FAE5', border: '1.5px solid #6EE7B7' }}>
+              <span className="text-lg">🎉</span>
+              <span className="text-sm font-bold" style={{ color: '#065F46' }}>Gratis para tus primeras 5 propiedades</span>
+            </div>
           </div>
 
           {/* Login Card */}
-          <div 
-            className="rounded-3xl p-8 shadow-2xl"
-            style={{ backgroundColor: '#FFFFFF' }}
-          >
-            <h2 className="text-2xl font-bold text-center mb-6" style={{ color: '#0F172A' }}>
-              Empieza Gratis
-            </h2>
+          <div className="rounded-3xl p-8 shadow-2xl" style={{ backgroundColor: '#FFFFFF' }}>
+            <h2 className="text-2xl font-bold text-center mb-6" style={{ color: '#0F172A' }}>Empieza Gratis</h2>
 
             {/* Benefits */}
             <div className="space-y-3 mb-6">
@@ -72,13 +56,11 @@ export default function LoginPage() {
                 { emoji: '🎤', text: 'Crea propiedades hablando' },
                 { emoji: '📄', text: 'PDFs con tu logo' },
                 { emoji: '💼', text: 'Portafolio profesional' },
-                { emoji: '🌐', text: 'Comparte con un link' }
+                { emoji: '🌐', text: 'Comparte con un link' },
               ].map((benefit, index) => (
                 <div key={index} className="flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: '#F5EAD3' }}>
                   <span className="text-2xl">{benefit.emoji}</span>
-                  <span className="font-semibold" style={{ color: '#0F172A' }}>
-                    {benefit.text}
-                  </span>
+                  <span className="font-semibold" style={{ color: '#0F172A' }}>{benefit.text}</span>
                 </div>
               ))}
             </div>
@@ -88,11 +70,7 @@ export default function LoginPage() {
               onClick={handleSignIn}
               disabled={isLoading}
               className="w-full py-4 rounded-xl font-bold shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-              style={{ 
-                backgroundColor: '#FFFFFF',
-                color: '#0F172A',
-                border: '2px solid #E5E7EB'
-              }}
+              style={{ backgroundColor: '#FFFFFF', color: '#0F172A', border: '2px solid #E5E7EB' }}
             >
               {isLoading ? (
                 <>
@@ -112,8 +90,24 @@ export default function LoginPage() {
               )}
             </button>
 
+            {/* Testimonio */}
+            <div className="mt-6 rounded-2xl p-4" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+              <p className="text-xs italic opacity-70 mb-3" style={{ color: '#0F172A' }}>
+                "Me ha ayudado a facilitar el trabajo, mis publicaciones y ahorrar tiempo. Una gran herramienta."
+              </p>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                  <Image src="/testimonial-guadalupe.jpg" alt="Guadalupe Mancía" width={32} height={32} className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold" style={{ color: '#0F172A' }}>Guadalupe Mancía</p>
+                  <p className="text-[10px] opacity-60" style={{ color: '#0F172A' }}>Guadalupe Real Estate</p>
+                </div>
+              </div>
+            </div>
+
             {/* Terms */}
-            <p className="text-xs text-center mt-6 opacity-60" style={{ color: '#0F172A' }}>
+            <p className="text-xs text-center mt-4 opacity-60" style={{ color: '#0F172A' }}>
               Al continuar, aceptas nuestros{' '}
               <a href="#" className="underline hover:opacity-80">Términos de Servicio</a>
               {' '}y{' '}
@@ -138,39 +132,17 @@ export default function LoginPage() {
       <div className="relative py-8 px-4 border-t" style={{ borderColor: '#E5E7EB', backgroundColor: 'rgba(255,255,255,0.5)' }}>
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-wrap justify-center gap-8 text-center">
-            <div>
-              <div className="text-3xl mb-2">
-                ⚡
+            {[
+              { icon: '⚡', title: 'Sin Escribir', desc: 'Solo habla tu descripción' },
+              { icon: '📱', title: 'Desde tu Celular', desc: 'Funciona en iOS y Android' },
+              { icon: '🔒', title: 'Seguro', desc: 'Tus propiedades protegidas' },
+            ].map((f, i) => (
+              <div key={i}>
+                <div className="text-3xl mb-2">{f.icon}</div>
+                <div className="text-sm font-semibold mb-1" style={{ color: '#0F172A' }}>{f.title}</div>
+                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>{f.desc}</div>
               </div>
-              <div className="text-sm font-semibold mb-1" style={{ color: '#0F172A' }}>
-                Sin Escribir
-              </div>
-              <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                Solo habla tu descripción
-              </div>
-            </div>
-            <div>
-              <div className="text-3xl mb-2">
-                📱
-              </div>
-              <div className="text-sm font-semibold mb-1" style={{ color: '#0F172A' }}>
-                Desde tu Celular
-              </div>
-              <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                Funciona en iOS y Android
-              </div>
-            </div>
-            <div>
-              <div className="text-3xl mb-2">
-                🔒
-              </div>
-              <div className="text-sm font-semibold mb-1" style={{ color: '#0F172A' }}>
-                Seguro
-              </div>
-              <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                Tus propiedades protegidas
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>

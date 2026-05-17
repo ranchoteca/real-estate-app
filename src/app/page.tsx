@@ -85,19 +85,18 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 px-4 bg-white overflow-hidden border-b border-slate-100">
         <div className="relative max-w-5xl mx-auto text-center">
-          
-          {/* Badge superior sutil */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 bg-blue-50 border border-blue-100 text-blue-700 text-sm font-medium">
             <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
             La nueva forma de gestionar bienes raíces
           </div>
 
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold mb-6 tracking-tight text-slate-900">
-            Deja de enviar fotos sueltas por <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400">WhatsApp</span>
+            Deja de enviar fotos sueltas por{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400">WhatsApp</span>
           </h1>
 
           <p className="text-xl mb-10 max-w-2xl mx-auto text-slate-600 leading-relaxed">
-            Crea tu portafolio digital profesional sin pagar por un sitio web. 
+            Crea tu portafolio digital profesional sin pagar por un sitio web.
             <span className="font-semibold text-slate-800"> Tú describes la propiedad con tu voz; nuestra IA hace el resto.</span>
           </p>
 
@@ -114,15 +113,24 @@ export default function LandingPage() {
             >
               Ver demostración
             </button>
+            {showInstallButton && (
+              <button
+                onClick={handleInstallClick}
+                className="px-8 py-4 rounded-xl font-bold text-white shadow-xl text-lg active:scale-95 transition-transform animate-pulse"
+                style={{ backgroundColor: '#10B981' }}
+              >
+                📱 Instalar App
+              </button>
+            )}
           </div>
 
-          {/* Social Proof (Prueba social) */}
-          <p className="text-sm text-slate-400 mb-4 font-medium uppercase tracking-wide">Agentes en Costa Rica ya confían en nosotros</p>
-          {/* Aquí podrías poner una fila pequeña de logos en escala de grises de agencias o un grupo de avatares superpuestos */}
+          <p className="text-sm text-slate-400 font-medium uppercase tracking-wide">
+            Agentes en Costa Rica ya confían en nosotros
+          </p>
         </div>
       </section>
 
-      {/* ===== NUEVA: App en tu celular ===== */}
+      {/* App en tu celular — screenshots */}
       <section className="py-16 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
@@ -134,34 +142,15 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Grid de screenshots */}
           <div className="grid grid-cols-3 gap-4 mb-8">
             <div className="rounded-2xl overflow-hidden shadow-xl">
-              <Image
-                src="/app-dashboard.jpg"
-                alt="Dashboard de Flow Estate AI"
-                width={300}
-                height={600}
-                className="w-full h-auto object-cover"
-              />
+              <Image src="/app-dashboard.jpg" alt="Dashboard de Flow Estate AI" width={300} height={600} className="w-full h-auto object-cover" />
             </div>
             <div className="rounded-2xl overflow-hidden shadow-xl mt-6">
-              <Image
-                src="/app-property.jpg"
-                alt="Propiedad en Flow Estate AI"
-                width={300}
-                height={600}
-                className="w-full h-auto object-cover"
-              />
+              <Image src="/app-property.jpg" alt="Propiedad en Flow Estate AI" width={300} height={600} className="w-full h-auto object-cover" />
             </div>
             <div className="rounded-2xl overflow-hidden shadow-xl">
-              <Image
-                src="/app-card.jpg"
-                alt="Tarjeta digital Flow Estate AI"
-                width={300}
-                height={600}
-                className="w-full h-auto object-cover"
-              />
+              <Image src="/app-card.jpg" alt="Tarjeta digital Flow Estate AI" width={300} height={600} className="w-full h-auto object-cover" />
             </div>
           </div>
 
@@ -190,30 +179,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Sección: Hecha para tu celular */}
-      <section className="py-12 px-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="rounded-3xl p-8 shadow-xl" style={{ backgroundColor: '#0F172A' }}>
-            <div className="text-center mb-6">
-              <span className="text-4xl">📱</span>
-              <h2 className="text-2xl font-bold mt-3 text-white">Hecha para usarse en tu celular</h2>
-              <p className="text-sm mt-2 opacity-70 text-white">No necesitas laptop ni computadora. Todo desde tu teléfono.</p>
-            </div>
-            <div className="space-y-4">
-              {[
-                { icon: '🌐', title: 'Desde el navegador', desc: <>Abre <span style={{ color: '#93C5FD' }}>flowestateai.com</span> en Chrome o Safari de tu celular y úsala como cualquier app. Sin descargar nada.</> },
-                { icon: '⬇️', title: 'O instálala en tu pantalla de inicio', desc: 'En Chrome toca los tres puntos → "Agregar a pantalla de inicio". En Safari toca compartir → "Añadir a inicio". Queda igual que una app de la tienda.' },
-                { icon: '💻', title: '¿Y desde computadora?', desc: 'También funciona, pero está optimizada para celular. La experiencia más cómoda es desde tu teléfono.' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-start gap-4 rounded-2xl p-4" style={{ backgroundColor: '#1E293B' }}>
-                  <span className="text-2xl flex-shrink-0">{item.icon}</span>
-                  <div>
-                    <p className="font-bold text-white text-sm">{item.title}</p>
-                    <p className="text-xs opacity-70 text-white mt-0.5">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+      {/* Hecha para tu celular — solo encabezado */}
+      <section className="py-8 px-4">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="rounded-3xl p-8 shadow-xl inline-flex flex-col items-center gap-3" style={{ backgroundColor: '#0F172A' }}>
+            <span className="text-4xl">📱</span>
+            <h2 className="text-2xl font-bold text-white">Hecha para usarse en tu celular</h2>
+            <p className="text-sm opacity-70 text-white">No necesitas laptop ni computadora. Todo desde tu teléfono.</p>
           </div>
         </div>
       </section>
@@ -244,23 +216,46 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Problem/Solution */}
+      {/* Testimonios */}
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>¿Te Suena Familiar?</h2>
-            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>Problemas que todos los agentes tienen</p>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>Lo Que Dicen los Agentes</h2>
+            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>Agentes inmobiliarios de Costa Rica ya usan Flow Estate AI</p>
           </div>
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-12">
+          <div className="grid md:grid-cols-3 gap-6">
             {[
-              { problem: '❌ Envías 10 fotos sueltas por WhatsApp a cada cliente', solution: '✅ Envía 1 PDF profesional con tu logo' },
-              { problem: '❌ No tienes sitio web porque es caro', solution: '✅ Tu portafolio digital sin pagar sitio web' },
-              { problem: '❌ Pierdes tiempo escribiendo descripciones', solution: '✅ Solo hablas, nosotros escribimos' },
-              { problem: '❌ Tus propiedades en Facebook se pierden', solution: '✅ Todo organizado en un solo lugar' },
-            ].map((item, index) => (
-              <div key={index} className="rounded-2xl p-6 shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
-                <div className="mb-3 text-sm opacity-70" style={{ color: '#0F172A' }}>{item.problem}</div>
-                <div className="font-semibold" style={{ color: '#2563EB' }}>{item.solution}</div>
+              {
+                name: 'Jorge Calderón Ortega',
+                company: 'Real Natural CR',
+                photo: '/testimonial-jorge.jpg',
+                quote: 'Nos ha mejorado el rendimiento, las publicaciones y el ordenamiento. El tiempo es muy valioso y esta app nos da un gran avance. La información es rápida, ordenada y profesional. La recomiendo.',
+              },
+              {
+                name: 'Eitel Vallejos',
+                company: 'Pampa Bienes Raíces',
+                photo: '/testimonial-eitel.jpg',
+                quote: 'Me parece una herramienta magnífica, muy práctica, ágil y técnica. Perfecta para el trabajo inmobiliario.',
+              },
+              {
+                name: 'Guadalupe Mancía',
+                company: 'Guadalupe Real Estate',
+                photo: '/testimonial-guadalupe.jpg',
+                quote: 'Me ha ayudado a facilitar el trabajo, mis publicaciones y ahorrar tiempo. Una gran herramienta, una gran ayuda.',
+              },
+            ].map((t, i) => (
+              <div key={i} className="rounded-2xl p-6 shadow-lg flex flex-col gap-4" style={{ backgroundColor: '#FFFFFF' }}>
+                <div className="text-5xl font-serif leading-none" style={{ color: '#2563EB', opacity: 0.3 }}>"</div>
+                <p className="text-sm leading-relaxed flex-1 italic opacity-80" style={{ color: '#0F172A' }}>{t.quote}</p>
+                <div className="flex items-center gap-3 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>
+                  <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 shadow-md">
+                    <Image src={t.photo} alt={t.name} width={48} height={48} className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm" style={{ color: '#0F172A' }}>{t.name}</p>
+                    <p className="text-xs opacity-60" style={{ color: '#0F172A' }}>{t.company}</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -283,7 +278,7 @@ export default function LandingPage() {
               { emoji: '💵', title: 'Colones y Dólares', desc: 'Maneja precios en ambas monedas fácilmente' },
               { emoji: '🗺️', title: 'Mapa Integrado', desc: 'Ubicación exacta con Google Maps' },
             ].map((feature, index) => (
-              <div key={index} className="rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all active:scale-95" style={{ backgroundColor: '#FFFFFF' }}>
+              <div key={index} className="rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all" style={{ backgroundColor: '#FFFFFF' }}>
                 <div className="text-4xl mb-3">{feature.emoji}</div>
                 <h3 className="text-lg font-bold mb-2" style={{ color: '#0F172A' }}>{feature.title}</h3>
                 <p className="text-sm opacity-80" style={{ color: '#0F172A' }}>{feature.desc}</p>
@@ -317,76 +312,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ===== NUEVA: Testimonios ===== */}
-      <section className="py-16 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
-              Lo Que Dicen los Agentes
-            </h2>
-            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>
-              Agentes inmobiliarios de Costa Rica ya usan Flow Estate AI
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                name: 'Jorge Calderón Ortega',
-                company: 'Real Natural CR',
-                photo: '/testimonial-jorge.jpg',
-                quote: 'Nos ha mejorado el rendimiento, las publicaciones y el ordenamiento. El tiempo es muy valioso y esta app nos da un gran avance. La información es rápida, ordenada y profesional. La recomiendo.',
-              },
-              {
-                name: 'Eitel Vallejos',
-                company: 'Pampa Bienes Raíces',
-                photo: '/testimonial-eitel.jpg',
-                quote: 'Me parece una herramienta magnífica, muy práctica, ágil y técnica. Perfecta para el trabajo inmobiliario.',
-              },
-              {
-                name: 'Guadalupe Mancía',
-                company: 'Guadalupe Real Estate',
-                photo: '/testimonial-guadalupe.jpg',
-                quote: 'Me ha ayudado a facilitar el trabajo, mis publicaciones y ahorrar tiempo. Una gran herramienta, una gran ayuda.',
-              },
-            ].map((t, i) => (
-              <div key={i} className="rounded-2xl p-6 shadow-lg flex flex-col gap-4" style={{ backgroundColor: '#FFFFFF' }}>
-                {/* Comillas */}
-                <div className="text-5xl font-serif leading-none" style={{ color: '#2563EB', opacity: 0.3 }}>"</div>
-                <p className="text-sm leading-relaxed flex-1 italic opacity-80" style={{ color: '#0F172A' }}>
-                  {t.quote}
-                </p>
-                <div className="flex items-center gap-3 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>
-                  <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 shadow-md">
-                    <Image
-                      src={t.photo}
-                      alt={t.name}
-                      width={48}
-                      height={48}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm" style={{ color: '#0F172A' }}>{t.name}</p>
-                    <p className="text-xs opacity-60" style={{ color: '#0F172A' }}>{t.company}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== NUEVA: Precios ===== */}
+      {/* Planes y Precios */}
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
-              Planes y Precios
-            </h2>
-            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>
-              Empieza gratis. Crece cuando estés listo.
-            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>Planes y Precios</h2>
+            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>Empieza gratis. Crece cuando estés listo.</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
@@ -400,6 +331,7 @@ export default function LandingPage() {
                   'Hasta 5 propiedades',
                   'Generación de descripciones con IA',
                   'Portafolio web público',
+                  'Tarjeta digital',
                   'Exportación a PDF',
                   'Soporte estándar',
                 ].map((item, i) => (
@@ -419,7 +351,6 @@ export default function LandingPage() {
 
             {/* Plan Pro */}
             <div className="rounded-2xl p-8 shadow-xl relative overflow-hidden border-2" style={{ backgroundColor: '#0F172A', borderColor: '#2563EB' }}>
-              {/* Badge */}
               <div className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}>
                 MÁS POPULAR
               </div>
@@ -430,6 +361,7 @@ export default function LandingPage() {
                 {[
                   'Hasta 150 propiedades',
                   'Todo lo del plan Free +',
+                  'Tarjeta digital bilingüe (ES/EN)',
                   'Publicación automática en Facebook',
                   'Traducciones con IA (Inglés/Español)',
                   'Sin marca de agua de Flow Estate',
@@ -440,23 +372,13 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-
-              {/* Pago SINPE */}
-              <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: '#1E293B' }}>
-                <p className="text-xs font-bold mb-2" style={{ color: '#93C5FD' }}>💳 Paga por SINPE Móvil:</p>
-                <p className="text-lg font-bold text-white">(+506) 8368 8684</p>
-                <p className="text-sm" style={{ color: '#94A3B8' }}>A nombre de: Steven Espinoza</p>
-              </div>
-
-              <a
-                href="https://wa.me/50683688684?text=Hola!%20Quiero%20activar%20el%20plan%20Pro%20de%20Flow%20Estate%20AI"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/pro"
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold text-white active:scale-95 transition-transform"
-                style={{ backgroundColor: '#25D366' }}
+                style={{ backgroundColor: '#2563EB' }}
               >
-                <span>💬</span> Enviar Comprobante por WhatsApp
-              </a>
+                🚀 Contratar Pro
+              </Link>
             </div>
           </div>
 
@@ -465,7 +387,7 @@ export default function LandingPage() {
             <h3 className="text-xl font-bold mb-6" style={{ color: '#0F172A' }}>Preguntas Frecuentes</h3>
             <div className="space-y-5">
               {[
-                { q: '¿Cómo funciona el pago por SINPE?', a: 'Realizas la transferencia al número indicado y nos envías el comprobante por WhatsApp tocando el botón verde. Activaremos tu cuenta en minutos.' },
+                { q: '¿Cómo funciona el pago por SINPE?', a: 'Realizas la transferencia al número indicado y nos envías el comprobante por WhatsApp. Activaremos tu cuenta en minutos.' },
                 { q: '¿Qué pasa con mis propiedades si dejo de pagar?', a: 'Tus propiedades seguirán guardadas, pero pasarás al límite del plan Free (5 propiedades). No pierdes tu información.' },
                 { q: '¿Puedo cancelar en cualquier momento?', a: 'Sí. Como los pagos son manuales mes a mes, simplemente dejas de enviar el SINPE y tu plan vuelve automáticamente al plan gratuito.' },
                 { q: '¿Hay límite de fotos por propiedad?', a: 'Puedes subir hasta 15 fotos por propiedad en cualquier plan.' },
@@ -540,6 +462,21 @@ export default function LandingPage() {
           <p className="text-xs mt-4 opacity-40" style={{ color: '#0F172A' }}>© 2026 Flow Estate AI. Todos los derechos reservados.</p>
         </div>
       </footer>
+
+      {/* Botón flotante de WhatsApp */}
+      <a
+        href="https://wa.me/50683688684?text=Hola!%20Tengo%20una%20consulta%20sobre%20Flow%20Estate%20AI%20%F0%9F%8F%A0"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform"
+        style={{ backgroundColor: '#25D366' }}
+        aria-label="Contactar por WhatsApp"
+      >
+        <svg className="w-7 h-7" fill="white" viewBox="0 0 24 24">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+      </a>
+
     </div>
   );
 }

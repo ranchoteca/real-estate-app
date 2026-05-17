@@ -21,11 +21,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-between p-6 font-sans relative overflow-x-hidden">
       
-      {/* Sutil gradiente de fondo para dar profundidad en pantallas OLED de celulares */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950 pointer-events-none" />
 
-      {/* 1. TOP: Encabezado y Logo */}
-      <header className="relative z-10 w-full flex justify-center pt-4 pb-6">
+      {/* 1. TOP: Logo — más cerca del centro */}
+      <header className="relative z-10 w-full flex justify-center pt-10 pb-4">
         <Link href="/">
           <Image 
             src="/logo_header.png" 
@@ -38,20 +37,22 @@ export default function LoginPage() {
         </Link>
       </header>
 
-      {/* 2. CENTER: Formulario y Acción Principal */}
+      {/* 2. CENTER: Formulario */}
       <main className="relative z-10 w-full max-w-sm mx-auto flex flex-col justify-center my-auto py-4">
         
-        {/* Mensaje de Autoridad y Beneficio */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-extrabold tracking-tight mb-3 text-white">
             Ingresa a tu portafolio
           </h1>
           <p className="text-sm text-slate-400 px-2 leading-relaxed">
-            Únete a <span className="text-blue-400 font-semibold">más de 50 agentes inmobiliarios</span> que ya automatizan sus ventas con Flow Estate AI.
+            Únete a{' '}
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}>
+              🏠 +50 agentes inmobiliarios
+            </span>
+            {' '}que ya automatizan sus ventas con Flow Estate AI.
           </p>
         </div>
 
-        {/* Botón de Google optimizado para el pulgar (Fácil de presionar en móvil) */}
         <div className="space-y-4">
           <button
             onClick={handleSignIn}
@@ -76,33 +77,39 @@ export default function LoginPage() {
           <p className="text-center text-[11px] text-slate-500 leading-normal">
             Gratis para tus primeras 5 propiedades. Sin tarjeta.<br/>
             Al continuar, aceptas nuestros{' '}
-            <Link href="/terms" className="underline hover:text-slate-400">Términos</Link> e{' '}
-            <Link href="/privacy" className="underline hover:text-slate-400">Inmobiliaria</Link>.
+            <Link href="/terms" className="underline hover:text-slate-400">Términos</Link> y{' '}
+            <Link href="/privacy" className="underline hover:text-slate-400">Política de Privacidad</Link>.
           </p>
         </div>
 
-        {/* 3. TESTIMONIO RESALTADO (Diseño exclusivo compacto para móvil) */}
-        <div className="mt-8 bg-white text-slate-900 p-5 rounded-xl shadow-xl relative border border-slate-100">
-          <span className="absolute top-1 right-3 text-4xl text-slate-100 font-serif pointer-events-none select-none">“</span>
+        {/* Testimonio — negro con foto real */}
+        <div className="mt-8 p-5 rounded-xl shadow-xl relative border border-slate-700" style={{ backgroundColor: '#0F172A' }}>
+          <span className="absolute top-1 right-3 text-4xl font-serif pointer-events-none select-none" style={{ color: '#2563EB', opacity: 0.4 }}>"</span>
           
-          <p className="text-slate-700 italic text-xs sm:text-sm leading-relaxed mb-4 relative z-10">
+          <p className="text-sm leading-relaxed mb-4 relative z-10 italic" style={{ color: '#CBD5E1' }}>
             "Me ha ayudado a facilitar el trabajo, mis publicaciones y ahorrar tiempo. Una gran herramienta."
           </p>
           
-          <div className="flex items-center gap-3 border-t border-slate-100 pt-3">
-            <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center text-xs border border-blue-100 flex-shrink-0">
-              GM
+          <div className="flex items-center gap-3 border-t pt-3" style={{ borderColor: '#1E293B' }}>
+            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2" style={{ borderColor: '#2563EB' }}>
+              <Image
+                src="/testimonial-guadalupe.jpg"
+                alt="Guadalupe Mancía"
+                width={40}
+                height={40}
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
-              <p className="font-bold text-slate-900 text-xs">Guadalupe Mancía</p>
-              <p className="text-[10px] text-blue-600 font-semibold tracking-wider uppercase">Guadalupe Real Estate</p>
+              <p className="font-bold text-xs text-white">Guadalupe Mancía</p>
+              <p className="text-[10px] font-semibold tracking-wider uppercase" style={{ color: '#60A5FA' }}>Guadalupe Real Estate</p>
             </div>
           </div>
         </div>
 
       </main>
 
-      {/* 4. BOTTOM: Navegación de salida sutil */}
+      {/* 4. BOTTOM */}
       <footer className="relative z-10 w-full text-center pt-4 pb-2">
         <Link
           href="/"

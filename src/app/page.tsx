@@ -83,148 +83,42 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-24 pb-16 px-4 overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-72 h-72 rounded-full opacity-20 blur-3xl animate-pulse" style={{ backgroundColor: '#2563EB' }} />
-          <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse" style={{ backgroundColor: '#2563EB', animationDelay: '1s' }} />
-        </div>
-
-        <div className="relative max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
-            <span className="text-xl">📱</span>
-            <span className="font-semibold" style={{ color: '#0F172A' }}>Diseñada para tu celular</span>
+      <section className="relative pt-32 pb-20 px-4 bg-white overflow-hidden border-b border-slate-100">
+        <div className="relative max-w-5xl mx-auto text-center">
+          
+          {/* Badge superior sutil */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 bg-blue-50 border border-blue-100 text-blue-700 text-sm font-medium">
+            <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+            La nueva forma de gestionar bienes raíces
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight" style={{ color: '#0F172A' }}>
-            Deja de Enviar Fotos Sueltas por{' '}
-            <span className="relative inline-block" style={{ color: '#2563EB' }}>
-              WhatsApp
-              <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 12" fill="none">
-                <path d="M2 10C50 2 150 2 198 10" stroke="#2563EB" strokeWidth="3" strokeLinecap="round" />
-              </svg>
-            </span>
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold mb-6 tracking-tight text-slate-900">
+            Deja de enviar fotos sueltas por <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400">WhatsApp</span>
           </h1>
 
-          <p className="text-lg sm:text-xl mb-8 max-w-2xl mx-auto opacity-80" style={{ color: '#0F172A' }}>
-            Crea tu portafolio digital profesional sin pagar sitio web.
-            <span className="font-semibold"> Mientras describes la propiedad con tu voz, nosotros nos encargamos del trabajo difícil.</span>
+          <p className="text-xl mb-10 max-w-2xl mx-auto text-slate-600 leading-relaxed">
+            Crea tu portafolio digital profesional sin pagar por un sitio web. 
+            <span className="font-semibold text-slate-800"> Tú describes la propiedad con tu voz; nuestra IA hace el resto.</span>
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link
               href="/login"
-              className="px-8 py-4 rounded-xl font-bold text-white shadow-xl text-lg active:scale-95 transition-transform"
-              style={{ backgroundColor: '#2563EB' }}
+              className="px-8 py-4 rounded-xl font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all text-lg"
             >
-              🚀 Probar Gratis
+              Comenzar Gratis
             </Link>
             <button
               onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-              className="px-8 py-4 rounded-xl font-bold border-2 text-lg active:scale-95 transition-transform"
-              style={{ borderColor: '#0F172A', color: '#0F172A', backgroundColor: '#FFFFFF' }}
+              className="px-8 py-4 rounded-xl font-semibold border-2 border-slate-200 text-slate-700 bg-white hover:border-slate-300 hover:bg-slate-50 transition-all text-lg"
             >
-              Ver Cómo Funciona
+              Ver demostración
             </button>
-            {showInstallButton && (
-              <button
-                onClick={handleInstallClick}
-                className="px-8 py-4 rounded-xl font-bold text-white shadow-xl text-lg active:scale-95 transition-transform animate-pulse"
-                style={{ backgroundColor: '#10B981' }}
-              >
-                📱 Instalar App
-              </button>
-            )}
           </div>
 
-          <div className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl mb-10 shadow-md" style={{ backgroundColor: '#0F172A' }}>
-            <span className="text-2xl">📲</span>
-            <p className="text-sm font-semibold text-left" style={{ color: '#FFFFFF' }}>
-              Úsala desde el navegador de tu celular o instálala como app.
-              <span style={{ color: '#93C5FD' }}> No requiere descarga en la tienda.</span>
-            </p>
-          </div>
-
-          {/* Mockup de celular */}
-          <div className="flex justify-center mb-12">
-            <div className="relative">
-              <div className="relative rounded-[36px] shadow-2xl overflow-hidden border-4" style={{ width: '200px', height: '400px', backgroundColor: '#0F172A', borderColor: '#1E293B' }}>
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 rounded-full z-10" style={{ width: '60px', height: '10px', backgroundColor: '#0F172A' }} />
-                <div className="absolute inset-1 rounded-[30px] overflow-hidden" style={{ backgroundColor: '#F5EAD3' }}>
-                  <div className="px-3 py-2 flex items-center justify-between" style={{ backgroundColor: '#0F172A' }}>
-                    <span className="text-white text-[9px] font-bold">Flow Estate AI</span>
-                    <span className="text-[9px]">⭐</span>
-                  </div>
-                  <div className="px-2 pt-2 space-y-2">
-                    <div className="rounded-xl overflow-hidden shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
-                      <div className="h-16 flex items-center justify-center text-2xl" style={{ backgroundColor: '#DBEAFE' }}>🏠</div>
-                      <div className="p-1.5">
-                        <div className="h-2 rounded-full mb-1" style={{ backgroundColor: '#0F172A', width: '80%' }} />
-                        <div className="h-1.5 rounded-full mb-1" style={{ backgroundColor: '#94A3B8', width: '60%' }} />
-                        <div className="flex gap-1">
-                          <div className="h-4 rounded-full px-1 flex items-center text-[6px] font-bold text-white" style={{ backgroundColor: '#2563EB' }}>Pro</div>
-                          <div className="h-1.5 rounded-full mt-1" style={{ backgroundColor: '#BBF7D0', width: '30%' }} />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="rounded-xl overflow-hidden shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
-                      <div className="h-16 flex items-center justify-center text-2xl" style={{ backgroundColor: '#D1FAE5' }}>🏢</div>
-                      <div className="p-1.5">
-                        <div className="h-2 rounded-full mb-1" style={{ backgroundColor: '#0F172A', width: '70%' }} />
-                        <div className="h-1.5 rounded-full" style={{ backgroundColor: '#94A3B8', width: '50%' }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -right-16 top-16 rounded-[28px] shadow-xl border-4" style={{ width: '120px', height: '240px', backgroundColor: '#0F172A', borderColor: '#1E293B' }}>
-                <div className="absolute inset-1 rounded-[22px] overflow-hidden" style={{ backgroundColor: '#FFFFFF' }}>
-                  <div className="px-2 py-1.5 flex items-center gap-1" style={{ backgroundColor: '#F0FDF4' }}>
-                    <span className="text-[8px]">🎤</span>
-                    <span className="text-[7px] font-bold" style={{ color: '#15803D' }}>Grabando...</span>
-                  </div>
-                  <div className="p-2 space-y-1.5">
-                    <div className="h-1.5 rounded-full" style={{ backgroundColor: '#E2E8F0', width: '90%' }} />
-                    <div className="h-1.5 rounded-full" style={{ backgroundColor: '#E2E8F0', width: '75%' }} />
-                    <div className="h-1.5 rounded-full" style={{ backgroundColor: '#E2E8F0', width: '85%' }} />
-                    <div className="h-1.5 rounded-full" style={{ backgroundColor: '#E2E8F0', width: '60%' }} />
-                    <div className="mt-2 h-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#2563EB' }}>
-                      <span className="text-white text-[7px] font-bold">Generar con IA ✨</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -left-12 bottom-16 rounded-xl shadow-xl px-2 py-1.5" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0' }}>
-                <p className="text-[9px] font-bold" style={{ color: '#15803D' }}>✅ PDF generado</p>
-                <p className="text-[8px]" style={{ color: '#64748B' }}>Listo para compartir</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-6">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🎤</span>
-              <div className="text-left">
-                <div className="text-sm font-bold" style={{ color: '#0F172A' }}>Sin Escribir</div>
-                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Solo habla</div>
-              </div>
-            </div>
-            <div className="w-px h-10" style={{ backgroundColor: '#0F172A', opacity: 0.2 }} />
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">📄</span>
-              <div className="text-left">
-                <div className="text-sm font-bold" style={{ color: '#0F172A' }}>PDFs con Logo</div>
-                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Tu marca</div>
-              </div>
-            </div>
-            <div className="w-px h-10" style={{ backgroundColor: '#0F172A', opacity: 0.2 }} />
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">💼</span>
-              <div className="text-left">
-                <div className="text-sm font-bold" style={{ color: '#0F172A' }}>Verse Pro</div>
-                <div className="text-xs opacity-70" style={{ color: '#0F172A' }}>Sin sitio web</div>
-              </div>
-            </div>
-          </div>
+          {/* Social Proof (Prueba social) */}
+          <p className="text-sm text-slate-400 mb-4 font-medium uppercase tracking-wide">Agentes en Costa Rica ya confían en nosotros</p>
+          {/* Aquí podrías poner una fila pequeña de logos en escala de grises de agencias o un grupo de avatares superpuestos */}
         </div>
       </section>
 

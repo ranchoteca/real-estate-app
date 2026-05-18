@@ -147,9 +147,9 @@ export default function LandingPage() {
           >
             <div style={{ position: 'relative', paddingTop: '177.78%' /* 9:16 vertical */ }}>
               <iframe
-                src="https://stream.mux.com/9i9RHXUIHHIqYqRLCykCIpQ727VBpE7lO9Kzxic02Pi8.m3u8"
+                src="https://stream.mux.com/9i9RHXUIHHIqYqRLCykCIpQ727VBpE7lO9Kzxic02Pi8?autoplay=false"
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+                allow="accelerometer; gyroscope; encrypted-media; picture-in-picture"
                 allowFullScreen
               />
             </div>
@@ -260,9 +260,9 @@ export default function LandingPage() {
           >
             <div style={{ position: 'relative', paddingTop: '177.78%' /* 9:16 vertical */ }}>
               <iframe
-                src="https://stream.mux.com/yCYWwv00Hiohs27xTuRSm6SfEmGM1vcdt8B7v4d9y00Oc.m3u8"
+                src="https://stream.mux.com/yCYWwv00Hiohs27xTuRSm6SfEmGM1vcdt8B7v4d9y00Oc?autoplay=false"
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+                allow="accelerometer; gyroscope; encrypted-media; picture-in-picture"
                 allowFullScreen
               />
             </div>

@@ -3,18 +3,18 @@ import Image from 'next/image';
 
 export default function ProPage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-16" style={{ backgroundColor: '#F5EAD3' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-16" style={{ backgroundColor: 'rgb(15 23 42)' }}>
 
       {/* Logo */}
       <div className="mb-8">
-        <Image src="/logo_header.png" alt="Flow Estate AI" width={140} height={60} className="object-contain" />
+        <Image src="/logo_header.png" alt="Flow Estate AI" width={140} height={60} className="object-contain brightness-0 invert" />
       </div>
 
       {/* Card principal */}
       <div className="w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
 
         {/* Header de la card */}
-        <div className="px-8 pt-8 pb-6 text-center" style={{ backgroundColor: '#0F172A' }}>
+        <div className="px-8 pt-8 pb-6 text-center" style={{ backgroundColor: 'rgb(25 78 203)' }}>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mb-4" style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}>
             🚀 PLAN PRO
           </div>
@@ -83,7 +83,7 @@ export default function ProPage() {
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm font-semibold hover:opacity-70 transition-opacity"
-          style={{ color: '#2563EB' }}
+          style={{ color: '#FFFFFF' }}
         >
           ← Volver al inicio
         </Link>

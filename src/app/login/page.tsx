@@ -1,12 +1,46 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
+const testimonials = [
+  {
+    quote: 'Me ha ayudado a facilitar el trabajo, mis publicaciones y ahorrar tiempo. Una gran herramienta.',
+    name: 'Guadalupe Mancía',
+    company: 'Guadalupe Real Estate',
+    photo: '/testimonial-guadalupe.jpg',
+  },
+  {
+    quote: 'Me parece una herramienta magnífica, muy práctica, ágil y técnica. Perfecta para el trabajo inmobiliario.',
+    name: 'Eitel Vallejos',
+    company: 'Pampa Bienes Raíces',
+    photo: '/testimonial-eitel.jpg',
+  },
+  {
+    quote: 'Nos ha mejorado el rendimiento, las publicaciones y el ordenamiento. La información es rápida, ordenada y profesional. La recomiendo.',
+    name: 'Jorge Calderón Ortega',
+    company: 'Real Natural CR',
+    photo: '/testimonial-jorge.jpg',
+  },
+];
+
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [current, setCurrent] = useState(0);
+  const [fading, setFading] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFading(true);
+      setTimeout(() => {
+        setCurrent((prev) => (prev + 1) % testimonials.length);
+        setFading(false);
+      }, 400);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSignIn = async () => {
     setIsLoading(true);
@@ -18,12 +52,14 @@ export default function LoginPage() {
     }
   };
 
+  const t = testimonials[current];
+
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-between p-6 font-sans relative overflow-x-hidden">
       
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950 pointer-events-none" />
 
-      {/* 1. TOP: Logo — más cerca del centro */}
+      {/* Logo */}
       <header className="relative z-10 w-full flex justify-center pt-10 pb-4">
         <Link href="/">
           <Image 
@@ -37,7 +73,7 @@ export default function LoginPage() {
         </Link>
       </header>
 
-      {/* 2. CENTER: Formulario */}
+      {/* Formulario */}
       <main className="relative z-10 w-full max-w-sm mx-auto flex flex-col justify-center my-auto py-4">
         
         <div className="text-center mb-8">
@@ -57,7 +93,7 @@ export default function LoginPage() {
           <button
             onClick={handleSignIn}
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-4 border border-slate-800 rounded-xl bg-slate-900 text-slate-100 font-bold hover:bg-slate-850 active:scale-[0.98] transition-all disabled:opacity-50 shadow-xl"
+            className="w-full flex items-center justify-center gap-3 px-4 py-4 border border-slate-800 rounded-xl bg-slate-900 text-slate-100 font-bold active:scale-[0.98] transition-all disabled:opacity-50 shadow-xl"
           >
             {isLoading ? (
               <div className="w-5 h-5 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
@@ -82,34 +118,54 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Testimonio — negro con foto real */}
-        <div className="mt-8 p-5 rounded-xl shadow-xl relative border border-slate-700" style={{ backgroundColor: '#0F172A' }}>
+        {/* Slider de testimonios */}
+        <div
+          className="mt-8 p-5 rounded-xl shadow-xl relative border border-slate-700"
+          style={{
+            backgroundColor: '#0F172A',
+            transition: 'opacity 0.4s ease',
+            opacity: fading ? 0 : 1,
+            minHeight: '140px',
+          }}
+        >
           <span className="absolute top-1 right-3 text-4xl font-serif pointer-events-none select-none" style={{ color: '#2563EB', opacity: 0.4 }}>"</span>
           
           <p className="text-sm leading-relaxed mb-4 relative z-10 italic" style={{ color: '#CBD5E1' }}>
-            "Me ha ayudado a facilitar el trabajo, mis publicaciones y ahorrar tiempo. Una gran herramienta."
+            "{t.quote}"
           </p>
           
           <div className="flex items-center gap-3 border-t pt-3" style={{ borderColor: '#1E293B' }}>
             <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2" style={{ borderColor: '#2563EB' }}>
               <Image
-                src="/testimonial-guadalupe.jpg"
-                alt="Guadalupe Mancía"
+                src={t.photo}
+                alt={t.name}
                 width={40}
                 height={40}
                 className="w-full h-full object-cover"
               />
             </div>
             <div>
-              <p className="font-bold text-xs text-white">Guadalupe Mancía</p>
-              <p className="text-[10px] font-semibold tracking-wider uppercase" style={{ color: '#60A5FA' }}>Guadalupe Real Estate</p>
+              <p className="font-bold text-xs text-white">{t.name}</p>
+              <p className="text-[10px] font-semibold tracking-wider uppercase" style={{ color: '#60A5FA' }}>{t.company}</p>
             </div>
+          </div>
+
+          {/* Dots indicadores */}
+          <div className="flex justify-center gap-1.5 mt-4">
+            {testimonials.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => { setFading(true); setTimeout(() => { setCurrent(i); setFading(false); }, 400); }}
+                className="w-1.5 h-1.5 rounded-full transition-all"
+                style={{ backgroundColor: i === current ? '#2563EB' : '#334155' }}
+              />
+            ))}
           </div>
         </div>
 
       </main>
 
-      {/* 4. BOTTOM */}
+      {/* Footer */}
       <footer className="relative z-10 w-full text-center pt-4 pb-2">
         <Link
           href="/"

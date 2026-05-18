@@ -2,9 +2,10 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import MuxPlayer from '@mux/mux-player-react';
 
 export default function LandingPage() {
   const { data: session, status } = useSession();
@@ -12,6 +13,7 @@ export default function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
+  const videoCrearRef = useRef<any>(null);
 
   useEffect(() => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -43,6 +45,18 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const handleVerDemo = () => {
+    const section = document.getElementById('video-crear-propiedad');
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => {
+        if (videoCrearRef.current) {
+          videoCrearRef.current.play().catch(() => {});
+        }
+      }, 800);
+    }
+  };
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5EAD3' }}>
@@ -54,30 +68,21 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5EAD3' }}>
 
-      {/* Sticky Header */}
+      {/* Sticky Header — sin botón */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'shadow-lg' : ''}`}
         style={{ backgroundColor: '#0F172A' }}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-16 gap-4">
-            <div className="flex items-center gap-2 min-w-0">
-              <Image
-                src="/logo_header.png"
-                alt="Flow Estate AI"
-                width={410}
-                height={184}
-                className="w-[91px] h-[40px] sm:w-[120px] sm:h-auto"
-                priority
-              />
-            </div>
-            <Link
-              href="/login"
-              className="px-4 sm:px-6 py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform text-sm sm:text-base flex-shrink-0"
-              style={{ backgroundColor: '#2563EB' }}
-            >
-              Empezar Gratis
-            </Link>
+          <div className="flex items-center h-16">
+            <Image
+              src="/logo_header.png"
+              alt="FlowEstateAI"
+              width={410}
+              height={184}
+              className="w-[91px] h-[40px] sm:w-[120px] sm:h-auto"
+              priority
+            />
           </div>
         </div>
       </header>
@@ -108,7 +113,7 @@ export default function LandingPage() {
               Comenzar Gratis
             </Link>
             <button
-              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={handleVerDemo}
               className="px-8 py-4 rounded-xl font-semibold border-2 border-slate-200 text-slate-700 bg-white hover:border-slate-300 hover:bg-slate-50 transition-all text-lg"
             >
               Ver demostración
@@ -131,28 +136,24 @@ export default function LandingPage() {
       </section>
 
       {/* Video — Crear propiedad */}
-      <section className="py-16 px-4">
+      <section id="video-crear-propiedad" className="py-16 px-4">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-8">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>
               Crea una propiedad en segundos
             </h2>
             <p className="text-lg opacity-70 max-w-2xl mx-auto" style={{ color: '#0F172A' }}>
               Mira lo fácil que es publicar una propiedad con tu voz desde el celular.
             </p>
           </div>
-          <div
-            className="rounded-2xl overflow-hidden shadow-2xl mx-auto"
-            style={{ maxWidth: '360px' }}
-          >
-            <div style={{ position: 'relative', paddingTop: '177.78%' /* 9:16 vertical */ }}>
-              <iframe
-                src="https://stream.mux.com/9i9RHXUIHHIqYqRLCykCIpQ727VBpE7lO9Kzxic02Pi8?autoplay=false"
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-                allow="accelerometer; gyroscope; encrypted-media; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
+          <div className="rounded-2xl overflow-hidden shadow-2xl mx-auto" style={{ maxWidth: '360px' }}>
+            <MuxPlayer
+              ref={videoCrearRef}
+              playbackId="9i9RHXUIHHIqYqRLCykCIpQ727VBpE7lO9Kzxic02Pi8"
+              autoPlay={false}
+              muted={false}
+              style={{ width: '100%', aspectRatio: '9/16' }}
+            />
           </div>
         </div>
       </section>
@@ -161,23 +162,23 @@ export default function LandingPage() {
       <section className="py-16 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>
               La productividad en la palma de tu mano
             </h2>
             <p className="text-lg opacity-70 max-w-2xl mx-auto" style={{ color: '#0F172A' }}>
-              Trabaja desde cualquier lugar. Flow Estate AI está diseñada para que gestiones tus propiedades directamente desde tu celular, sin complicaciones.
+              Trabaja desde cualquier lugar. FlowEstateAI está diseñada para que gestiones tus propiedades directamente desde tu celular, sin complicaciones.
             </p>
           </div>
 
           <div className="grid grid-cols-3 gap-4 mb-8">
             <div className="rounded-2xl overflow-hidden shadow-xl">
-              <Image src="/app-dashboard.jpg" alt="Dashboard de Flow Estate AI" width={300} height={600} className="w-full h-auto object-cover" />
+              <Image src="/app-dashboard.jpg" alt="Dashboard de FlowEstateAI" width={300} height={600} className="w-full h-auto object-cover" />
             </div>
             <div className="rounded-2xl overflow-hidden shadow-xl mt-6">
-              <Image src="/app-property.jpg" alt="Propiedad en Flow Estate AI" width={300} height={600} className="w-full h-auto object-cover" />
+              <Image src="/app-property.jpg" alt="Propiedad en FlowEstateAI" width={300} height={600} className="w-full h-auto object-cover" />
             </div>
             <div className="rounded-2xl overflow-hidden shadow-xl">
-              <Image src="/app-card.jpg" alt="Tarjeta digital Flow Estate AI" width={300} height={600} className="w-full h-auto object-cover" />
+              <Image src="/app-card.jpg" alt="Tarjeta digital FlowEstateAI" width={300} height={600} className="w-full h-auto object-cover" />
             </div>
           </div>
 
@@ -206,13 +207,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Hecha para tu celular — solo encabezado */}
-      <section className="py-8 px-4">
-        <div className="max-w-2xl mx-auto text-center">
-          <div className="rounded-3xl p-8 shadow-xl inline-flex flex-col items-center gap-3" style={{ backgroundColor: '#0F172A' }}>
-            <span className="text-4xl">📱</span>
-            <h2 className="text-2xl font-bold text-white">Hecha para usarse en tu celular</h2>
-            <p className="text-sm opacity-70 text-white">No necesitas laptop ni computadora. Todo desde tu teléfono.</p>
+      {/* Banda — Hecha para usarse en tu móvil */}
+      <section className="py-10 px-4 w-full" style={{ backgroundColor: '#0F172A' }}>
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 text-center sm:text-left">
+          <span className="text-4xl">📱</span>
+          <div>
+            <h2 className="text-2xl font-bold text-white uppercase tracking-wide">Hecha para usarse en tu móvil</h2>
+            <p className="text-sm mt-1" style={{ color: '#94A3B8' }}>No necesitas laptop ni computadora. Todo desde tu teléfono.</p>
           </div>
         </div>
       </section>
@@ -221,7 +222,7 @@ export default function LandingPage() {
       <section id="how-it-works" className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>Cómo Funciona</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>Cómo Funciona</h2>
             <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>Tan fácil como enviar un mensaje de voz</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
@@ -247,25 +248,20 @@ export default function LandingPage() {
       <section className="py-16 px-4">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-8">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>
               Publica en Facebook con un toque
             </h2>
             <p className="text-lg opacity-70 max-w-2xl mx-auto" style={{ color: '#0F172A' }}>
               Comparte tus propiedades directamente en tu página de Facebook desde la app, sin copiar ni pegar nada.
             </p>
           </div>
-          <div
-            className="rounded-2xl overflow-hidden shadow-2xl mx-auto"
-            style={{ maxWidth: '360px' }}
-          >
-            <div style={{ position: 'relative', paddingTop: '177.78%' /* 9:16 vertical */ }}>
-              <iframe
-                src="https://stream.mux.com/yCYWwv00Hiohs27xTuRSm6SfEmGM1vcdt8B7v4d9y00Oc?autoplay=false"
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-                allow="accelerometer; gyroscope; encrypted-media; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
+          <div className="rounded-2xl overflow-hidden shadow-2xl mx-auto" style={{ maxWidth: '360px' }}>
+            <MuxPlayer
+              playbackId="yCYWwv00Hiohs27xTuRSm6SfEmGM1vcdt8B7v4d9y00Oc"
+              autoPlay={false}
+              muted={false}
+              style={{ width: '100%', aspectRatio: '9/16' }}
+            />
           </div>
         </div>
       </section>
@@ -274,8 +270,8 @@ export default function LandingPage() {
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>Quien lo Usa lo Recomienda</h2>
-            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>Agentes inmobiliarios de Costa Rica ya usan Flow Estate AI</p>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>Quien lo Usa lo Recomienda</h2>
+            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>Agentes inmobiliarios de Costa Rica ya usan FlowEstateAI</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {[
@@ -299,15 +295,15 @@ export default function LandingPage() {
               },
             ].map((t, i) => (
               <div key={i} className="rounded-2xl p-6 shadow-lg flex flex-col gap-4" style={{ backgroundColor: '#FFFFFF' }}>
-                <div className="text-5xl font-serif leading-none" style={{ color: '#2563EB', opacity: 0.3 }}>"</div>
-                <p className="text-sm leading-relaxed flex-1 italic opacity-80" style={{ color: '#0F172A' }}>{t.quote}</p>
+                <div className="text-6xl font-serif leading-none" style={{ color: '#2563EB', opacity: 0.3 }}>"</div>
+                <p className="text-base leading-relaxed flex-1 italic opacity-90" style={{ color: '#0F172A' }}>{t.quote}</p>
                 <div className="flex items-center gap-3 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>
-                  <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 shadow-md">
-                    <Image src={t.photo} alt={t.name} width={48} height={48} className="w-full h-full object-cover" />
+                  <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 shadow-md">
+                    <Image src={t.photo} alt={t.name} width={56} height={56} className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <p className="font-bold text-sm" style={{ color: '#0F172A' }}>{t.name}</p>
-                    <p className="text-xs opacity-60" style={{ color: '#0F172A' }}>{t.company}</p>
+                    <p className="font-bold text-base" style={{ color: '#0F172A' }}>{t.name}</p>
+                    <p className="text-sm opacity-60" style={{ color: '#0F172A' }}>{t.company}</p>
                   </div>
                 </div>
               </div>
@@ -316,21 +312,21 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features */}
+      {/* Features — Lo Que Obtienes */}
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>Lo Que Obtienes</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>Lo Que Obtienes</h2>
             <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>Todo lo necesario para verte profesional</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { emoji: '📄', title: 'PDFs Profesionales', desc: 'Genera PDFs con marca de agua en tus fotos para enviar a clientes' },
-              { emoji: '🏷️', title: 'Tu Logo en Fotos', desc: 'Agrega tu logo a todas las fotos automáticamente' },
-              { emoji: '📇', title: 'Tarjeta Digital', desc: 'Comparte tu información de contacto profesionalmente' },
-              { emoji: '🌐', title: 'Portafolio Público', desc: 'Link para compartir todas tus propiedades' },
-              { emoji: '💵', title: 'Colones y Dólares', desc: 'Maneja precios en ambas monedas fácilmente' },
-              { emoji: '🗺️', title: 'Mapa Integrado', desc: 'Ubicación exacta con Google Maps' },
+              { emoji: '🌐', title: 'Portafolio Bilingüe', desc: 'Tu portafolio público bilingüe español / inglés listo para compartir con cualquier cliente.' },
+              { emoji: '📇', title: 'Tarjeta Digital Bilingüe', desc: 'Tarjeta digital profesional español/inglés para compartir fácilmente con tus contactos.' },
+              { emoji: '🏷️', title: 'Tu Logo como Marca de Agua', desc: 'Agrega tu logo como marca de agua a todas tus propiedades automáticamente.' },
+              { emoji: '💵', title: 'Colones y Dólares', desc: 'Maneja los precios de tus propiedades en colones y en dólares sin complicaciones.' },
+              { emoji: '🗺️', title: 'Mapa de Google Integrado', desc: 'Muestra la ubicación exacta de tus propiedades con Google Maps cuando lo desees.' },
+              { emoji: '🎬', title: 'Videos de Propiedades', desc: 'Incluye videos en tus propiedades para mostrarlas de forma más atractiva a tus clientes.' },
             ].map((feature, index) => (
               <div key={index} className="rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all" style={{ backgroundColor: '#FFFFFF' }}>
                 <div className="text-4xl mb-3">{feature.emoji}</div>
@@ -342,11 +338,33 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Video — Modo TikTok */}
+      <section className="py-16 px-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>
+              Modo TikTok para tus propiedades
+            </h2>
+            <p className="text-lg opacity-70 max-w-2xl mx-auto" style={{ color: '#0F172A' }}>
+              Navega entre los videos de tus propiedades al estilo TikTok. Una experiencia moderna que engancha a tus clientes.
+            </p>
+          </div>
+          <div className="rounded-2xl overflow-hidden shadow-2xl mx-auto" style={{ maxWidth: '360px' }}>
+            <MuxPlayer
+              playbackId="2GGgMmXJhWQoQp2XpOTPRw5uPnzN6Mwy8OjkhyP9mXY"
+              autoPlay={false}
+              muted={false}
+              style={{ width: '100%', aspectRatio: '9/16' }}
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Planes y Precios */}
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>Planes y Precios</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>Planes y Precios</h2>
             <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>Empieza gratis. Crece cuando estés listo.</p>
           </div>
 
@@ -379,14 +397,14 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* Plan Pro */}
-            <div className="rounded-2xl p-8 shadow-xl relative overflow-hidden border-2" style={{ backgroundColor: '#0F172A', borderColor: '#2563EB' }}>
-              <div className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}>
+            {/* Plan Pro — azul */}
+            <div className="rounded-2xl p-8 shadow-xl relative overflow-hidden border-2" style={{ backgroundColor: '#1D4ED8', borderColor: '#2563EB' }}>
+              <div className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: '#FFFFFF', color: '#1D4ED8' }}>
                 MÁS POPULAR
               </div>
               <h3 className="text-xl font-bold mb-1 text-white">Pro</h3>
               <p className="text-4xl font-bold mb-1 text-white">₡14,803</p>
-              <p className="text-sm mb-6" style={{ color: '#93C5FD' }}>por mes · ~$28 USD</p>
+              <p className="text-sm mb-6" style={{ color: '#BFDBFE' }}>por mes · ~$28 USD</p>
               <ul className="space-y-3 mb-8">
                 {[
                   'Hasta 150 propiedades',
@@ -394,7 +412,7 @@ export default function LandingPage() {
                   'Tarjeta digital bilingüe (ES/EN)',
                   'Publicación automática en Facebook',
                   'Traducciones con IA (Inglés/Español)',
-                  'Sin marca de agua de Flow Estate',
+                  'Sin marca de agua de FlowEstateAI',
                   'Agrega tu logo en fotos',
                 ].map((item, i) => (
                   <li key={i} className="flex items-center gap-2 text-sm text-white">
@@ -404,8 +422,8 @@ export default function LandingPage() {
               </ul>
               <Link
                 href="/pro"
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold text-white active:scale-95 transition-transform"
-                style={{ backgroundColor: '#2563EB' }}
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold active:scale-95 transition-transform"
+                style={{ backgroundColor: '#FFFFFF', color: '#1D4ED8' }}
               >
                 🚀 Contratar Pro
               </Link>
@@ -414,7 +432,7 @@ export default function LandingPage() {
 
           {/* FAQ */}
           <div className="mt-10 rounded-2xl p-8 shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
-            <h3 className="text-xl font-bold mb-6" style={{ color: '#0F172A' }}>Preguntas Frecuentes</h3>
+            <h3 className="text-xl font-bold mb-6 uppercase" style={{ color: '#0F172A' }}>Preguntas Frecuentes</h3>
             <div className="space-y-5">
               {[
                 { q: '¿Cómo funciona el pago por SINPE?', a: 'Realizas la transferencia al número indicado y nos envías el comprobante por WhatsApp. Activaremos tu cuenta en minutos.' },
@@ -432,19 +450,45 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Why Choose Us */}
+      {/* Por qué usar FlowEstateAI */}
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>¿Por Qué Flow Estate AI?</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>¿Por qué usar FlowEstateAI?</h2>
             <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>Diseñado específicamente para agentes independientes</p>
           </div>
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {[
-              { title: 'Ahorra Horas de Trabajo', description: 'No más escribir descripciones largas. Habla 1 minuto y recibe texto profesional listo para compartir.', icon: '⏱️' },
-              { title: 'Verse Más Profesional', description: 'PDFs con tu logo, portafolio organizado, tarjeta digital. Tus clientes verán que eres serio.', icon: '💼' },
-              { title: 'Fácil de Usar', description: 'Si usas WhatsApp, puedes usar Flow Estate. No necesitas ser experto en tecnología.', icon: '👍' },
-              { title: 'Sin Sitio Web Caro', description: 'Obtén tu portafolio profesional sin pagar miles en desarrollo web.', icon: '💰' },
+              {
+                icon: '📊',
+                title: 'Aléjate del caos',
+                description: 'Deja atrás el desorden de manejar tus propiedades en Excel o cuadernos. Todo en un solo lugar, organizado y listo para usar.',
+              },
+              {
+                icon: '🌐',
+                title: 'Tu portafolio digital sin pagar sitio web',
+                description: 'Tienes tu propio portafolio digital bilingüe listo para compartir con tus clientes, ahorrándote pagar sitios web caros y el mantenimiento que eso conlleva.',
+              },
+              {
+                icon: '🚀',
+                title: 'FlowEstateAI está en constante evolución',
+                description: 'Podrás participar en el uso de nuevas funcionalidades antes que nadie. Siempre mejorando para ti.',
+              },
+              {
+                icon: '🎤',
+                title: 'Habla y FlowEstateAI hace el resto',
+                description: 'Con solo describir los detalles de una propiedad hablando, FlowEstateAI te arma la ficha lista para publicar y compartir con tus clientes.',
+              },
+              {
+                icon: '📘',
+                title: 'Publica en Facebook en menos de un minuto',
+                description: 'Ahora puedes publicar directamente desde FlowEstateAI en tu página de Facebook. Lo logras en menos de un minuto sin salir de la app.',
+              },
+              {
+                icon: '📦',
+                title: 'Todo ordenado, más productividad',
+                description: 'Olvídate de propiedades perdidas por todo lado. Ahora mantienes todo ordenado y ganas productividad en tu día a día.',
+              },
             ].map((item, index) => (
               <div key={index} className="rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all" style={{ backgroundColor: '#FFFFFF' }}>
                 <div className="flex items-start gap-4">
@@ -460,10 +504,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-16 px-4">
-        <div className="max-w-4xl mx-auto rounded-3xl p-12 text-center shadow-2xl" style={{ backgroundColor: '#0F172A' }}>
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white">¿Listo Para Verse Más Profesional?</h2>
+      {/* Final CTA — banda de lado a lado */}
+      <section className="py-20 px-4 w-full" style={{ backgroundColor: '#0F172A' }}>
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white uppercase">¿Listo Para Verte Más Profesional?</h2>
           <p className="text-lg mb-2 text-white opacity-80">Comienza gratis hoy. Sin tarjeta de crédito.</p>
           <p className="text-sm mb-8 opacity-50 text-white">📱 Abre esta página desde tu celular para la mejor experiencia</p>
           <Link
@@ -481,7 +525,7 @@ export default function LandingPage() {
       <footer className="py-8 px-4 border-t" style={{ borderColor: '#E5E7EB' }}>
         <div className="max-w-6xl mx-auto text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Image src="/logo_footer.png" alt="Flow Estate AI" width={410} height={184} className="w-[91px] h-[40px] sm:w-[120px] sm:h-auto" priority />
+            <Image src="/logo_footer.png" alt="FlowEstateAI" width={410} height={184} className="w-[91px] h-[40px] sm:w-[120px] sm:h-auto" priority />
           </div>
           <p className="text-sm opacity-60 mb-4" style={{ color: '#0F172A' }}>Herramientas digitales para agentes independientes</p>
           <div className="flex justify-center gap-6 text-sm" style={{ color: '#0F172A' }}>
@@ -489,7 +533,21 @@ export default function LandingPage() {
             <Link href="/privacy" className="hover:opacity-60 transition-opacity">Política de Privacidad</Link>
             <a href="mailto:support@flowestateai.com" className="hover:opacity-60 transition-opacity">Contacto</a>
           </div>
-          <p className="text-xs mt-4 opacity-40" style={{ color: '#0F172A' }}>© 2026 Flow Estate AI. Todos los derechos reservados.</p>
+          <p className="text-xs mt-4 opacity-40" style={{ color: '#0F172A' }}>© 2026 FlowEstateAI. Todos los derechos reservados.</p>
+          <div className="mt-4 flex justify-center">
+            <a
+              href="https://www.facebook.com/flowestateai/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-9 h-9 rounded-full flex items-center justify-center transition-opacity hover:opacity-80"
+              style={{ backgroundColor: '#1877F2' }}
+              aria-label="Facebook de FlowEstateAI"
+            >
+              <svg className="w-5 h-5" fill="white" viewBox="0 0 24 24">
+                <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.874v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+              </svg>
+            </a>
+          </div>
         </div>
       </footer>
 

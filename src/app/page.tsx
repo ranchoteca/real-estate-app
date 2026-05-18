@@ -130,6 +130,33 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Video — Crear propiedad */}
+      <section className="py-16 px-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
+              Crea una propiedad en segundos
+            </h2>
+            <p className="text-lg opacity-70 max-w-2xl mx-auto" style={{ color: '#0F172A' }}>
+              Mira lo fácil que es publicar una propiedad con tu voz desde el celular.
+            </p>
+          </div>
+          <div
+            className="rounded-2xl overflow-hidden shadow-2xl mx-auto"
+            style={{ maxWidth: '360px' }}
+          >
+            <div style={{ position: 'relative', paddingTop: '177.78%' /* 9:16 vertical */ }}>
+              <iframe
+                src="https://stream.mux.com/9i9RHXUIHHIqYqRLCykCIpQ727VBpE7lO9Kzxic02Pi8.m3u8"
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* App en tu celular — screenshots */}
       <section className="py-16 px-4">
         <div className="max-w-5xl mx-auto">
@@ -216,11 +243,38 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Video — Publicar en Facebook */}
+      <section className="py-16 px-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>
+              Publica en Facebook con un toque
+            </h2>
+            <p className="text-lg opacity-70 max-w-2xl mx-auto" style={{ color: '#0F172A' }}>
+              Comparte tus propiedades directamente en tu página de Facebook desde la app, sin copiar ni pegar nada.
+            </p>
+          </div>
+          <div
+            className="rounded-2xl overflow-hidden shadow-2xl mx-auto"
+            style={{ maxWidth: '360px' }}
+          >
+            <div style={{ position: 'relative', paddingTop: '177.78%' /* 9:16 vertical */ }}>
+              <iframe
+                src="https://stream.mux.com/yCYWwv00Hiohs27xTuRSm6SfEmGM1vcdt8B7v4d9y00Oc.m3u8"
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Testimonios */}
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>Lo Que Dicen los Agentes</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>Quien lo Usa lo Recomienda</h2>
             <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>Agentes inmobiliarios de Costa Rica ya usan Flow Estate AI</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
@@ -282,30 +336,6 @@ export default function LandingPage() {
                 <div className="text-4xl mb-3">{feature.emoji}</div>
                 <h3 className="text-lg font-bold mb-2" style={{ color: '#0F172A' }}>{feature.title}</h3>
                 <p className="text-sm opacity-80" style={{ color: '#0F172A' }}>{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Bilingual */}
-      <section className="py-16 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: '#0F172A' }}>Para el Mercado Internacional</h2>
-            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>Atrae clientes extranjeros sin esfuerzo</p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {[
-              { icon: '🌎', title: 'Portafolio Bilingüe', description: 'Tus propiedades en español e inglés. Perfecto para turistas y extranjeros interesados en Costa Rica.', color: '#10B981' },
-              { icon: '📇', title: 'Tarjeta en 2 Idiomas', description: 'Tu tarjeta digital se adapta al idioma del cliente automáticamente.', color: '#F59E0B' },
-            ].map((feature, index) => (
-              <div key={index} className="rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all" style={{ backgroundColor: '#FFFFFF' }}>
-                <div className="w-16 h-16 rounded-xl flex items-center justify-center text-4xl mb-4 shadow-sm" style={{ backgroundColor: `${feature.color}20` }}>
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-bold mb-3" style={{ color: '#0F172A' }}>{feature.title}</h3>
-                <p className="opacity-80 leading-relaxed" style={{ color: '#0F172A' }}>{feature.description}</p>
               </div>
             ))}
           </div>

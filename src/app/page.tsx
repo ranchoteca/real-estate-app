@@ -542,7 +542,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           {/* Logo centrado con fondo suave */}
           <div className="flex justify-center mb-5">
-            <div className="px-5 py-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.07)' }}>
+            <div className="px-5 py-3 rounded-xl" style={{ backgroundColor: 'rgb(15, 23, 42)' }}>
               <Image
                 src="/logo_header.png"
                 alt="FlowEstateAI"

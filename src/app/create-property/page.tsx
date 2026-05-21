@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { trackEvent } from '@/lib/fbpixel';
 import PhotoUploader from '@/components/property/PhotoUploader';
 import VoiceRecorder from '@/components/property/VoiceRecorder';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
@@ -715,8 +716,13 @@ export default function CreatePropertyPage() {
       setVideos([]);
       setPublishingModalOpen(false);
       
-      // Redirección final
-      router.push(`/p/${slug}`);
+      trackEvent('Lead', {
+        content_name: 'Property Created',
+        currency: 'CRC', 
+      });
+      console.log('✅ Facebook: Lead fired (Propiedad Creada)');
+
+      router.push(`/p/${slug}?new=true`);
 
     } catch (err) {
       console.error('Error al publicar:', err);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import GeneratingPDFModal from '@/components/GeneratingPDFModal';
 import MobileLayout from '@/components/MobileLayout';
@@ -90,6 +90,18 @@ export default function PropertyView() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
+
+  const searchParams = useSearchParams();
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  useEffect(() => {
+    // Detectamos si la URL tiene ?new=true
+    if (searchParams.get('new') === 'true') {
+      setShowSuccessModal(true);
+      // Limpiamos la URL silenciosamente para que no vuelva a salir si el usuario recarga la página
+      window.history.replaceState({}, '', `/p/${slug}`);
+    }
+  }, [searchParams, slug]);
 
   const { language: pwaLanguage } = useI18nStore();
   const [interfaceLang, setInterfaceLang] = useState<'es' | 'en'>('es');
@@ -475,6 +487,61 @@ export default function PropertyView() {
             </div>
           </div>
         </div>
+
+        {/* Modal de Éxito Flotante */}
+        {showSuccessModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {/* Fondo oscuro con desenfoque */}
+            <div className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm" />
+            
+            {/* Tarjeta del Modal */}
+            <div className="relative bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl transform transition-all text-center animate-in fade-in zoom-in duration-300">
+              <div className="text-6xl mb-4 animate-bounce">🎉</div>
+              <h2 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
+                {interfaceLang === 'en' ? 'Property ready!' : '¡Propiedad lista!'}
+              </h2>
+              <p className="text-sm opacity-70 mb-8" style={{ color: '#0F172A' }}>
+                {interfaceLang === 'en'
+                  ? 'Your property looks amazing. Share it right now with your clients or on your social networks.'
+                  : 'Tu propiedad quedó increíble. Compártela ahora mismo con tus clientes o en tus redes sociales.'}
+              </p>
+              
+              <div className="space-y-4">
+                <button
+                  onClick={() => {
+                    shareWhatsApp();
+                    setShowSuccessModal(false);
+                  }}
+                  className="w-full py-4 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+                  style={{ backgroundColor: '#25D366' }}
+                >
+                  <span className="text-xl">💬</span> 
+                  {interfaceLang === 'en' ? 'Share on WhatsApp' : 'Enviar por WhatsApp'}
+                </button>
+                
+                <button
+                  onClick={() => {
+                    copyPropertyInfoShort();
+                    setShowSuccessModal(false);
+                  }}
+                  className="w-full py-4 rounded-xl font-bold border-2 active:scale-95 transition-transform flex items-center justify-center gap-2"
+                  style={{ borderColor: '#2563EB', color: '#2563EB', backgroundColor: '#FFFFFF' }}
+                >
+                  <span className="text-xl">📝</span> 
+                  {interfaceLang === 'en' ? 'Copy Info' : 'Copiar Información'}
+                </button>
+
+                <button
+                  onClick={() => setShowSuccessModal(false)}
+                  className="mt-4 text-sm font-semibold opacity-50 underline block w-full pt-2"
+                  style={{ color: '#0F172A' }}
+                >
+                  {interfaceLang === 'en' ? 'Maybe later' : 'Quizás más tarde'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </MobileLayout>
     );
   }

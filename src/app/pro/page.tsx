@@ -37,9 +37,6 @@ export default function ProPage() {
             <p className="text-3xl font-bold tracking-widest mb-1" style={{ color: '#15803D' }}>
               8368 8684
             </p>
-            <p className="text-sm font-semibold" style={{ color: '#166534' }}>
-              A nombre de: Steven Espinoza
-            </p>
           </div>
 
           {/* Pasos */}

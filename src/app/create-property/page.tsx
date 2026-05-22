@@ -722,6 +722,7 @@ export default function CreatePropertyPage() {
       });
       console.log('✅ Facebook: Lead fired (Propiedad Creada)');
 
+      localStorage.setItem('showSuccessModal', 'true');
       router.push(`/p/${slug}?new=true`);
 
     } catch (err) {

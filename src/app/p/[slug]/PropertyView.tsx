@@ -95,13 +95,18 @@ export default function PropertyView() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
-    // Detectamos si la URL tiene ?new=true
-    if (searchParams.get('new') === 'true') {
-      setShowSuccessModal(true);
-      // Limpiamos la URL silenciosamente para que no vuelva a salir si el usuario recarga la página
+    const fromLocalStorage = localStorage.getItem('showSuccessModal');
+    const fromUrl = searchParams.get('new') === 'true';
+
+    if (fromLocalStorage === 'true' || fromUrl) {
+      localStorage.removeItem('showSuccessModal');
       window.history.replaceState({}, '', `/p/${slug}`);
+      // Pequeño delay para asegurar que la página ya cargó
+      setTimeout(() => {
+        setShowSuccessModal(true);
+      }, 800);
     }
-  }, [searchParams, slug]);
+  }, [slug]);
 
   const { language: pwaLanguage } = useI18nStore();
   const [interfaceLang, setInterfaceLang] = useState<'es' | 'en'>('es');

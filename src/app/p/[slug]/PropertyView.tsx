@@ -95,18 +95,19 @@ export default function PropertyView() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
+    if (!slug) return;
+    
     const fromLocalStorage = localStorage.getItem('showSuccessModal');
     const fromUrl = searchParams.get('new') === 'true';
 
     if (fromLocalStorage === 'true' || fromUrl) {
       localStorage.removeItem('showSuccessModal');
       window.history.replaceState({}, '', `/p/${slug}`);
-      // Pequeño delay para asegurar que la página ya cargó
       setTimeout(() => {
         setShowSuccessModal(true);
-      }, 800);
+      }, 1200);
     }
-  }, [slug]);
+  }, [slug, searchParams]);
 
   const { language: pwaLanguage } = useI18nStore();
   const [interfaceLang, setInterfaceLang] = useState<'es' | 'en'>('es');

@@ -722,7 +722,14 @@ export default function CreatePropertyPage() {
       });
       console.log('✅ Facebook: Lead fired (Propiedad Creada)');
 
-      localStorage.setItem('showSuccessModal', 'true');
+      // Solo mostrar modal si es la primera propiedad creada
+      const propertiesResponse = await fetch('/api/property/list');
+      const propertiesData = await propertiesResponse.json();
+      const isFirstProperty = (propertiesData.properties || []).length === 1;
+
+      if (isFirstProperty) {
+        localStorage.setItem('showSuccessModal', 'true');
+      }
       router.push(`/p/${slug}?new=true`);
 
     } catch (err) {

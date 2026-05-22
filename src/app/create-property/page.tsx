@@ -730,7 +730,7 @@ export default function CreatePropertyPage() {
       if (isFirstProperty) {
         localStorage.setItem('showSuccessModal', 'true');
       }
-      router.push(`/p/${slug}?new=true`);
+      router.push(`/p/${slug}`);
 
     } catch (err) {
       console.error('Error al publicar:', err);

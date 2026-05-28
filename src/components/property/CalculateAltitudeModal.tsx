@@ -38,49 +38,46 @@ export default function CalculateAltitudeModal({ isOpen, onClose }: CalculateAlt
     libraries: GOOGLE_MAPS_CONFIG.libraries,
   });
 
-  // Función mejorada para calcular la altitud con manejo de errores estricto
-  const calculateElevation = useCallback((location: google.maps.LatLngLiteral) => {
-    if (!window.google) return;
-    
+  // Función modificada para realizar un fetch directo usando la API Key de elevación independiente
+  const calculateElevation = useCallback(async (location: google.maps.LatLngLiteral) => {
     setLoadingAltitude(true);
     setSearchError(null); // Limpiamos errores previos en cada intento
     
+    const ELEVATION_KEY = process.env.NEXT_PUBLIC_ELEVATION_API_KEY;
+    const url = `https://maps.googleapis.com/maps/api/elevation/json?locations=${location.lat},${location.lng}&key=${ELEVATION_KEY}`;
+    
     try {
-      const elevator = new google.maps.ElevationService();
+      const response = await fetch(url);
+      const data = await response.json();
       
-      // Convertimos explícitamente a un objeto LatLng de Google para máxima compatibilidad
-      const latLngInstance = new google.maps.LatLng(location.lat, location.lng);
-      
-      elevator.getElevationForLocations(
-        { locations: [latLngInstance] },
-        (results, status) => {
-          setLoadingAltitude(false);
-          
-          // Imprime en tu consola del navegador para ver qué responde Google exactamente
-          console.log("Google Elevation Status:", status);
-  
-          if (status === 'OK' && results && results[0]) {
-            setAltitude(Math.round(results[0].elevation));
-          } else {
-            setAltitude(null);
-            
-            // Si Google rechaza la petición, te lo avisará de inmediato en la UI
-            if (status === 'REQUEST_DENIED') {
-              setSearchError(
-                language === 'en' 
-                  ? 'Error: Please enable "Elevation API" in your Google Cloud Console.' 
-                  : 'Falta activar la "Elevation API" en tu Google Cloud Console.'
-              );
-            } else {
-              setSearchError(`Google Maps Error: ${status}`);
-            }
-          }
+      // Imprime en la consola del navegador para ver qué responde Google exactamente
+      console.log("Google Elevation Status:", data.status);
+
+      if (data.status === 'OK' && data.results && data.results[0]) {
+        setAltitude(Math.round(data.results[0].elevation));
+      } else {
+        setAltitude(null);
+        
+        if (data.status === 'REQUEST_DENIED') {
+          setSearchError(
+            language === 'en' 
+              ? 'Error: Please check the configuration or restrictions of your Elevation API Key.' 
+              : 'Error: Revisa la configuración o restricciones de tu clave de Elevation API.'
+          );
+        } else {
+          setSearchError(`Google Maps Error: ${data.status}`);
         }
-      );
+      }
     } catch (err) {
-      console.error("Error ejecutando ElevationService:", err);
-      setLoadingAltitude(false);
+      console.error("Error ejecutando fetch de elevación:", err);
       setAltitude(null);
+      setSearchError(
+        language === 'en' 
+          ? 'Error connecting to the Elevation API.' 
+          : 'Error conectando con la Elevation API.'
+      );
+    } finally {
+      setLoadingAltitude(false);
     }
   }, [language]);
 
@@ -89,7 +86,7 @@ export default function CalculateAltitudeModal({ isOpen, onClose }: CalculateAlt
     if (isOpen && isLoaded) {
       calculateElevation(position);
     }
-  }, [isOpen, isLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, isLoaded, calculateElevation]);
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;

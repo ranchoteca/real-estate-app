@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import { useI18nStore } from '@/lib/i18n-store';
+import { fetchElevationFromServer } from '@/app/actions/elevation';
 
 // Importamos tu configuración exacta para que el mapa cargue sin problemas
 import { 
@@ -38,35 +39,24 @@ export default function CalculateAltitudeModal({ isOpen, onClose }: CalculateAlt
     libraries: GOOGLE_MAPS_CONFIG.libraries,
   });
 
-  // Función modificada para realizar un fetch directo usando la API Key de elevación independiente
+  // Función modificada para llamar al Server Action (Backend) y evitar CORS
   const calculateElevation = useCallback(async (location: google.maps.LatLngLiteral) => {
     setLoadingAltitude(true);
     setSearchError(null); // Limpiamos errores previos en cada intento
     
-    const ELEVATION_KEY = process.env.NEXT_PUBLIC_ELEVATION_API_KEY;
-    const url = `https://maps.googleapis.com/maps/api/elevation/json?locations=${location.lat},${location.lng}&key=${ELEVATION_KEY}`;
-    
     try {
-      const response = await fetch(url);
-      const data = await response.json();
+      // Usamos el Server Action que inyecta la llave de forma segura en el servidor
+      const result = await fetchElevationFromServer(location.lat, location.lng);
       
-      // Imprime en la consola del navegador para ver qué responde Google exactamente
-      console.log("Google Elevation Status:", data.status);
-
-      if (data.status === 'OK' && data.results && data.results[0]) {
-        setAltitude(Math.round(data.results[0].elevation));
+      if (result.success && result.elevation !== undefined) {
+        setAltitude(result.elevation);
       } else {
         setAltitude(null);
-        
-        if (data.status === 'REQUEST_DENIED') {
-          setSearchError(
-            language === 'en' 
-              ? 'Error: Please check the configuration or restrictions of your Elevation API Key.' 
-              : 'Error: Revisa la configuración o restricciones de tu clave de Elevation API.'
-          );
-        } else {
-          setSearchError(`Google Maps Error: ${data.status}`);
-        }
+        setSearchError(
+          language === 'en' 
+            ? `API Error: ${result.error}` 
+            : `Error de API: ${result.error}`
+        );
       }
     } catch (err) {
       console.error("Error ejecutando fetch de elevación:", err);

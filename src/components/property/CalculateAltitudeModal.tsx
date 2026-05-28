@@ -38,25 +38,51 @@ export default function CalculateAltitudeModal({ isOpen, onClose }: CalculateAlt
     libraries: GOOGLE_MAPS_CONFIG.libraries,
   });
 
-  // Función centralizada para calcular la altitud
+  // Función mejorada para calcular la altitud con manejo de errores estricto
   const calculateElevation = useCallback((location: google.maps.LatLngLiteral) => {
     if (!window.google) return;
     
     setLoadingAltitude(true);
-    const elevator = new google.maps.ElevationService();
+    setSearchError(null); // Limpiamos errores previos en cada intento
     
-    elevator.getElevationForLocations(
-      { locations: [location] },
-      (results, status) => {
-        setLoadingAltitude(false);
-        if (status === 'OK' && results && results[0]) {
-          setAltitude(Math.round(results[0].elevation));
-        } else {
-          setAltitude(null);
+    try {
+      const elevator = new google.maps.ElevationService();
+      
+      // Convertimos explícitamente a un objeto LatLng de Google para máxima compatibilidad
+      const latLngInstance = new google.maps.LatLng(location.lat, location.lng);
+      
+      elevator.getElevationForLocations(
+        { locations: [latLngInstance] },
+        (results, status) => {
+          setLoadingAltitude(false);
+          
+          // Imprime en tu consola del navegador para ver qué responde Google exactamente
+          console.log("Google Elevation Status:", status);
+  
+          if (status === 'OK' && results && results[0]) {
+            setAltitude(Math.round(results[0].elevation));
+          } else {
+            setAltitude(null);
+            
+            // Si Google rechaza la petición, te lo avisará de inmediato en la UI
+            if (status === 'REQUEST_DENIED') {
+              setSearchError(
+                language === 'en' 
+                  ? 'Error: Please enable "Elevation API" in your Google Cloud Console.' 
+                  : 'Falta activar la "Elevation API" en tu Google Cloud Console.'
+              );
+            } else {
+              setSearchError(`Google Maps Error: ${status}`);
+            }
+          }
         }
-      }
-    );
-  }, []);
+      );
+    } catch (err) {
+      console.error("Error ejecutando ElevationService:", err);
+      setLoadingAltitude(false);
+      setAltitude(null);
+    }
+  }, [language]);
 
   // Calcular altitud inicial si el mapa ya cargó y el modal se abre
   useEffect(() => {
@@ -87,7 +113,7 @@ export default function CalculateAltitudeModal({ isOpen, onClose }: CalculateAlt
     }
   }, [calculateElevation]);
 
-  // Buscador usando Geocoder (igual que en GoogleMapEditor)
+  // Buscador usando Geocoder
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim() || !isLoaded) return;
     
@@ -98,7 +124,7 @@ export default function CalculateAltitudeModal({ isOpen, onClose }: CalculateAlt
       const geocoder = new google.maps.Geocoder();
       const result = await geocoder.geocode({ 
         address: searchQuery,
-        componentRestrictions: { country: 'CR' } // Restringido a Costa Rica
+        componentRestrictions: { country: 'CR' }
       });
 
       if (result.results && result.results.length > 0) {
@@ -167,14 +193,18 @@ export default function CalculateAltitudeModal({ isOpen, onClose }: CalculateAlt
                 {searching ? '⏳' : '🔍'}
               </button>
             </div>
-            {searchError && <p className="text-xs text-red-500 font-semibold">{searchError}</p>}
+            {searchError && (
+              <p className="text-xs text-red-500 font-bold bg-red-50 p-2 rounded-lg border border-red-100 animate-pulse">
+                ⚠️ {searchError}
+              </p>
+            )}
             <p className="text-xs opacity-60" style={{ color: '#0F172A' }}>
               {language === 'en' ? 'Search, move the pin, or tap on the map.' : 'Busca, mueve el pin o toca en el mapa.'}
             </p>
           </div>
         </div>
 
-        {/* Mapa con estado de carga */}
+        {/* Mapa */}
         <div className="flex-1 relative bg-gray-100 border-y border-gray-200 min-h-[300px]">
           {loadError ? (
             <div className="absolute inset-0 flex items-center justify-center text-red-500 text-sm font-bold">
@@ -186,10 +216,10 @@ export default function CalculateAltitudeModal({ isOpen, onClose }: CalculateAlt
             </div>
           ) : (
             <GoogleMap
-              mapContainerStyle={MAP_STYLES.containerStyle} // Usa tu mismo estilo
+              mapContainerStyle={MAP_STYLES.containerStyle}
               center={position}
               zoom={7}
-              options={{ ...MAP_OPTIONS, draggableCursor: 'crosshair' }} // Usa tus mismas opciones
+              options={{ ...MAP_OPTIONS, draggableCursor: 'crosshair' }}
               onClick={handleMapClick}
               onLoad={onMapLoad}
             >

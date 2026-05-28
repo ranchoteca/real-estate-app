@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useI18nStore } from '@/lib/i18n-store';
 import PropertyActionModal from '@/components/property/PropertyActionModal';
+import CalculateAltitudeModal from '@/components/property/CalculateAltitudeModal';
 
 interface Property {
   id: string;
@@ -105,6 +106,8 @@ export default function DashboardPage() {
     message: string;
   }>({ open: false, type: 'duplicating', message: '' });
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  const [isAltitudeModalOpen, setIsAltitudeModalOpen] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
@@ -374,14 +377,24 @@ export default function DashboardPage() {
               style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}
             />
           </div>
-          <button
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            className="w-full py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
-            style={{ backgroundColor: '#EFF6FF', color: '#2563EB' }}
-          >
-            {showAdvancedFilters ? '▲' : '▼'}
-            {language === 'en' ? 'Advanced Filters' : 'Filtros Avanzados'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className="flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
+              style={{ backgroundColor: '#EFF6FF', color: '#2563EB' }}
+            >
+              {showAdvancedFilters ? '▲' : '▼'}
+              {language === 'en' ? 'Advanced Filters' : 'Filtros Avanzados'}
+            </button>
+            
+            <button
+              onClick={() => setIsAltitudeModalOpen(true)}
+              className="flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors border-2 shadow-sm"
+              style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', color: '#0F172A' }}
+            >
+              🏔️ {language === 'en' ? 'Calculate Altitude' : 'Calcular Altura'}
+            </button>
+          </div>
           {showAdvancedFilters && (
             <div className="space-y-2 pt-2 border-t" style={{ borderTopColor: '#E5E7EB' }}>
               <select value={filterPropertyType} onChange={(e) => setFilterPropertyType(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}>
@@ -645,6 +658,11 @@ export default function DashboardPage() {
       )}
 
       <PropertyActionModal isOpen={actionModal.open} message={actionModal.message} type={actionModal.type} />
+      {/* MODAL DE ALTURA */}
+      <CalculateAltitudeModal 
+        isOpen={isAltitudeModalOpen} 
+        onClose={() => setIsAltitudeModalOpen(false)} 
+      />
     </MobileLayout>
   );
 }

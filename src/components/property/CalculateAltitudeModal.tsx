@@ -1,150 +1,233 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import { useI18nStore } from '@/lib/i18n-store';
+
+// Importamos tu configuración exacta para que el mapa cargue sin problemas
+import { 
+  GOOGLE_MAPS_CONFIG, 
+  MAP_STYLES, 
+  MAP_OPTIONS 
+} from '@/lib/google-maps-config';
 
 interface CalculateAltitudeModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+const DEFAULT_CENTER = { lat: 9.7489, lng: -83.7534 }; // Centro de Costa Rica
+
 export default function CalculateAltitudeModal({ isOpen, onClose }: CalculateAltitudeModalProps) {
   const { language } = useI18nStore();
-  const mapRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [marker, setMarker] = useState<google.maps.Marker | null>(null);
+  const [position, setPosition] = useState<google.maps.LatLngLiteral>(DEFAULT_CENTER);
   const [altitude, setAltitude] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loadingAltitude, setLoadingAltitude] = useState(false);
+  const [copied, setCopied] = useState(false);
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  
+  const mapRef = useRef<google.maps.Map | null>(null);
 
-  useEffect(() => {
-    if (!isOpen || !mapRef.current || !window.google) return;
+  // Cargamos el script exactamente igual que en tu GoogleMapEditor
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_CONFIG.apiKey,
+    libraries: GOOGLE_MAPS_CONFIG.libraries,
+  });
 
-    // Inicializar el mapa centrado en Costa Rica
-    const initialLocation = { lat: 9.7489, lng: -83.7534 };
-    const newMap = new google.maps.Map(mapRef.current, {
-      center: initialLocation,
-      zoom: 7,
-      mapTypeControl: false,
-      streetViewControl: false,
-    });
-
-    // Crear el pin (marcador)
-    const newMarker = new google.maps.Marker({
-      position: initialLocation,
-      map: newMap,
-      draggable: true,
-      animation: google.maps.Animation.DROP,
-    });
-
-    setMap(newMap);
-    setMarker(newMarker);
-
-    // Inicializar el buscador de lugares restringido a Costa Rica
-    if (inputRef.current) {
-      const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
-        componentRestrictions: { country: 'cr' },
-        fields: ['geometry', 'name'],
-      });
-
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (!place.geometry || !place.geometry.location) return;
-
-        newMap.setCenter(place.geometry.location);
-        newMap.setZoom(14);
-        newMarker.setPosition(place.geometry.location);
-        calculateElevation(place.geometry.location);
-      });
-    }
-
-    // Calcular altura al arrastrar y soltar el pin
-    newMarker.addListener('dragend', () => {
-      const position = newMarker.getPosition();
-      if (position) calculateElevation(position);
-    });
-
-    // Calcular altura al hacer clic en cualquier parte del mapa
-    newMap.addListener('click', (e: google.maps.MapMouseEvent) => {
-      if (e.latLng) {
-        newMarker.setPosition(e.latLng);
-        calculateElevation(e.latLng);
-      }
-    });
-
-  }, [isOpen]);
-
-  const calculateElevation = (location: google.maps.LatLng) => {
-    setLoading(true);
+  // Función centralizada para calcular la altitud
+  const calculateElevation = useCallback((location: google.maps.LatLngLiteral) => {
+    if (!window.google) return;
+    
+    setLoadingAltitude(true);
     const elevator = new google.maps.ElevationService();
     
-    elevator.getElevationForLocations({ locations: [location] })
-      .then(({ results }) => {
-        if (results && results[0]) {
-          setAltitude(results[0].elevation); // Elevación en metros
+    elevator.getElevationForLocations(
+      { locations: [location] },
+      (results, status) => {
+        setLoadingAltitude(false);
+        if (status === 'OK' && results && results[0]) {
+          setAltitude(Math.round(results[0].elevation));
         } else {
           setAltitude(null);
         }
-      })
-      .catch((e) => {
-        console.error('Error calculando elevación:', e);
-        setAltitude(null);
-      })
-      .finally(() => {
-        setLoading(false);
+      }
+    );
+  }, []);
+
+  // Calcular altitud inicial si el mapa ya cargó y el modal se abre
+  useEffect(() => {
+    if (isOpen && isLoaded) {
+      calculateElevation(position);
+    }
+  }, [isOpen, isLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onMapLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+  }, []);
+
+  // Al hacer clic en el mapa
+  const handleMapClick = useCallback((e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      const newPos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+      setPosition(newPos);
+      calculateElevation(newPos);
+    }
+  }, [calculateElevation]);
+
+  // Al soltar el pin después de arrastrarlo
+  const handleMarkerDragEnd = useCallback((e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      const newPos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+      setPosition(newPos);
+      calculateElevation(newPos);
+    }
+  }, [calculateElevation]);
+
+  // Buscador usando Geocoder (igual que en GoogleMapEditor)
+  const handleSearch = useCallback(async () => {
+    if (!searchQuery.trim() || !isLoaded) return;
+    
+    setSearching(true);
+    setSearchError(null);
+    
+    try {
+      const geocoder = new google.maps.Geocoder();
+      const result = await geocoder.geocode({ 
+        address: searchQuery,
+        componentRestrictions: { country: 'CR' } // Restringido a Costa Rica
       });
+
+      if (result.results && result.results.length > 0) {
+        const location = result.results[0].geometry.location;
+        const newPos = { lat: location.lat(), lng: location.lng() };
+        
+        setPosition(newPos);
+        calculateElevation(newPos);
+        
+        if (mapRef.current) {
+          mapRef.current.panTo(newPos);
+          mapRef.current.setZoom(14);
+        }
+      } else {
+        setSearchError(language === 'en' ? 'Location not found' : 'Ubicación no encontrada');
+      }
+    } catch (err) {
+      setSearchError(language === 'en' ? 'Search error' : 'Error en la búsqueda');
+    } finally {
+      setSearching(false);
+    }
+  }, [searchQuery, isLoaded, language, calculateElevation]);
+
+  const handleCopyAltitude = () => {
+    if (altitude !== null) {
+      navigator.clipboard.writeText(`${altitude} metros sobre el nivel del mar`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col h-[80vh]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col h-[85vh] max-h-[800px]">
         
-        {/* Header del Modal */}
-        <div className="px-4 py-4 border-b flex justify-between items-center" style={{ borderColor: '#E5E7EB' }}>
+        {/* Header */}
+        <div className="px-5 py-4 border-b flex justify-between items-center" style={{ borderColor: '#E5E7EB' }}>
           <h3 className="text-lg font-bold" style={{ color: '#0F172A' }}>
             🏔️ {language === 'en' ? 'Calculate Altitude' : 'Calcular Altura'}
           </h3>
-          <button onClick={onClose} className="p-2 bg-gray-100 rounded-full active:scale-90 transition-transform">
+          <button onClick={onClose} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full active:scale-90 transition-transform">
             ✕
           </button>
         </div>
 
-        {/* Buscador de ciudades */}
+        {/* Buscador */}
         <div className="p-4" style={{ backgroundColor: '#F9FAFB' }}>
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder={language === 'en' ? 'Search city in Costa Rica...' : 'Buscar ciudad en Costa Rica...'}
-            className="w-full px-4 py-2.5 rounded-xl border-2 focus:outline-none text-sm"
-            style={{ borderColor: '#E5E7EB', backgroundColor: '#FFFFFF', color: '#0F172A' }}
-          />
-          <p className="text-xs mt-2 opacity-60">
-            {language === 'en' ? 'Search a city, move the pin, or tap on the map.' : 'Busca una ciudad, mueve el pin o toca en el mapa.'}
-          </p>
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder={language === 'en' ? 'Ex: Tamarindo, Guanacaste' : 'Ej: Tamarindo, Guanacaste'}
+                className="flex-1 px-4 py-2.5 rounded-xl border-2 focus:outline-none text-sm"
+                style={{ borderColor: '#E5E7EB', backgroundColor: '#FFFFFF', color: '#0F172A' }}
+              />
+              <button
+                onClick={handleSearch}
+                disabled={searching || !searchQuery.trim()}
+                className="px-4 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-all active:scale-95 text-sm"
+              >
+                {searching ? '⏳' : '🔍'}
+              </button>
+            </div>
+            {searchError && <p className="text-xs text-red-500 font-semibold">{searchError}</p>}
+            <p className="text-xs opacity-60" style={{ color: '#0F172A' }}>
+              {language === 'en' ? 'Search, move the pin, or tap on the map.' : 'Busca, mueve el pin o toca en el mapa.'}
+            </p>
+          </div>
         </div>
 
-        {/* Contenedor del Mapa */}
-        <div className="flex-1 relative">
-          <div ref={mapRef} className="absolute inset-0" />
-        </div>
-
-        {/* Resultado de la altura */}
-        <div className="p-4 border-t flex flex-col items-center justify-center bg-white">
-          <span className="text-sm font-semibold opacity-70 mb-1" style={{ color: '#0F172A' }}>
-            {language === 'en' ? 'Altitude at selected point:' : 'Altura en el punto seleccionado:'}
-          </span>
-          {loading ? (
-            <div className="text-xl font-bold animate-pulse text-blue-600">
-              {language === 'en' ? 'Calculating...' : 'Calculando...'}
+        {/* Mapa con estado de carga */}
+        <div className="flex-1 relative bg-gray-100 border-y border-gray-200 min-h-[300px]">
+          {loadError ? (
+            <div className="absolute inset-0 flex items-center justify-center text-red-500 text-sm font-bold">
+              Error al cargar Google Maps
+            </div>
+          ) : !isLoaded ? (
+            <div className="absolute inset-0 flex items-center justify-center text-gray-500 animate-pulse text-sm font-bold">
+              Cargando mapa...
             </div>
           ) : (
-            <div className="text-3xl font-bold" style={{ color: '#2563EB' }}>
-              {altitude !== null ? `${Math.round(altitude)} m.s.n.m.` : '--'}
-            </div>
+            <GoogleMap
+              mapContainerStyle={MAP_STYLES.containerStyle} // Usa tu mismo estilo
+              center={position}
+              zoom={7}
+              options={{ ...MAP_OPTIONS, draggableCursor: 'crosshair' }} // Usa tus mismas opciones
+              onClick={handleMapClick}
+              onLoad={onMapLoad}
+            >
+              <Marker
+                position={position}
+                draggable={true}
+                onDragEnd={handleMarkerDragEnd}
+              />
+            </GoogleMap>
           )}
+        </div>
+
+        {/* Footer con Resultado */}
+        <div className="p-5 bg-white">
+          <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl p-4">
+            <div>
+              <p className="text-xs font-semibold text-blue-900 mb-1">
+                {language === 'en' ? 'Estimated altitude:' : 'Altitud estimada:'}
+              </p>
+              <div className="text-2xl font-bold text-blue-700 font-mono">
+                {loadingAltitude ? (
+                  <span className="text-sm font-sans animate-pulse">⏳ Calculando...</span>
+                ) : altitude !== null ? (
+                  `${altitude} m.s.n.m.`
+                ) : (
+                  <span className="text-sm font-sans text-gray-400">--</span>
+                )}
+              </div>
+            </div>
+            
+            <button
+              onClick={handleCopyAltitude}
+              disabled={altitude === null || loadingAltitude}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-all active:scale-95 disabled:opacity-50 shadow-sm"
+            >
+              {copied ? (language === 'en' ? '¡Copied!' : '¡Copiado!') : (language === 'en' ? 'Copy' : 'Copiar')}
+            </button>
+          </div>
         </div>
 
       </div>

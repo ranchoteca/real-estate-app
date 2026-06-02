@@ -61,7 +61,6 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
     try {
       await navigator.clipboard.writeText(fullUrl);
     } catch {
-      // Fallback iOS/Safari
       const el = document.createElement('textarea');
       el.value = fullUrl;
       document.body.appendChild(el);
@@ -108,10 +107,21 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-50">
+    /* Overlay semitransparente — se ve el dashboard detrás */
+    <div
+      className="fixed inset-0 z-50 flex flex-col justify-end"
+      style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(2px)' }}
+      onClick={onClose}
+    >
+      {/* Sheet — ocupa casi toda la pantalla */}
       <div
-        className="w-full rounded-t-3xl shadow-2xl overflow-hidden"
-        style={{ backgroundColor: '#FFFFFF', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
+        className="w-full rounded-t-3xl shadow-2xl flex flex-col"
+        style={{
+          backgroundColor: '#FFFFFF',
+          maxHeight: '92dvh',
+          height: '92dvh',
+        }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
@@ -119,7 +129,10 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #F3F4F6' }}>
+        <div
+          className="flex items-center justify-between px-5 py-3 flex-shrink-0"
+          style={{ borderBottom: '1px solid #F3F4F6' }}
+        >
           <div>
             <h2 className="text-lg font-bold" style={{ color: '#0F172A' }}>
               {language === 'en' ? '🗂️ My Proposals' : '🗂️ Mis Propuestas'}
@@ -136,13 +149,14 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-full"
             style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}
+            aria-label="Cerrar"
           >
             ✕
           </button>
         </div>
 
-        {/* Content */}
-        <div className="overflow-y-auto flex-1 px-5 py-4">
+        {/* Content — scrollable */}
+        <div className="overflow-y-auto overscroll-contain flex-1 px-5 py-4">
 
           {/* Loading */}
           {loading && (
@@ -173,7 +187,7 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
 
           {/* Proposals list */}
           {!loading && proposals.length > 0 && (
-            <div className="space-y-3 pb-4">
+            <div className="space-y-3 pb-6">
               {proposals.map((proposal) => {
                 const tpl = TEMPLATE_LABELS[proposal.template_style];
                 const isCopied = copiedId === proposal.id;
@@ -186,7 +200,7 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
                     className="rounded-2xl overflow-hidden"
                     style={{ border: '1.5px solid #F3F4F6', backgroundColor: '#FAFAFA' }}
                   >
-                    {/* Thumbnails row — máx 4 fotos */}
+                    {/* Thumbnails row */}
                     {proposal.properties.length > 0 && (
                       <div className="flex h-16 overflow-hidden">
                         {proposal.properties.slice(0, 4).map((prop, idx) => (
@@ -204,7 +218,6 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-2xl" style={{ backgroundColor: '#F0F0EE' }}>🏠</div>
                             )}
-                            {/* +N overlay en la última si hay más de 4 */}
                             {idx === 3 && proposal.property_count > 4 && (
                               <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
                                 <span className="text-white font-bold text-sm">+{proposal.property_count - 4}</span>
@@ -228,15 +241,20 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
                             </span>
                             <span style={{ color: '#D1D5DB' }}>·</span>
                             <span className="text-xs" style={{ color: '#6B7280' }}>
-                              {proposal.property_count} {language === 'en' ? (proposal.property_count === 1 ? 'property' : 'properties') : (proposal.property_count === 1 ? 'propiedad' : 'propiedades')}
+                              {proposal.property_count}{' '}
+                              {language === 'en'
+                                ? (proposal.property_count === 1 ? 'property' : 'properties')
+                                : (proposal.property_count === 1 ? 'propiedad' : 'propiedades')}
                             </span>
                             <span style={{ color: '#D1D5DB' }}>·</span>
                             <span className="text-xs" style={{ color: '#6B7280' }}>
-                              {new Date(proposal.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'es-ES', { day: 'numeric', month: 'short' })}
+                              {new Date(proposal.created_at).toLocaleDateString(
+                                language === 'en' ? 'en-US' : 'es-ES',
+                                { day: 'numeric', month: 'short' }
+                              )}
                             </span>
                           </div>
                         </div>
-                        {/* Delete button */}
                         <button
                           onClick={() => handleDelete(proposal)}
                           disabled={isDeleting}

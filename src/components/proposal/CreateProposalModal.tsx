@@ -71,7 +71,6 @@ export default function CreateProposalModal({
   const [copied, setCopied] = useState(false);
 
   const handleClose = () => {
-    // Reset state on close
     setStep('form');
     setTitle('');
     setTemplateStyle('minimalist');
@@ -127,7 +126,6 @@ export default function CreateProposalModal({
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
-      // Fallback para Safari/iOS
       const el = document.createElement('textarea');
       el.value = createdUrl;
       document.body.appendChild(el);
@@ -155,18 +153,30 @@ export default function CreateProposalModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-50 p-0">
-      {/* Sheet desde abajo en móvil */}
+    /* Overlay semitransparente — se ve el dashboard detrás */
+    <div
+      className="fixed inset-0 z-50 flex flex-col justify-end"
+      style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(2px)' }}
+      onClick={handleClose}
+    >
+      {/* Sheet — ocupa casi toda la pantalla, con scroll interno */}
       <div
-        className="w-full rounded-t-3xl shadow-2xl overflow-hidden"
-        style={{ backgroundColor: '#FFFFFF', maxHeight: '92vh', overflowY: 'auto' }}
+        className="w-full rounded-t-3xl shadow-2xl flex flex-col"
+        style={{
+          backgroundColor: '#FFFFFF',
+          /* Sube casi hasta el tope — deja solo 8% de overlay visible arriba */
+          maxHeight: '92dvh',
+          height: '92dvh',
+        }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1">
+        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
           <div className="w-10 h-1 rounded-full" style={{ backgroundColor: '#E5E7EB' }} />
         </div>
 
-        <div className="px-5 pb-8 pt-2">
+        {/* Área scrollable */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-10 pt-2">
 
           {/* ── PASO 1: FORMULARIO ── */}
           {step === 'form' && (
@@ -239,7 +249,6 @@ export default function CreateProposalModal({
                           boxShadow: isActive ? `0 0 0 3px ${tpl.accent}18` : 'none',
                         }}
                       >
-                        {/* Preview mini */}
                         <div
                           className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xl"
                           style={{ backgroundColor: isActive ? tpl.accent : '#F3F4F6' }}
@@ -257,7 +266,6 @@ export default function CreateProposalModal({
                             {language === 'en' ? tpl.desc_en : tpl.desc_es}
                           </p>
                         </div>
-                        {/* Check */}
                         <div
                           className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
                           style={{
@@ -299,7 +307,6 @@ export default function CreateProposalModal({
           {/* ── PASO 2: ÉXITO + LINK ── */}
           {step === 'success' && createdUrl && (
             <>
-              {/* Header éxito */}
               <div className="text-center mb-6 pt-2">
                 <div className="text-5xl mb-3">🎉</div>
                 <h2 className="text-xl font-bold mb-1" style={{ color: '#0F172A' }}>
@@ -312,7 +319,6 @@ export default function CreateProposalModal({
                 </p>
               </div>
 
-              {/* Link copiable */}
               <div
                 className="flex items-center gap-2 px-4 py-3 rounded-2xl mb-4"
                 style={{ backgroundColor: '#F0FDF4', border: '1.5px solid #BBF7D0' }}
@@ -322,7 +328,6 @@ export default function CreateProposalModal({
                 </span>
               </div>
 
-              {/* Botones de acción */}
               <div className="flex flex-col gap-2.5 mb-4">
                 <button
                   onClick={handleCopy}
@@ -343,32 +348,23 @@ export default function CreateProposalModal({
                 </button>
               </div>
 
-              {/* Info de la propuesta creada */}
               <div
                 className="px-4 py-3 rounded-xl mb-5 text-xs"
                 style={{ backgroundColor: '#F9FAFB', border: '1px solid #E5E7EB' }}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span style={{ color: '#6B7280' }}>
-                    {language === 'en' ? 'Name' : 'Nombre'}
-                  </span>
+                  <span style={{ color: '#6B7280' }}>{language === 'en' ? 'Name' : 'Nombre'}</span>
                   <span className="font-semibold" style={{ color: '#0F172A' }}>{title}</span>
                 </div>
                 <div className="flex items-center justify-between mb-1">
-                  <span style={{ color: '#6B7280' }}>
-                    {language === 'en' ? 'Template' : 'Plantilla'}
-                  </span>
+                  <span style={{ color: '#6B7280' }}>{language === 'en' ? 'Template' : 'Plantilla'}</span>
                   <span className="font-semibold" style={{ color: '#0F172A' }}>
                     {TEMPLATES.find(t => t.id === templateStyle)?.[language === 'en' ? 'label_en' : 'label_es']}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span style={{ color: '#6B7280' }}>
-                    {language === 'en' ? 'Properties' : 'Propiedades'}
-                  </span>
-                  <span className="font-semibold" style={{ color: '#0F172A' }}>
-                    {selectedPropertyIds.length}
-                  </span>
+                  <span style={{ color: '#6B7280' }}>{language === 'en' ? 'Properties' : 'Propiedades'}</span>
+                  <span className="font-semibold" style={{ color: '#0F172A' }}>{selectedPropertyIds.length}</span>
                 </div>
               </div>
 

@@ -272,7 +272,6 @@ export default function DashboardPage() {
 
   // ── NUEVAS FUNCIONES: PROPOSALS ───────────────────────────────────────────
   const toggleCardExpand = (e: React.MouseEvent, propertyId: string) => {
-    // No expandir si el click viene del bookmark o del menú
     const target = e.target as HTMLElement;
     if (target.closest('[data-bookmark]') || target.closest('[data-menu]')) return;
     setExpandedCards(prev => {
@@ -396,6 +395,7 @@ export default function DashboardPage() {
             </p>
           </div>
         )}
+        {/* ── Stats badge (sin botón Propuestas) ── */}
         <div className="rounded-xl p-3 shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
           <div className="flex items-center justify-between">
             <div>
@@ -404,26 +404,25 @@ export default function DashboardPage() {
               </p>
               <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>{properties.length}</p>
             </div>
-            <div className="flex items-center gap-3">
-              {/* Botón Mis Propuestas */}
-              <button
-                onClick={() => setIsMyProposalsOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-semibold text-xs active:scale-95 transition-transform"
-                style={{ backgroundColor: '#EFF6FF', color: '#2563EB', border: '1.5px solid #BFDBFE' }}
-              >
-                🗂️ {language === 'en' ? 'Proposals' : 'Propuestas'}
-              </button>
-              <div className="text-right">
-                <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                  {language === 'en' ? 'Limit' : 'Límite'}
-                </p>
-                <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>
-                  {planInfo?.plan === 'free' ? `${properties.length} / 5` : `${properties.length} / 150`}
-                </p>
-              </div>
+            <div className="text-right">
+              <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                {language === 'en' ? 'Limit' : 'Límite'}
+              </p>
+              <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>
+                {planInfo?.plan === 'free' ? `${properties.length} / 5` : `${properties.length} / 150`}
+              </p>
             </div>
           </div>
         </div>
+
+        {/* ── Botón Mis Propuestas — debajo del stats badge, encima de filtros ── */}
+        <button
+          onClick={() => setIsMyProposalsOpen(true)}
+          className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
+          style={{ backgroundColor: '#EFF6FF', color: '#2563EB', border: '1.5px solid #BFDBFE' }}
+        >
+          🗂️ {language === 'en' ? 'My Proposals' : 'Mis Propuestas'}
+        </button>
       </div>
 
       {/* Filters Section */}
@@ -517,7 +516,7 @@ export default function DashboardPage() {
       ) : (
         <div className="px-4 pt-3 space-y-2.5 pb-32">
 
-          {/* Hint educativo — aparece una sola vez */}
+          {/* Hint educativo */}
           {!hintDismissed && (
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold" style={{ backgroundColor: '#EFF6FF', color: '#1E40AF' }}>
               <span className="flex-shrink-0">💡</span>
@@ -555,15 +554,16 @@ export default function DashboardPage() {
                 }}
               >
                 {/* ── Cuerpo horizontal de la card ── */}
+                {/* CAMBIO: altura aumentada de 110px a 130px para cards más grandes */}
                 <div
                   className="flex flex-row active:bg-gray-50 transition-colors cursor-pointer"
-                  style={{ height: '110px' }}
+                  style={{ minHeight: '130px' }}
                   onClick={(e) => toggleCardExpand(e, property.id)}
                 >
-                  {/* Foto */}
+                  {/* Foto — CAMBIO: ancho aumentado de 110px a 130px */}
                   <div
                     className="relative flex-shrink-0 overflow-hidden"
-                    style={{ width: '110px', backgroundColor: '#1f2937' }}
+                    style={{ width: '130px', backgroundColor: '#1f2937' }}
                   >
                     {property.photos && property.photos.length > 0 ? (
                       <Image
@@ -571,7 +571,7 @@ export default function DashboardPage() {
                         alt={property.title}
                         fill
                         className="object-cover"
-                        sizes="110px"
+                        sizes="130px"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-4xl">🏠</div>
@@ -596,29 +596,31 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Info */}
-                  <div className="flex flex-col justify-between flex-1 min-w-0 py-2.5 pl-3 pr-10">
-                    <p className="text-[13px] font-semibold leading-snug line-clamp-2" style={{ color: '#0F172A' }}>
+                  {/* Info — CAMBIO: padding derecho aumentado para los dos botones apilados */}
+                  <div className="flex flex-col justify-between flex-1 min-w-0 py-3 pl-3 pr-14">
+                    {/* CAMBIO: título con text-[14px] en lugar de text-[13px] */}
+                    <p className="text-[14px] font-semibold leading-snug line-clamp-2" style={{ color: '#0F172A' }}>
                       {property.title}
                     </p>
-                    <p className="text-[15px] font-bold" style={{ color: '#2563EB' }}>
+                    {/* CAMBIO: precio con text-[16px] en lugar de text-[15px] */}
+                    <p className="text-[16px] font-bold" style={{ color: '#2563EB' }}>
                       {formatPrice(property.price, property.currency_id)}
                     </p>
                     {property.city && property.state && (
-                      <p className="text-[11px]" style={{ color: '#6B7280' }}>
+                      <p className="text-[12px]" style={{ color: '#6B7280' }}>
                         📍 {property.city}, {property.state}
                       </p>
                     )}
-                    {/* Tags: tipo + venta/alquiler + banderita idioma */}
+                    {/* Tags */}
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span
-                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                        className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                         style={{ backgroundColor: '#F5EAD3', color: '#44403C' }}
                       >
                         🏡 {translatePropertyType(property.property_type, language)}
                       </span>
                       <span
-                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                        className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                         style={{
                           backgroundColor: property.listing_type === 'rent' ? '#FEF3C7' : '#D1FAE5',
                           color: property.listing_type === 'rent' ? '#92400E' : '#065F46',
@@ -628,7 +630,6 @@ export default function DashboardPage() {
                           ? (language === 'en' ? 'Rent' : 'Alquiler')
                           : (language === 'en' ? 'Sale' : 'Venta')}
                       </span>
-                      {/* Banderita de idioma */}
                       <span className="text-[13px] leading-none">
                         {property.language === 'es' ? '🇪🇸' : property.language === 'en' ? '🇺🇸' : '❓'}
                       </span>
@@ -636,7 +637,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* ── Panel expandible (vistas, fecha, FB) ── */}
+                {/* ── Panel expandible ── */}
                 <div
                   className="overflow-hidden transition-all duration-200 ease-in-out"
                   style={{
@@ -661,53 +662,56 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* ── Bookmark (agregar a propuesta) ── */}
-                <button
-                  data-bookmark="true"
-                  onClick={(e) => toggleProposalBookmark(e, property.id)}
-                  className="absolute flex items-center justify-center rounded-lg active:scale-90 transition-transform"
-                  style={{
-                    top: '8px',
-                    right: '8px',
-                    width: '28px',
-                    height: '28px',
-                    backgroundColor: isSelected ? '#EFF6FF' : 'rgba(255,255,255,0.92)',
-                    border: isSelected ? '1.5px solid #BFDBFE' : '1px solid rgba(0,0,0,0.08)',
-                    color: isSelected ? '#2563EB' : '#9CA3AF',
-                    fontSize: '15px',
-                    cursor: 'pointer',
-                  }}
-                  aria-label={language === 'en' ? 'Add to proposal' : 'Agregar a propuesta'}
-                  title={language === 'en' ? 'Add to proposal' : 'Agregar a propuesta'}
+                {/* ── Botones apilados: tres puntos arriba, bookmark abajo ── */}
+                {/* CAMBIO: los botones ahora están en una columna vertical en la esquina superior derecha */}
+                <div
+                  className="absolute flex flex-col items-center gap-1.5"
+                  style={{ top: '8px', right: '8px' }}
                 >
-                  {isSelected ? '🔖' : '🏷️'}
-                </button>
+                  {/* Menú tres puntos — PRIMERO (arriba) */}
+                  <button
+                    data-menu="true"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMenu(showMenu === property.id ? null : property.id);
+                    }}
+                    className="flex items-center justify-center rounded-full active:scale-90 transition-transform shadow-md"
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      backgroundColor: 'rgba(255,255,255,0.95)',
+                      border: 'none',
+                      cursor: 'pointer',
+                    }}
+                    aria-label="Opciones"
+                  >
+                    <svg className="w-4 h-4" fill="#0F172A" viewBox="0 0 24 24">
+                      <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                    </svg>
+                  </button>
 
-                {/* ── Menú 3 puntos (sin cambios) ── */}
-                <button
-                  data-menu="true"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowMenu(showMenu === property.id ? null : property.id);
-                  }}
-                  className="absolute flex items-center justify-center rounded-full active:scale-90 transition-transform shadow-md"
-                  style={{
-                    top: '8px',
-                    right: '44px',
-                    width: '28px',
-                    height: '28px',
-                    backgroundColor: 'rgba(255,255,255,0.95)',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                  aria-label="Opciones"
-                >
-                  <svg className="w-4 h-4" fill="#0F172A" viewBox="0 0 24 24">
-                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
-                  </svg>
-                </button>
+                  {/* Bookmark — SEGUNDO (abajo) */}
+                  <button
+                    data-bookmark="true"
+                    onClick={(e) => toggleProposalBookmark(e, property.id)}
+                    className="flex items-center justify-center rounded-lg active:scale-90 transition-transform"
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      backgroundColor: isSelected ? '#EFF6FF' : 'rgba(255,255,255,0.92)',
+                      border: isSelected ? '1.5px solid #BFDBFE' : '1px solid rgba(0,0,0,0.08)',
+                      color: isSelected ? '#2563EB' : '#9CA3AF',
+                      fontSize: '15px',
+                      cursor: 'pointer',
+                    }}
+                    aria-label={language === 'en' ? 'Add to proposal' : 'Agregar a propuesta'}
+                    title={language === 'en' ? 'Add to proposal' : 'Agregar a propuesta'}
+                  >
+                    {isSelected ? '🔖' : '🏷️'}
+                  </button>
+                </div>
 
-                {/* ── Dropdown menú (sin cambios) ── */}
+                {/* ── Dropdown menú ── */}
                 {showMenu === property.id && (
                   <div
                     className="absolute top-12 right-3 rounded-xl shadow-2xl overflow-hidden z-10 min-w-[160px]"
@@ -814,7 +818,7 @@ export default function DashboardPage() {
             );
           })}
 
-          {/* Banner Pro — sin cambios */}
+          {/* Banner Pro */}
           {isFree && (
             <div className="rounded-2xl p-5 shadow-md mt-2" style={{ backgroundColor: '#EFF6FF', border: '1.5px solid #BFDBFE' }}>
               <p className="font-bold text-sm mb-1" style={{ color: '#1E40AF' }}>
@@ -838,10 +842,16 @@ export default function DashboardPage() {
       )}
 
       {/* ── FLOATING PROPOSAL BAR ─────────────────────────────────────────── */}
+      {/* CAMBIO: bottom aumentado de 6 (24px) a 24 (96px) para que quede por encima del footer */}
       {selectedForProposal.size > 0 && (
         <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl"
-          style={{ backgroundColor: '#1E3A8A', color: 'white', whiteSpace: 'nowrap' }}
+          className="fixed left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl"
+          style={{
+            bottom: '96px',
+            backgroundColor: '#1E3A8A',
+            color: 'white',
+            whiteSpace: 'nowrap',
+          }}
         >
           <span
             className="px-2.5 py-0.5 rounded-full text-sm font-bold"
@@ -870,7 +880,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── MODALES EXISTENTES (sin cambios) ─────────────────────────────── */}
+      {/* ── MODALES EXISTENTES ─────────────────────────────── */}
       <GeneratingPDFModal isOpen={isGeneratingPDF} />
       <FacebookPublishModal
         isOpen={publishModalOpen}

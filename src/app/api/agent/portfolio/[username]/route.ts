@@ -20,7 +20,7 @@ export async function GET(
     // Obtener agente por username
     const { data: agent, error: agentError } = await supabaseAdmin
       .from('agents')
-      .select('id, name, full_name, username, email, phone, brokerage, bio, profile_photo, agent_cards(profile_photo)')
+      .select('id, name, full_name, username, email, phone, brokerage, bio, profile_photo, agent_cards(profile_photo), portfolio_template')
       .eq('username', username)
       .single();
 

@@ -12,6 +12,8 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useI18nStore } from '@/lib/i18n-store';
 import PropertyActionModal from '@/components/property/PropertyActionModal';
 import CalculateAltitudeModal from '@/components/property/CalculateAltitudeModal';
+import CreateProposalModal from '@/components/proposal/CreateProposalModal';
+import MyProposalsModal from '@/components/proposal/MyProposalsModal';
 
 interface Property {
   id: string;
@@ -81,6 +83,7 @@ export default function DashboardPage() {
     { value: 'en', label: '🇺🇸 English' },
   ];
 
+  // ── ESTADO EXISTENTE ───────────────────────────────────────────────────────
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState<string | null>(null);
@@ -106,9 +109,19 @@ export default function DashboardPage() {
     message: string;
   }>({ open: false, type: 'duplicating', message: '' });
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-
   const [isAltitudeModalOpen, setIsAltitudeModalOpen] = useState(false);
+  const [isCreateProposalOpen, setIsCreateProposalOpen] = useState(false);
+  const [isMyProposalsOpen, setIsMyProposalsOpen] = useState(false);
 
+  // ── NUEVO: PROPOSAL SELECTION STATE ───────────────────────────────────────
+  const [selectedForProposal, setSelectedForProposal] = useState<Set<string>>(new Set());
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [hintDismissed, setHintDismissed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('proposal_hint_dismissed') === 'true';
+  });
+
+  // ── EFFECTS EXISTENTES ────────────────────────────────────────────────────
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
@@ -148,6 +161,7 @@ export default function DashboardPage() {
     }
   }, [session?.user?.id]);
 
+  // ── FUNCIONES EXISTENTES ──────────────────────────────────────────────────
   const loadPlanInfo = async () => {
     try {
       const response = await fetch('/api/agent/current-plan');
@@ -185,7 +199,7 @@ export default function DashboardPage() {
   };
 
   const refreshSession = async () => {
-    const event = new Event("visibilitychange");
+    const event = new Event('visibilitychange');
     document.dispatchEvent(event);
     await fetch('/api/auth/session', { method: 'GET' });
   };
@@ -256,6 +270,45 @@ export default function DashboardPage() {
 
   const hasActiveFilters = filterPropertyType || filterStatus || filterLanguage || searchQuery.trim();
 
+  // ── NUEVAS FUNCIONES: PROPOSALS ───────────────────────────────────────────
+  const toggleCardExpand = (e: React.MouseEvent, propertyId: string) => {
+    // No expandir si el click viene del bookmark o del menú
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-bookmark]') || target.closest('[data-menu]')) return;
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      next.has(propertyId) ? next.delete(propertyId) : next.add(propertyId);
+      return next;
+    });
+  };
+
+  const toggleProposalBookmark = (e: React.MouseEvent, propertyId: string) => {
+    e.stopPropagation();
+    setSelectedForProposal(prev => {
+      const next = new Set(prev);
+      next.has(propertyId) ? next.delete(propertyId) : next.add(propertyId);
+      return next;
+    });
+  };
+
+  const clearProposalSelection = () => {
+    setSelectedForProposal(new Set());
+  };
+
+  const dismissHint = () => {
+    setHintDismissed(true);
+    localStorage.setItem('proposal_hint_dismissed', 'true');
+  };
+
+  const formatExpandDate = (dateStr: string | null): string | null => {
+    if (!dateStr) return null;
+    return new Date(dateStr).toLocaleDateString(language === 'en' ? 'en-US' : 'es-ES', {
+      day: 'numeric',
+      month: 'short',
+    });
+  };
+
+  // ── GUARDS ────────────────────────────────────────────────────────────────
   if (status === 'loading' || loading) {
     return (
       <MobileLayout title={language === 'en' ? 'My Properties' : 'Mis Propiedades'} showTabs={false}>
@@ -288,19 +341,22 @@ export default function DashboardPage() {
   const filteredProperties = getFilteredProperties();
   const hasProperties = properties.length > 0;
 
-  // ── PANTALLA DE BIENVENIDA (0 propiedades) ──────────────────────────────────
+  // ── PANTALLA DE BIENVENIDA (0 propiedades) ─────────────────────────────────
   if (!hasProperties) {
     return (
-      <MobileLayout title={language === 'en' ? 'My Properties' : 'Mis Propiedades'} showTabs={true} currentPropertyCount={0} onCreateLimitReached={() => {}}>
+      <MobileLayout
+        title={language === 'en' ? 'My Properties' : 'Mis Propiedades'}
+        showTabs={true}
+        currentPropertyCount={0}
+        onCreateLimitReached={() => {}}
+      >
         <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
           <div className="text-6xl mb-4">🏠</div>
           <h2 className="text-2xl font-bold mb-3" style={{ color: '#0F172A' }}>
             {language === 'en' ? 'Welcome to Flow Estate AI!' : '¡Bienvenido a Flow Estate AI!'}
           </h2>
           <p className="text-base opacity-70 mb-2" style={{ color: '#0F172A' }}>
-            {language === 'en'
-              ? 'You only need 3 minutes and your phone.'
-              : 'Solo necesitas 3 minutos y tu celular.'}
+            {language === 'en' ? 'You only need 3 minutes and your phone.' : 'Solo necesitas 3 minutos y tu celular.'}
           </p>
           <p className="text-sm opacity-50 mb-8" style={{ color: '#0F172A' }}>
             {language === 'en'
@@ -322,7 +378,7 @@ export default function DashboardPage() {
     );
   }
 
-  // ── DASHBOARD NORMAL (1+ propiedades) ──────────────────────────────────────
+  // ── DASHBOARD NORMAL (1+ propiedades) ─────────────────────────────────────
   return (
     <MobileLayout
       title={language === 'en' ? 'My Properties' : 'Mis Propiedades'}
@@ -340,7 +396,6 @@ export default function DashboardPage() {
             </p>
           </div>
         )}
-
         <div className="rounded-xl p-3 shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
           <div className="flex items-center justify-between">
             <div>
@@ -349,13 +404,23 @@ export default function DashboardPage() {
               </p>
               <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>{properties.length}</p>
             </div>
-            <div className="text-right">
-              <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                {language === 'en' ? 'Limit' : 'Límite'}
-              </p>
-              <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>
-                {planInfo?.plan === 'free' ? `${properties.length} / 5` : `${properties.length} / 150`}
-              </p>
+            <div className="flex items-center gap-3">
+              {/* Botón Mis Propuestas */}
+              <button
+                onClick={() => setIsMyProposalsOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-semibold text-xs active:scale-95 transition-transform"
+                style={{ backgroundColor: '#EFF6FF', color: '#2563EB', border: '1.5px solid #BFDBFE' }}
+              >
+                🗂️ {language === 'en' ? 'Proposals' : 'Propuestas'}
+              </button>
+              <div className="text-right">
+                <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                  {language === 'en' ? 'Limit' : 'Límite'}
+                </p>
+                <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>
+                  {planInfo?.plan === 'free' ? `${properties.length} / 5` : `${properties.length} / 150`}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -386,7 +451,6 @@ export default function DashboardPage() {
               {showAdvancedFilters ? '▲' : '▼'}
               {language === 'en' ? 'Advanced Filters' : 'Filtros Avanzados'}
             </button>
-            
             <button
               onClick={() => setIsAltitudeModalOpen(true)}
               className="flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors border-2 shadow-sm"
@@ -424,13 +488,15 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Properties List */}
+      {/* ── PROPERTIES LIST ─────────────────────────────────────────────────── */}
       {filteredProperties.length === 0 ? (
         <div className="px-4 pt-8">
           <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: '#FFFFFF' }}>
             <div className="text-6xl mb-4">{hasActiveFilters ? '🔍' : '🏘️'}</div>
             <h3 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>
-              {hasActiveFilters ? (language === 'en' ? 'No matches' : 'Sin coincidencias') : (language === 'en' ? 'No properties' : 'Sin propiedades')}
+              {hasActiveFilters
+                ? (language === 'en' ? 'No matches' : 'Sin coincidencias')
+                : (language === 'en' ? 'No properties' : 'Sin propiedades')}
             </h3>
             <p className="opacity-70 mb-6" style={{ color: '#0F172A' }}>
               {hasActiveFilters
@@ -449,107 +515,306 @@ export default function DashboardPage() {
           </div>
         </div>
       ) : (
-        <div className="px-4 pt-3 space-y-3 pb-4">
-          {filteredProperties.map((property) => (
-            <div key={property.id} className="rounded-2xl overflow-hidden shadow-lg active:scale-[0.98] transition-transform relative" style={{ backgroundColor: '#FFFFFF' }}>
-              <div className="relative aspect-video bg-gray-200" onClick={() => router.push(`/p/${property.slug}`)}>
-                {property.photos && property.photos.length > 0 ? (
-                  <Image src={property.photos[0]} alt={property.title} fill className="object-contain bg-gray-900" sizes="(max-width: 1024px) 100vw, 50vw" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-6xl">🏠</div>
-                )}
-                <div className="absolute top-3 left-3">
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg ${property.status === 'active' ? 'bg-green-500' : property.status === 'rented' ? 'bg-blue-500' : 'bg-gray-500'}`}>
-                    {property.status === 'active' ? (language === 'en' ? '● Available' : '● Disponible') : property.status === 'rented' ? (language === 'en' ? '● Rented' : '● Alquilada') : (language === 'en' ? '● Sold' : '● Vendida')}
-                  </span>
+        <div className="px-4 pt-3 space-y-2.5 pb-32">
+
+          {/* Hint educativo — aparece una sola vez */}
+          {!hintDismissed && (
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold" style={{ backgroundColor: '#EFF6FF', color: '#1E40AF' }}>
+              <span className="flex-shrink-0">💡</span>
+              <span>
+                {language === 'en'
+                  ? 'Tap any property to see views, publish date and more'
+                  : 'Toca cualquier propiedad para ver vistas, fecha y más'}
+              </span>
+              <button
+                onClick={dismissHint}
+                className="ml-auto flex-shrink-0 opacity-60 active:opacity-100 text-base leading-none"
+                style={{ color: '#1E40AF', background: 'none', border: 'none' }}
+                aria-label="Cerrar"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {filteredProperties.map((property) => {
+            const isSelected = selectedForProposal.has(property.id);
+            const isExpanded = expandedCards.has(property.id);
+            const hasFacebook = !!property.last_facebook_published_at;
+
+            return (
+              <div
+                key={property.id}
+                className="rounded-2xl overflow-hidden relative transition-all"
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  border: isSelected ? '1.5px solid #2563EB' : '1.5px solid transparent',
+                  boxShadow: isSelected
+                    ? '0 0 0 3px rgba(37,99,235,0.10), 0 2px 8px rgba(0,0,0,0.08)'
+                    : '0 2px 8px rgba(0,0,0,0.06)',
+                }}
+              >
+                {/* ── Cuerpo horizontal de la card ── */}
+                <div
+                  className="flex flex-row active:bg-gray-50 transition-colors cursor-pointer"
+                  style={{ height: '110px' }}
+                  onClick={(e) => toggleCardExpand(e, property.id)}
+                >
+                  {/* Foto */}
+                  <div
+                    className="relative flex-shrink-0 overflow-hidden"
+                    style={{ width: '110px', backgroundColor: '#1f2937' }}
+                  >
+                    {property.photos && property.photos.length > 0 ? (
+                      <Image
+                        src={property.photos[0]}
+                        alt={property.title}
+                        fill
+                        className="object-cover"
+                        sizes="110px"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl">🏠</div>
+                    )}
+                    {/* Badge de estado */}
+                    <div className="absolute bottom-1.5 left-1.5">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold text-white ${
+                          property.status === 'active'
+                            ? 'bg-green-500'
+                            : property.status === 'rented'
+                            ? 'bg-blue-500'
+                            : 'bg-gray-500'
+                        }`}
+                      >
+                        {property.status === 'active'
+                          ? (language === 'en' ? '● Available' : '● Disponible')
+                          : property.status === 'rented'
+                          ? (language === 'en' ? '● Rented' : '● Alquilada')
+                          : (language === 'en' ? '● Sold' : '● Vendida')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex flex-col justify-between flex-1 min-w-0 py-2.5 pl-3 pr-10">
+                    <p className="text-[13px] font-semibold leading-snug line-clamp-2" style={{ color: '#0F172A' }}>
+                      {property.title}
+                    </p>
+                    <p className="text-[15px] font-bold" style={{ color: '#2563EB' }}>
+                      {formatPrice(property.price, property.currency_id)}
+                    </p>
+                    {property.city && property.state && (
+                      <p className="text-[11px]" style={{ color: '#6B7280' }}>
+                        📍 {property.city}, {property.state}
+                      </p>
+                    )}
+                    {/* Tags: tipo + venta/alquiler + banderita idioma */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: '#F5EAD3', color: '#44403C' }}
+                      >
+                        🏡 {translatePropertyType(property.property_type, language)}
+                      </span>
+                      <span
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: property.listing_type === 'rent' ? '#FEF3C7' : '#D1FAE5',
+                          color: property.listing_type === 'rent' ? '#92400E' : '#065F46',
+                        }}
+                      >
+                        {property.listing_type === 'rent'
+                          ? (language === 'en' ? 'Rent' : 'Alquiler')
+                          : (language === 'en' ? 'Sale' : 'Venta')}
+                      </span>
+                      {/* Banderita de idioma */}
+                      <span className="text-[13px] leading-none">
+                        {property.language === 'es' ? '🇪🇸' : property.language === 'en' ? '🇺🇸' : '❓'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); setShowMenu(showMenu === property.id ? null : property.id); }} className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform" style={{ backgroundColor: 'rgba(255,255,255,0.95)' }}>
-                  <svg className="w-5 h-5" fill="#0F172A" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+
+                {/* ── Panel expandible (vistas, fecha, FB) ── */}
+                <div
+                  className="overflow-hidden transition-all duration-200 ease-in-out"
+                  style={{
+                    maxHeight: isExpanded ? '38px' : '0px',
+                    opacity: isExpanded ? 1 : 0,
+                    borderTop: isExpanded ? '0.5px solid #F3F4F6' : 'none',
+                  }}
+                >
+                  <div
+                    className="flex items-center gap-2 px-3 py-1.5 text-[11px]"
+                    style={{ color: '#6B7280', whiteSpace: 'nowrap', overflow: 'hidden' }}
+                  >
+                    <span>👁️ {property.views} {language === 'en' ? 'views' : 'vistas'}</span>
+                    <span style={{ color: '#D1D5DB' }}>·</span>
+                    <span>📅 {formatExpandDate(property.created_at)}</span>
+                    <span style={{ color: '#D1D5DB' }}>·</span>
+                    <span style={{ color: hasFacebook ? '#10B981' : '#9CA3AF' }}>
+                      📘 {hasFacebook
+                        ? formatExpandDate(property.last_facebook_published_at)
+                        : (language === 'en' ? 'Not on FB' : 'Sin publicar')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* ── Bookmark (agregar a propuesta) ── */}
+                <button
+                  data-bookmark="true"
+                  onClick={(e) => toggleProposalBookmark(e, property.id)}
+                  className="absolute flex items-center justify-center rounded-lg active:scale-90 transition-transform"
+                  style={{
+                    top: '8px',
+                    right: '8px',
+                    width: '28px',
+                    height: '28px',
+                    backgroundColor: isSelected ? '#EFF6FF' : 'rgba(255,255,255,0.92)',
+                    border: isSelected ? '1.5px solid #BFDBFE' : '1px solid rgba(0,0,0,0.08)',
+                    color: isSelected ? '#2563EB' : '#9CA3AF',
+                    fontSize: '15px',
+                    cursor: 'pointer',
+                  }}
+                  aria-label={language === 'en' ? 'Add to proposal' : 'Agregar a propuesta'}
+                  title={language === 'en' ? 'Add to proposal' : 'Agregar a propuesta'}
+                >
+                  {isSelected ? '🔖' : '🏷️'}
                 </button>
+
+                {/* ── Menú 3 puntos (sin cambios) ── */}
+                <button
+                  data-menu="true"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMenu(showMenu === property.id ? null : property.id);
+                  }}
+                  className="absolute flex items-center justify-center rounded-full active:scale-90 transition-transform shadow-md"
+                  style={{
+                    top: '8px',
+                    right: '44px',
+                    width: '28px',
+                    height: '28px',
+                    backgroundColor: 'rgba(255,255,255,0.95)',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                  aria-label="Opciones"
+                >
+                  <svg className="w-4 h-4" fill="#0F172A" viewBox="0 0 24 24">
+                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                  </svg>
+                </button>
+
+                {/* ── Dropdown menú (sin cambios) ── */}
                 {showMenu === property.id && (
-                  <div className="absolute top-12 right-3 rounded-xl shadow-2xl overflow-hidden z-10 min-w-[160px]" style={{ backgroundColor: '#FFFFFF' }}>
-                    <button onClick={(e) => { e.stopPropagation(); setShowMenu(null); router.push(`/edit-property/${property.id}`); }} className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2" style={{ color: '#0F172A' }}>
+                  <div
+                    className="absolute top-12 right-3 rounded-xl shadow-2xl overflow-hidden z-10 min-w-[160px]"
+                    style={{ backgroundColor: '#FFFFFF' }}
+                  >
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowMenu(null); router.push(`/edit-property/${property.id}`); }}
+                      className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2"
+                      style={{ color: '#0F172A' }}
+                    >
                       <span>✏️</span> {language === 'en' ? 'Edit' : 'Editar'}
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); setShowMenu(null); handleDuplicate(property.id); }} className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t" style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }} disabled={duplicating}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowMenu(null); handleDuplicate(property.id); }}
+                      className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
+                      style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
+                      disabled={duplicating}
+                    >
                       <span>📋</span> {language === 'en' ? 'Duplicate' : 'Duplicar'}
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); if (isFree) return; setShowMenu(null); setTranslateModal({ open: true, propertyId: property.id, currentLang: property.language }); }} className="w-full px-4 py-3 text-left font-semibold transition-colors flex items-center gap-2 border-t" style={{ color: isFree ? '#9CA3AF' : '#0F172A', borderTopColor: '#F3F4F6', cursor: isFree ? 'default' : 'pointer' }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isFree) return;
+                        setShowMenu(null);
+                        setTranslateModal({ open: true, propertyId: property.id, currentLang: property.language });
+                      }}
+                      className="w-full px-4 py-3 text-left font-semibold transition-colors flex items-center gap-2 border-t"
+                      style={{ color: isFree ? '#9CA3AF' : '#0F172A', borderTopColor: '#F3F4F6', cursor: isFree ? 'default' : 'pointer' }}
+                    >
                       <span>🌐</span>
-                      {language === 'en' ? `Translate to ${property.language === 'es' ? 'English' : 'Spanish'}` : `Traducir a ${property.language === 'es' ? 'Inglés' : 'Español'}`}
-                      {isFree && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>Pro</span>}
+                      {language === 'en'
+                        ? `Translate to ${property.language === 'es' ? 'English' : 'Spanish'}`
+                        : `Traducir a ${property.language === 'es' ? 'Inglés' : 'Español'}`}
+                      {isFree && (
+                        <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                          Pro
+                        </span>
+                      )}
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); handleDeleteProperty(property.id); }} className="w-full px-4 py-3 text-left font-semibold active:bg-red-50 transition-colors flex items-center gap-2 border-t" style={{ color: '#DC2626', borderTopColor: '#F3F4F6' }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteProperty(property.id); }}
+                      className="w-full px-4 py-3 text-left font-semibold active:bg-red-50 transition-colors flex items-center gap-2 border-t"
+                      style={{ color: '#DC2626', borderTopColor: '#F3F4F6' }}
+                    >
                       <span>🗑️</span> {language === 'en' ? 'Delete' : 'Eliminar'}
                     </button>
                     <button
                       onClick={async (e) => {
-                        e.stopPropagation(); setShowMenu(null); setIsGeneratingPDF(true);
+                        e.stopPropagation();
+                        setShowMenu(null);
+                        setIsGeneratingPDF(true);
                         try {
                           const propertyResponse = await fetch(`/api/property/${property.slug}`);
                           if (!propertyResponse.ok) throw new Error('No se pudo cargar la propiedad completa');
                           const propertyData = await propertyResponse.json();
                           const fullProperty = propertyData.property;
-                          let customFields = [];
+                          let customFields: any[] = [];
                           if (fullProperty.property_type && fullProperty.listing_type) {
                             try {
                               const params = new URLSearchParams({ property_type: fullProperty.property_type, listing_type: fullProperty.listing_type });
-                              const response = await fetch(`/api/custom-fields/list?${params.toString()}`);
-                              if (response.ok) { const data = await response.json(); customFields = data.fields || []; }
+                              const cfResponse = await fetch(`/api/custom-fields/list?${params.toString()}`);
+                              if (cfResponse.ok) { const cfData = await cfResponse.json(); customFields = cfData.fields || []; }
                             } catch (err) { console.warn('No se pudieron cargar campos personalizados'); }
                           }
                           const currencyInfo = currencies.find(c => c.id === fullProperty.currency_id);
                           const currency = currencyInfo ? { symbol: currencyInfo.symbol, code: currencyInfo.code } : { symbol: '$', code: 'USD' };
                           const { exportPropertyToPDF } = await import('@/lib/exportPDF');
                           await exportPropertyToPDF(fullProperty, fullProperty.agent, customFields, fullProperty.language, currency);
-                        } catch (error) { console.error('Error generando PDF:', error); alert('Error al generar el PDF'); }
-                        finally { setIsGeneratingPDF(false); }
+                        } catch (error) {
+                          console.error('Error generando PDF:', error);
+                          alert('Error al generar el PDF');
+                        } finally {
+                          setIsGeneratingPDF(false);
+                        }
                       }}
                       className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
                       style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
                     >
                       <span>📄</span> {language === 'en' ? 'Export PDF' : 'Exportar PDF'}
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); if (isFree) return; setShowMenu(null); setSelectedPropertyId(property.id); setPublishModalOpen(true); }} className="w-full px-4 py-3 text-left font-semibold transition-colors flex items-center gap-2 border-t" style={{ color: isFree ? '#9CA3AF' : '#0F172A', borderTopColor: '#F3F4F6', cursor: isFree ? 'default' : 'pointer' }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isFree) return;
+                        setShowMenu(null);
+                        setSelectedPropertyId(property.id);
+                        setPublishModalOpen(true);
+                      }}
+                      className="w-full px-4 py-3 text-left font-semibold transition-colors flex items-center gap-2 border-t"
+                      style={{ color: isFree ? '#9CA3AF' : '#0F172A', borderTopColor: '#F3F4F6', cursor: isFree ? 'default' : 'pointer' }}
+                    >
                       <span>📘</span>
                       {language === 'en' ? 'Publish on Facebook' : 'Publicar en Facebook'}
-                      {isFree && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>Pro</span>}
+                      {isFree && (
+                        <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                          Pro
+                        </span>
+                      )}
                     </button>
                   </div>
                 )}
               </div>
+            );
+          })}
 
-              <div className="p-4" onClick={() => router.push(`/p/${property.slug}`)}>
-                <h3 className="font-bold text-lg mb-2 line-clamp-2" style={{ color: '#0F172A' }}>{property.title}</h3>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xl font-bold" style={{ color: '#2563EB' }}>{formatPrice(property.price, property.currency_id)}</span>
-                  {property.city && property.state && <span className="text-sm opacity-70" style={{ color: '#0F172A' }}>📍 {property.city}, {property.state}</span>}
-                </div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: '#F5EAD3', color: '#0F172A' }}>🏡 {translatePropertyType(property.property_type, language)}</span>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: property.listing_type === 'rent' ? '#FEF3C7' : '#D1FAE5', color: property.listing_type === 'rent' ? '#92400E' : '#065F46' }}>
-                    {property.listing_type === 'rent' ? (language === 'en' ? 'Rent' : 'Alquiler') : (language === 'en' ? 'Sale' : 'Venta')}
-                  </span>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: '#DBEAFE', color: '#1E40AF' }}>
-                    {property.language === 'es' ? '🇪🇸' : property.language === 'en' ? '🇺🇸' : '❓'}
-                  </span>
-                </div>
-                {property.last_facebook_published_at && (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg mb-2 text-xs font-semibold" style={{ backgroundColor: '#EFF6FF', color: '#1877F2' }}>
-                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                    {language === 'en' ? 'Published on Facebook · ' : 'Publicado en Facebook · '}
-                    {new Date(property.last_facebook_published_at).toLocaleDateString(language === 'en' ? 'en-US' : 'es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </div>
-                )}
-                <div className="flex justify-between items-center text-xs pt-3 border-t opacity-60" style={{ color: '#0F172A', borderTopColor: '#E5E7EB' }}>
-                  <span>👁️ {property.views} {language === 'en' ? 'views' : 'vistas'}</span>
-                  <span>{new Date(property.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* Banner Pro discreto al final — solo para usuarios Free */}
+          {/* Banner Pro — sin cambios */}
           {isFree && (
             <div className="rounded-2xl p-5 shadow-md mt-2" style={{ backgroundColor: '#EFF6FF', border: '1.5px solid #BFDBFE' }}>
               <p className="font-bold text-sm mb-1" style={{ color: '#1E40AF' }}>
@@ -572,8 +837,46 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* ── FLOATING PROPOSAL BAR ─────────────────────────────────────────── */}
+      {selectedForProposal.size > 0 && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl"
+          style={{ backgroundColor: '#1E3A8A', color: 'white', whiteSpace: 'nowrap' }}
+        >
+          <span
+            className="px-2.5 py-0.5 rounded-full text-sm font-bold"
+            style={{ backgroundColor: '#2563EB' }}
+          >
+            {selectedForProposal.size}
+          </span>
+          <span className="text-sm">
+            {language === 'en' ? 'selected' : 'seleccionadas'}
+          </span>
+          <button
+            onClick={() => setIsCreateProposalOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl text-sm font-bold active:scale-95 transition-transform"
+            style={{ backgroundColor: 'white', color: '#1E3A8A', border: 'none', cursor: 'pointer' }}
+          >
+            {language === 'en' ? 'Create proposal ↗' : 'Crear propuesta ↗'}
+          </button>
+          <button
+            onClick={clearProposalSelection}
+            className="opacity-60 active:opacity-100 text-base"
+            style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}
+            aria-label="Limpiar selección"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* ── MODALES EXISTENTES (sin cambios) ─────────────────────────────── */}
       <GeneratingPDFModal isOpen={isGeneratingPDF} />
-      <FacebookPublishModal isOpen={publishModalOpen} onClose={() => setPublishModalOpen(false)} propertyId={selectedPropertyId || ''} />
+      <FacebookPublishModal
+        isOpen={publishModalOpen}
+        onClose={() => setPublishModalOpen(false)}
+        propertyId={selectedPropertyId || ''}
+      />
 
       {translateModal.open && translateModal.propertyId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
@@ -582,31 +885,60 @@ export default function DashboardPage() {
               🌐 {language === 'en' ? 'Translate property' : 'Traducir la propiedad'}
             </h3>
             <div className="mb-4">
-              <p className="text-sm mb-2" style={{ color: '#0F172A' }}><strong>{language === 'en' ? 'Current language:' : 'Idioma actual:'}</strong> {translateModal.currentLang === 'es' ? '🇪🇸 Español' : '🇺🇸 English'}</p>
-              <p className="text-sm mb-4" style={{ color: '#0F172A' }}><strong>{language === 'en' ? 'Translate to:' : 'Traducir a:'}</strong> {translateModal.currentLang === 'es' ? '🇺🇸 English' : '🇪🇸 Español'}</p>
+              <p className="text-sm mb-2" style={{ color: '#0F172A' }}>
+                <strong>{language === 'en' ? 'Current language:' : 'Idioma actual:'}</strong>{' '}
+                {translateModal.currentLang === 'es' ? '🇪🇸 Español' : '🇺🇸 English'}
+              </p>
+              <p className="text-sm mb-4" style={{ color: '#0F172A' }}>
+                <strong>{language === 'en' ? 'Translate to:' : 'Traducir a:'}</strong>{' '}
+                {translateModal.currentLang === 'es' ? '🇺🇸 English' : '🇪🇸 Español'}
+              </p>
               <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4">
-                <p className="text-sm font-semibold mb-2" style={{ color: '#1E40AF' }}>{language === 'en' ? 'How do you want to create the translation?' : '¿Cómo deseas crear la traducción?'}</p>
+                <p className="text-sm font-semibold mb-2" style={{ color: '#1E40AF' }}>
+                  {language === 'en' ? 'How do you want to create the translation?' : '¿Cómo deseas crear la traducción?'}
+                </p>
                 <label className="flex items-start gap-3 mb-3 cursor-pointer">
                   <input type="radio" name="translate-option" value="ai" defaultChecked className="mt-1" />
                   <div>
-                    <div className="font-semibold text-sm" style={{ color: '#0F172A' }}>🤖 {language === 'en' ? 'With AI (recommended)' : 'Con IA (recomendado)'}</div>
-                    <div className="text-xs" style={{ color: '#6B7280' }}>{language === 'en' ? 'Automatically translates title, description, address and custom fields' : 'Traduce automáticamente título, descripción, dirección y campos personalizados'}</div>
+                    <div className="font-semibold text-sm" style={{ color: '#0F172A' }}>
+                      🤖 {language === 'en' ? 'With AI (recommended)' : 'Con IA (recomendado)'}
+                    </div>
+                    <div className="text-xs" style={{ color: '#6B7280' }}>
+                      {language === 'en'
+                        ? 'Automatically translates title, description, address and custom fields'
+                        : 'Traduce automáticamente título, descripción, dirección y campos personalizados'}
+                    </div>
                   </div>
                 </label>
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input type="radio" name="translate-option" value="manual" className="mt-1" />
                   <div>
-                    <div className="font-semibold text-sm" style={{ color: '#0F172A' }}>✍️ {language === 'en' ? 'Manual' : 'Manual'}</div>
-                    <div className="text-xs" style={{ color: '#6B7280' }}>{language === 'en' ? 'Creates a copy without translating (you will have to edit manually)' : 'Crea una copia sin traducir (tendrás que editar manualmente)'}</div>
+                    <div className="font-semibold text-sm" style={{ color: '#0F172A' }}>
+                      ✍️ {language === 'en' ? 'Manual' : 'Manual'}
+                    </div>
+                    <div className="text-xs" style={{ color: '#6B7280' }}>
+                      {language === 'en'
+                        ? 'Creates a copy without translating (you will have to edit manually)'
+                        : 'Crea una copia sin traducir (tendrás que editar manualmente)'}
+                    </div>
                   </div>
                 </label>
               </div>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                <p className="text-xs" style={{ color: '#92400E' }}>⚠️ <strong>{language === 'en' ? 'Note:' : 'Nota:'}</strong> {language === 'en' ? 'The original property will remain unchanged. You can edit the translation after creating it.' : 'La propiedad original se mantendrá sin cambios. Podrás editar la traducción después de crearla.'}</p>
+                <p className="text-xs" style={{ color: '#92400E' }}>
+                  ⚠️ <strong>{language === 'en' ? 'Note:' : 'Nota:'}</strong>{' '}
+                  {language === 'en'
+                    ? 'The original property will remain unchanged. You can edit the translation after creating it.'
+                    : 'La propiedad original se mantendrá sin cambios. Podrás editar la traducción después de crearla.'}
+                </p>
               </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setTranslateModal({ open: false, propertyId: null, currentLang: null })} className="flex-1 py-3 rounded-xl font-bold border-2" style={{ borderColor: '#E5E7EB', color: '#0F172A' }}>
+              <button
+                onClick={() => setTranslateModal({ open: false, propertyId: null, currentLang: null })}
+                className="flex-1 py-3 rounded-xl font-bold border-2"
+                style={{ borderColor: '#E5E7EB', color: '#0F172A' }}
+              >
                 {language === 'en' ? 'Cancel' : 'Cancelar'}
               </button>
               <button
@@ -614,15 +946,29 @@ export default function DashboardPage() {
                   const useAI = (document.querySelector('input[name="translate-option"]:checked') as HTMLInputElement)?.value === 'ai';
                   const targetLang = translateModal.currentLang === 'es' ? 'en' : 'es';
                   setTranslateModal({ open: false, propertyId: null, currentLang: null });
-                  setActionModal({ open: true, type: 'translating', message: useAI ? (language === 'en' ? 'Translating with AI...' : 'Traduciendo con IA...') : (language === 'en' ? 'Creating copy...' : 'Creando copia...') });
+                  setActionModal({
+                    open: true,
+                    type: 'translating',
+                    message: useAI
+                      ? (language === 'en' ? 'Translating with AI...' : 'Traduciendo con IA...')
+                      : (language === 'en' ? 'Creating copy...' : 'Creando copia...'),
+                  });
                   try {
-                    const response = await fetch('/api/property/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ propertyId: translateModal.propertyId, targetLanguage: targetLang, useAI }) });
+                    const response = await fetch('/api/property/translate', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ propertyId: translateModal.propertyId, targetLanguage: targetLang, useAI }),
+                    });
                     if (!response.ok) throw new Error('Error al traducir');
                     const { newPropertyId } = await response.json();
                     await loadProperties();
                     await refreshSession();
                     setActionModal({ open: false, type: 'translating', message: '' });
-                    alert(useAI ? (language === 'en' ? '✅ Property translated with AI. Review and adjust if necessary.' : '✅ Propiedad traducida con IA. Revisa y ajusta si es necesario.') : (language === 'en' ? '✅ Property cloned. Edit the content manually.' : '✅ Propiedad clonada. Edita el contenido manualmente.'));
+                    alert(
+                      useAI
+                        ? (language === 'en' ? '✅ Property translated with AI. Review and adjust if necessary.' : '✅ Propiedad traducida con IA. Revisa y ajusta si es necesario.')
+                        : (language === 'en' ? '✅ Property cloned. Edit the content manually.' : '✅ Propiedad clonada. Edita el contenido manualmente.')
+                    );
                     router.push(`/edit-property/${newPropertyId}`);
                   } catch (error) {
                     setActionModal({ open: false, type: 'translating', message: '' });
@@ -643,13 +989,27 @@ export default function DashboardPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <div className="text-center mb-4"><span className="text-4xl">🔒</span></div>
-            <h3 className="text-lg font-bold text-center mb-2" style={{ color: '#0F172A' }}>{language === 'en' ? 'Property limit reached' : 'Límite de propiedades alcanzado'}</h3>
-            <p className="text-sm text-center mb-5 opacity-70" style={{ color: '#0F172A' }}>{language === 'en' ? 'Your current plan is Free. Please upgrade to Pro to keep adding more properties.' : 'Tu plan actual es Free. Por favor actualiza tu plan a Pro para poder seguir agregando más propiedades.'}</p>
+            <h3 className="text-lg font-bold text-center mb-2" style={{ color: '#0F172A' }}>
+              {language === 'en' ? 'Property limit reached' : 'Límite de propiedades alcanzado'}
+            </h3>
+            <p className="text-sm text-center mb-5 opacity-70" style={{ color: '#0F172A' }}>
+              {language === 'en'
+                ? 'Your current plan is Free. Please upgrade to Pro to keep adding more properties.'
+                : 'Tu plan actual es Free. Por favor actualiza tu plan a Pro para poder seguir agregando más propiedades.'}
+            </p>
             <div className="flex flex-col gap-2">
-              <a href="/pro" className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2" style={{ backgroundColor: '#2563EB' }}>
+              <a
+                href="/pro"
+                className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+                style={{ backgroundColor: '#2563EB' }}
+              >
                 🚀 {language === 'en' ? 'Upgrade to Pro' : 'Actualizar a Pro'}
               </a>
-              <button onClick={() => setShowLimitModal(false)} className="w-full py-3 rounded-xl font-bold border-2 active:scale-95 transition-transform" style={{ borderColor: '#E5E7EB', color: '#0F172A' }}>
+              <button
+                onClick={() => setShowLimitModal(false)}
+                className="w-full py-3 rounded-xl font-bold border-2 active:scale-95 transition-transform"
+                style={{ borderColor: '#E5E7EB', color: '#0F172A' }}
+              >
                 {language === 'en' ? 'Close' : 'Cerrar'}
               </button>
             </div>
@@ -658,10 +1018,24 @@ export default function DashboardPage() {
       )}
 
       <PropertyActionModal isOpen={actionModal.open} message={actionModal.message} type={actionModal.type} />
-      {/* MODAL DE ALTURA */}
-      <CalculateAltitudeModal 
-        isOpen={isAltitudeModalOpen} 
-        onClose={() => setIsAltitudeModalOpen(false)} 
+
+      <CalculateAltitudeModal
+        isOpen={isAltitudeModalOpen}
+        onClose={() => setIsAltitudeModalOpen(false)}
+      />
+
+      <MyProposalsModal
+        isOpen={isMyProposalsOpen}
+        onClose={() => setIsMyProposalsOpen(false)}
+      />
+
+      <CreateProposalModal
+        isOpen={isCreateProposalOpen}
+        onClose={() => setIsCreateProposalOpen(false)}
+        selectedPropertyIds={Array.from(selectedForProposal)}
+        onProposalCreated={(proposalId, publicUrl) => {
+          clearProposalSelection();
+        }}
       />
     </MobileLayout>
   );

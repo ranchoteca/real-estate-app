@@ -16,6 +16,7 @@ interface Agent {
   bio: string | null;
   profile_photo: string | null;
   card_profile_photo: string | null;
+  portfolio_template: 'minimalist' | 'dynamic' | 'organic' | null;
 }
 
 interface Property {
@@ -23,6 +24,7 @@ interface Property {
   title: string;
   slug: string;
   price: number | null;
+  currency_id: string | null;
   city: string | null;
   state: string | null;
   property_type: string | null;
@@ -33,6 +35,8 @@ interface Property {
   created_at: string;
   language: 'es' | 'en';
 }
+
+type TemplateStyle = 'minimalist' | 'dynamic' | 'organic';
 
 const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string => {
   const translations: Record<string, Record<'es' | 'en', string>> = {
@@ -51,8 +55,62 @@ const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string =
 
 const detectBrowserLanguage = (): 'es' | 'en' => {
   if (typeof window === 'undefined') return 'es';
-  const browserLang = navigator.language.toLowerCase();
-  return browserLang.startsWith('es') ? 'es' : 'en';
+  return navigator.language.toLowerCase().startsWith('es') ? 'es' : 'en';
+};
+
+// ── Colores por plantilla ─────────────────────────────────────────────────────
+const TEMPLATE_THEME: Record<TemplateStyle, {
+  headerBg: string;
+  headerText: string;
+  bodyBg: string;
+  cardBg: string;
+  accent: string;
+  accentText: string;
+  border: string;
+  tagBg: string;
+  fontHeader: string;
+  fontBody: string;
+  rounded: string;
+}> = {
+  minimalist: {
+    headerBg: '#FAFAF8',
+    headerText: '#1A1714',
+    bodyBg: '#FAFAF8',
+    cardBg: '#FFFFFF',
+    accent: '#1A1714',
+    accentText: '#FFFFFF',
+    border: '#E8E4DC',
+    tagBg: '#F0EDE8',
+    fontHeader: "'Cormorant Garamond', Georgia, serif",
+    fontBody: "'Jost', system-ui, sans-serif",
+    rounded: '4px',
+  },
+  dynamic: {
+    headerBg: '#2563EB',
+    headerText: '#FFFFFF',
+    bodyBg: '#0F172A',
+    cardBg: '#1E293B',
+    accent: '#2563EB',
+    accentText: '#FFFFFF',
+    border: 'rgba(255,255,255,0.06)',
+    tagBg: '#334155',
+    fontHeader: "'Barlow Condensed', sans-serif",
+    fontBody: "'Barlow', system-ui, sans-serif",
+    rounded: '8px',
+  },
+  organic: {
+    headerBg: '#4A3728',
+    headerText: '#FDF6EE',
+    bodyBg: '#F7F3EE',
+    cardBg: '#FFFFFF',
+    accent: '#4A3728',
+    accentText: '#FDF6EE',
+    border: '#EDE8E0',
+    tagBg: '#F0EDE8',
+    fontHeader: "'DM Serif Display', Georgia, serif",
+    fontBody: "'DM Sans', system-ui, sans-serif",
+    rounded: '20px',
+  },
 };
 
 export default function AgentPortfolioPage() {
@@ -62,10 +120,7 @@ export default function AgentPortfolioPage() {
   const { t } = useTranslation();
   const [language, setLanguage] = useState<'es' | 'en'>('es');
 
-  // Detectar idioma del navegador al montar
-  useEffect(() => {
-    setLanguage(detectBrowserLanguage());
-  }, []);
+  useEffect(() => { setLanguage(detectBrowserLanguage()); }, []);
 
   const [agent, setAgent] = useState<Agent | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -74,48 +129,34 @@ export default function AgentPortfolioPage() {
   const [filter, setFilter] = useState<'all' | 'active' | 'sold' | 'rented'>('active');
   const [languageFilter, setLanguageFilter] = useState<'all' | 'es' | 'en'>('all');
   const [currencies, setCurrencies] = useState<any[]>([]);
+  const [template, setTemplate] = useState<TemplateStyle>('minimalist');
 
-  useEffect(() => {
-    if (username) {
-      loadAgentData();
-    }
-  }, [username]);
-
-  useEffect(() => {
-    loadCurrencies();
-  }, []);
+  useEffect(() => { if (username) loadAgentData(); }, [username]);
+  useEffect(() => { loadCurrencies(); }, []);
 
   const loadCurrencies = async () => {
     try {
-      const response = await fetch('/api/currencies/list');
-      if (response.ok) {
-        const data = await response.json();
-        setCurrencies(data.currencies || []);
-      }
-    } catch (error) {
-      console.error('Error loading currencies:', error);
-    }
+      const res = await fetch('/api/currencies/list');
+      if (res.ok) { const data = await res.json(); setCurrencies(data.currencies || []); }
+    } catch {}
   };
 
   const loadAgentData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/agent/portfolio/${username}`);
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          setError(language === 'en' ? 'Agent not found' : 'Agente no encontrado');
-        } else {
-          setError(language === 'en' ? 'Error loading portfolio' : 'Error al cargar el portfolio');
-        }
+      const res = await fetch(`/api/agent/portfolio/${username}`);
+      if (!res.ok) {
+        setError(language === 'en' ? 'Agent not found' : 'Agente no encontrado');
         return;
       }
-      
-      const data = await response.json();
+      const data = await res.json();
       setAgent(data.agent);
       setProperties(data.properties);
-    } catch (err) {
-      console.error('Error loading portfolio:', err);
+      // Aplicar plantilla del agente
+      if (data.agent?.portfolio_template) {
+        setTemplate(data.agent.portfolio_template);
+      }
+    } catch {
       setError(language === 'en' ? 'Error loading portfolio' : 'Error al cargar el portfolio');
     } finally {
       setLoading(false);
@@ -124,25 +165,16 @@ export default function AgentPortfolioPage() {
 
   const formatPrice = (price: number | null, currencyId: string | null) => {
     if (!price) return language === 'en' ? 'Price upon request' : 'Precio a consultar';
-    
     const currency = currencies.find(c => c.id === currencyId);
     const symbol = currency?.symbol || '$';
-    
-    return `${symbol}${new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price)}`;
+    return `${symbol}${new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(price)}`;
   };
 
   const filteredProperties = properties.filter(p => {
-    // Filtro por estado
     if (filter === 'active' && p.status !== 'active') return false;
     if (filter === 'sold' && p.status !== 'sold') return false;
     if (filter === 'rented' && p.status !== 'rented') return false;
-    
-    // Filtro por idioma
     if (languageFilter !== 'all' && p.language !== languageFilter) return false;
-    
     return true;
   });
 
@@ -154,6 +186,25 @@ export default function AgentPortfolioPage() {
     totalViews: properties.reduce((sum, p) => sum + p.views, 0),
   };
 
+  const openProperty = (slug: string) => {
+    router.push(`/p/${slug}?from=portfolio`);
+  };
+
+  const sharePortfolio = () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({
+        title: `Portfolio ${language === 'en' ? 'of' : 'de'} ${agent?.full_name || agent?.name}`,
+        text: language === 'en' ? 'Check out my properties' : 'Mira mis propiedades',
+        url,
+      });
+    } else {
+      navigator.clipboard.writeText(url);
+      alert(language === 'en' ? 'Link copied!' : '¡Link copiado!');
+    }
+  };
+
+  // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5EAD3' }}>
@@ -167,6 +218,7 @@ export default function AgentPortfolioPage() {
     );
   }
 
+  // ── Error ─────────────────────────────────────────────────────────────────
   if (error || !agent) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5EAD3' }}>
@@ -175,11 +227,7 @@ export default function AgentPortfolioPage() {
           <h1 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
             {error || (language === 'en' ? 'Agent not found' : 'Agente no encontrado')}
           </h1>
-          <button
-            onClick={() => router.push('/')}
-            className="mt-6 px-6 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform hover:opacity-90"
-            style={{ backgroundColor: '#2563EB' }}
-          >
+          <button onClick={() => router.push('/')} className="mt-6 px-6 py-3 rounded-xl font-bold text-white" style={{ backgroundColor: '#2563EB' }}>
             ← {language === 'en' ? 'Back to home' : 'Volver al inicio'}
           </button>
         </div>
@@ -187,342 +235,221 @@ export default function AgentPortfolioPage() {
     );
   }
 
+  const th = TEMPLATE_THEME[template];
+
+  // ── Render con plantilla ──────────────────────────────────────────────────
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F5EAD3' }}>
-      {/* Header */}
-      <header className="shadow-lg" style={{ backgroundColor: '#0F172A' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🏠</span>
-              <span className="text-xl font-bold text-white">{agent?.brokerage || 'Flow Estate AI'}</span>
-            </div>
-            <button
-              onClick={() => router.push('/')}
-              className="text-white hover:opacity-80 font-semibold transition-opacity"
-            >
-              {language === 'en' ? 'Home' : 'Inicio'}
-            </button>
+    <div style={{ minHeight: '100vh', backgroundColor: th.bodyBg, fontFamily: th.fontBody }}>
+
+      {/* Fonts */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Jost:wght@300;400;500&family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
+        .portfolio-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .portfolio-card:hover { transform: translateY(-3px); }
+      `}</style>
+
+      {/* ── HEADER ─────────────────────────────────────────────────────────── */}
+      <header style={{ backgroundColor: th.headerBg, borderBottom: `1px solid ${th.border}`, padding: '20px 16px' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '22px' }}>🏠</span>
+            <span style={{ fontFamily: th.fontHeader, fontSize: '18px', fontWeight: template === 'dynamic' ? 800 : 600, color: th.headerText, textTransform: template === 'dynamic' ? 'uppercase' : 'none' }}>
+              {agent.brokerage || 'Flow Estate AI'}
+            </span>
           </div>
+          <button onClick={() => router.push('/')} style={{ fontFamily: th.fontBody, fontSize: '13px', fontWeight: 500, color: th.headerText, background: 'none', border: 'none', cursor: 'pointer', opacity: 0.7 }}>
+            {language === 'en' ? 'Home' : 'Inicio'}
+          </button>
         </div>
       </header>
 
-      {/* Share Button - Mobile Only */}
-      <div className="px-4 pt-4 lg:hidden">
-        <button
-          onClick={() => {
-            const url = window.location.href;
-            if (navigator.share) {
-              navigator.share({
-                title: `Portfolio ${language === 'en' ? 'of' : 'de'} ${agent.full_name || agent.name}`,
-                text: language === 'en' ? 'Check out my properties for sale' : 'Mira mis propiedades en venta',
-                url: url,
-              });
-            } else {
-              navigator.clipboard.writeText(url);
-              alert(language === 'en' ? 'Link copied!' : '¡Link copiado!');
-            }
-          }}
-          className="w-full py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 hover:opacity-90"
-          style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}
-        >
+      {/* ── SHARE BUTTON MOBILE ───────────────────────────────────────────── */}
+      <div className="lg:hidden px-4 pt-4">
+        <button onClick={sharePortfolio} className="w-full py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2" style={{ backgroundColor: th.accent, borderRadius: th.rounded }}>
           <span>📤</span> {language === 'en' ? 'Share My Portfolio' : 'Compartir Mi Portfolio'}
         </button>
       </div>
 
-      {/* Agent Info Section */}
-      <section className="py-8 lg:py-12 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div 
-            className="rounded-3xl p-6 lg:p-8 shadow-xl"
-            style={{ backgroundColor: '#FFFFFF' }}
-          >
-            <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6">
-              {/* Avatar */}
-              <div 
-                className="w-24 h-24 lg:w-32 lg:h-32 rounded-full flex items-center justify-center text-4xl lg:text-5xl font-bold text-white shadow-xl flex-shrink-0"
-                style={{ backgroundColor: '#2563EB' }}
-              >
-                {(agent.card_profile_photo || agent.profile_photo) ? (
-                  <Image
-                    src={agent.card_profile_photo || agent.profile_photo!}
-                    alt={agent.name || 'Agent'}
-                    width={128}
-                    height={128}
-                    className="rounded-full object-cover w-full h-full"
-                    sizes="128px"
-                  />
-                ) : (
-                  (agent.full_name || agent.name || 'A').charAt(0).toUpperCase()
-                )}
-              </div>
+      {/* ── AGENT INFO ────────────────────────────────────────────────────── */}
+      <section style={{ padding: '24px 16px' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <div style={{ backgroundColor: th.cardBg, borderRadius: th.rounded, padding: '24px', border: `1px solid ${th.border}`, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-              {/* Info */}
-              <div className="flex-1 text-center lg:text-left">
-                <h1 className="text-2xl lg:text-3xl font-bold mb-2" style={{ color: '#0F172A' }}>
-                  {agent.full_name || agent.name}
-                </h1>
-                {agent.brokerage && (
-                  <p className="text-base lg:text-lg mb-3 opacity-70" style={{ color: '#0F172A' }}>
-                    {agent.brokerage}
-                  </p>
-                )}
-                {agent.bio && (
-                  <p className="mb-4 opacity-80 text-sm lg:text-base" style={{ color: '#0F172A' }}>
-                    {agent.bio}
-                  </p>
-                )}
-                
-                {/* Contact Buttons */}
-                <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
-                  {agent.phone && (
-                    <>
-                      <a
-                        href={`tel:${agent.phone}`}
-                        className="px-4 lg:px-5 py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform hover:opacity-90"
-                        style={{ backgroundColor: '#2563EB' }}
-                      >
-                        📞 {language === 'en' ? 'Call' : 'Llamar'}
-                      </a>
-                      <a
-                        href={`https://wa.me/${agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(language === 'en' ? 'Hi, I saw your portfolio and I\'m interested in contacting you' : 'Hola, vi tu portfolio y me interesa contactarte')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-4 lg:px-5 py-2 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform hover:opacity-90"
-                        style={{ backgroundColor: '#25D366' }}
-                      >
-                        💬 WhatsApp
-                      </a>
-                    </>
+              {/* Avatar + info */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ width: '72px', height: '72px', borderRadius: '50%', backgroundColor: th.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: 700, color: th.accentText, flexShrink: 0, overflow: 'hidden' }}>
+                  {(agent.card_profile_photo || agent.profile_photo) ? (
+                    <Image src={agent.card_profile_photo || agent.profile_photo!} alt={agent.name || 'Agent'} width={72} height={72} style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '50%' }} />
+                  ) : (
+                    <span style={{ fontFamily: th.fontHeader }}>{(agent.full_name || agent.name || 'A').charAt(0).toUpperCase()}</span>
                   )}
-                  <a
-                    href={`mailto:${agent.email}?subject=${encodeURIComponent(language === 'en' ? 'Inquiry from your portfolio' : 'Consulta desde tu portfolio')}`}
-                    className="px-4 lg:px-5 py-2 rounded-xl font-bold border-2 shadow-lg active:scale-95 transition-transform hover:bg-gray-50"
-                    style={{ 
-                      borderColor: '#2563EB',
-                      color: '#2563EB',
-                      backgroundColor: '#FFFFFF'
-                    }}
-                  >
-                    ✉️ Email
-                  </a>
-                  {/* Desktop Share Button */}
-                  <button
-                    onClick={() => {
-                      const url = window.location.href;
-                      if (navigator.share) {
-                        navigator.share({
-                          title: `Portfolio ${language === 'en' ? 'of' : 'de'} ${agent.full_name || agent.name}`,
-                          text: language === 'en' ? 'Check out my properties for sale' : 'Mira mis propiedades en venta',
-                          url: url,
-                        });
-                      } else {
-                        navigator.clipboard.writeText(url);
-                        alert(language === 'en' ? 'Link copied!' : '¡Link copiado!');
-                      }
-                    }}
-                    className="hidden lg:inline-flex px-4 lg:px-5 py-2 rounded-xl font-bold shadow-lg active:scale-95 transition-transform hover:opacity-90 items-center gap-2"
-                    style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}
-                  >
-                    <span>📤</span> {language === 'en' ? 'Share Portfolio' : 'Compartir Portfolio'}
-                  </button>
+                </div>
+                <div>
+                  <h1 style={{ fontFamily: th.fontHeader, fontSize: 'clamp(20px,4vw,28px)', fontWeight: template === 'dynamic' ? 800 : 400, color: template === 'dynamic' ? '#F1F5F9' : '#0F172A', fontStyle: template === 'minimalist' || template === 'organic' ? 'italic' : 'normal', textTransform: template === 'dynamic' ? 'uppercase' : 'none', marginBottom: '4px' }}>
+                    {agent.full_name || agent.name}
+                  </h1>
+                  {agent.brokerage && (
+                    <p style={{ fontFamily: th.fontBody, fontSize: '13px', color: template === 'dynamic' ? '#64748B' : '#6B7280', marginBottom: '4px' }}>{agent.brokerage}</p>
+                  )}
+                  {agent.bio && (
+                    <p style={{ fontFamily: th.fontBody, fontSize: '13px', color: template === 'dynamic' ? '#64748B' : '#6B7280', lineHeight: 1.5 }}>{agent.bio}</p>
+                  )}
                 </div>
               </div>
-            </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8 pt-8 border-t" style={{ borderColor: '#E5E7EB' }}>
-              <div className="text-center">
-                <div className="text-2xl lg:text-3xl font-bold mb-1" style={{ color: '#2563EB' }}>
-                  {stats.total}
-                </div>
-                <div className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
-                  {language === 'en' ? 'Properties' : 'Propiedades'}
-                </div>
+              {/* Contact buttons */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {agent.phone && (
+                  <>
+                    <a href={`tel:${agent.phone}`} style={{ padding: '10px 18px', backgroundColor: th.accent, color: th.accentText, borderRadius: th.rounded, textDecoration: 'none', fontSize: '13px', fontWeight: 600, fontFamily: th.fontBody }}>
+                      📞 {language === 'en' ? 'Call' : 'Llamar'}
+                    </a>
+                    <a href={`https://wa.me/${agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(language === 'en' ? 'Hi, I saw your portfolio' : 'Hola, vi tu portfolio')}`} target="_blank" rel="noopener noreferrer" style={{ padding: '10px 18px', backgroundColor: '#25D366', color: '#FFFFFF', borderRadius: th.rounded, textDecoration: 'none', fontSize: '13px', fontWeight: 600, fontFamily: th.fontBody }}>
+                      💬 WhatsApp
+                    </a>
+                  </>
+                )}
+                <a href={`mailto:${agent.email}`} style={{ padding: '10px 18px', backgroundColor: 'transparent', color: template === 'dynamic' ? '#64748B' : th.accent, borderRadius: th.rounded, textDecoration: 'none', fontSize: '13px', fontWeight: 600, fontFamily: th.fontBody, border: `1px solid ${th.border}` }}>
+                  ✉️ Email
+                </a>
+                <button onClick={sharePortfolio} className="hidden lg:inline-flex" style={{ padding: '10px 18px', backgroundColor: th.accent, color: th.accentText, borderRadius: th.rounded, fontSize: '13px', fontWeight: 600, fontFamily: th.fontBody, border: 'none', cursor: 'pointer', alignItems: 'center', gap: '6px' }}>
+                  📤 {language === 'en' ? 'Share Portfolio' : 'Compartir Portfolio'}
+                </button>
               </div>
-              <div className="text-center">
-                <div className="text-2xl lg:text-3xl font-bold mb-1" style={{ color: '#10B981' }}>
-                  {stats.active}
-                </div>
-                <div className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
-                  {language === 'en' ? 'Available' : 'Disponibles'}
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl lg:text-3xl font-bold mb-1" style={{ color: '#6B7280' }}>
-                  {stats.sold}
-                </div>
-                <div className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
-                  {language === 'en' ? 'Sold' : 'Vendidas'}
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl lg:text-3xl font-bold mb-1" style={{ color: '#6B7280' }}>
-                  {stats.rented}
-                </div>
-                <div className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
-                  {language === 'en' ? 'Rented' : 'Alquiladas'}
-                </div>
-              </div>
-              <div className="text-center col-span-2 md:col-span-1">
-                <div className="text-2xl lg:text-3xl font-bold mb-1" style={{ color: '#F59E0B' }}>
-                  {stats.totalViews}
-                </div>
-                <div className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
-                  {language === 'en' ? 'Total Views' : 'Vistas Totales'}
-                </div>
+
+              {/* Stats */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', paddingTop: '16px', borderTop: `1px solid ${th.border}` }}>
+                {[
+                  { label: language === 'en' ? 'Properties' : 'Propiedades', value: stats.total, color: th.accent },
+                  { label: language === 'en' ? 'Available' : 'Disponibles', value: stats.active, color: '#10B981' },
+                  { label: language === 'en' ? 'Sold' : 'Vendidas', value: stats.sold, color: '#6B7280' },
+                  { label: language === 'en' ? 'Rented' : 'Alquiladas', value: stats.rented, color: '#6B7280' },
+                  { label: language === 'en' ? 'Views' : 'Vistas', value: stats.totalViews, color: '#F59E0B' },
+                ].map((stat, i) => (
+                  <div key={i} style={{ textAlign: 'center' }}>
+                    <div style={{ fontFamily: th.fontHeader, fontSize: 'clamp(18px,3vw,26px)', fontWeight: template === 'dynamic' ? 800 : 600, color: stat.color }}>{stat.value}</div>
+                    <div style={{ fontFamily: th.fontBody, fontSize: '10px', color: template === 'dynamic' ? '#64748B' : '#6B7280', marginTop: '2px' }}>{stat.label}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Properties Section */}
-      <section className="pb-12 px-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Filter Tabs */}
-          <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide">
+      {/* ── FILTER TABS ───────────────────────────────────────────────────── */}
+      <section style={{ padding: '0 16px 16px' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
             {[
               { key: 'active', label: language === 'en' ? '🟢 Available' : '🟢 Disponibles', count: stats.active },
               { key: 'all', label: language === 'en' ? '📋 All' : '📋 Todas', count: stats.total },
               { key: 'sold', label: language === 'en' ? '✅ Sold' : '✅ Vendidas', count: stats.sold },
               { key: 'rented', label: language === 'en' ? '🔑 Rented' : '🔑 Alquiladas', count: stats.rented },
             ].map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setFilter(tab.key as any)}
-                className={`px-4 lg:px-5 py-3 rounded-xl font-bold whitespace-nowrap transition-all active:scale-95 hover:scale-105 ${
-                  filter === tab.key ? 'shadow-lg' : ''
-                }`}
-                style={{
-                  backgroundColor: filter === tab.key ? '#2563EB' : '#FFFFFF',
-                  color: filter === tab.key ? '#FFFFFF' : '#0F172A',
-                }}
-              >
+              <button key={tab.key} onClick={() => setFilter(tab.key as any)} style={{ padding: '10px 16px', borderRadius: th.rounded, fontWeight: 700, whiteSpace: 'nowrap', backgroundColor: filter === tab.key ? th.accent : th.cardBg, color: filter === tab.key ? th.accentText : (template === 'dynamic' ? '#64748B' : '#0F172A'), border: `1px solid ${th.border}`, cursor: 'pointer', fontFamily: th.fontBody, fontSize: '13px' }}>
                 {tab.label} ({tab.count})
               </button>
             ))}
           </div>
+        </div>
+      </section>
 
-          {/* Language Filter Tabs */}
-          <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide">
-            {[
-              { key: 'all', label: language === 'en' ? '🌐 All' : '🌐 Todos', count: properties.length },
-              { key: 'es', label: '🇪🇸 ES • Español', count: properties.filter(p => p.language === 'es').length },
-              { key: 'en', label: '🇺🇸 EN • English', count: properties.filter(p => p.language === 'en').length },
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setLanguageFilter(tab.key as any)}
-                className={`px-4 lg:px-5 py-2.5 rounded-xl font-bold whitespace-nowrap transition-all active:scale-95 hover:scale-105 ${
-                  languageFilter === tab.key ? 'shadow-lg' : ''
-                }`}
-                style={{
-                  backgroundColor: languageFilter === tab.key ? '#10B981' : '#FFFFFF',
-                  color: languageFilter === tab.key ? '#FFFFFF' : '#0F172A',
-                }}
-              >
-                {tab.label} ({tab.count})
-              </button>
-            ))}
-          </div>
+      {/* Language filter tabs */}
+      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', marginTop: '8px' }}>
+        {[
+          { key: 'all', label: language === 'en' ? '🌐 All' : '🌐 Todos', count: properties.length },
+          { key: 'es', label: '🇪🇸 ES', count: properties.filter(p => p.language === 'es').length },
+          { key: 'en', label: '🇺🇸 EN', count: properties.filter(p => p.language === 'en').length },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setLanguageFilter(tab.key as any)}
+            style={{
+              padding: '8px 14px',
+              borderRadius: th.rounded,
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              backgroundColor: languageFilter === tab.key ? '#10B981' : th.cardBg,
+              color: languageFilter === tab.key ? '#FFFFFF' : (template === 'dynamic' ? '#64748B' : '#0F172A'),
+              border: `1px solid ${th.border}`,
+              cursor: 'pointer',
+              fontFamily: th.fontBody,
+              fontSize: '13px',
+            }}
+          >
+            {tab.label} ({tab.count})
+          </button>
+        ))}
+      </div>
 
-          {/* Properties Grid */}
+      {/* ── PROPERTIES GRID ───────────────────────────────────────────────── */}
+      <section style={{ padding: '0 16px 48px' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
           {filteredProperties.length === 0 ? (
-            <div 
-              className="rounded-2xl p-12 text-center"
-              style={{ backgroundColor: '#FFFFFF' }}
-            >
-              <div className="text-5xl mb-4">🏘️</div>
-              <p className="text-lg" style={{ color: '#0F172A' }}>
-                {language === 'en' 
-                  ? `No ${filter === 'active' ? 'available' : filter === 'sold' ? 'sold' : filter === 'rented' ? 'rented' : ''} properties yet`
-                  : `No hay propiedades ${filter === 'active' ? 'disponibles' : filter === 'sold' ? 'vendidas' : filter === 'rented' ? 'alquiladas' : ''} aún`
-                }
+            <div style={{ backgroundColor: th.cardBg, borderRadius: th.rounded, padding: '48px', textAlign: 'center', border: `1px solid ${th.border}` }}>
+              <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏘️</div>
+              <p style={{ fontFamily: th.fontBody, color: template === 'dynamic' ? '#64748B' : '#6B7280' }}>
+                {language === 'en' ? 'No properties found' : 'No hay propiedades'}
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
               {filteredProperties.map((property) => (
                 <div
                   key={property.id}
-                  onClick={() => router.push(`/p/${property.slug}`)}
-                  className="rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all cursor-pointer active:scale-[0.98] hover:scale-[1.02]"
-                  style={{ backgroundColor: '#FFFFFF' }}
+                  className="portfolio-card"
+                  onClick={() => openProperty(property.slug)}
+                  style={{ backgroundColor: th.cardBg, borderRadius: th.rounded, overflow: 'hidden', cursor: 'pointer', border: `1px solid ${th.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
                 >
-                  {/* Image */}
-                  <div className="relative aspect-video bg-gray-200">
-                    {property.photos && property.photos.length > 0 ? (
-                      <Image
-                        src={property.photos[0]}
-                        alt={property.title}
-                        fill
-                        className="object-contain bg-gray-900"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      />
+                  {/* Foto */}
+                  <div style={{ position: 'relative', aspectRatio: '16/9', overflow: 'hidden', backgroundColor: template === 'dynamic' ? '#334155' : '#F0EDE8' }}>
+                    {property.photos?.[0] ? (
+                      <Image src={property.photos[0]} alt={property.title} fill style={{ objectFit: 'cover' }} sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-5xl">
-                        🏠
-                      </div>
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>🏠</div>
                     )}
-                    
-                    {/* Status Badge */}
-                    <div className="absolute top-3 left-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg ${
-                        property.status === 'active' ? 'bg-green-500' : property.status === 'rented' ? 'bg-blue-500' : 'bg-gray-500'
-                      }`}>
-                        {property.status === 'active' 
-                          ? (language === 'en' ? '● Available' : '● Disponible')
-                          : property.status === 'rented' 
-                            ? (language === 'en' ? '● Rented' : '● Alquilada')
-                            : (language === 'en' ? '● Sold' : '● Vendida')
-                        }
+                    {/* Status badge */}
+                    <div style={{ position: 'absolute', top: '10px', left: '10px' }}>
+                      <span style={{ padding: '3px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 700, color: '#FFFFFF', backgroundColor: property.status === 'active' ? '#10B981' : property.status === 'rented' ? '#3B82F6' : '#6B7280', fontFamily: th.fontBody }}>
+                        {property.status === 'active' ? (language === 'en' ? '● Available' : '● Disponible') : property.status === 'rented' ? (language === 'en' ? '● Rented' : '● Alquilada') : (language === 'en' ? '● Sold' : '● Vendida')}
                       </span>
                     </div>
                   </div>
 
                   {/* Content */}
-                  <div className="p-4">
-                    <h3 className="font-bold text-base lg:text-lg mb-2 line-clamp-2" style={{ color: '#0F172A' }}>
+                  <div style={{ padding: '14px 16px 16px' }}>
+                    <h3 style={{ fontFamily: th.fontHeader, fontSize: template === 'dynamic' ? '16px' : '15px', fontWeight: template === 'dynamic' ? 700 : 400, color: template === 'dynamic' ? '#F1F5F9' : '#0F172A', lineHeight: 1.3, marginBottom: '8px', fontStyle: template === 'minimalist' || template === 'organic' ? 'italic' : 'normal', textTransform: template === 'dynamic' ? 'uppercase' : 'none', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {property.title}
                     </h3>
-                    
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-lg lg:text-xl font-bold" style={{ color: '#2563EB' }}>
-                        {formatPrice(property.price, property.currency_id)}
-                      </span>
-                      {property.city && property.state && (
-                        <span className="text-xs lg:text-sm opacity-70" style={{ color: '#0F172A' }}>
-                          📍 {property.city}
-                        </span>
-                      )}
+
+                    {/* Price */}
+                    <div style={{ fontFamily: th.fontHeader, fontSize: 'clamp(16px,2.5vw,20px)', fontWeight: template === 'dynamic' ? 800 : 600, color: th.accent, marginBottom: '8px', fontStyle: template === 'minimalist' ? 'italic' : 'normal' }}>
+                      {formatPrice(property.price, property.currency_id)}
                     </div>
 
-                    {/* Property Type and Listing Type Badges */}
-                    <div className="flex items-center gap-2 mb-3 flex-wrap">
-                      {property.property_type && (
-                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{
-                          backgroundColor: '#F5EAD3',
-                          color: '#0F172A'
-                        }}>
-                          🏡 {translatePropertyType(property.property_type, language)}
-                        </span>
-                      )}
-                      {property.listing_type && (
-                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{
-                          backgroundColor: property.listing_type === 'rent' ? '#FEF3C7' : '#D1FAE5',
-                          color: property.listing_type === 'rent' ? '#92400E' : '#065F46'
-                        }}>
-                          {property.listing_type === 'rent' 
-                            ? (language === 'en' ? 'Rent' : 'Alquiler')
-                            : (language === 'en' ? 'Sale' : 'Venta')
-                          }
-                        </span>
-                      )}
+                    {property.city && (
+                      <p style={{ fontFamily: th.fontBody, fontSize: '12px', color: template === 'dynamic' ? '#64748B' : '#6B7280', marginBottom: '8px' }}>
+                        📍 {property.city}{property.state ? `, ${property.state}` : ''}
+                      </p>
+                    )}
+
+                    {/* Tags */}
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '100px', backgroundColor: th.tagBg, color: template === 'dynamic' ? '#94A3B8' : '#44403C', fontFamily: th.fontBody }}>
+                        🏡 {translatePropertyType(property.property_type, language)}
+                      </span>
+                      <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '100px', backgroundColor: property.listing_type === 'rent' ? '#FEF3C7' : '#D1FAE5', color: property.listing_type === 'rent' ? '#92400E' : '#065F46', fontFamily: th.fontBody }}>
+                        {property.listing_type === 'rent' ? (language === 'en' ? 'Rent' : 'Alquiler') : (language === 'en' ? 'Sale' : 'Venta')}
+                      </span>
+                      <span style={{ fontSize: '13px' }}>
+                        {property.language === 'es' ? '🇪🇸' : '🇺🇸'}
+                      </span>
                     </div>
 
                     {/* Footer */}
-                    <div className="flex justify-between items-center text-xs pt-3 border-t opacity-60" style={{ color: '#0F172A', borderTopColor: '#E5E7EB' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', paddingTop: '10px', borderTop: `1px solid ${th.border}`, fontSize: '11px', color: template === 'dynamic' ? '#475569' : '#9CA3AF', fontFamily: th.fontBody }}>
                       <span>👁️ {property.views} {language === 'en' ? 'views' : 'vistas'}</span>
                       <span>{new Date(property.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'es-ES', { day: 'numeric', month: 'short' })}</span>
                     </div>
@@ -534,32 +461,18 @@ export default function AgentPortfolioPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 px-4 border-t" style={{ borderColor: '#E5E7EB', backgroundColor: '#FFFFFF' }}>
-        <div className="max-w-6xl mx-auto text-center">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <span className="text-2xl">🏠</span>
-            <span className="text-lg font-bold" style={{ color: '#0F172A' }}>
-              Flow Estate AI
-            </span>
-          </div>
-          <p className="text-sm opacity-60 mb-3" style={{ color: '#0F172A' }}>
-            {language === 'en' 
-              ? 'Portfolio created with Flow Estate AI'
-              : 'Portfolio creado con Flow Estate AI'
-            }
-          </p>
-          <a
-            href="/"
-            className="text-sm font-semibold hover:opacity-70 transition-opacity"
-            style={{ color: '#2563EB' }}
-          >
-            {language === 'en' 
-              ? 'Create your own portfolio →'
-              : 'Crea tu propio portfolio →'
-            }
-          </a>
+      {/* ── FOOTER ───────────────────────────────────────────────────────── */}
+      <footer style={{ borderTop: `1px solid ${th.border}`, padding: '24px 16px', textAlign: 'center', backgroundColor: template === 'dynamic' ? '#0F172A' : th.cardBg }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
+          <span style={{ fontSize: '20px' }}>🏠</span>
+          <span style={{ fontFamily: th.fontHeader, fontSize: '16px', fontWeight: 600, color: template === 'dynamic' ? '#F1F5F9' : '#0F172A' }}>Flow Estate AI</span>
         </div>
+        <p style={{ fontFamily: th.fontBody, fontSize: '12px', color: template === 'dynamic' ? '#334155' : '#9CA3AF', marginBottom: '8px' }}>
+          {language === 'en' ? 'Portfolio created with Flow Estate AI' : 'Portfolio creado con Flow Estate AI'}
+        </p>
+        <a href="/" style={{ fontFamily: th.fontBody, fontSize: '13px', fontWeight: 600, color: th.accent, textDecoration: 'none' }}>
+          {language === 'en' ? 'Create your own portfolio →' : 'Crea tu propio portfolio →'}
+        </a>
       </footer>
     </div>
   );

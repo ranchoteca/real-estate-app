@@ -49,20 +49,20 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
         const data = await res.json();
         setProposals(data.proposals || []);
       }
-    } catch {
-      // silencioso
-    } finally {
-      setLoading(false);
-    }
+    } catch {}
+    finally { setLoading(false); }
   };
 
+  const getFullUrl = (proposal: Proposal) =>
+    `${window.location.origin}${proposal.public_url}`;
+
   const handleCopy = async (proposal: Proposal) => {
-    const fullUrl = `${window.location.origin}${proposal.public_url}`;
+    const url = getFullUrl(proposal);
     try {
-      await navigator.clipboard.writeText(fullUrl);
+      await navigator.clipboard.writeText(url);
     } catch {
       const el = document.createElement('textarea');
-      el.value = fullUrl;
+      el.value = url;
       document.body.appendChild(el);
       el.select();
       document.execCommand('copy');
@@ -72,12 +72,25 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
     setTimeout(() => setCopiedId(null), 2500);
   };
 
-  const handleShare = (proposal: Proposal) => {
-    const fullUrl = `${window.location.origin}${proposal.public_url}`;
+  const handleShare = async (proposal: Proposal) => {
+    const url = getFullUrl(proposal);
+    const tpl = TEMPLATE_LABELS[proposal.template_style];
+
     if (navigator.share) {
-      navigator.share({ title: proposal.title, url: fullUrl });
+      try {
+        await navigator.share({
+          title: proposal.title,
+          text: language === 'en'
+            ? `${proposal.property_count} selected ${proposal.property_count === 1 ? 'property' : 'properties'} — ${tpl.en} style`
+            : `${proposal.property_count} ${proposal.property_count === 1 ? 'propiedad seleccionada' : 'propiedades seleccionadas'} — estilo ${tpl.es}`,
+          url,
+        });
+      } catch {
+        // Usuario canceló — no hacer nada
+      }
     } else {
-      handleCopy(proposal);
+      // Fallback: copiar al portapapeles
+      await handleCopy(proposal);
     }
   };
 
@@ -107,21 +120,10 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
   if (!isOpen) return null;
 
   return (
-    /* Overlay semitransparente — se ve el dashboard detrás */
-    <div
-      className="fixed inset-0 z-50 flex flex-col justify-end"
-      style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(2px)' }}
-      onClick={onClose}
-    >
-      {/* Sheet — ocupa casi toda la pantalla */}
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-50">
       <div
-        className="w-full rounded-t-3xl shadow-2xl flex flex-col"
-        style={{
-          backgroundColor: '#FFFFFF',
-          maxHeight: '92dvh',
-          height: '92dvh',
-        }}
-        onClick={(e) => e.stopPropagation()}
+        className="w-full rounded-t-3xl shadow-2xl overflow-hidden"
+        style={{ backgroundColor: '#FFFFFF', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
       >
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
@@ -129,10 +131,7 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
         </div>
 
         {/* Header */}
-        <div
-          className="flex items-center justify-between px-5 py-3 flex-shrink-0"
-          style={{ borderBottom: '1px solid #F3F4F6' }}
-        >
+        <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #F3F4F6' }}>
           <div>
             <h2 className="text-lg font-bold" style={{ color: '#0F172A' }}>
               {language === 'en' ? '🗂️ My Proposals' : '🗂️ Mis Propuestas'}
@@ -141,7 +140,9 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
               <p className="text-xs mt-0.5" style={{ color: '#6B7280' }}>
                 {proposals.length === 0
                   ? (language === 'en' ? 'No proposals yet' : 'Aún no hay propuestas')
-                  : `${proposals.length} ${language === 'en' ? (proposals.length === 1 ? 'proposal' : 'proposals') : (proposals.length === 1 ? 'propuesta' : 'propuestas')}`}
+                  : `${proposals.length} ${language === 'en'
+                      ? (proposals.length === 1 ? 'proposal' : 'proposals')
+                      : (proposals.length === 1 ? 'propuesta' : 'propuestas')}`}
               </p>
             )}
           </div>
@@ -149,16 +150,14 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-full"
             style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}
-            aria-label="Cerrar"
           >
             ✕
           </button>
         </div>
 
-        {/* Content — scrollable */}
-        <div className="overflow-y-auto overscroll-contain flex-1 px-5 py-4">
+        {/* Content */}
+        <div className="overflow-y-auto flex-1 px-5 py-4">
 
-          {/* Loading */}
           {loading && (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
@@ -170,7 +169,6 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
             </div>
           )}
 
-          {/* Empty state */}
           {!loading && proposals.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="text-5xl mb-4">📭</div>
@@ -185,14 +183,13 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
             </div>
           )}
 
-          {/* Proposals list */}
           {!loading && proposals.length > 0 && (
-            <div className="space-y-3 pb-6">
+            <div className="space-y-3 pb-4">
               {proposals.map((proposal) => {
                 const tpl = TEMPLATE_LABELS[proposal.template_style];
                 const isCopied = copiedId === proposal.id;
                 const isDeleting = deletingId === proposal.id;
-                const fullUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}${proposal.public_url}`;
+                const fullUrl = getFullUrl(proposal);
 
                 return (
                   <div
@@ -200,7 +197,7 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
                     className="rounded-2xl overflow-hidden"
                     style={{ border: '1.5px solid #F3F4F6', backgroundColor: '#FAFAFA' }}
                   >
-                    {/* Thumbnails row */}
+                    {/* Thumbnails */}
                     {proposal.properties.length > 0 && (
                       <div className="flex h-16 overflow-hidden">
                         {proposal.properties.slice(0, 4).map((prop, idx) => (
@@ -210,11 +207,7 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
                             style={{ borderRight: idx < Math.min(proposal.properties.length, 4) - 1 ? '1px solid #FFFFFF' : 'none' }}
                           >
                             {prop.photos?.[0] ? (
-                              <img
-                                src={prop.photos[0]}
-                                alt={prop.title}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
+                              <img src={prop.photos[0]} alt={prop.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-2xl" style={{ backgroundColor: '#F0F0EE' }}>🏠</div>
                             )}
@@ -241,8 +234,7 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
                             </span>
                             <span style={{ color: '#D1D5DB' }}>·</span>
                             <span className="text-xs" style={{ color: '#6B7280' }}>
-                              {proposal.property_count}{' '}
-                              {language === 'en'
+                              {proposal.property_count} {language === 'en'
                                 ? (proposal.property_count === 1 ? 'property' : 'properties')
                                 : (proposal.property_count === 1 ? 'propiedad' : 'propiedades')}
                             </span>
@@ -255,6 +247,7 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
                             </span>
                           </div>
                         </div>
+                        {/* Delete */}
                         <button
                           onClick={() => handleDelete(proposal)}
                           disabled={isDeleting}
@@ -278,6 +271,7 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
 
                       {/* Action buttons */}
                       <div className="flex gap-2">
+                        {/* Copiar link */}
                         <button
                           onClick={() => handleCopy(proposal)}
                           className="flex-1 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform flex items-center justify-center gap-1.5"
@@ -290,13 +284,22 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
                             ? (language === 'en' ? '✅ Copied!' : '✅ ¡Copiado!')
                             : (language === 'en' ? '📋 Copy link' : '📋 Copiar link')}
                         </button>
+
+                        {/* Share nativo — botón con ícono SVG */}
                         <button
                           onClick={() => handleShare(proposal)}
-                          className="px-3 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform"
+                          className="px-4 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform flex items-center justify-center gap-1.5"
                           style={{ backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0' }}
                           aria-label={language === 'en' ? 'Share' : 'Compartir'}
                         >
-                          📤
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="18" cy="5" r="3"/>
+                            <circle cx="6" cy="12" r="3"/>
+                            <circle cx="18" cy="19" r="3"/>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                          </svg>
+                          {language === 'en' ? 'Share' : 'Compartir'}
                         </button>
                       </div>
                     </div>

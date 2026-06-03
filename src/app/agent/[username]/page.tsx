@@ -357,7 +357,9 @@ export default function AgentPortfolioPage() {
       </section>
 
       {/* Language filter tabs */}
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', marginTop: '8px' }}>
+      <section style={{ padding: '0 16px 16px' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
         {[
           { key: 'all', label: language === 'en' ? '🌐 All' : '🌐 Todos', count: properties.length },
           { key: 'es', label: '🇪🇸 ES', count: properties.filter(p => p.language === 'es').length },
@@ -382,7 +384,9 @@ export default function AgentPortfolioPage() {
             {tab.label} ({tab.count})
           </button>
         ))}
-      </div>
+        </div>
+       </div>
+      </section>
 
       {/* ── PROPERTIES GRID ───────────────────────────────────────────────── */}
       <section style={{ padding: '0 16px 48px' }}>

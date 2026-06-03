@@ -35,7 +35,10 @@ export async function GET(
           brokerage,
           bio,
           profile_photo,
-          username
+          username,
+          agent_cards (
+            profile_photo
+          )
         ),
         proposal_properties (
           display_order,
@@ -76,6 +79,15 @@ export async function GET(
       .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
       .map(pp => pp.properties);
 
+    const agentData = proposal.agents as any;
+    const agentCard = agentData?.agent_cards?.[0];
+
+    const agent = {
+      ...agentData,
+      profile_photo: agentCard?.profile_photo || agentData?.profile_photo || null,
+      agent_cards: undefined, // limpiar para no enviar datos extra
+    };
+
     return NextResponse.json({
       success: true,
       proposal: {
@@ -83,7 +95,7 @@ export async function GET(
         title: proposal.title,
         template_style: proposal.template_style,
         created_at: proposal.created_at,
-        agent: proposal.agents,
+        agent,
         properties: sortedProperties,
       },
     });

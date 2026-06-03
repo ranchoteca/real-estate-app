@@ -76,7 +76,7 @@ export default function SettingsPage() {
       proOnly: true,
     },
     {
-      icon: '🎨',
+      icon: '🖼️',
       title: language === 'en' ? 'Portfolio Template' : 'Plantilla del Portafolio',
       description: language === 'en'
         ? 'Choose the visual style for your portfolio'

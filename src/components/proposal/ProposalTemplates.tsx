@@ -1,15 +1,12 @@
 'use client';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ProposalTemplates.tsx
-// Tres plantillas para la página pública de propuesta
-// Uso: import { TemplateMinimalist, TemplateDynamic, TemplateOrganic }
+// ProposalTemplates.tsx — Diseños adaptados de Lovable
 // ─────────────────────────────────────────────────────────────────────────────
 
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
-// ── Tipos compartidos ────────────────────────────────────────────────────────
+// ── Tipos compartidos ─────────────────────────────────────────────────────────
 
 export interface ProposalProperty {
   id: string;
@@ -52,7 +49,7 @@ export interface ProposalData {
   properties: ProposalProperty[];
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string => {
   const map: Record<string, Record<'es' | 'en', string>> = {
@@ -74,9 +71,35 @@ const formatPrice = (price: number | null, symbol: string, lang: 'es' | 'en') =>
   return `${symbol}${new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(price)}`;
 };
 
+// ── Iconos compartidos ────────────────────────────────────────────────────────
+
+function PhoneIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+    </svg>
+  );
+}
+
+function EmailIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="m22 7-10 5L2 7" />
+    </svg>
+  );
+}
+
+function WhatsappIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.2s-.8.9-1 1.1c-.2.2-.4.2-.7.1-1.4-.7-2.3-1.2-3.3-2.8-.3-.5.3-.4.8-1.4.1-.2.1-.4 0-.5s-.7-1.6-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4s-1 1-1 2.4 1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3 1.8.7 2.5.8 3.4.7.5-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3zM12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.5 1.3 5L2 22l5.2-1.4c1.4.8 3.1 1.2 4.8 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2z" />
+    </svg>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. PLANTILLA MINIMALIST — Ejecutiva / Luxury
-//    Tipografía serif, mucho espacio blanco, monocromática
+// 1. PLANTILLA MINIMALIST — Ejecutiva / Luxury (Playfair Display)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function TemplateMinimalist({
@@ -90,152 +113,171 @@ export function TemplateMinimalist({
 }) {
   const router = useRouter();
   const agent = proposal.agent;
+  const GOLD = '#b8935a';
+  const INK = '#0a0a0a';
+  const BONE = '#f4f1ea';
 
-  const openProperty = (slug: string) => {
-    router.push(`/p/${slug}?proposal=${proposal.id}`);
-  };
-
-  const whatsappUrl = agent.phone
-    ? `https://wa.me/${agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
-        lang === 'en'
-          ? `Hi, I saw the proposal "${proposal.title}" and I'm interested.`
-          : `Hola, vi la propuesta "${proposal.title}" y me interesa.`
-      )}`
-    : null;
+  const phoneHref = agent.phone ? `tel:${agent.phone}` : '#';
+  const waHref = agent.phone
+    ? `https://wa.me/${agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(lang === 'en' ? `Hi, I saw the proposal "${proposal.title}"` : `Hola, vi la propuesta "${proposal.title}"`)}`
+    : '#';
+  const emailHref = `mailto:${agent.email}`;
 
   return (
-    <div style={{ fontFamily: "'Georgia', 'Times New Roman', serif", backgroundColor: '#FAFAF8', minHeight: '100vh' }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap');
-        .min-title { font-family: 'Cormorant Garamond', Georgia, serif; }
-        .min-body { font-family: 'Jost', sans-serif; }
-        .min-card:hover .min-card-img { transform: scale(1.04); }
-        .min-card-img { transition: transform 0.6s ease; }
-      `}</style>
+    <div className="min-h-screen text-[#0a0a0a]" style={{ fontFamily: "'Inter', sans-serif", backgroundColor: BONE }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap');`}</style>
 
-      {/* Header */}
-      <header style={{ borderBottom: '1px solid #E8E4DC', backgroundColor: '#FAFAF8', padding: '32px 24px 24px' }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <p className="min-body" style={{ fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', color: '#9A9488', marginBottom: '8px' }}>
-              {lang === 'en' ? 'Property Proposal' : 'Propuesta Inmobiliaria'}
-            </p>
-            <h1 className="min-title" style={{ fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 300, color: '#1A1714', lineHeight: 1.1, fontStyle: 'italic' }}>
-              {proposal.title}
-            </h1>
+      {/* Top bar */}
+      <div className="border-b border-[#0a0a0a]/10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 text-[11px] uppercase tracking-[0.25em]">
+          <span className="text-[#0a0a0a]/60">{lang === 'en' ? 'Private proposal · Confidential' : 'Propuesta privada · Confidencial'}</span>
+          <span className="text-[#0a0a0a]/60">Flow Estate AI</span>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-6xl px-6 py-16 sm:px-10 sm:py-24">
+
+        {/* Header */}
+        <header className="border-b border-[#0a0a0a]/15 pb-16">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] uppercase tracking-[0.3em] text-[#0a0a0a]/50">
+            <span style={{ color: GOLD }}>—— {proposal.properties.length} {lang === 'en' ? 'properties' : 'propiedades'}</span>
+            <span>{new Date(proposal.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'es-ES', { month: 'long', year: 'numeric' })}</span>
           </div>
-          {agent.profile_photo && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', border: '1px solid #E8E4DC' }}>
-                <Image src={agent.profile_photo} alt={agent.name || ''} width={48} height={48} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-              </div>
-              <div>
-                <p className="min-body" style={{ fontSize: '13px', fontWeight: 500, color: '#1A1714' }}>{agent.full_name || agent.name}</p>
-                {agent.brokerage && <p className="min-body" style={{ fontSize: '11px', color: '#9A9488' }}>{agent.brokerage}</p>}
-              </div>
+
+          <h1 className="mt-12 text-5xl leading-[0.95] tracking-tight sm:text-8xl" style={{ fontFamily: "'Playfair Display', serif", fontWeight: 500 }}>
+            {proposal.title.split(' ').slice(0, 3).join(' ')}
+            <br />
+            <em style={{ fontStyle: 'italic', color: GOLD }}>{proposal.title.split(' ').slice(3).join(' ') || (lang === 'en' ? 'selected.' : 'seleccionadas.')}</em>
+          </h1>
+
+          <div className="mt-16 grid gap-8 sm:grid-cols-[2fr_1fr] sm:items-end">
+            <p className="max-w-xl text-lg leading-relaxed text-[#0a0a0a]/75" style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic' }}>
+              {agent.bio
+                ? `«${agent.bio.substring(0, 120)}»`
+                : (lang === 'en'
+                  ? '«A careful selection of properties, each chosen for its character, light and context.»'
+                  : '«Una selección cuidada de propiedades, cada una elegida por su carácter, su luz y su contexto.»')}
+            </p>
+            <div className="border-l pl-6" style={{ borderColor: GOLD }}>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-[#0a0a0a]/50">{lang === 'en' ? 'Your advisor' : 'Tu asesor'}</p>
+              <p className="mt-2 text-2xl" style={{ fontFamily: "'Playfair Display', serif", fontWeight: 500 }}>
+                {agent.full_name || agent.name}
+              </p>
+              {agent.brokerage && <p className="mt-1 text-xs text-[#0a0a0a]/60">{agent.brokerage}</p>}
+            </div>
+          </div>
+        </header>
+
+        {/* Agent contact */}
+        <section className="grid gap-10 border-b border-[#0a0a0a]/15 py-12 sm:grid-cols-[auto_1fr_auto] sm:items-center">
+          {agent.profile_photo ? (
+            <img src={agent.profile_photo} alt={agent.name || ''} width={128} height={128} className="h-28 w-28 object-cover grayscale" style={{ borderRadius: 0 }} />
+          ) : (
+            <div className="h-28 w-28 flex items-center justify-center text-4xl font-bold text-white" style={{ backgroundColor: GOLD }}>
+              {(agent.full_name || agent.name || 'A').charAt(0).toUpperCase()}
             </div>
           )}
-        </div>
-      </header>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-[#0a0a0a]/50">{lang === 'en' ? 'Direct contact' : 'Contacto directo'}</p>
+            <p className="mt-2 text-3xl" style={{ fontFamily: "'Playfair Display', serif", fontWeight: 500 }}>{agent.full_name || agent.name}</p>
+            {agent.brokerage && <p className="mt-1 text-sm text-[#0a0a0a]/60">{agent.brokerage}</p>}
+          </div>
+          <div className="flex flex-col gap-2">
+            {agent.phone && (
+              <a href={phoneHref} className="inline-flex items-center justify-between gap-6 border border-[#0a0a0a] px-5 py-3 text-xs uppercase tracking-[0.25em] text-[#0a0a0a] transition hover:bg-[#0a0a0a] hover:text-[#f4f1ea]">
+                <span>{lang === 'en' ? 'Call' : 'Llamar'}</span><PhoneIcon />
+              </a>
+            )}
+            {agent.phone && (
+              <a href={waHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-between gap-6 border border-[#0a0a0a]/40 px-5 py-3 text-xs uppercase tracking-[0.25em] text-[#0a0a0a] transition hover:border-[#0a0a0a]">
+                <span>{agent.phone}</span><WhatsappIcon />
+              </a>
+            )}
+            <a href={emailHref} className="inline-flex items-center justify-between gap-6 border border-[#0a0a0a]/40 px-5 py-3 text-xs uppercase tracking-[0.25em] text-[#0a0a0a] transition hover:border-[#0a0a0a]">
+              <span>Email</span><EmailIcon />
+            </a>
+          </div>
+        </section>
 
-      {/* Properties */}
-      <main style={{ maxWidth: '900px', margin: '0 auto', padding: '48px 24px' }}>
-        <p className="min-body" style={{ fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', color: '#9A9488', marginBottom: '32px' }}>
-          {proposal.properties.length} {lang === 'en' ? 'selected properties' : 'propiedades seleccionadas'}
-        </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '48px' }}>
+        {/* Properties */}
+        <section className="mt-16 space-y-24">
           {proposal.properties.map((property, idx) => (
-            <div
-              key={property.id}
-              className="min-card"
-              onClick={() => openProperty(property.slug)}
-              style={{ cursor: 'pointer', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '0', borderBottom: '1px solid #E8E4DC', paddingBottom: '48px' }}
-            >
-              {/* Foto */}
-              <div style={{ overflow: 'hidden', aspectRatio: '4/3' }}>
-                {property.photos?.[0] ? (
-                  <img
-                    src={property.photos[0]}
-                    alt={property.title}
-                    className="min-card-img"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  />
-                ) : (
-                  <div style={{ width: '100%', height: '100%', backgroundColor: '#F0EDE8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px' }}>🏠</div>
+            <article key={property.id} className="grid gap-12 sm:grid-cols-12 cursor-pointer" onClick={() => router.push(`/p/${property.slug}?proposal=${proposal.id}`)}>
+              <div className="sm:col-span-4">
+                <p className="text-[10px] uppercase tracking-[0.4em]" style={{ color: GOLD }}>
+                  {lang === 'en' ? 'Lot' : 'Lote'} · {String(idx + 1).padStart(2, '0')} / {String(proposal.properties.length).padStart(2, '0')}
+                </p>
+                <h2 className="mt-6 text-4xl leading-tight" style={{ fontFamily: "'Playfair Display', serif", fontWeight: 500 }}>
+                  {property.title}
+                </h2>
+                {(property.city || property.state) && (
+                  <p className="mt-3 text-sm italic text-[#0a0a0a]/60" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    {[property.city, property.state].filter(Boolean).join(', ')}
+                  </p>
                 )}
-              </div>
-
-              {/* Info */}
-              <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', backgroundColor: '#FFFFFF' }}>
-                <div>
-                  <p className="min-body" style={{ fontSize: '10px', letterSpacing: '3px', textTransform: 'uppercase', color: '#9A9488', marginBottom: '12px' }}>
-                    {String(idx + 1).padStart(2, '0')} · {translatePropertyType(property.property_type, lang)} · {property.listing_type === 'rent' ? (lang === 'en' ? 'Rent' : 'Alquiler') : (lang === 'en' ? 'Sale' : 'Venta')}
-                  </p>
-                  <h2 className="min-title" style={{ fontSize: 'clamp(18px, 2.5vw, 26px)', fontWeight: 400, color: '#1A1714', lineHeight: 1.2, marginBottom: '12px' }}>
-                    {property.title}
-                  </h2>
-                  {(property.city || property.state) && (
-                    <p className="min-body" style={{ fontSize: '12px', color: '#9A9488', marginBottom: '20px' }}>
-                      {[property.city, property.state].filter(Boolean).join(', ')}
-                    </p>
-                  )}
-                  <p className="min-body" style={{ fontSize: '12px', color: '#5A5650', lineHeight: 1.7, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                    {property.description}
-                  </p>
-                </div>
-                <div style={{ marginTop: '24px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                  <p className="min-title" style={{ fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 600, color: '#1A1714', fontStyle: 'italic' }}>
+                <div className="mt-10 border-t border-[#0a0a0a]/15 pt-6">
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-[#0a0a0a]/50">{lang === 'en' ? 'Reference value' : 'Valor de referencia'}</p>
+                  <p className="mt-2 text-3xl" style={{ fontFamily: "'Playfair Display', serif", fontWeight: 500 }}>
                     {formatPrice(property.price, currencySymbol, lang)}
                   </p>
-                  <span className="min-body" style={{ fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', color: '#9A9488', borderBottom: '1px solid #9A9488', paddingBottom: '2px' }}>
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.3em]" style={{ color: GOLD }}>
+                    {property.listing_type === 'rent' ? (lang === 'en' ? 'For rent' : 'En alquiler') : (lang === 'en' ? 'For sale' : 'En venta')}
+                    {' · '}{translatePropertyType(property.property_type, lang)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="sm:col-span-8">
+                <div className="overflow-hidden">
+                  {property.photos?.[0] ? (
+                    <img src={property.photos[0]} alt={property.title} loading="lazy" className="h-full w-full object-cover" style={{ filter: 'grayscale(0.2) contrast(1.05)', aspectRatio: '16/10' }} />
+                  ) : (
+                    <div className="flex items-center justify-center text-5xl" style={{ aspectRatio: '16/10', backgroundColor: '#E8E4DC' }}>🏠</div>
+                  )}
+                </div>
+                <p className="mt-8 text-lg leading-relaxed text-[#0a0a0a]/80" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  {property.description.substring(0, 220)}{property.description.length > 220 ? '…' : ''}
+                </p>
+                <div className="mt-6 flex items-center justify-end">
+                  <span className="text-xs uppercase tracking-[0.2em] text-[#0a0a0a]/50 border-b border-[#0a0a0a]/30 pb-0.5">
                     {lang === 'en' ? 'View details →' : 'Ver detalles →'}
                   </span>
                 </div>
               </div>
-            </div>
+            </article>
           ))}
-        </div>
+        </section>
 
-        {/* Agent Contact */}
-        <div style={{ marginTop: '64px', paddingTop: '48px', borderTop: '1px solid #E8E4DC', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', alignItems: 'center' }}>
-          <div>
-            <p className="min-body" style={{ fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', color: '#9A9488', marginBottom: '12px' }}>
-              {lang === 'en' ? 'Your agent' : 'Tu agente'}
-            </p>
-            <h3 className="min-title" style={{ fontSize: '24px', fontWeight: 400, color: '#1A1714', fontStyle: 'italic', marginBottom: '4px' }}>
-              {agent.full_name || agent.name}
-            </h3>
-            {agent.brokerage && <p className="min-body" style={{ fontSize: '13px', color: '#9A9488' }}>{agent.brokerage}</p>}
+        {/* Footer */}
+        <footer className="mt-28 border-t-2 pt-12" style={{ borderColor: INK }}>
+          <div className="grid gap-12 sm:grid-cols-3">
+            <div className="sm:col-span-2">
+              <p className="text-[10px] uppercase tracking-[0.3em]" style={{ color: GOLD }}>{lang === 'en' ? 'Next step' : 'Próximo paso'}</p>
+              <h3 className="mt-4 text-4xl leading-tight sm:text-5xl" style={{ fontFamily: "'Playfair Display', serif", fontWeight: 500 }}>
+                {lang === 'en' ? <>A conversation,<br /><em style={{ color: GOLD }}>no commitment.</em></> : <>Una conversación,<br /><em style={{ color: GOLD }}>sin compromiso.</em></>}
+              </h3>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-[#0a0a0a]/50">{lang === 'en' ? 'Contact' : 'Contacto'}</p>
+              <ul className="mt-4 space-y-2 text-sm">
+                {agent.phone && <li>{agent.phone}</li>}
+                <li className="text-[#0a0a0a]/70">{agent.email}</li>
+                {agent.brokerage && <li className="pt-3 text-[10px] uppercase tracking-[0.3em] text-[#0a0a0a]/50">{agent.brokerage}</li>}
+              </ul>
+            </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {whatsappUrl && (
-              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', padding: '12px 24px', backgroundColor: '#1A1714', color: '#FAFAF8', textDecoration: 'none', fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', fontFamily: "'Jost', sans-serif" }}>
-                WhatsApp
-              </a>
-            )}
-            {agent.phone && (
-              <a href={`tel:${agent.phone}`} style={{ display: 'block', textAlign: 'center', padding: '12px 24px', border: '1px solid #1A1714', color: '#1A1714', textDecoration: 'none', fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', fontFamily: "'Jost', sans-serif" }}>
-                {lang === 'en' ? 'Call' : 'Llamar'}
-              </a>
-            )}
+          <div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-[#0a0a0a]/15 pt-6 text-[10px] uppercase tracking-[0.3em] text-[#0a0a0a]/50 sm:flex-row sm:items-center">
+            <span>Flow Estate AI · {lang === 'en' ? 'Confidential document' : 'Documento confidencial'}</span>
+            <span style={{ color: GOLD }}>{agent.full_name || agent.name}</span>
           </div>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer style={{ borderTop: '1px solid #E8E4DC', padding: '24px', textAlign: 'center' }}>
-        <p className="min-body" style={{ fontSize: '11px', color: '#C8C4BC', letterSpacing: '2px' }}>
-          FLOW ESTATE AI
-        </p>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. PLANTILLA DYNAMIC — Comercial / Fast Broker
-//    Bloques de color, datos duros, alto contraste, sans-serif bold
+// 2. PLANTILLA DYNAMIC — Comercial / Fast Broker (Archivo Black)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function TemplateDynamic({
@@ -250,162 +292,199 @@ export function TemplateDynamic({
   const router = useRouter();
   const agent = proposal.agent;
 
-  const openProperty = (slug: string) => {
-    router.push(`/p/${slug}?proposal=${proposal.id}`);
-  };
-
-  const whatsappUrl = agent.phone
-    ? `https://wa.me/${agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
-        lang === 'en'
-          ? `Hi, I saw the proposal "${proposal.title}" and I'm interested.`
-          : `Hola, vi la propuesta "${proposal.title}" y me interesa.`
-      )}`
-    : null;
-
-  const statusColor = (status: string) => {
-    if (status === 'active') return { bg: '#DCFCE7', text: '#15803D' };
-    if (status === 'rented') return { bg: '#DBEAFE', text: '#1D4ED8' };
-    return { bg: '#F3F4F6', text: '#6B7280' };
-  };
+  const phoneHref = agent.phone ? `tel:${agent.phone}` : '#';
+  const waHref = agent.phone
+    ? `https://wa.me/${agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(lang === 'en' ? `Hi, I saw the proposal "${proposal.title}"` : `Hola, vi la propuesta "${proposal.title}"`)}`
+    : '#';
+  const emailHref = `mailto:${agent.email}`;
 
   return (
-    <div style={{ fontFamily: "'Inter', system-ui, sans-serif", backgroundColor: '#0F172A', minHeight: '100vh' }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap');
-        .dyn-title { font-family: 'Barlow Condensed', sans-serif; }
-        .dyn-body { font-family: 'Barlow', sans-serif; }
-        .dyn-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .dyn-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
-      `}</style>
+    <div className="min-h-screen bg-slate-50" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&display=swap');`}</style>
+
+      {/* Top strip */}
+      <div className="bg-[#0b2545] text-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-2 text-xs">
+          <span className="text-white/70">Flow Estate AI</span>
+          <p className="font-medium tracking-wider">
+            🔥 {lang === 'en' ? 'ACTIVE PROPOSAL' : 'PROPUESTA ACTIVA'}
+          </p>
+        </div>
+      </div>
 
       {/* Header */}
-      <header style={{ backgroundColor: '#2563EB', padding: '24px' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <div style={{ display: 'inline-block', backgroundColor: 'rgba(255,255,255,0.15)', padding: '4px 12px', borderRadius: '4px', marginBottom: '8px' }}>
-              <span className="dyn-body" style={{ fontSize: '11px', fontWeight: 600, color: '#FFFFFF', letterSpacing: '2px', textTransform: 'uppercase' }}>
-                {lang === 'en' ? 'Property Proposal' : 'Propuesta Inmobiliaria'}
-              </span>
+      <header className="bg-white border-b-4 border-[#ff6b1a]">
+        <div className="mx-auto max-w-7xl px-6 py-6">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              {agent.profile_photo ? (
+                <img src={agent.profile_photo} alt={agent.name || ''} width={64} height={64} className="h-16 w-16 rounded-lg object-cover ring-2 ring-[#0b2545]/10" />
+              ) : (
+                <div className="h-16 w-16 rounded-lg flex items-center justify-center text-2xl font-black text-white bg-[#0b2545]">
+                  {(agent.full_name || agent.name || 'A').charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#ff6b1a]">{lang === 'en' ? 'Your advisor' : 'Tu asesor'}</p>
+                <p className="text-lg font-bold text-[#0b2545]">{agent.full_name || agent.name}</p>
+                {agent.brokerage && <p className="text-xs text-slate-500">{agent.brokerage}</p>}
+              </div>
             </div>
-            <h1 className="dyn-title" style={{ fontSize: 'clamp(28px, 5vw, 52px)', fontWeight: 800, color: '#FFFFFF', lineHeight: 1, textTransform: 'uppercase', letterSpacing: '-1px' }}>
-              {proposal.title}
-            </h1>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <p className="dyn-body" style={{ fontSize: '32px', fontWeight: 800, color: '#FFFFFF' }}>
-              {proposal.properties.length}
-            </p>
-            <p className="dyn-body" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              {lang === 'en' ? 'properties' : 'propiedades'}
-            </p>
+            <div className="flex flex-wrap gap-2">
+              {agent.phone && (
+                <a href={phoneHref} className="inline-flex items-center gap-2 rounded-md bg-[#ff6b1a] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#e85a0e]">
+                  <PhoneIcon size={14} /> {lang === 'en' ? 'CALL' : 'LLAMAR'}
+                </a>
+              )}
+              {agent.phone && (
+                <a href={waHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-md bg-[#25D366] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#1da851]">
+                  <WhatsappIcon size={14} /> {agent.phone}
+                </a>
+              )}
+              <a href={emailHref} className="inline-flex items-center gap-2 rounded-md border-2 border-[#0b2545] bg-white px-4 py-2.5 text-sm font-bold text-[#0b2545] transition hover:bg-[#0b2545] hover:text-white">
+                <EmailIcon size={14} /> EMAIL
+              </a>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Properties Grid */}
-      <main style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 24px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
-          {proposal.properties.map((property) => {
-            const sc = statusColor(property.status);
-            return (
-              <div
-                key={property.id}
-                className="dyn-card"
-                onClick={() => openProperty(property.slug)}
-                style={{ backgroundColor: '#1E293B', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.06)' }}
-              >
-                {/* Imagen */}
-                <div style={{ position: 'relative', aspectRatio: '16/9', overflow: 'hidden' }}>
-                  {property.photos?.[0] ? (
-                    <img src={property.photos[0]} alt={property.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                  ) : (
-                    <div style={{ width: '100%', height: '100%', backgroundColor: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>🏠</div>
-                  )}
-                  {/* Status badge */}
-                  <div style={{ position: 'absolute', top: '10px', left: '10px', backgroundColor: sc.bg, color: sc.text, padding: '3px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, fontFamily: "'Barlow', sans-serif" }}>
-                    {property.status === 'active' ? (lang === 'en' ? 'Available' : 'Disponible') : property.status === 'rented' ? (lang === 'en' ? 'Rented' : 'Alquilada') : (lang === 'en' ? 'Sold' : 'Vendida')}
-                  </div>
-                  {/* Listing type */}
-                  <div style={{ position: 'absolute', top: '10px', right: '10px', backgroundColor: property.listing_type === 'rent' ? '#F59E0B' : '#10B981', color: '#FFFFFF', padding: '3px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, fontFamily: "'Barlow', sans-serif" }}>
-                    {property.listing_type === 'rent' ? (lang === 'en' ? 'RENT' : 'ALQUILER') : (lang === 'en' ? 'SALE' : 'VENTA')}
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div style={{ padding: '16px' }}>
-                  <p className="dyn-body" style={{ fontSize: '11px', color: '#64748B', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
-                    {translatePropertyType(property.property_type, lang)}{property.city ? ` · ${property.city}` : ''}
-                  </p>
-                  <h2 className="dyn-title" style={{ fontSize: '20px', fontWeight: 700, color: '#F1F5F9', lineHeight: 1.2, marginBottom: '12px', textTransform: 'uppercase' }}>
-                    {property.title}
-                  </h2>
-
-                  {/* Price — dato duro destacado */}
-                  <div style={{ backgroundColor: '#2563EB', padding: '10px 14px', borderRadius: '6px', marginBottom: '12px' }}>
-                    <p className="dyn-title" style={{ fontSize: '26px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1 }}>
-                      {formatPrice(property.price, currencySymbol, lang)}
-                    </p>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span className="dyn-body" style={{ fontSize: '11px', color: '#64748B' }}>
-                      👁 {property.views} {lang === 'en' ? 'views' : 'vistas'}
-                    </span>
-                    <span className="dyn-body" style={{ fontSize: '12px', fontWeight: 600, color: '#2563EB' }}>
-                      {lang === 'en' ? 'Details →' : 'Detalles →'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Agent CTA */}
-        <div style={{ marginTop: '40px', backgroundColor: '#1E293B', borderRadius: '8px', padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {agent.profile_photo ? (
-              <img src={agent.profile_photo} alt="" style={{ width: '52px', height: '52px', borderRadius: '8px', objectFit: 'cover' }} />
-            ) : (
-              <div style={{ width: '52px', height: '52px', borderRadius: '8px', backgroundColor: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 800, color: '#FFFFFF', fontFamily: "'Barlow Condensed', sans-serif" }}>
-                {(agent.full_name || agent.name || 'A').charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div>
-              <p className="dyn-title" style={{ fontSize: '20px', fontWeight: 700, color: '#F1F5F9', textTransform: 'uppercase' }}>
-                {agent.full_name || agent.name}
+      {/* Hero */}
+      <section className="bg-gradient-to-br from-[#0b2545] via-[#13315c] to-[#1d4ed8] text-white">
+        <div className="mx-auto max-w-7xl px-6 py-12">
+          <p className="text-xs font-black uppercase tracking-[0.3em] text-[#ff6b1a]" style={{ fontFamily: "'Archivo Black', sans-serif" }}>
+            ★ {lang === 'en' ? 'Exclusive proposal' : 'Propuesta exclusiva'}
+          </p>
+          <h1 className="mt-4 text-4xl uppercase leading-[0.95] tracking-tight sm:text-6xl" style={{ fontFamily: "'Archivo Black', sans-serif" }}>
+            {proposal.properties.length} {lang === 'en' ? 'opportunities' : 'oportunidades'}<br />
+            <span className="text-[#fbbf24]">{lang === 'en' ? 'ready to close.' : 'listas para cerrar.'}</span>
+          </h1>
+          <p className="mt-4 max-w-2xl text-base text-white/80">
+            {proposal.title}
+          </p>
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-lg border border-white/15 bg-white/5 p-5 backdrop-blur">
+              <p className="text-3xl text-[#fbbf24]" style={{ fontFamily: "'Archivo Black', sans-serif" }}>{proposal.properties.length}</p>
+              <p className="mt-1 text-xs uppercase tracking-wider text-white/70">{lang === 'en' ? 'Curated properties' : 'Propiedades curadas'}</p>
+            </div>
+            <div className="rounded-lg border border-white/15 bg-white/5 p-5 backdrop-blur">
+              <p className="text-3xl text-[#fbbf24]" style={{ fontFamily: "'Archivo Black', sans-serif" }}>
+                {proposal.properties.filter(p => p.status === 'active').length}
               </p>
-              {agent.brokerage && <p className="dyn-body" style={{ fontSize: '12px', color: '#64748B' }}>{agent.brokerage}</p>}
+              <p className="mt-1 text-xs uppercase tracking-wider text-white/70">{lang === 'en' ? 'Available now' : 'Disponibles ahora'}</p>
+            </div>
+            <div className="rounded-lg border border-white/15 bg-white/5 p-5 backdrop-blur">
+              <p className="text-3xl text-[#fbbf24]" style={{ fontFamily: "'Archivo Black', sans-serif" }}>
+                {new Date(proposal.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'es-ES', { day: 'numeric', month: 'short' })}
+              </p>
+              <p className="mt-1 text-xs uppercase tracking-wider text-white/70">{lang === 'en' ? 'Proposal date' : 'Fecha propuesta'}</p>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {whatsappUrl && (
-              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ padding: '10px 20px', backgroundColor: '#25D366', color: '#FFFFFF', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', fontWeight: 700, fontFamily: "'Barlow', sans-serif" }}>
-                WhatsApp
-              </a>
-            )}
-            {agent.phone && (
-              <a href={`tel:${agent.phone}`} style={{ padding: '10px 20px', backgroundColor: '#2563EB', color: '#FFFFFF', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', fontWeight: 700, fontFamily: "'Barlow', sans-serif" }}>
-                {lang === 'en' ? 'Call' : 'Llamar'}
-              </a>
-            )}
-            <a href={`mailto:${agent.email}`} style={{ padding: '10px 20px', backgroundColor: 'transparent', color: '#64748B', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', fontWeight: 700, fontFamily: "'Barlow', sans-serif", border: '1px solid #334155' }}>
-              Email
-            </a>
+        </div>
+      </section>
+
+      {/* Properties */}
+      <section className="mx-auto max-w-7xl px-6 py-16">
+        <div className="mb-8 flex items-end justify-between border-b-2 border-[#0b2545] pb-4">
+          <h2 className="text-3xl uppercase text-[#0b2545]" style={{ fontFamily: "'Archivo Black', sans-serif" }}>
+            {lang === 'en' ? 'Selected catalog' : 'Catálogo seleccionado'}
+          </h2>
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            {String(proposal.properties.length).padStart(2, '0')} {lang === 'en' ? 'units' : 'unidades'}
+          </p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          {proposal.properties.map((property, idx) => (
+            <article
+              key={property.id}
+              className="group overflow-hidden rounded-xl bg-white shadow-md ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-2xl cursor-pointer"
+              onClick={() => router.push(`/p/${property.slug}?proposal=${proposal.id}`)}
+            >
+              <div className="relative overflow-hidden bg-slate-200" style={{ aspectRatio: '4/3' }}>
+                {property.photos?.[0] ? (
+                  <img src={property.photos[0]} alt={property.title} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-5xl bg-slate-100">🏠</div>
+                )}
+                <div className="absolute left-3 top-3 flex gap-2">
+                  <span className="rounded bg-[#ff6b1a] px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white">
+                    {translatePropertyType(property.property_type, lang)}
+                  </span>
+                  <span className="rounded bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-[#0b2545]">
+                    #{String(idx + 1).padStart(2, '0')}
+                  </span>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                  {(property.city || property.state) && (
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">
+                      {[property.city, property.state].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                  <h3 className="mt-1 text-lg font-bold leading-tight text-white">{property.title}</h3>
+                </div>
+              </div>
+
+              <div className="p-5">
+                <div className="flex items-baseline justify-between border-b border-dashed border-slate-200 pb-4">
+                  <div>
+                    <p className="text-2xl text-[#0b2545]" style={{ fontFamily: "'Archivo Black', sans-serif" }}>
+                      {formatPrice(property.price, currencySymbol, lang)}
+                    </p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#ff6b1a]">
+                      {property.listing_type === 'rent' ? (lang === 'en' ? 'For rent' : 'En alquiler') : (lang === 'en' ? 'For sale' : 'En venta')}
+                    </p>
+                  </div>
+                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${property.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                    {property.status === 'active' ? (lang === 'en' ? 'Available' : 'Disponible') : (lang === 'en' ? 'Sold' : 'Vendida')}
+                  </span>
+                </div>
+
+                <p className="mt-4 text-sm leading-relaxed text-slate-600 line-clamp-3">{property.description}</p>
+
+                <button className="mt-5 w-full rounded-md bg-[#0b2545] py-3 text-sm font-black uppercase tracking-wider text-white transition hover:bg-[#13315c]">
+                  {lang === 'en' ? 'View property →' : 'Ver propiedad →'}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-[#0b2545] text-white">
+        <div className="mx-auto max-w-7xl px-6 py-14">
+          <div className="grid gap-8 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ff6b1a]">
+                {lang === 'en' ? "Don't miss this opportunity" : 'No dejes pasar la oportunidad'}
+              </p>
+              <h3 className="mt-3 text-3xl uppercase sm:text-4xl" style={{ fontFamily: "'Archivo Black', sans-serif" }}>
+                {lang === 'en' ? 'Schedule your visit today' : 'Agenda tu visita hoy mismo'}
+              </h3>
+              <p className="mt-2 text-sm text-white/70">{agent.full_name || agent.name} · {agent.brokerage || 'Flow Estate AI'}</p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              {agent.phone && (
+                <a href={phoneHref} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#ff6b1a] px-6 py-4 text-base font-black uppercase tracking-wider text-white shadow-lg transition hover:bg-[#e85a0e]">
+                  <PhoneIcon size={16} /> {lang === 'en' ? 'Call now' : 'Llamar ya'}
+                </a>
+              )}
+              {agent.phone && (
+                <a href={waHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-md bg-[#25D366] px-6 py-4 text-base font-black uppercase tracking-wider text-white shadow-lg transition hover:bg-[#1da851]">
+                  <WhatsappIcon size={16} /> WhatsApp
+                </a>
+              )}
+            </div>
           </div>
         </div>
-      </main>
-
-      <footer style={{ textAlign: 'center', padding: '24px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <p className="dyn-body" style={{ fontSize: '11px', color: '#334155', letterSpacing: '2px' }}>FLOW ESTATE AI</p>
       </footer>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. PLANTILLA ORGANIC — Natural / Cozy
-//    Tonos tierra, bordes redondeados, tipografía suave, ideal playa/montaña
+// 3. PLANTILLA ORGANIC — Natural / Cozy (Cormorant Garamond)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function TemplateOrganic({
@@ -420,153 +499,165 @@ export function TemplateOrganic({
   const router = useRouter();
   const agent = proposal.agent;
 
-  const openProperty = (slug: string) => {
-    router.push(`/p/${slug}?proposal=${proposal.id}`);
-  };
-
-  const whatsappUrl = agent.phone
-    ? `https://wa.me/${agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
-        lang === 'en'
-          ? `Hi, I saw the proposal "${proposal.title}" and I'm interested.`
-          : `Hola, vi la propuesta "${proposal.title}" y me interesa.`
-      )}`
-    : null;
+  const phoneHref = agent.phone ? `tel:${agent.phone}` : '#';
+  const waHref = agent.phone
+    ? `https://wa.me/${agent.phone.replace(/\D/g, '')}?text=${encodeURIComponent(lang === 'en' ? `Hi, I saw the proposal "${proposal.title}"` : `Hola, vi la propuesta "${proposal.title}"`)}`
+    : '#';
+  const emailHref = `mailto:${agent.email}`;
 
   return (
-    <div style={{ fontFamily: 'system-ui', backgroundColor: '#F7F3EE', minHeight: '100vh' }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
-        .org-title { font-family: 'DM Serif Display', Georgia, serif; }
-        .org-body { font-family: 'DM Sans', system-ui, sans-serif; }
-        .org-card { transition: box-shadow 0.3s ease; }
-        .org-card:hover { box-shadow: 0 12px 32px rgba(101,75,47,0.15); }
-      `}</style>
+    <div className="min-h-screen bg-[#f4ede0] text-[#2b3a2b]" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');`}</style>
 
-      {/* Hero Header */}
-      <header style={{ backgroundColor: '#4A3728', padding: '40px 24px', position: 'relative', overflow: 'hidden' }}>
-        {/* Texture overlay */}
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(210,180,140,0.15) 0%, transparent 60%), radial-gradient(circle at 80% 20%, rgba(139,90,43,0.2) 0%, transparent 50%)', pointerEvents: 'none' }} />
+      <div className="mx-auto max-w-6xl px-6 py-10 sm:px-10 sm:py-16">
 
-        <div style={{ maxWidth: '800px', margin: '0 auto', position: 'relative' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(255,255,255,0.1)', padding: '6px 14px', borderRadius: '100px', marginBottom: '20px' }}>
-            <span style={{ fontSize: '14px' }}>🌿</span>
-            <span className="org-body" style={{ fontSize: '12px', color: '#DDD0C0', letterSpacing: '1px' }}>
-              {lang === 'en' ? 'Property Proposal' : 'Propuesta Inmobiliaria'}
-            </span>
+        {/* Header */}
+        <header className="mt-6 grid gap-10 border-b border-[#3d5a3d]/15 pb-12 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div>
+            <p className="text-xs uppercase tracking-[0.35em] text-[#6b8e6b]">
+              {lang === 'en' ? 'Personalized proposal' : 'Propuesta personalizada'} · {new Date(proposal.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'es-ES', { month: 'long', year: 'numeric' })}
+            </p>
+            <h1 className="mt-6 text-5xl leading-[1.05] tracking-tight sm:text-7xl" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>
+              {proposal.title.includes(' ') ? (
+                <>
+                  {proposal.title.split(' ').slice(0, Math.ceil(proposal.title.split(' ').length / 2)).join(' ')}
+                  <br />
+                  <em className="text-[#3d5a3d]">{proposal.title.split(' ').slice(Math.ceil(proposal.title.split(' ').length / 2)).join(' ')}</em>
+                </>
+              ) : (
+                <em className="text-[#3d5a3d]">{proposal.title}</em>
+              )}
+            </h1>
+            <p className="mt-6 max-w-xl text-base leading-relaxed text-[#5c6b5c]">
+              {agent.bio
+                ? agent.bio.substring(0, 150)
+                : (lang === 'en'
+                  ? 'A careful selection of properties, each chosen for its character, its light and its context.'
+                  : 'Una selección cuidada de propiedades pensadas para acompañar tu próximo capítulo. Cada una elegida con su carácter, su luz y su contexto.')}
+            </p>
           </div>
-          <h1 className="org-title" style={{ fontSize: 'clamp(28px, 5vw, 52px)', fontWeight: 400, color: '#FDF6EE', lineHeight: 1.1, marginBottom: '16px', fontStyle: 'italic' }}>
-            {proposal.title}
-          </h1>
-          <p className="org-body" style={{ fontSize: '14px', color: '#C4B49A' }}>
-            {proposal.properties.length} {lang === 'en' ? 'curated properties' : 'propiedades seleccionadas'} · {agent.full_name || agent.name}
-          </p>
-        </div>
-      </header>
 
-      {/* Properties */}
-      <main style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 24px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {proposal.properties.map((property, idx) => (
-            <div
-              key={property.id}
-              className="org-card"
-              onClick={() => openProperty(property.slug)}
-              style={{ backgroundColor: '#FFFFFF', borderRadius: '20px', overflow: 'hidden', cursor: 'pointer', border: '1px solid #EDE8E0' }}
-            >
-              {/* Imagen full width */}
-              <div style={{ position: 'relative', aspectRatio: '16/7', overflow: 'hidden' }}>
-                {property.photos?.[0] ? (
-                  <img src={property.photos[0]} alt={property.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                ) : (
-                  <div style={{ width: '100%', height: '100%', backgroundColor: '#EDE8E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px' }}>🏡</div>
-                )}
-                {/* Gradient overlay */}
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(74,55,40,0.6) 0%, transparent 50%)' }} />
-                {/* Price overlay */}
-                <div style={{ position: 'absolute', bottom: '16px', left: '20px' }}>
-                  <p className="org-title" style={{ fontSize: 'clamp(20px, 3vw, 28px)', fontWeight: 400, color: '#FFFFFF', fontStyle: 'italic' }}>
-                    {formatPrice(property.price, currencySymbol, lang)}
-                  </p>
-                </div>
-                {/* Number */}
-                <div style={{ position: 'absolute', top: '16px', right: '16px', width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span className="org-body" style={{ fontSize: '13px', fontWeight: 500, color: '#4A3728' }}>{idx + 1}</span>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div style={{ padding: '20px 24px 24px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '10px' }}>
-                  <h2 className="org-title" style={{ fontSize: 'clamp(18px, 2.5vw, 22px)', fontWeight: 400, color: '#2C1F15', lineHeight: 1.2, fontStyle: 'italic' }}>
-                    {property.title}
-                  </h2>
-                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-                    <span className="org-body" style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '100px', backgroundColor: property.listing_type === 'rent' ? '#FEF3C7' : '#DCFCE7', color: property.listing_type === 'rent' ? '#92400E' : '#166534', fontWeight: 500 }}>
-                      {property.listing_type === 'rent' ? (lang === 'en' ? 'Rent' : 'Alquiler') : (lang === 'en' ? 'Sale' : 'Venta')}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
-                  {(property.city || property.state) && (
-                    <span className="org-body" style={{ fontSize: '13px', color: '#8C7B6E' }}>
-                      📍 {[property.city, property.state].filter(Boolean).join(', ')}
-                    </span>
-                  )}
-                  <span className="org-body" style={{ fontSize: '13px', color: '#8C7B6E' }}>
-                    🏡 {translatePropertyType(property.property_type, lang)}
-                  </span>
-                </div>
-
-                <p className="org-body" style={{ fontSize: '13px', color: '#6B5D52', lineHeight: 1.7, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '16px' }}>
-                  {property.description}
-                </p>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                  <span className="org-body" style={{ fontSize: '13px', fontWeight: 500, color: '#4A3728', borderBottom: '1px solid #C4B49A', paddingBottom: '1px' }}>
-                    {lang === 'en' ? 'View property →' : 'Ver propiedad →'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Agent */}
-        <div style={{ marginTop: '48px', backgroundColor: '#4A3728', borderRadius: '20px', padding: '28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div className="flex items-center gap-5">
             {agent.profile_photo ? (
-              <img src={agent.profile_photo} alt="" style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.2)' }} />
+              <img src={agent.profile_photo} alt={agent.name || ''} width={112} height={112} className="h-28 w-28 rounded-full object-cover ring-4 ring-[#3d5a3d]/10" />
             ) : (
-              <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#6B5D52', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 400, color: '#FDF6EE', fontFamily: "'DM Serif Display', serif", fontStyle: 'italic' }}>
+              <div className="h-28 w-28 rounded-full flex items-center justify-center text-3xl font-semibold text-white ring-4 ring-[#3d5a3d]/10" style={{ backgroundColor: '#3d5a3d', fontFamily: "'Cormorant Garamond', serif" }}>
                 {(agent.full_name || agent.name || 'A').charAt(0).toUpperCase()}
               </div>
             )}
             <div>
-              <p className="org-title" style={{ fontSize: '18px', fontWeight: 400, color: '#FDF6EE', fontStyle: 'italic' }}>
+              <p className="text-xs uppercase tracking-widest text-[#6b8e6b]">{lang === 'en' ? 'Your advisor' : 'Tu asesor'}</p>
+              <p className="mt-1 text-2xl" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>
                 {agent.full_name || agent.name}
               </p>
-              {agent.brokerage && <p className="org-body" style={{ fontSize: '12px', color: '#C4B49A' }}>{agent.brokerage}</p>}
+              {agent.brokerage && <p className="text-sm text-[#5c6b5c]">{agent.brokerage}</p>}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {whatsappUrl && (
-              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ padding: '10px 20px', backgroundColor: '#25D366', color: '#FFFFFF', borderRadius: '100px', textDecoration: 'none', fontSize: '13px', fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>
-                WhatsApp
-              </a>
-            )}
-            {agent.phone && (
-              <a href={`tel:${agent.phone}`} style={{ padding: '10px 20px', backgroundColor: 'rgba(255,255,255,0.15)', color: '#FDF6EE', borderRadius: '100px', textDecoration: 'none', fontSize: '13px', fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>
-                {lang === 'en' ? 'Call' : 'Llamar'}
-              </a>
-            )}
-          </div>
-        </div>
-      </main>
+        </header>
 
-      <footer style={{ textAlign: 'center', padding: '24px', borderTop: '1px solid #EDE8E0' }}>
-        <p className="org-body" style={{ fontSize: '11px', color: '#C4B49A', letterSpacing: '2px' }}>FLOW ESTATE AI</p>
-      </footer>
+        {/* Contact buttons */}
+        <div className="mt-8 flex flex-wrap gap-3">
+          {agent.phone && (
+            <a href={phoneHref} className="inline-flex items-center gap-2 rounded-full bg-[#3d5a3d] px-5 py-2.5 text-sm font-medium text-[#f4ede0] transition hover:bg-[#2d4530]">
+              <PhoneIcon /> {lang === 'en' ? 'Call' : 'Llamar'}
+            </a>
+          )}
+          {agent.phone && (
+            <a href={waHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-[#3d5a3d]/30 bg-[#f4ede0] px-5 py-2.5 text-sm font-medium text-[#3d5a3d] transition hover:bg-[#e8dcc4]">
+              <WhatsappIcon /> {agent.phone}
+            </a>
+          )}
+          <a href={emailHref} className="inline-flex items-center gap-2 rounded-full border border-[#3d5a3d]/30 bg-transparent px-5 py-2.5 text-sm font-medium text-[#3d5a3d] transition hover:bg-[#f4ede0]">
+            <EmailIcon /> Email
+          </a>
+        </div>
+
+        {/* Properties */}
+        <section className="mt-20 space-y-24">
+          {proposal.properties.map((property, idx) => (
+            <article
+              key={property.id}
+              className={`grid gap-10 sm:grid-cols-12 sm:items-center cursor-pointer`}
+              onClick={() => router.push(`/p/${property.slug}?proposal=${proposal.id}`)}
+            >
+              <div className={`sm:col-span-7 ${idx % 2 === 1 ? 'sm:order-2' : ''}`}>
+                <div className="overflow-hidden rounded-[2rem] shadow-[0_20px_60px_-30px_rgba(45,69,48,0.45)]">
+                  {property.photos?.[0] ? (
+                    <img src={property.photos[0]} alt={property.title} loading="lazy" className="h-full w-full object-cover" style={{ filter: 'saturate(1.05) contrast(1.02)', aspectRatio: '4/3' }} />
+                  ) : (
+                    <div className="flex items-center justify-center text-6xl" style={{ aspectRatio: '4/3', backgroundColor: '#E8DCC4' }}>🏡</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="sm:col-span-5">
+                <p className="text-xs uppercase tracking-[0.3em] text-[#c08566]">
+                  {lang === 'en' ? 'Property' : 'Propiedad'} {String(idx + 1).padStart(2, '0')} · {translatePropertyType(property.property_type, lang)}
+                </p>
+                <h2 className="mt-4 text-4xl leading-tight" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>
+                  {property.title}
+                </h2>
+                {(property.city || property.state) && (
+                  <p className="mt-2 text-sm text-[#5c6b5c]">
+                    {[property.city, property.state].filter(Boolean).join(', ')}
+                  </p>
+                )}
+
+                <p className="mt-6 text-base leading-relaxed text-[#3d4a3d] line-clamp-4">
+                  {property.description}
+                </p>
+
+                <div className="mt-8 flex items-baseline gap-3">
+                  <p className="text-3xl text-[#3d5a3d]" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>
+                    {formatPrice(property.price, currencySymbol, lang)}
+                  </p>
+                  <span className="text-xs uppercase tracking-wider text-[#6b8e6b]">
+                    {property.listing_type === 'rent' ? (lang === 'en' ? 'monthly' : 'mensual') : (lang === 'en' ? 'for sale' : 'en venta')}
+                  </span>
+                </div>
+
+                <div className="mt-4 flex items-center justify-end">
+                  <span className="text-xs uppercase tracking-[0.2em] text-[#3d5a3d]/60 border-b border-[#3d5a3d]/30 pb-0.5">
+                    {lang === 'en' ? 'View property →' : 'Ver propiedad →'}
+                  </span>
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        {/* Footer */}
+        <footer className="mt-28 rounded-[2rem] bg-[#3d5a3d] px-8 py-12 text-[#f4ede0] sm:px-14 sm:py-16">
+          <div className="grid gap-10 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-[#a3b899]">
+                {lang === 'en' ? 'Shall we talk about the next step?' : '¿Hablamos del siguiente paso?'}
+              </p>
+              <h3 className="mt-4 text-4xl sm:text-5xl" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>
+                {lang === 'en' ? <>When you're ready,<br /><em>I'm here.</em></> : <>Cuando estés listo,<br /><em>aquí estoy.</em></>}
+              </h3>
+              {agent.brokerage && <p className="mt-4 text-sm text-[#d8e0cc]">{agent.brokerage}</p>}
+            </div>
+            <div className="space-y-3">
+              {agent.phone && (
+                <a href={phoneHref} className="flex items-center gap-3 rounded-full bg-[#f4ede0] px-6 py-3 text-sm font-medium text-[#3d5a3d] transition hover:bg-white">
+                  <PhoneIcon /> {lang === 'en' ? 'Call now' : 'Llamar ahora'}
+                </a>
+              )}
+              {agent.phone && (
+                <a href={waHref} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-full border border-[#f4ede0]/30 px-6 py-3 text-sm font-medium text-[#f4ede0] transition hover:bg-[#f4ede0]/10">
+                  <WhatsappIcon /> {agent.phone}
+                </a>
+              )}
+              <a href={emailHref} className="flex items-center gap-3 rounded-full border border-[#f4ede0]/30 px-6 py-3 text-sm font-medium text-[#f4ede0] transition hover:bg-[#f4ede0]/10">
+                <EmailIcon /> {agent.email}
+              </a>
+            </div>
+          </div>
+        </footer>
+
+        <div className="mt-8 text-center text-[10px] uppercase tracking-[0.3em] text-[#9aaa9a]">Flow Estate AI</div>
+      </div>
     </div>
   );
 }

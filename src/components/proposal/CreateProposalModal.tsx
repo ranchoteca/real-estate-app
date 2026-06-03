@@ -69,6 +69,7 @@ export default function CreateProposalModal({
   const [error, setError] = useState<string | null>(null);
   const [createdUrl, setCreatedUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [createdPropertyCount, setCreatedPropertyCount] = useState(0);
 
   const handleClose = () => {
     setStep('form');
@@ -108,6 +109,7 @@ export default function CreateProposalModal({
       }
 
       const fullUrl = `${window.location.origin}${data.proposal.public_url}`;
+      setCreatedPropertyCount(selectedPropertyIds.length);
       setCreatedUrl(fullUrl);
       setStep('success');
       onProposalCreated?.(data.proposal.id, fullUrl);
@@ -364,7 +366,7 @@ export default function CreateProposalModal({
                 </div>
                 <div className="flex items-center justify-between">
                   <span style={{ color: '#6B7280' }}>{language === 'en' ? 'Properties' : 'Propiedades'}</span>
-                  <span className="font-semibold" style={{ color: '#0F172A' }}>{selectedPropertyIds.length}</span>
+                  <span className="font-semibold" style={{ color: '#0F172A' }}>{createdPropertyCount}</span>
                 </div>
               </div>
 

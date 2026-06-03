@@ -184,7 +184,7 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
           )}
 
           {!loading && proposals.length > 0 && (
-            <div className="space-y-3 pb-4">
+            <div className="space-y-3 pb-24">
               {proposals.map((proposal) => {
                 const tpl = TEMPLATE_LABELS[proposal.template_style];
                 const isCopied = copiedId === proposal.id;

@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseAdmin } from '@/lib/supabase';
 
-// ── GET público ─────────────────────────────────────────────────────────────
-// Sin autenticación — es el endpoint que usa la página pública /propuesta/[id]
+// ── GET público ──────────────────────────────────────────────────────────────
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -16,7 +15,7 @@ export async function GET(
       return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
     }
 
-    // Obtener propuesta con propiedades y datos del agente
+    // Query principal — sin agent_cards anidado
     const { data: proposal, error: proposalError } = await supabaseAdmin
       .from('proposals')
       .select(`
@@ -35,10 +34,7 @@ export async function GET(
           brokerage,
           bio,
           profile_photo,
-          username,
-          agent_cards (
-            profile_photo
-          )
+          username
         ),
         proposal_properties (
           display_order,
@@ -74,19 +70,30 @@ export async function GET(
       return NextResponse.json({ error: 'Propuesta no encontrada' }, { status: 404 });
     }
 
-    // Ordenar propiedades por display_order
-    const sortedProperties = (proposal.proposal_properties || [])
-      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
-      .map(pp => pp.properties);
-
     const agentData = proposal.agents as any;
-    const agentCard = agentData?.agent_cards?.[0];
+
+    // Query separada para agent_cards — más confiable que join anidado
+    let cardProfilePhoto: string | null = null;
+    if (agentData?.id) {
+      const { data: card } = await supabaseAdmin
+        .from('agent_cards')
+        .select('profile_photo')
+        .eq('agent_id', agentData.id)
+        .single();
+
+      cardProfilePhoto = card?.profile_photo || null;
+    }
 
     const agent = {
       ...agentData,
-      profile_photo: agentCard?.profile_photo || agentData?.profile_photo || null,
-      agent_cards: undefined, // limpiar para no enviar datos extra
+      // card_profile_photo tiene prioridad, luego agents.profile_photo
+      profile_photo: cardProfilePhoto || agentData?.profile_photo || null,
     };
+
+    // Ordenar propiedades por display_order
+    const sortedProperties = (proposal.proposal_properties || [])
+      .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0))
+      .map((pp: any) => pp.properties);
 
     return NextResponse.json({
       success: true,
@@ -107,10 +114,9 @@ export async function GET(
 }
 
 // ── DELETE autenticado ───────────────────────────────────────────────────────
-// Solo el agente dueño puede eliminar su propuesta
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession();
@@ -120,7 +126,6 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Obtener agente
     const { data: agent, error: agentError } = await supabaseAdmin
       .from('agents')
       .select('id')
@@ -131,7 +136,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Agente no encontrado' }, { status: 404 });
     }
 
-    // Verificar que la propuesta pertenece al agente antes de eliminar
     const { data: proposal, error: checkError } = await supabaseAdmin
       .from('proposals')
       .select('id, agent_id')
@@ -143,7 +147,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Propuesta no encontrada o sin permiso' }, { status: 404 });
     }
 
-    // El ON DELETE CASCADE en proposal_properties elimina las relaciones automáticamente
     const { error: deleteError } = await supabaseAdmin
       .from('proposals')
       .delete()
@@ -151,7 +154,6 @@ export async function DELETE(
       .eq('agent_id', agent.id);
 
     if (deleteError) {
-      console.error('Error eliminando propuesta:', deleteError);
       return NextResponse.json({ error: 'Error al eliminar la propuesta' }, { status: 500 });
     }
 

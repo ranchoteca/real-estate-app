@@ -7,10 +7,10 @@ import { supabaseAdmin } from '@/lib/supabase';
 // Sin autenticación — es el endpoint que usa la página pública /propuesta/[id]
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
@@ -106,7 +106,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Obtener agente
     const { data: agent, error: agentError } = await supabaseAdmin

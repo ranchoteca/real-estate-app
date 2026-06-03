@@ -76,6 +76,15 @@ export default function SettingsPage() {
       proOnly: true,
     },
     {
+      icon: '🖼️',
+      title: language === 'en' ? 'Portfolio Template' : 'Plantilla del Portafolio',
+      description: language === 'en'
+        ? 'Choose the visual style for your portfolio'
+        : 'Elige el estilo visual de tu portafolio',
+      href: '/settings/portfolio-template',
+      color: '#8B5CF6',
+    },
+    {
       icon: '📇',
       title: t('settings.options.digitalCard.title'),
       description: t('settings.options.digitalCard.description'),

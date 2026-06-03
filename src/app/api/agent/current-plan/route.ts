@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
     const { data: agent, error } = await supabaseAdmin
       .from('agents')
-      .select('id, email, full_name, plan, role, expires_at, plan_started_at, warning_email_sent_at, expired_email_sent_at, created_at')
+      .select('id, email, full_name, plan, role, expires_at, plan_started_at, warning_email_sent_at, expired_email_sent_at, created_at, portfolio_template')
       .eq('email', session.user.email)
       .single();
 
@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
           role: agent.role || 'agent',
           expires_at: null,
           created_at: agent.created_at || null,
+          portfolio_template: agent.portfolio_template || 'minimalist',
         });
       }
 

@@ -40,6 +40,13 @@ export interface ProposalAgent {
   username: string;
 }
 
+export interface CustomField {
+  field_key: string;
+  field_name: string;
+  field_name_en: string | null;
+  icon: string | null;
+}
+
 export interface ProposalData {
   id: string;
   title: string;
@@ -47,6 +54,7 @@ export interface ProposalData {
   created_at: string;
   agent: ProposalAgent;
   properties: ProposalProperty[];
+  custom_fields: CustomField[];
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -64,6 +72,21 @@ const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string =
     other: { es: 'Otros', en: 'Other' },
   };
   return type ? (map[type]?.[lang] || type) : (lang === 'en' ? 'Property' : 'Propiedad');
+};
+
+const getFilledFields = (
+  customFields: CustomField[],
+  customFieldsData: Record<string, string> | null,
+  lang: 'es' | 'en'
+) => {
+  if (!customFieldsData || !customFields.length) return [];
+  return customFields
+    .filter(f => customFieldsData[f.field_key])
+    .map(f => ({
+      label: lang === 'en' && f.field_name_en ? f.field_name_en : f.field_name,
+      value: customFieldsData[f.field_key],
+      icon: f.icon || '🏷️',
+    }));
 };
 
 const formatPrice = (price: number | null, symbol: string, lang: 'es' | 'en') => {
@@ -201,7 +224,9 @@ export function TemplateMinimalist({
 
         {/* Properties */}
         <section className="mt-16 space-y-24">
-          {proposal.properties.map((property, idx) => (
+          {proposal.properties.map((property, idx) => {
+            const fields = getFilledFields(proposal.custom_fields, property.custom_fields_data, lang);
+            return (
             <article key={property.id} className="grid gap-12 sm:grid-cols-12 cursor-pointer" onClick={() => router.push(`/p/${property.slug}?proposal=${proposal.id}`)}>
               <div className="sm:col-span-4">
                 <p className="text-[10px] uppercase tracking-[0.4em]" style={{ color: GOLD }}>
@@ -238,6 +263,17 @@ export function TemplateMinimalist({
                 <p className="mt-8 text-lg leading-relaxed text-[#0a0a0a]/80" style={{ fontFamily: "'Playfair Display', serif" }}>
                   {property.description.substring(0, 220)}{property.description.length > 220 ? '…' : ''}
                 </p>
+                {fields.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '16px' }}>
+                    {fields.map((f, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                        <span>{f.icon}</span>
+                        <span style={{ opacity: 0.6 }}>{f.label}:</span>
+                        <span style={{ fontWeight: 600 }}>{f.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-6 flex items-center justify-end">
                   <span className="text-xs uppercase tracking-[0.2em] text-[#0a0a0a]/50 border-b border-[#0a0a0a]/30 pb-0.5">
                     {lang === 'en' ? 'View details →' : 'Ver detalles →'}
@@ -245,7 +281,8 @@ export function TemplateMinimalist({
                 </div>
               </div>
             </article>
-          ))}
+            );
+          })}
         </section>
 
         {/* Footer */}
@@ -365,7 +402,7 @@ export function TemplateDynamic({
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             <div className="rounded-lg border border-white/15 bg-white/5 p-5 backdrop-blur">
               <p className="text-3xl text-[#fbbf24]" style={{ fontFamily: "'Archivo Black', sans-serif" }}>{proposal.properties.length}</p>
-              <p className="mt-1 text-xs uppercase tracking-wider text-white/70">{lang === 'en' ? 'Curated properties' : 'Propiedades curadas'}</p>
+              <p className="mt-1 text-xs uppercase tracking-wider text-white/70">{lang === 'en' ? 'Selected properties' : 'Propiedades seleccionadas'}</p>
             </div>
             <div className="rounded-lg border border-white/15 bg-white/5 p-5 backdrop-blur">
               <p className="text-3xl text-[#fbbf24]" style={{ fontFamily: "'Archivo Black', sans-serif" }}>
@@ -395,7 +432,9 @@ export function TemplateDynamic({
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {proposal.properties.map((property, idx) => (
+          {proposal.properties.map((property, idx) => {
+            const fields = getFilledFields(proposal.custom_fields, property.custom_fields_data, lang);
+            return (
             <article
               key={property.id}
               className="group overflow-hidden rounded-xl bg-white shadow-md ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-2xl cursor-pointer"
@@ -442,12 +481,25 @@ export function TemplateDynamic({
 
                 <p className="mt-4 text-sm leading-relaxed text-slate-600 line-clamp-3">{property.description}</p>
 
+                {fields.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '16px' }}>
+                    {fields.map((f, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                        <span>{f.icon}</span>
+                        <span style={{ opacity: 0.6 }}>{f.label}:</span>
+                        <span style={{ fontWeight: 600 }}>{f.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <button className="mt-5 w-full rounded-md bg-[#0b2545] py-3 text-sm font-black uppercase tracking-wider text-white transition hover:bg-[#13315c]">
                   {lang === 'en' ? 'View property →' : 'Ver propiedad →'}
                 </button>
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -574,7 +626,9 @@ export function TemplateOrganic({
 
         {/* Properties */}
         <section className="mt-20 space-y-24">
-          {proposal.properties.map((property, idx) => (
+          {proposal.properties.map((property, idx) => {
+            const fields = getFilledFields(proposal.custom_fields, property.custom_fields_data, lang);
+            return (
             <article
               key={property.id}
               className={`grid gap-10 sm:grid-cols-12 sm:items-center cursor-pointer`}
@@ -616,6 +670,17 @@ export function TemplateOrganic({
                   </span>
                 </div>
 
+                {fields.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '16px' }}>
+                    {fields.map((f, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                        <span>{f.icon}</span>
+                        <span style={{ opacity: 0.6 }}>{f.label}:</span>
+                        <span style={{ fontWeight: 600 }}>{f.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-4 flex items-center justify-end">
                   <span className="text-xs uppercase tracking-[0.2em] text-[#3d5a3d]/60 border-b border-[#3d5a3d]/30 pb-0.5">
                     {lang === 'en' ? 'View property →' : 'Ver propiedad →'}
@@ -623,7 +688,8 @@ export function TemplateOrganic({
                 </div>
               </div>
             </article>
-          ))}
+            );
+          })}
         </section>
 
         {/* Footer */}

@@ -90,6 +90,18 @@ export async function GET(
       profile_photo: cardProfilePhoto || agentData?.profile_photo || null,
     };
 
+    // Obtener custom_fields del agente para mostrar nombres e íconos
+    let customFields: any[] = [];
+    if (agentData?.id) {
+      const { data: fields } = await supabaseAdmin
+        .from('custom_fields')
+        .select('field_key, field_name, field_name_en, icon, display_order')
+        .eq('agent_id', agentData.id)
+        .order('display_order', { ascending: true });
+
+      customFields = fields || [];
+    }
+
     // Ordenar propiedades por display_order
     const sortedProperties = (proposal.proposal_properties || [])
       .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0))
@@ -104,6 +116,7 @@ export async function GET(
         created_at: proposal.created_at,
         agent,
         properties: sortedProperties,
+        custom_fields: customFields,
       },
     });
 

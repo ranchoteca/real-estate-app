@@ -87,6 +87,7 @@ export default function DashboardPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
   const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [planInfo, setPlanInfo] = useState<{ plan: string; role: string; expires_at: string | null } | null>(null);
@@ -160,6 +161,12 @@ export default function DashboardPage() {
       checkIfNewUser();
     }
   }, [session?.user?.id]);
+
+  useEffect(() => {
+    const close = () => setShowMenu(null);
+    window.addEventListener('scroll', close, true);
+    return () => window.removeEventListener('scroll', close, true);
+  }, []);
 
   // ── FUNCIONES EXISTENTES ──────────────────────────────────────────────────
   const loadPlanInfo = async () => {
@@ -673,7 +680,13 @@ export default function DashboardPage() {
                     data-menu="true"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setShowMenu(showMenu === property.id ? null : property.id);
+                      if (showMenu === property.id) {
+                        setShowMenu(null);
+                      } else {
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        setMenuPosition({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+                        setShowMenu(property.id);
+                      }
                     }}
                     className="flex items-center justify-center rounded-full active:scale-90 transition-transform shadow-md"
                     style={{
@@ -713,10 +726,14 @@ export default function DashboardPage() {
 
                 {/* ── Dropdown menú ── */}
                 {showMenu === property.id && (
-                  <div
-                    className="absolute top-12 right-3 rounded-xl shadow-2xl overflow-hidden z-10 min-w-[160px]"
-                    style={{ backgroundColor: '#FFFFFF' }}
-                  >
+                    <div
+                      className="fixed rounded-xl shadow-2xl overflow-hidden z-50 min-w-[160px]"
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        top: menuPosition.top,
+                        right: menuPosition.right,
+                      }}
+                    >
                     <button
                       onClick={(e) => { e.stopPropagation(); setShowMenu(null); router.push(`/edit-property/${property.id}`); }}
                       className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2"

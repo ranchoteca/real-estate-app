@@ -529,8 +529,8 @@ export default function DashboardPage() {
               <span className="flex-shrink-0">💡</span>
               <span>
                 {language === 'en'
-                  ? 'Tap any property to see views, publish date and more'
-                  : 'Toca cualquier propiedad para ver vistas, fecha y más'}
+                  ? 'Tap ˅ on any property to see views, publish date and more'
+                  : 'Toca ˅ en cualquier propiedad para ver vistas, fecha y más'}
               </span>
               <button
                 onClick={dismissHint}
@@ -565,7 +565,7 @@ export default function DashboardPage() {
                 <div
                   className="flex flex-row active:bg-gray-50 transition-colors cursor-pointer"
                   style={{ minHeight: '130px' }}
-                  onClick={(e) => toggleCardExpand(e, property.id)}
+                  onClick={() => router.push(`/p/${property.slug}`)}
                 >
                   {/* Foto — CAMBIO: ancho aumentado de 110px a 130px */}
                   <div
@@ -643,6 +643,24 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Botón expandir detalles */}
+                <button
+                  onClick={(e) => toggleCardExpand(e, property.id)}
+                  className="w-full flex items-center justify-center py-1 active:bg-gray-50 transition-colors"
+                  style={{ borderTop: '0.5px solid #F3F4F6', color: '#9CA3AF' }}
+                  aria-label="Ver detalles"
+                >
+                  <svg
+                    className="transition-transform duration-200"
+                    style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                    width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.5"
+                    strokeLinecap="round" strokeLinejoin="round"
+                  >
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
 
                 {/* ── Panel expandible ── */}
                 <div

@@ -12,7 +12,7 @@ interface ProposalProperty {
 interface Proposal {
   id: string;
   title: string;
-  template_style: 'minimalist' | 'dynamic' | 'organic';
+  template_style: 'minimalist' | 'dynamic' | 'organic' | 'beach' | 'mountain';
   created_at: string;
   property_count: number;
   public_url: string;
@@ -23,6 +23,8 @@ const TEMPLATE_LABELS: Record<string, { es: string; en: string; emoji: string }>
   minimalist: { es: 'Ejecutiva', en: 'Executive', emoji: '🖤' },
   dynamic:    { es: 'Comercial', en: 'Commercial', emoji: '⚡' },
   organic:    { es: 'Natural',   en: 'Natural',    emoji: '🌿' },
+  beach:      { es: 'Costera',    en: 'Coastal',     emoji: '🌊' },
+  mountain:   { es: 'Alpina',     en: 'Alpine',      emoji: '🏔️' },
 };
 
 interface MyProposalsModalProps {

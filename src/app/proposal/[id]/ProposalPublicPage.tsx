@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { TemplateMinimalist, TemplateDynamic, TemplateOrganic, ProposalData } from '@/components/proposal/ProposalTemplates';
+import { TemplateMinimalist, TemplateDynamic, TemplateOrganic, TemplateBeach, TemplateMountain, ProposalData } from '@/components/proposal/ProposalTemplates';
 
 const detectBrowserLanguage = (): 'es' | 'en' => {
   if (typeof window === 'undefined') return 'es';
@@ -99,6 +99,10 @@ export default function ProposalPublicPage() {
       return <TemplateDynamic {...templateProps} />;
     case 'organic':
       return <TemplateOrganic {...templateProps} />;
+    case 'beach':
+      return <TemplateBeach {...templateProps} />;
+    case 'mountain':
+      return <TemplateMountain {...templateProps} />;
     case 'minimalist':
     default:
       return <TemplateMinimalist {...templateProps} />;

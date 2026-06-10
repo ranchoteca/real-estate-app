@@ -606,12 +606,12 @@ export default function DashboardPage() {
         <div className="px-4 pt-3 space-y-2.5 pb-32">
           {/* Hint educativo — visible solo en modo propuesta */}
           {proposalModeActive && (
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold" style={{ backgroundColor: '#EFF6FF', color: '#1E40AF' }}>
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: '#EFF6FF', color: '#1E40AF' }}>
               <span className="flex-shrink-0">💡</span>
               <span>
                 {language === 'en'
-                  ? 'Hold any property 2s to add it to a proposal · Tap ˅ for details'
-                  : 'Mantén presionada una propiedad 2s para agregarla a una propuesta · Toca ˅ para detalles'}
+                  ? 'Hold any property 2 seconds to add it to a proposal · Tap ˅ for details'
+                  : 'Mantén presionada una propiedad 2 segundos para agregarla a una propuesta · Toca ˅ para detalles'}
               </span>
             </div>
           )}
@@ -940,13 +940,13 @@ export default function DashboardPage() {
       {/* ── TOAST DE IDIOMA ── */}
       {proposalLangToast && (
         <div
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-xl"
+          className="fixed bottom-36 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-xl"
           style={{ backgroundColor: '#0F172A', color: 'white', whiteSpace: 'nowrap' }}
         >
           <span>{proposalLanguage === 'es' ? '🇪🇸' : '🇺🇸'}</span>
           <span className="text-sm font-semibold">
             {proposalLanguage === 'es'
-              ? 'Propuesta en Español — solo propiedades en español'
+              ? 'Propuesta en Español — solo propiedades en Español'
               : 'Proposal in English — only English properties'}
           </span>
         </div>

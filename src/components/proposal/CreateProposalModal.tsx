@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useI18nStore } from '@/lib/i18n-store';
 
-type TemplateStyle = 'minimalist' | 'dynamic' | 'organic';
+type TemplateStyle = 'minimalist' | 'dynamic' | 'organic' | 'beach' | 'mountain';
 
 interface CreateProposalModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedPropertyIds: string[];
   onProposalCreated?: (proposalId: string, publicUrl: string) => void;
+  proposalLanguage?: 'es' | 'en' | null;
 }
 
 const TEMPLATES: {
@@ -51,6 +52,26 @@ const TEMPLATES: {
     desc_en: 'Earth tones, soft edges. Ideal for beach and mountain.',
     accent: '#65A30D',
     bg: '#F7FEE7',
+  },
+  {
+    id: 'beach',
+    emoji: '🌊',
+    label_es: 'Costera',
+    label_en: 'Coastal',
+    desc_es: 'Tonos oceánicos, luminosa. Ideal para propiedades frente al mar.',
+    desc_en: 'Ocean tones, bright. Ideal for beachfront properties.',
+    accent: '#0a6e7a',
+    bg: '#fef6ec',
+  },
+  {
+    id: 'mountain',
+    emoji: '🏔️',
+    label_es: 'Alpina',
+    label_en: 'Alpine',
+    desc_es: 'Oscura y cinematográfica. Ideal para cabañas y refugios de montaña.',
+    desc_en: 'Dark and cinematic. Ideal for cabins and mountain retreats.',
+    accent: '#c8794a',
+    bg: '#1c2a24',
   },
 ];
 

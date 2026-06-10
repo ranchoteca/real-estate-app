@@ -940,8 +940,13 @@ export default function DashboardPage() {
       {/* ── TOAST DE IDIOMA ── */}
       {proposalLangToast && (
         <div
-          className="fixed bottom-36 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-xl"
-          style={{ backgroundColor: '#0F172A', color: 'white', whiteSpace: 'nowrap' }}
+          className="fixed left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-xl"
+          style={{
+            bottom: '170px',
+            backgroundColor: '#0F172A',
+            color: 'white',
+            whiteSpace: 'nowrap',
+          }}
         >
           <span>{proposalLanguage === 'es' ? '🇪🇸' : '🇺🇸'}</span>
           <span className="text-sm font-semibold">

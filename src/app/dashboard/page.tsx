@@ -116,6 +116,8 @@ export default function DashboardPage() {
 
   // ── NUEVO: PROPOSAL SELECTION STATE ───────────────────────────────────────
   const [selectedForProposal, setSelectedForProposal] = useState<Set<string>>(new Set());
+  const [proposalLanguage, setProposalLanguage] = useState<'es' | 'en' | null>(null);
+  const [proposalLangToast, setProposalLangToast] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [hintDismissed, setHintDismissed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -288,17 +290,46 @@ export default function DashboardPage() {
     });
   };
 
-  const toggleProposalBookmark = (e: React.MouseEvent, propertyId: string) => {
-    e.stopPropagation();
-    setSelectedForProposal(prev => {
-      const next = new Set(prev);
-      next.has(propertyId) ? next.delete(propertyId) : next.add(propertyId);
-      return next;
-    });
+  const longPressTimers = new Map<string, NodeJS.Timeout>();
+
+  const handlePropertyPressStart = (e: React.TouchEvent | React.MouseEvent, property: Property) => {
+    const timer = setTimeout(() => {
+      longPressTimers.delete(property.id);
+      setSelectedForProposal(prev => {
+        const next = new Set(prev);
+        if (next.has(property.id)) {
+          next.delete(property.id);
+          // Si queda vacío, resetear idioma
+          if (next.size === 0) setProposalLanguage(null);
+        } else {
+          // Primera propiedad — determina el idioma
+          if (next.size === 0) {
+            setProposalLanguage(property.language);
+            setProposalLangToast(true);
+            setTimeout(() => setProposalLangToast(false), 3000);
+          }
+          // Solo agregar si el idioma coincide
+          if (proposalLanguage === null || property.language === proposalLanguage) {
+            next.add(property.id);
+          }
+        }
+        return next;
+      });
+    }, 600);
+    longPressTimers.set(property.id, timer);
+  };
+
+  const handlePropertyPressEnd = (propertyId: string) => {
+    const timer = longPressTimers.get(propertyId);
+    if (timer) {
+      clearTimeout(timer);
+      longPressTimers.delete(propertyId);
+    }
   };
 
   const clearProposalSelection = () => {
     setSelectedForProposal(new Set());
+    setProposalLanguage(null);
   };
 
   const dismissHint = () => {
@@ -422,6 +453,12 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {proposalLanguage && (
+          <span className="text-xs mt-0.5 font-semibold" style={{ color: '#6B7280' }}>
+            {proposalLanguage === 'es' ? '🇪🇸 Español' : '🇺🇸 English'}
+          </span>
+        )}
+
         {/* ── Botón Mis Propuestas — debajo del stats badge, encima de filtros ── */}
         <button
           onClick={() => setIsMyProposalsOpen(true)}
@@ -529,8 +566,8 @@ export default function DashboardPage() {
               <span className="flex-shrink-0">💡</span>
               <span>
                 {language === 'en'
-                  ? 'Tap ˅ on any property to see views, publish date and more'
-                  : 'Toca ˅ en cualquier propiedad para ver vistas, fecha y más'}
+                  ? 'Hold any property 2s to add it to a proposal · Tap ˅ for details'
+                  : 'Mantén presionada una propiedad 2s para agregarla a una propuesta · Toca ˅ para detalles'}
               </span>
               <button
                 onClick={dismissHint}
@@ -544,6 +581,7 @@ export default function DashboardPage() {
           )}
 
           {filteredProperties.map((property) => {
+            const isBlockedByLanguage = proposalLanguage !== null && property.language !== proposalLanguage;
             const isSelected = selectedForProposal.has(property.id);
             const isExpanded = expandedCards.has(property.id);
             const hasFacebook = !!property.last_facebook_published_at;
@@ -558,6 +596,8 @@ export default function DashboardPage() {
                   boxShadow: isSelected
                     ? '0 0 0 3px rgba(37,99,235,0.10), 0 2px 8px rgba(0,0,0,0.08)'
                     : '0 2px 8px rgba(0,0,0,0.06)',
+                  opacity: isBlockedByLanguage ? 0.35 : 1,
+                  pointerEvents: isBlockedByLanguage ? 'none' : 'auto',
                 }}
               >
                 {/* ── Cuerpo horizontal de la card ── */}
@@ -566,6 +606,11 @@ export default function DashboardPage() {
                   className="flex flex-row active:bg-gray-50 transition-colors cursor-pointer"
                   style={{ minHeight: '130px' }}
                   onClick={() => router.push(`/p/${property.slug}`)}
+                  onTouchStart={(e) => handlePropertyPressStart(e, property)}
+                  onTouchEnd={() => handlePropertyPressEnd(property.id)}
+                  onMouseDown={(e) => handlePropertyPressStart(e, property)}
+                  onMouseUp={() => handlePropertyPressEnd(property.id)}
+                  onMouseLeave={() => handlePropertyPressEnd(property.id)}
                 >
                   {/* Foto — CAMBIO: ancho aumentado de 110px a 130px */}
                   <div
@@ -720,26 +765,6 @@ export default function DashboardPage() {
                       <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
                     </svg>
                   </button>
-
-                  {/* Bookmark — SEGUNDO (abajo) */}
-                  <button
-                    data-bookmark="true"
-                    onClick={(e) => toggleProposalBookmark(e, property.id)}
-                    className="flex items-center justify-center rounded-lg active:scale-90 transition-transform"
-                    style={{
-                      width: '28px',
-                      height: '28px',
-                      backgroundColor: isSelected ? '#EFF6FF' : 'rgba(255,255,255,0.92)',
-                      border: isSelected ? '1.5px solid #BFDBFE' : '1px solid rgba(0,0,0,0.08)',
-                      color: isSelected ? '#2563EB' : '#9CA3AF',
-                      fontSize: '15px',
-                      cursor: 'pointer',
-                    }}
-                    aria-label={language === 'en' ? 'Add to proposal' : 'Agregar a propuesta'}
-                    title={language === 'en' ? 'Add to proposal' : 'Agregar a propuesta'}
-                  >
-                    {isSelected ? '🔖' : '🏷️'}
-                  </button>
                 </div>
 
                 {/* ── Dropdown menú ── */}
@@ -873,6 +898,21 @@ export default function DashboardPage() {
               </a>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── TOAST DE IDIOMA ── */}
+      {proposalLangToast && (
+        <div
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-xl"
+          style={{ backgroundColor: '#0F172A', color: 'white', whiteSpace: 'nowrap' }}
+        >
+          <span>{proposalLanguage === 'es' ? '🇪🇸' : '🇺🇸'}</span>
+          <span className="text-sm font-semibold">
+            {proposalLanguage === 'es'
+              ? 'Propuesta en Español — solo propiedades en español'
+              : 'Proposal in English — only English properties'}
+          </span>
         </div>
       )}
 
@@ -1078,6 +1118,7 @@ export default function DashboardPage() {
         isOpen={isCreateProposalOpen}
         onClose={() => setIsCreateProposalOpen(false)}
         selectedPropertyIds={Array.from(selectedForProposal)}
+        proposalLanguage={proposalLanguage}
         onProposalCreated={(proposalId, publicUrl) => {
           clearProposalSelection();
         }}

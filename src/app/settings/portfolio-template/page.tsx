@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import MobileLayout from '@/components/MobileLayout';
 import { useI18nStore } from '@/lib/i18n-store';
 
-type TemplateStyle = 'minimalist' | 'dynamic' | 'organic';
+type TemplateStyle = 'minimalist' | 'dynamic' | 'organic' | 'beach' | 'mountain';
 
 const TEMPLATES: {
   id: TemplateStyle;
@@ -52,6 +52,28 @@ const TEMPLATES: {
     bg: '#F7F3EE',
     preview_bg: '#EDE8E0',
   },
+  {
+    id: 'beach',
+    emoji: '🌊',
+    label_es: 'Costera',
+    label_en: 'Coastal',
+    desc_es: 'Tonos oceánicos, luminosa. Ideal para propiedades frente al mar.',
+    desc_en: 'Ocean tones, bright. Ideal for beachfront properties.',
+    accent: '#0a6e7a',
+    bg: '#fef6ec',
+    preview_bg: '#e8f4f5',
+  },
+  {
+    id: 'mountain',
+    emoji: '🏔️',
+    label_es: 'Alpina',
+    label_en: 'Alpine',
+    desc_es: 'Oscura y cinematográfica. Ideal para cabañas y refugios de montaña.',
+    desc_en: 'Dark and cinematic. Ideal for cabins and mountain retreats.',
+    accent: '#c8794a',
+    bg: '#1c2a24',
+    preview_bg: '#0e1612',
+  },
 ];
 
 export default function PortfolioTemplatePage() {
@@ -71,6 +93,10 @@ export default function PortfolioTemplatePage() {
   // Cargar plantilla actual del agente
   useEffect(() => {
     if (!session?.user?.email) return;
+    if (!session?.user?.username) {
+      setLoading(false);
+      return;
+    }
     fetch('/api/agent/current-plan')
       .then(res => res.json())
       .then(data => {

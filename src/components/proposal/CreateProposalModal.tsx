@@ -199,7 +199,7 @@ export default function CreateProposalModal({
         </div>
 
         {/* Área scrollable */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-10 pt-2">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-28 pt-2">
 
           {/* ── PASO 1: FORMULARIO ── */}
           {step === 'form' && (

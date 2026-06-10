@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { title, template_style, property_ids } = body as {
       title: string;
-      template_style: 'minimalist' | 'dynamic' | 'organic';
+      template_style: 'minimalist' | 'dynamic' | 'organic' | 'beach' | 'mountain';
       property_ids: string[];
     };
 
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     if (!title?.trim()) {
       return NextResponse.json({ error: 'El título es requerido' }, { status: 400 });
     }
-    if (!['minimalist', 'dynamic', 'organic'].includes(template_style)) {
+    if (!['minimalist', 'dynamic', 'organic', 'beach', 'mountain'].includes(template_style)) {
       return NextResponse.json({ error: 'Plantilla no válida' }, { status: 400 });
     }
     if (!Array.isArray(property_ids) || property_ids.length === 0) {

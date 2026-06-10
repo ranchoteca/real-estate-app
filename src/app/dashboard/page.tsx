@@ -118,6 +118,7 @@ export default function DashboardPage() {
   const [selectedForProposal, setSelectedForProposal] = useState<Set<string>>(new Set());
   const [proposalLanguage, setProposalLanguage] = useState<'es' | 'en' | null>(null);
   const [proposalLangToast, setProposalLangToast] = useState(false);
+  const [proposalModeActive, setProposalModeActive] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [hintDismissed, setHintDismissed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -293,6 +294,7 @@ export default function DashboardPage() {
   const longPressTimers = new Map<string, NodeJS.Timeout>();
 
   const handlePropertyPressStart = (e: React.TouchEvent | React.MouseEvent, property: Property) => {
+    if (!proposalModeActive) return;
     const timer = setTimeout(() => {
       longPressTimers.delete(property.id);
       setSelectedForProposal(prev => {
@@ -315,7 +317,7 @@ export default function DashboardPage() {
         }
         return next;
       });
-    }, 600);
+    }, 700);
     longPressTimers.set(property.id, timer);
   };
 
@@ -330,6 +332,7 @@ export default function DashboardPage() {
   const clearProposalSelection = () => {
     setSelectedForProposal(new Set());
     setProposalLanguage(null);
+    setProposalModeActive(false);
   };
 
   const dismissHint = () => {
@@ -515,6 +518,48 @@ export default function DashboardPage() {
               </select>
             </div>
           )}
+          {/* Toggle modo propuesta */}
+            <div className="flex items-center justify-between px-1 py-1">
+              <span className="text-sm font-semibold" style={{ color: '#0F172A' }}>
+                {language === 'en' ? '🗂️ Enable proposal mode' : '🗂️ Habilitar modo propuesta'}
+              </span>
+              <button
+                onClick={() => {
+                  const next = !proposalModeActive;
+                  setProposalModeActive(next);
+                  if (!next) {
+                    setSelectedForProposal(new Set());
+                    setProposalLanguage(null);
+                  }
+                }}
+                className="relative flex-shrink-0 transition-colors duration-200"
+                style={{
+                  width: '48px',
+                  height: '26px',
+                  borderRadius: '100px',
+                  backgroundColor: proposalModeActive ? '#2563EB' : '#D1D5DB',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+                aria-label="Toggle proposal mode"
+              >
+                <span
+                  className="absolute transition-transform duration-200"
+                  style={{
+                    top: '3px',
+                    left: '3px',
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    backgroundColor: '#FFFFFF',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                    transform: proposalModeActive ? 'translateX(22px)' : 'translateX(0px)',
+                    display: 'block',
+                  }}
+                />
+              </button>
+          </div>
           {hasActiveFilters && (
             <button onClick={clearFilters} className="text-sm font-semibold underline" style={{ color: '#2563EB' }}>
               {language === 'en' ? 'Clear filters' : 'Limpiar filtros'}
@@ -559,9 +604,8 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="px-4 pt-3 space-y-2.5 pb-32">
-
-          {/* Hint educativo */}
-          {!hintDismissed && (
+          {/* Hint educativo — visible solo en modo propuesta */}
+          {proposalModeActive && (
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold" style={{ backgroundColor: '#EFF6FF', color: '#1E40AF' }}>
               <span className="flex-shrink-0">💡</span>
               <span>
@@ -569,14 +613,6 @@ export default function DashboardPage() {
                   ? 'Hold any property 2s to add it to a proposal · Tap ˅ for details'
                   : 'Mantén presionada una propiedad 2s para agregarla a una propuesta · Toca ˅ para detalles'}
               </span>
-              <button
-                onClick={dismissHint}
-                className="ml-auto flex-shrink-0 opacity-60 active:opacity-100 text-base leading-none"
-                style={{ color: '#1E40AF', background: 'none', border: 'none' }}
-                aria-label="Cerrar"
-              >
-                ✕
-              </button>
             </div>
           )}
 

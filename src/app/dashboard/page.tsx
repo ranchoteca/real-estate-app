@@ -87,7 +87,7 @@ export default function DashboardPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState<string | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
+  
   const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [planInfo, setPlanInfo] = useState<{ plan: string; role: string; expires_at: string | null } | null>(null);
@@ -165,12 +165,6 @@ export default function DashboardPage() {
     }
   }, [session?.user?.id]);
 
-  useEffect(() => {
-    const close = () => setShowMenu(null);
-    window.addEventListener('scroll', close, true);
-    return () => window.removeEventListener('scroll', close, true);
-  }, []);
-
   // ── FUNCIONES EXISTENTES ──────────────────────────────────────────────────
   const loadPlanInfo = async () => {
     try {
@@ -215,7 +209,6 @@ export default function DashboardPage() {
   };
 
   const handleDeleteProperty = async (propertyId: string) => {
-    setShowMenu(null);
     if (!confirm(language === 'en' ? 'Delete this property?' : '¿Eliminar esta propiedad?')) return;
     try {
       const response = await fetch(`/api/property/delete/${propertyId}`, { method: 'DELETE' });
@@ -779,16 +772,7 @@ export default function DashboardPage() {
                     data-menu="true"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (showMenu === property.id) {
-                        setShowMenu(null);
-                      } else {
-                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                        const menuWidth = 160;
-                        const maxRight = window.innerWidth - menuWidth - 8;
-                        const desiredRight = window.innerWidth - rect.right;
-                        setMenuPosition({ top: rect.bottom + 4, right: Math.min(desiredRight, maxRight) });
-                        setShowMenu(property.id);
-                      }
+                      setShowMenu(showMenu === property.id ? null : property.id);
                     }}
                     className="flex items-center justify-center rounded-full active:scale-90 transition-transform shadow-md"
                     style={{
@@ -805,114 +789,6 @@ export default function DashboardPage() {
                     </svg>
                   </button>
                 </div>
-
-                {/* ── Dropdown menú ── */}
-                {showMenu === property.id && (
-                    <div
-                      className="fixed rounded-xl shadow-2xl overflow-hidden z-50 min-w-[160px]"
-                      style={{
-                        backgroundColor: '#FFFFFF',
-                        top: menuPosition.top,
-                        right: menuPosition.right,
-                      }}
-                    >
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setShowMenu(null); router.push(`/edit-property/${property.id}`); }}
-                      className="w-full px-3 py-2.5 text-left font-semibold text-sm active:bg-gray-100 transition-colors flex items-center gap-2"
-                      style={{ color: '#0F172A' }}
-                    >
-                      <span>✏️</span> {language === 'en' ? 'Edit' : 'Editar'}
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setShowMenu(null); handleDuplicate(property.id); }}
-                      className="w-full px-3 py-2.5 text-left font-semibold text-sm active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
-                      style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
-                      disabled={duplicating}
-                    >
-                      <span>📋</span> {language === 'en' ? 'Duplicate' : 'Duplicar'}
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isFree) return;
-                        setShowMenu(null);
-                        setTranslateModal({ open: true, propertyId: property.id, currentLang: property.language });
-                      }}
-                      className="w-full px-3 py-2.5 text-left font-semibold text-sm transition-colors flex items-center gap-2 border-t"
-                      style={{ color: isFree ? '#9CA3AF' : '#0F172A', borderTopColor: '#F3F4F6', cursor: isFree ? 'default' : 'pointer' }}
-                    >
-                      <span>🌐</span>
-                      {language === 'en'
-                        ? `Translate to ${property.language === 'es' ? 'English' : 'Spanish'}`
-                        : `Traducir a ${property.language === 'es' ? 'Inglés' : 'Español'}`}
-                      {isFree && (
-                        <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
-                          Pro
-                        </span>
-                      )}
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteProperty(property.id); }}
-                      className="w-full px-3 py-2.5 text-left font-semibold text-sm active:bg-red-50 transition-colors flex items-center gap-2 border-t"
-                      style={{ color: '#DC2626', borderTopColor: '#F3F4F6' }}
-                    >
-                      <span>🗑️</span> {language === 'en' ? 'Delete' : 'Eliminar'}
-                    </button>
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        setShowMenu(null);
-                        setIsGeneratingPDF(true);
-                        try {
-                          const propertyResponse = await fetch(`/api/property/${property.slug}`);
-                          if (!propertyResponse.ok) throw new Error('No se pudo cargar la propiedad completa');
-                          const propertyData = await propertyResponse.json();
-                          const fullProperty = propertyData.property;
-                          let customFields: any[] = [];
-                          if (fullProperty.property_type && fullProperty.listing_type) {
-                            try {
-                              const params = new URLSearchParams({ property_type: fullProperty.property_type, listing_type: fullProperty.listing_type });
-                              const cfResponse = await fetch(`/api/custom-fields/list?${params.toString()}`);
-                              if (cfResponse.ok) { const cfData = await cfResponse.json(); customFields = cfData.fields || []; }
-                            } catch (err) { console.warn('No se pudieron cargar campos personalizados'); }
-                          }
-                          const currencyInfo = currencies.find(c => c.id === fullProperty.currency_id);
-                          const currency = currencyInfo ? { symbol: currencyInfo.symbol, code: currencyInfo.code } : { symbol: '$', code: 'USD' };
-                          const { exportPropertyToPDF } = await import('@/lib/exportPDF');
-                          await exportPropertyToPDF(fullProperty, fullProperty.agent, customFields, fullProperty.language, currency);
-                        } catch (error) {
-                          console.error('Error generando PDF:', error);
-                          alert('Error al generar el PDF');
-                        } finally {
-                          setIsGeneratingPDF(false);
-                        }
-                      }}
-                      className="w-full px-3 py-2.5 text-left font-semibold text-sm active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
-                      style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
-                    >
-                      <span>📄</span> {language === 'en' ? 'Export PDF' : 'Exportar PDF'}
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isFree) return;
-                        setShowMenu(null);
-                        setSelectedPropertyId(property.id);
-                        setPublishModalOpen(true);
-                      }}
-                      className="w-full px-3 py-2.5 text-left font-semibold text-sm transition-colors flex items-center gap-2 border-t"
-                      style={{ color: isFree ? '#9CA3AF' : '#0F172A', borderTopColor: '#F3F4F6', cursor: isFree ? 'default' : 'pointer' }}
-                    >
-                      <span>📘</span>
-                      {language === 'en' ? 'Publish on Facebook' : 'Publicar en Facebook'}
-                      {isFree && (
-                        <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
-                          Pro
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                )}
               </div>
             );
           })}
@@ -939,6 +815,138 @@ export default function DashboardPage() {
           )}
         </div>
       )}
+
+      {/* ── MODAL DE OPCIONES DE PROPIEDAD ── */}
+      {showMenu && (() => {
+        const property = properties.find(p => p.id === showMenu);
+        if (!property) return null;
+        return (
+          <div
+            className="fixed inset-0 z-50 flex flex-col justify-end"
+            style={{ backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(2px)' }}
+            onClick={() => setShowMenu(null)}
+          >
+            <div
+              className="w-full rounded-t-3xl shadow-2xl flex flex-col"
+              style={{ backgroundColor: '#FFFFFF', maxHeight: '80dvh' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+                <div className="w-10 h-1 rounded-full" style={{ backgroundColor: '#E5E7EB' }} />
+              </div>
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #F3F4F6' }}>
+                <div className="flex-1 min-w-0 pr-3">
+                  <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: '#9CA3AF' }}>
+                    {language === 'en' ? 'Property options' : 'Opciones de propiedad'}
+                  </p>
+                  <h3 className="text-sm font-bold leading-snug line-clamp-1 mt-0.5" style={{ color: '#0F172A' }}>
+                    {property.title}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowMenu(null)}
+                  className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full"
+                  style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}
+                >
+                  ✕
+                </button>
+              </div>
+              {/* Opciones */}
+              <div className="overflow-y-auto pb-8">
+                <button
+                  onClick={() => { setShowMenu(null); router.push(`/edit-property/${property.id}`); }}
+                  className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-gray-50 transition-colors"
+                  style={{ color: '#0F172A', borderBottom: '1px solid #F3F4F6' }}
+                >
+                  <span className="text-xl">✏️</span> {language === 'en' ? 'Edit' : 'Editar'}
+                </button>
+                <button
+                  onClick={() => { setShowMenu(null); handleDuplicate(property.id); }}
+                  className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-gray-50 transition-colors"
+                  style={{ color: '#0F172A', borderBottom: '1px solid #F3F4F6' }}
+                  disabled={duplicating}
+                >
+                  <span className="text-xl">📋</span> {language === 'en' ? 'Duplicate' : 'Duplicar'}
+                </button>
+                <button
+                  onClick={() => {
+                    if (isFree) return;
+                    setShowMenu(null);
+                    setTranslateModal({ open: true, propertyId: property.id, currentLang: property.language });
+                  }}
+                  className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-gray-50 transition-colors"
+                  style={{ color: isFree ? '#9CA3AF' : '#0F172A', borderBottom: '1px solid #F3F4F6' }}
+                >
+                  <span className="text-xl">🌐</span>
+                  {language === 'en'
+                    ? `Translate to ${property.language === 'es' ? 'English' : 'Spanish'}`
+                    : `Traducir a ${property.language === 'es' ? 'Inglés' : 'Español'}`}
+                  {isFree && (
+                    <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>Pro</span>
+                  )}
+                </button>
+                <button
+                  onClick={async () => {
+                    setShowMenu(null);
+                    setIsGeneratingPDF(true);
+                    try {
+                      const propertyResponse = await fetch(`/api/property/${property.slug}`);
+                      if (!propertyResponse.ok) throw new Error('No se pudo cargar la propiedad completa');
+                      const propertyData = await propertyResponse.json();
+                      const fullProperty = propertyData.property;
+                      let customFields: any[] = [];
+                      if (fullProperty.property_type && fullProperty.listing_type) {
+                        try {
+                          const cfParams = new URLSearchParams({ property_type: fullProperty.property_type, listing_type: fullProperty.listing_type });
+                          const cfResponse = await fetch(`/api/custom-fields/list?${cfParams.toString()}`);
+                          if (cfResponse.ok) { const cfData = await cfResponse.json(); customFields = cfData.fields || []; }
+                        } catch {}
+                      }
+                      const currencyInfo = currencies.find(c => c.id === fullProperty.currency_id);
+                      const currency = currencyInfo ? { symbol: currencyInfo.symbol, code: currencyInfo.code } : { symbol: '$', code: 'USD' };
+                      const { exportPropertyToPDF } = await import('@/lib/exportPDF');
+                      await exportPropertyToPDF(fullProperty, fullProperty.agent, customFields, fullProperty.language, currency);
+                    } catch {
+                      alert(language === 'en' ? 'Error generating PDF' : 'Error al generar el PDF');
+                    } finally {
+                      setIsGeneratingPDF(false);
+                    }
+                  }}
+                  className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-gray-50 transition-colors"
+                  style={{ color: '#0F172A', borderBottom: '1px solid #F3F4F6' }}
+                >
+                  <span className="text-xl">📄</span> {language === 'en' ? 'Export PDF' : 'Exportar PDF'}
+                </button>
+                <button
+                  onClick={() => {
+                    if (isFree) return;
+                    setShowMenu(null);
+                    setSelectedPropertyId(property.id);
+                    setPublishModalOpen(true);
+                  }}
+                  className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-gray-50 transition-colors"
+                  style={{ color: isFree ? '#9CA3AF' : '#0F172A', borderBottom: '1px solid #F3F4F6' }}
+                >
+                  <span className="text-xl">📘</span>
+                  {language === 'en' ? 'Publish on Facebook' : 'Publicar en Facebook'}
+                  {isFree && (
+                    <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>Pro</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => { setShowMenu(null); handleDeleteProperty(property.id); }}
+                  className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-red-50 transition-colors"
+                  style={{ color: '#DC2626' }}
+                >
+                  <span className="text-xl">🗑️</span> {language === 'en' ? 'Delete' : 'Eliminar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── TOAST DE IDIOMA ── */}
       {proposalLangToast && (

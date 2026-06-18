@@ -783,7 +783,10 @@ export default function DashboardPage() {
                         setShowMenu(null);
                       } else {
                         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                        setMenuPosition({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+                        const menuWidth = 160;
+                        const maxRight = window.innerWidth - menuWidth - 8;
+                        const desiredRight = window.innerWidth - rect.right;
+                        setMenuPosition({ top: rect.bottom + 4, right: Math.min(desiredRight, maxRight) });
                         setShowMenu(property.id);
                       }
                     }}
@@ -815,14 +818,14 @@ export default function DashboardPage() {
                     >
                     <button
                       onClick={(e) => { e.stopPropagation(); setShowMenu(null); router.push(`/edit-property/${property.id}`); }}
-                      className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2"
+                      className="w-full px-3 py-2.5 text-left font-semibold text-sm active:bg-gray-100 transition-colors flex items-center gap-2"
                       style={{ color: '#0F172A' }}
                     >
                       <span>✏️</span> {language === 'en' ? 'Edit' : 'Editar'}
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setShowMenu(null); handleDuplicate(property.id); }}
-                      className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
+                      className="w-full px-3 py-2.5 text-left font-semibold text-sm active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
                       style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
                       disabled={duplicating}
                     >
@@ -835,7 +838,7 @@ export default function DashboardPage() {
                         setShowMenu(null);
                         setTranslateModal({ open: true, propertyId: property.id, currentLang: property.language });
                       }}
-                      className="w-full px-4 py-3 text-left font-semibold transition-colors flex items-center gap-2 border-t"
+                      className="w-full px-3 py-2.5 text-left font-semibold text-sm transition-colors flex items-center gap-2 border-t"
                       style={{ color: isFree ? '#9CA3AF' : '#0F172A', borderTopColor: '#F3F4F6', cursor: isFree ? 'default' : 'pointer' }}
                     >
                       <span>🌐</span>
@@ -850,7 +853,7 @@ export default function DashboardPage() {
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteProperty(property.id); }}
-                      className="w-full px-4 py-3 text-left font-semibold active:bg-red-50 transition-colors flex items-center gap-2 border-t"
+                      className="w-full px-3 py-2.5 text-left font-semibold text-sm active:bg-red-50 transition-colors flex items-center gap-2 border-t"
                       style={{ color: '#DC2626', borderTopColor: '#F3F4F6' }}
                     >
                       <span>🗑️</span> {language === 'en' ? 'Delete' : 'Eliminar'}
@@ -884,7 +887,7 @@ export default function DashboardPage() {
                           setIsGeneratingPDF(false);
                         }
                       }}
-                      className="w-full px-4 py-3 text-left font-semibold active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
+                      className="w-full px-3 py-2.5 text-left font-semibold text-sm active:bg-gray-100 transition-colors flex items-center gap-2 border-t"
                       style={{ color: '#0F172A', borderTopColor: '#F3F4F6' }}
                     >
                       <span>📄</span> {language === 'en' ? 'Export PDF' : 'Exportar PDF'}
@@ -897,7 +900,7 @@ export default function DashboardPage() {
                         setSelectedPropertyId(property.id);
                         setPublishModalOpen(true);
                       }}
-                      className="w-full px-4 py-3 text-left font-semibold transition-colors flex items-center gap-2 border-t"
+                      className="w-full px-3 py-2.5 text-left font-semibold text-sm transition-colors flex items-center gap-2 border-t"
                       style={{ color: isFree ? '#9CA3AF' : '#0F172A', borderTopColor: '#F3F4F6', cursor: isFree ? 'default' : 'pointer' }}
                     >
                       <span>📘</span>

@@ -80,6 +80,7 @@ export default function CreateProposalModal({
   onClose,
   selectedPropertyIds,
   onProposalCreated,
+  proposalLanguage,
 }: CreateProposalModalProps) {
   const { language } = useI18nStore();
 

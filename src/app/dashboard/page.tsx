@@ -828,7 +828,7 @@ export default function DashboardPage() {
           >
             <div
               className="w-full rounded-t-3xl shadow-2xl flex flex-col"
-              style={{ backgroundColor: '#FFFFFF', maxHeight: '80dvh' }}
+              style={{ backgroundColor: '#FFFFFF', maxHeight: '92dvh' }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Handle */}
@@ -854,7 +854,7 @@ export default function DashboardPage() {
                 </button>
               </div>
               {/* Opciones */}
-              <div className="overflow-y-auto pb-8">
+              <div className="overflow-y-auto pb-safe" style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))' }}>
                 <button
                   onClick={() => { setShowMenu(null); router.push(`/edit-property/${property.id}`); }}
                   className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-gray-50 transition-colors"

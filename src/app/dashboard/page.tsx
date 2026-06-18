@@ -854,7 +854,7 @@ export default function DashboardPage() {
                 </button>
               </div>
               {/* Opciones */}
-              <div className="overflow-y-auto pb-safe" style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))' }}>
+              <div className="flex-1 overflow-y-auto min-h-0" style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))' }}>
                 <button
                   onClick={() => { setShowMenu(null); router.push(`/edit-property/${property.id}`); }}
                   className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-gray-50 transition-colors"

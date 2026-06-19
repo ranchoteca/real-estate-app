@@ -17,8 +17,10 @@ export default function ProposalPublicPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currencySymbol, setCurrencySymbol] = useState('$');
+  const [lang, setLang] = useState<'es' | 'en'>('es');
 
   useEffect(() => {
+    setLang(detectBrowserLanguage());
     if (!proposalId) return;
     loadProposal();
   }, [proposalId]);

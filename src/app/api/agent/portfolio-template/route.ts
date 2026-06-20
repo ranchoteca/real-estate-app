@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const { portfolio_template } = body;
 
-    if (!['minimalist', 'dynamic', 'organic'].includes(portfolio_template)) {
+    if (!['minimalist', 'dynamic', 'organic', 'beach', 'mountain'].includes(portfolio_template)) {
       return NextResponse.json({ error: 'Plantilla no válida' }, { status: 400 });
     }
 

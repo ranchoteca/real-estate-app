@@ -18,7 +18,7 @@ const GoogleMapEditor = dynamic(() => import('@/components/property/GoogleMapEdi
 });
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
-type TemplateStyle = 'minimalist' | 'dynamic' | 'organic';
+type TemplateStyle = 'minimalist' | 'dynamic' | 'organic' | 'beach' | 'mountain';
 
 interface Property {
   id: string;
@@ -72,6 +72,8 @@ const TEMPLATE_ACCENTS: Record<TemplateStyle, { primary: string; bg: string; tex
   minimalist: { primary: '#1A1714', bg: '#FAFAF8', text: '#1A1714' },
   dynamic:    { primary: '#2563EB', bg: '#0F172A', text: '#F1F5F9' },
   organic:    { primary: '#4A3728', bg: '#F7F3EE', text: '#2C1F15' },
+  beach:      { primary: '#0a6e7a', bg: '#fef6ec', text: '#134e4a' },
+  mountain:   { primary: '#c8794a', bg: '#1c2a24', text: '#f1f5f9' },
 };
 
 const detectBrowserLanguage = (): 'es' | 'en' => {

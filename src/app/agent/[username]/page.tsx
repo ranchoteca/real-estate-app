@@ -16,7 +16,7 @@ interface Agent {
   bio: string | null;
   profile_photo: string | null;
   card_profile_photo: string | null;
-  portfolio_template: 'minimalist' | 'dynamic' | 'organic' | null;
+  portfolio_template: 'minimalist' | 'dynamic' | 'organic' | 'beach' | 'mountain' | null;
 }
 
 interface Property {
@@ -36,7 +36,7 @@ interface Property {
   language: 'es' | 'en';
 }
 
-type TemplateStyle = 'minimalist' | 'dynamic' | 'organic';
+type TemplateStyle = 'minimalist' | 'dynamic' | 'organic' | 'beach' | 'mountain';
 
 const translatePropertyType = (type: string | null, lang: 'es' | 'en'): string => {
   const translations: Record<string, Record<'es' | 'en', string>> = {
@@ -58,7 +58,6 @@ const detectBrowserLanguage = (): 'es' | 'en' => {
   return navigator.language.toLowerCase().startsWith('es') ? 'es' : 'en';
 };
 
-// ── Colores por plantilla ─────────────────────────────────────────────────────
 const TEMPLATE_THEME: Record<TemplateStyle, {
   headerBg: string;
   headerText: string;
@@ -110,6 +109,32 @@ const TEMPLATE_THEME: Record<TemplateStyle, {
     fontHeader: "'DM Serif Display', Georgia, serif",
     fontBody: "'DM Sans', system-ui, sans-serif",
     rounded: '20px',
+  },
+  beach: {
+    headerBg: '#0a6e7a',
+    headerText: '#FFFFFF',
+    bodyBg: '#fef6ec',
+    cardBg: '#FFFFFF',
+    accent: '#0a6e7a',
+    accentText: '#FFFFFF',
+    border: '#d1e5e7',
+    tagBg: '#e0f2f1',
+    fontHeader: "'Playfair Display', serif",
+    fontBody: "'Lato', sans-serif",
+    rounded: '12px',
+  },
+  mountain: {
+    headerBg: '#1c2a24',
+    headerText: '#f1f5f9',
+    bodyBg: '#f1f5f9',
+    cardBg: '#FFFFFF',
+    accent: '#c8794a',
+    accentText: '#FFFFFF',
+    border: '#d1d5db',
+    tagBg: '#e2e8f0',
+    fontHeader: "'Montserrat', sans-serif",
+    fontBody: "'Open Sans', sans-serif",
+    rounded: '0px',
   },
 };
 

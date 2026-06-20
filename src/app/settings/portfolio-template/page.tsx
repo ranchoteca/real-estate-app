@@ -97,10 +97,15 @@ export default function PortfolioTemplatePage() {
       setLoading(false);
       return;
     }
-    fetch('/api/agent/current-plan')
+    
+    // Cambiamos el endpoint para que use el mismo que PropertyView
+    fetch(`/api/agent/portfolio-template?username=${session.user.username}`)
       .then(res => res.json())
       .then(data => {
-        if (data.portfolio_template) {
+        // Aseguramos leer la propiedad correcta (template o portfolio_template)
+        if (data.template) {
+          setSelected(data.template);
+        } else if (data.portfolio_template) {
           setSelected(data.portfolio_template);
         }
       })

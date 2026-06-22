@@ -1,91 +1,82 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+// app/api/agent/flowia/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { supabaseAdmin } from '@/lib/supabase';
 
-export async function GET(request: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
+    const session = await getServerSession();
     
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
-            } catch {
-              // Manejo interno de Next.js
-            }
-          },
-        },
-      }
-    );
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'No autenticado' },
+        { status: 401 }
+      );
+    }
 
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('agents')
       .select('whatsapp_number, is_flowia_active')
-      .eq('user_id', session.user.id)
+      .eq('email', session.user.email)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error al obtener configuración de FlowIA:', error);
+      return NextResponse.json(
+        { error: 'Error al cargar los datos' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(data);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('❌ Error en GET /api/agent/flowia:', error);
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    );
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
+    const session = await getServerSession();
     
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
-            } catch {
-              // Manejo interno de Next.js
-            }
-          },
-        },
-      }
-    );
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'No autenticado' },
+        { status: 401 }
+      );
+    }
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const { whatsapp_number, is_flowia_active } = await req.json();
 
-    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-
-    const body = await request.json();
-    const { whatsapp_number, is_flowia_active } = body;
-
-    const { error } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('agents')
-      .update({ whatsapp_number, is_flowia_active })
-      .eq('user_id', session.user.id);
+      .update({ 
+        whatsapp_number: whatsapp_number, 
+        is_flowia_active: is_flowia_active 
+      })
+      .eq('email', session.user.email);
 
-    if (error) throw error;
+    if (updateError) {
+      console.error('Error al actualizar configuración de FlowIA:', updateError);
+      return NextResponse.json(
+        { error: 'Error al guardar configuración' },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json({ message: 'Configuración de FlowIA guardada exitosamente' });
+    return NextResponse.json({
+      success: true,
+      message: 'Configuración de FlowIA guardada exitosamente'
+    });
+
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('❌ Error en POST /api/agent/flowia:', error);
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    );
   }
 }

@@ -5,21 +5,31 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     
-    // 1. Extraer los datos del webhook de WhatsSender
-    // (Ajustaremos estas variables dependiendo del formato exacto de WhatsSender)
-    const senderNumberRaw = body.from || body.sender || ''; 
-    const messageText = body.body || body.text || '';
+    // Imprimimos el payload por si acaso necesitamos depurar algo más adelante
+    console.log('📦 Payload de WhatsSender:', JSON.stringify(body, null, 2));
 
-    if (!senderNumberRaw) {
-       // Siempre respondemos 200 OK para que WhatsSender no reintente enviar el mensaje
+    // Solo procesamos eventos de mensajes recibidos
+    if (body.event !== 'messages.received') {
+        return NextResponse.json({ success: true, status: 'ignored_not_message_event' });
+    }
+
+    const messagesData = body?.data?.messages;
+    if (!messagesData) {
+        return NextResponse.json({ success: true, status: 'ignored_no_messages_data' });
+    }
+
+    // 1. Extraer los datos usando la estructura exacta de WhatsSender
+    const cleanNumber = messagesData.key?.cleanedSenderPn; // Ej: 50683848980
+    const messageText = messagesData.messageBody || '';
+
+    if (!cleanNumber) {
+       console.log('⚠️ Mensaje ignorado: No se encontró el número del remitente.');
        return NextResponse.json({ success: true, status: 'ignored_no_sender' }); 
     }
 
-    // 2. Limpiar el número entrante
-    // WhatsApp suele enviar algo como "50683848980@s.whatsapp.net".
-    // Quitamos la terminación y nos aseguramos de buscarlo con y sin el "+"
-    const cleanNumber = senderNumberRaw.replace('@s.whatsapp.net', '');
-    const searchNumberWithPlus = `+${cleanNumber}`; // Ej: +50683848980
+    // 2. Preparar el número para Supabase
+    // Si el agente guardó el número con '+' (ej: +50683848980), debemos agregarlo para la búsqueda
+    const searchNumberWithPlus = cleanNumber.startsWith('+') ? cleanNumber : `+${cleanNumber}`;
 
     // 3. El Filtro de Seguridad (Consultar Supabase)
     const { data: agent, error } = await supabaseAdmin
@@ -30,21 +40,20 @@ export async function POST(req: NextRequest) {
 
     // Si no existe en la BD o el agente tiene el bot apagado
     if (error || !agent || !agent.is_flowia_active) {
-      console.log(`Mensaje ignorado. Número ${cleanNumber} no registrado o inactivo.`);
+      console.log(`🔒 Mensaje ignorado. Número ${searchNumberWithPlus} no registrado o inactivo.`);
       return NextResponse.json({ success: true, status: 'ignored_unauthorized_or_inactive' }); 
     }
 
     // 4. ¡Éxito! Tenemos un agente verificado y activo.
-    console.log(`✅ Mensaje recibido del agente autorizado: ${agent.email}`);
-    console.log(`📩 Dice: "${messageText}"`);
+    console.log(`✅ Mensaje de agente autorizado: ${agent.email}`);
+    console.log(`📩 Contenido: "${messageText || '[Archivo Adjunto]'}"`);
 
-    // -> AQUÍ IRA EL CÓDIGO DE OPENAI (Function Calling) EN EL PRÓXIMO PASO <-
+    // -> AQUÍ IRA EL CÓDIGO DE OPENAI (Function Calling) <-
 
     return NextResponse.json({ success: true, status: 'processed' });
 
   } catch (error) {
     console.error('❌ Error crítico en el webhook:', error);
-    // Respondemos 200 incluso en error para evitar un bucle de reintentos de WhatsSender
     return NextResponse.json({ success: true, error: 'Internal Server Error' });
   }
 }

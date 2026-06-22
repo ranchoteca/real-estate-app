@@ -125,6 +125,15 @@ export default function SettingsPage() {
       disabled: !session.user.username,
     },
     {
+      id: 'flowia',
+      icon: '🤖',
+      title: language === 'en' ? 'FlowIA Assistant' : 'Asistente FlowIA',
+      description: language === 'en' ? 'Configure your WhatsApp bot' : 'Configura tu bot de WhatsApp',
+      href: '/settings/flowia',
+      color: '#22C55E',
+      proOnly: true,
+    },
+    {
       icon: '📥',
       title: t('settings.options.export.title'),
       description: t('settings.options.export.description'),

@@ -54,10 +54,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, status: 'ignored_unauthorized_or_inactive' }); 
     }
 
+    console.log(`✅ Procesando mensaje de: ${agent.email}`);
+
     const messages: any[] = [
       {
         role: "system",
-        content: "Eres FlowIA, el copiloto inmobiliario virtual. Ayudas al agente a consultar sus propiedades. Sé conciso y profesional. Recuerda que los montos se manejan en colones costarricenses (₡). No inventes propiedades, utiliza siempre la herramienta 'buscar_propiedades'."
+        content: "Eres FlowIA, el copiloto inmobiliario virtual. Ayudas al agente a consultar sus propiedades. Sé conciso y profesional. Recuerda que los montos principales se manejan en colones costarricenses (₡). No inventes propiedades, utiliza siempre la herramienta 'buscar_propiedades' para consultar los registros reales."
       },
       { role: "user", content: messageText }
     ];
@@ -67,12 +69,19 @@ export async function POST(req: NextRequest) {
         type: "function" as const,
         function: {
           name: "buscar_propiedades",
-          description: "Busca propiedades en la base de datos del agente según filtros.",
+          description: "Busca e identifica las propiedades asignadas al agente. Si el usuario pide ver todas sus propiedades o no especifica filtros, ejecuta esta función con un objeto vacío o sin parámetros.",
           parameters: {
             type: "object",
             properties: {
-              ubicacion: { type: "string", description: "Ubicación o ciudad (ej. Escazú, Liberia)" },
-              tipo_transaccion: { type: "string", description: "Venta o alquiler" },
+              ubicacion: { 
+                type: "string", 
+                description: "OPCIONAL. Ciudad, provincia o zona para filtrar (ej. 'Santa Cruz', 'Guanacaste', 'San Carlos'). Déjalo vacío si pide listar todo." 
+              },
+              tipo_transaccion: { 
+                type: "string", 
+                description: "OPCIONAL. Tipo de listado.",
+                enum: ["venta", "alquiler"]
+              },
             },
           },
         },
@@ -92,21 +101,29 @@ export async function POST(req: NextRequest) {
       const toolCall = responseMessage.tool_calls[0];
       const args = JSON.parse(toolCall.function.arguments);
       
-      // Traemos más columnas útiles para que la IA tenga mejor contexto
+      console.log("🔍 FlowIA ejecutará búsqueda con argumentos:", args);
+
       let query = supabaseAdmin
         .from('properties')
-        .select('title, price, city, address, location, property_type')
+        .select('title, price, city, address, location, property_type, listing_type')
         .eq('agent_id', agent.id) 
-        .limit(5);
+        .limit(10);
 
-      // CORRECCIÓN: Búsqueda flexible en múltiples columnas
+      // Filtro de ubicación flexible multi-columna
       if (args.ubicacion) {
-        query = query.or(`city.ilike.%${args.ubicacion}%,address.ilike.%${args.ubicacion}%,location.ilike.%${args.ubicacion}%,title.ilike.%${args.ubicacion}%`);
+        query = query.or(`city.ilike.%${args.ubicacion}%,address.ilike.%${args.ubicacion}%,location.ilike.%${args.ubicacion}%,title.ilike.%${args.ubicacion}%,state.ilike.%${args.ubicacion}%`);
+      }
+
+      // Mapeo e inserción del filtro de tipo de transacción (Venta -> sale, Alquiler -> rent)
+      if (args.tipo_transaccion) {
+        const dbListingType = args.tipo_transaccion.toLowerCase() === 'alquiler' ? 'rent' : 'sale';
+        query = query.eq('listing_type', dbListingType);
       }
 
       const { data: properties, error: dbError } = await query;
       
       if (dbError) console.error("Error consultando propiedades:", dbError);
+      console.log(`📊 Propiedades encontradas en DB para agent_id [${agent.id}]:`, properties?.length || 0);
 
       messages.push(responseMessage);
       messages.push({

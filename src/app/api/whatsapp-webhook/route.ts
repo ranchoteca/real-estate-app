@@ -6,13 +6,16 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// MAPEO DE DIVISAS: Traduce los UUIDs de tu base de datos a datos legibles por la IA
+// CONFIGURACIÓN DE RUTAS WEB (Ajusta estas según las URLs reales de tu PWA)
+const BASE_DOMAIN = 'https://www.flowestateai.com';
+const PROPERTY_PATH = '/p/';
+
+// MAPEO DE DIVISAS
 const CURRENCY_MAP: Record<string, { code: string; symbol: string }> = {
-  'ec8528a3-d504-47fa-97db-2c07716d8b47': { code: 'CRC', symbol: '₡' }, // Colones
-  '839f44d5-bee2-4bc1-b5da-50364f14c681': { code: 'USD', symbol: '$' }  // Dólares
+  'ec8528a3-d504-47fa-97db-2c07716d8b47': { code: 'CRC', symbol: '₡' },
+  '839f44d5-bee2-4bc1-b5da-50364f14c681': { code: 'USD', symbol: '$' }
 };
 
-// TIPO DE CAMBIO REFERENCIAL
 const TIPO_CAMBIO_USD_CRC = 520; 
 
 async function sendWhatsAppMessage(to: string, text: string) {
@@ -53,10 +56,10 @@ export async function POST(req: NextRequest) {
 
     const searchNumberWithPlus = cleanNumber.startsWith('+') ? cleanNumber : `+${cleanNumber}`;
 
-    // Traemos el full_name del agente para personalizar las respuestas
+    // Agregamos 'username' al select para armar el link de la tarjeta
     const { data: agent, error } = await supabaseAdmin
       .from('agents')
-      .select('id, email, full_name, is_flowia_active')
+      .select('id, email, full_name, username, is_flowia_active')
       .or(`whatsapp_number.eq.${searchNumberWithPlus},whatsapp_number.eq.${cleanNumber}`)
       .single();
 
@@ -64,23 +67,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, status: 'ignored_unauthorized_or_inactive' }); 
     }
 
-    const nombreAgente = agent.full_name || 'Agente';
+    // EXTRAER SOLO EL PRIMER NOMBRE
+    const primerNombre = agent.full_name ? agent.full_name.trim().split(' ')[0] : 'Agente';
+    
+    // ARMAR LINK DEL PORTAFOLIO / TARJETA DIGITAL
+    const linkTarjeta = agent.username 
+    ? `${BASE_DOMAIN}/agent/${agent.username}/card?lang=es` 
+    : BASE_DOMAIN;
 
-    // PROMPT DINÁMICO Y PERSONALIZADO
+    // PROMPT ACTUALIZADO CON EMOJIS, PRIMER NOMBRE Y LINKS
     const messages: any[] = [
       {
         role: "system",
-        content: `Eres FlowIA, el copiloto inmobiliario virtual exclusivo de FlowEstateAI. Estás asistiendo directamente al agente de bienes raíces llamado ${nombreAgente}.
+        content: `Eres FlowIA, el copiloto inmobiliario virtual exclusivo de FlowEstateAI. Estás asistiendo directamente a tu agente, ${primerNombre}.
         
         Tus directrices de comportamiento:
-        1. Personalización: Dirígete al agente por su nombre (${nombreAgente}) de forma cordial, natural y profesional en tus saludos o respuestas principales.
-        2. Manejo estricto de Divisas: Las propiedades en la base de datos se pueden guardar en Colones (₡) o Dólares ($). Debes respetar la divisa original de cada registro al listar o describir una propiedad. Si viene en dólares, muestra $, si viene en colones, muestra ₡. ¡No inventes ni asumas la moneda!
-        3. Claridad y Precisión: Sé conciso, directo y structured. No inventes propiedades, utiliza siempre la herramienta 'buscar_propiedades' para interactuar con los datos reales.`
+        1. Personalización: Dirígete al agente exclusivamente por su primer nombre (${primerNombre}). Nunca uses sus apellidos.
+        2. Tarjeta Digital / Portafolio: Si el agente te pide el enlace de su tarjeta de presentación o portafolio, entrégale este link: ${linkTarjeta}
+        3. Formato Atractivo: Cuando listes o describas propiedades, SIEMPRE utiliza emojis (🏡, 📍, 💰, 🛏️, 📐, etc.) para que la lectura sea dinámica y visualmente agradable.
+        4. Links de Propiedades: SIEMPRE incluye el enlace web de la propiedad al final de su descripción. Utiliza el campo 'property_url' que te llegará en los datos de la búsqueda.
+        5. Manejo estricto de Divisas: Respeta la divisa original de cada registro (₡ o $). No asumas la moneda.
+        6. Claridad: No inventes propiedades ni enlaces, utiliza siempre los datos de la herramienta 'buscar_propiedades'.`
       },
       { role: "user", content: messageText }
     ];
 
-    // HERRAMIENTA CON FILTROS INTELIGENTES DE DIVISAS
     const tools = [
       {
         type: "function" as const,
@@ -90,21 +101,11 @@ export async function POST(req: NextRequest) {
           parameters: {
             type: "object",
             properties: {
-              termino_busqueda: { 
-                type: "string", 
-                description: "Palabras clave para buscar en títulos, descripciones, ciudades o provincias (ej. 'Bagaces', 'finca')." 
-              },
+              termino_busqueda: { type: "string", description: "Palabras clave (ej. 'Bagaces', 'finca')." },
               precio_min: { type: "number", description: "Monto mínimo del presupuesto solicitado." },
               precio_max: { type: "number", description: "Monto máximo del presupuesto solicitado." },
-              moneda_referencia: { 
-                type: "string", 
-                enum: ["CRC", "USD"], 
-                description: "La divisa en la que el agente expresó el rango de precio. Si dice 'millones' o 'colones' es CRC. Si dice 'dólares' o '$' es USD." 
-              },
-              tipo_transaccion: { 
-                type: "string", 
-                enum: ["venta", "alquiler"]
-              },
+              moneda_referencia: { type: "string", enum: ["CRC", "USD"], description: "Divisa de referencia (CRC o USD)." },
+              tipo_transaccion: { type: "string", enum: ["venta", "alquiler"] },
             },
           },
         },
@@ -123,13 +124,11 @@ export async function POST(req: NextRequest) {
     if (responseMessage.tool_calls) {
       const toolCall = responseMessage.tool_calls[0];
       const args = JSON.parse(toolCall.function.arguments);
-      
-      console.log(`🔍 ${nombreAgente} solicitó búsqueda con argumentos:`, args);
 
-      // Consulta base a Supabase
+      // Agregamos 'slug' al select para poder construir la URL de la propiedad
       let query = supabaseAdmin
         .from('properties')
-        .select('title, description, price, city, address, state, property_type, listing_type, currency_id')
+        .select('title, description, price, city, address, state, property_type, listing_type, currency_id, slug')
         .eq('agent_id', agent.id);
 
       if (args.termino_busqueda) {
@@ -142,17 +141,17 @@ export async function POST(req: NextRequest) {
       }
 
       let { data: properties, error: dbError } = await query;
-      
       if (dbError) console.error("❌ Error en base de datos:", dbError);
 
-      // MOTOR DE CONVERSIÓN E INYECCIÓN DE DIVISAS
       if (properties && properties.length > 0) {
+        // INYECTAMOS LA URL CREADA CON EL SLUG EN CADA PROPIEDAD
         properties = properties.map(p => {
           const coin = CURRENCY_MAP[p.currency_id] || { code: 'CRC', symbol: '₡' };
           return {
             ...p,
             currency_code: coin.code,
-            currency_symbol: coin.symbol
+            currency_symbol: coin.symbol,
+            property_url: `${BASE_DOMAIN}${PROPERTY_PATH}${p.slug}`
           };
         });
 
@@ -163,19 +162,15 @@ export async function POST(req: NextRequest) {
 
           properties = properties.filter(p => {
             let precioConvertido = p.price;
-
             if (p.currency_code === 'USD' && monedaFiltro === 'CRC') {
               precioConvertido = p.price * TIPO_CAMBIO_USD_CRC;
             } else if (p.currency_code === 'CRC' && monedaFiltro === 'USD') {
               precioConvertido = p.price / TIPO_CAMBIO_USD_CRC;
             }
-
             return precioConvertido >= min && precioConvertido <= max;
           });
         }
       }
-
-      console.log(`📊 Propiedades tras filtro inteligente de divisas:`, properties?.length || 0);
 
       messages.push(responseMessage);
       messages.push({
@@ -191,12 +186,11 @@ export async function POST(req: NextRequest) {
       });
 
       const finalResponseText = finalCompletion.choices[0].message.content || "Lo siento, tuve un error al procesar los datos.";
-      
       await sendWhatsAppMessage(cleanNumber, finalResponseText);
       return NextResponse.json({ success: true, status: 'replied_with_data' });
 
     } else {
-      const textResponse = responseMessage.content || `Hola ${nombreAgente}, ¿en qué puedo ayudarte hoy con tus propiedades?`;
+      const textResponse = responseMessage.content || `Hola ${primerNombre}, ¿en qué puedo ayudarte hoy con tus propiedades?`;
       await sendWhatsAppMessage(cleanNumber, textResponse);
       return NextResponse.json({ success: true, status: 'replied_direct' });
     }

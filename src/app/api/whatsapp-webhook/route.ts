@@ -6,17 +6,21 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// CONFIGURACIÓN DE RUTAS WEB (Ajusta estas según las URLs reales de tu PWA)
 const BASE_DOMAIN = 'https://www.flowestateai.com';
 const PROPERTY_PATH = '/p/';
 
-// MAPEO DE DIVISAS
 const CURRENCY_MAP: Record<string, { code: string; symbol: string }> = {
   'ec8528a3-d504-47fa-97db-2c07716d8b47': { code: 'CRC', symbol: '₡' },
   '839f44d5-bee2-4bc1-b5da-50364f14c681': { code: 'USD', symbol: '$' }
 };
 
-const TIPO_CAMBIO_USD_CRC = 520; 
+const TIPO_CAMBIO_USD_CRC = 520;
+
+// FUNCION DE LIMPIEZA PARA WHATSAPP
+// Transforma el **texto** de Markdown al *texto* compatible de WhatsApp
+function formatForWhatsApp(text: string): string {
+  return text.replace(/\*\*(.*?)\*\*/g, '*$1*');
+}
 
 async function sendWhatsAppMessage(to: string, text: string) {
   try {
@@ -56,7 +60,6 @@ export async function POST(req: NextRequest) {
 
     const searchNumberWithPlus = cleanNumber.startsWith('+') ? cleanNumber : `+${cleanNumber}`;
 
-    // Agregamos 'username' al select para armar el link de la tarjeta
     const { data: agent, error } = await supabaseAdmin
       .from('agents')
       .select('id, email, full_name, username, is_flowia_active')
@@ -67,15 +70,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, status: 'ignored_unauthorized_or_inactive' }); 
     }
 
-    // EXTRAER SOLO EL PRIMER NOMBRE
     const primerNombre = agent.full_name ? agent.full_name.trim().split(' ')[0] : 'Agente';
     
-    // ARMAR LINK DEL PORTAFOLIO / TARJETA DIGITAL
     const linkTarjeta = agent.username 
-    ? `${BASE_DOMAIN}/agent/${agent.username}/card?lang=es` 
-    : BASE_DOMAIN;
+      ? `${BASE_DOMAIN}/agent/${agent.username}/card?lang=es` 
+      : BASE_DOMAIN;
 
-    // PROMPT ACTUALIZADO CON EMOJIS, PRIMER NOMBRE Y LINKS
+    // --- NUEVO: RECUPERAR HISTORIAL DE HACE 3 HORAS ---
+    const tresHorasAtras = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+    const { data: historyData } = await supabaseAdmin
+      .from('chat_messages')
+      .select('role, content')
+      .eq('agent_id', agent.id)
+      .gte('created_at', tresHorasAtras)
+      .order('created_at', { ascending: true })
+      .limit(15);
+
+    const history = historyData || [];
+    const isNewSession = history.length === 0;
+
+    // --- NUEVO: GUARDAR MENSAJE DEL USUARIO EN BD ---
+    await supabaseAdmin.from('chat_messages').insert({
+      agent_id: agent.id,
+      role: 'user',
+      content: messageText
+    });
+
+    // INSTRUCCIONES CONDICIONALES PARA PRESENTACIÓN
+    const instruccionPresentacion = isNewSession 
+      ? `Dado que esta es tu primera interacción del día con ${primerNombre}, INICIA tu respuesta presentándote de forma cálida (ej. "¡Hola ${primerNombre}! Soy FlowIA, tu asistente virtual de Flow Estate AI...").`
+      : `Ya están conversando. NO te presentes ni saludes nuevamente, ve directo al punto.`;
+
     const messages: any[] = [
       {
         role: "system",
@@ -83,12 +108,15 @@ export async function POST(req: NextRequest) {
         
         Tus directrices de comportamiento:
         1. Personalización: Dirígete al agente exclusivamente por su primer nombre (${primerNombre}). Nunca uses sus apellidos.
-        2. Tarjeta Digital / Portafolio: Si el agente te pide el enlace de su tarjeta de presentación o portafolio, entrégale este link: ${linkTarjeta}
-        3. Formato Atractivo: Cuando listes o describas propiedades, SIEMPRE utiliza emojis (🏡, 📍, 💰, 🛏️, 📐, etc.) para que la lectura sea dinámica y visualmente agradable.
-        4. Links de Propiedades: SIEMPRE incluye el enlace web de la propiedad al final de su descripción. Utiliza el campo 'property_url' que te llegará en los datos de la búsqueda.
-        5. Manejo estricto de Divisas: Respeta la divisa original de cada registro (₡ o $). No asumas la moneda.
-        6. Claridad: No inventes propiedades ni enlaces, utiliza siempre los datos de la herramienta 'buscar_propiedades'.`
+        2. ${instruccionPresentacion}
+        3. Tarjeta Digital: Si el agente pide su tarjeta de presentación, entrégale este link: ${linkTarjeta}
+        4. Formato Atractivo: Usa emojis (🏡, 📍, 💰).
+        5. Formato de Texto: NUNCA uses doble asterisco para negrita. Si debes resaltar texto, usa obligatoriamente un solo asterisco (*texto*).
+        6. Links de Propiedades: Siempre incluye el enlace web ('property_url') al final de su descripción.
+        7. Divisas: Respeta la divisa original (₡ o $).
+        8. CANDADO ESTRICTO DE DOMINIO: Eres un asistente inmobiliario. Si te preguntan sobre recetas de cocina, política, chistes, conocimientos generales o CUALQUIER tema fuera del mercado inmobiliario o de la plataforma Flow Estate AI, DEBES negarte amablemente, recordar tu propósito y sugerir buscar propiedades.`
       },
+      ...history, // Inyectamos la memoria corta
       { role: "user", content: messageText }
     ];
 
@@ -120,12 +148,12 @@ export async function POST(req: NextRequest) {
     });
 
     const responseMessage = completion.choices[0].message;
+    let textoFinalParaEnviar = "";
 
     if (responseMessage.tool_calls) {
       const toolCall = responseMessage.tool_calls[0];
       const args = JSON.parse(toolCall.function.arguments);
 
-      // Agregamos 'slug' al select para poder construir la URL de la propiedad
       let query = supabaseAdmin
         .from('properties')
         .select('title, description, price, city, address, state, property_type, listing_type, currency_id, slug')
@@ -144,7 +172,6 @@ export async function POST(req: NextRequest) {
       if (dbError) console.error("❌ Error en base de datos:", dbError);
 
       if (properties && properties.length > 0) {
-        // INYECTAMOS LA URL CREADA CON EL SLUG EN CADA PROPIEDAD
         properties = properties.map(p => {
           const coin = CURRENCY_MAP[p.currency_id] || { code: 'CRC', symbol: '₡' };
           return {
@@ -185,15 +212,23 @@ export async function POST(req: NextRequest) {
         messages: messages,
       });
 
-      const finalResponseText = finalCompletion.choices[0].message.content || "Lo siento, tuve un error al procesar los datos.";
-      await sendWhatsAppMessage(cleanNumber, finalResponseText);
-      return NextResponse.json({ success: true, status: 'replied_with_data' });
+      textoFinalParaEnviar = finalCompletion.choices[0].message.content || "Lo siento, tuve un error al procesar los datos.";
 
     } else {
-      const textResponse = responseMessage.content || `Hola ${primerNombre}, ¿en qué puedo ayudarte hoy con tus propiedades?`;
-      await sendWhatsAppMessage(cleanNumber, textResponse);
-      return NextResponse.json({ success: true, status: 'replied_direct' });
+      textoFinalParaEnviar = responseMessage.content || `Hola ${primerNombre}, ¿en qué puedo ayudarte hoy con tus propiedades?`;
     }
+
+    // --- APLICAR LIMPIEZA REGEX Y GUARDAR RESPUESTA DE LA IA ---
+    const cleanFinalResponse = formatForWhatsApp(textoFinalParaEnviar);
+    
+    await supabaseAdmin.from('chat_messages').insert({
+      agent_id: agent.id,
+      role: 'assistant',
+      content: cleanFinalResponse
+    });
+
+    await sendWhatsAppMessage(cleanNumber, cleanFinalResponse);
+    return NextResponse.json({ success: true, status: 'replied_success' });
 
   } catch (error) {
     console.error('❌ Error crítico en el webhook:', error);

@@ -191,12 +191,12 @@ export async function POST(req: NextRequest) {
 
       } else if (functionName === "enviar_pdf_propiedad") {
         const slug = args.slug;
-    
+
         await sendWhatsAppMessage(cleanNumber, "⏳ *Generando el PDF de la propiedad...* Dame un momento por favor.");
+        await delay(1200); // espacio mínimo entre request 1 y 2
 
         try {
           const pdfUrl = `${BASE_DOMAIN}/api/pdf-generator?slug=${slug}`;
-          await delay(2000);
 
           await sendWhatsAppMessage(
             cleanNumber, 
@@ -204,7 +204,7 @@ export async function POST(req: NextRequest) {
             pdfUrl, 
             `Ficha-${slug}.pdf`
           );
-          await delay(2000);
+          await delay(1200); // espacio mínimo entre request 2 y 3 (el texto final, más abajo)
 
           messages.push(responseMessage);
           messages.push({

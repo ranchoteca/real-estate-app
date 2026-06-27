@@ -55,6 +55,25 @@ export async function POST(req: NextRequest) {
     const history = historyData || [];
     const isNewSession = history.length === 0;
 
+    if (isNewSession) {
+      const mensajeBienvenida = `¡Hola ${primerNombre}! 👋 Soy *FlowIA*, tu asistente inmobiliario.
+
+    Esto es lo que puedo hacer por ti hoy:
+
+    🔍 *Buscar propiedades* de tu inventario por ubicación, tipo o presupuesto.
+    📄 *Enviarte el PDF* con la ficha de cualquier propiedad específica.
+    🪪 *Compartir tu tarjeta digital* para que la envíes a tus clientes.
+
+    ¿En qué te ayudo?`;
+
+      await sendWhatsAppMessage(cleanNumber, mensajeBienvenida);
+      await supabaseAdmin.from('chat_messages').insert({ 
+        agent_id: agent.id, 
+        role: 'assistant', 
+        content: mensajeBienvenida 
+      });
+    }
+
     const hace30Segundos = new Date(Date.now() - 30 * 1000).toISOString();
     const { data: mensajeDuplicado } = await supabaseAdmin
       .from('chat_messages')
@@ -168,6 +187,12 @@ export async function POST(req: NextRequest) {
               return p.price >= min && p.price <= max;
             });
           }
+
+          if (properties.length === 1) {
+            await supabaseAdmin
+              .from('agent_last_property_shown')
+              .upsert({ agent_id: agent.id, slug: properties[0].slug, updated_at: new Date().toISOString() });
+          }
         }
 
         messages.push(responseMessage);
@@ -190,40 +215,62 @@ export async function POST(req: NextRequest) {
         textoFinalParaEnviar = finalCompletion.choices[0].message.content || "Lo siento, tuve un error al procesar la búsqueda.";
 
       } else if (functionName === "enviar_pdf_propiedad") {
-        const slug = args.slug;
+        let slug = args.slug;
 
-        await sendWhatsAppMessage(cleanNumber, "⏳ *Generando el PDF de la propiedad...* Dame un momento por favor.");
-        await delay(1200); // espacio mínimo entre request 1 y 2
+        const { data: propiedadValidada } = await supabaseAdmin
+          .from('properties')
+          .select('slug')
+          .eq('agent_id', agent.id)
+          .eq('slug', slug)
+          .maybeSingle();
 
-        try {
-          const pdfUrl = `${BASE_DOMAIN}/api/pdf-generator?slug=${slug}`;
+        if (!propiedadValidada) {
+          const { data: ultimaMostrada } = await supabaseAdmin
+            .from('agent_last_property_shown')
+            .select('slug')
+            .eq('agent_id', agent.id)
+            .maybeSingle();
 
-          await sendWhatsAppMessage(
-            cleanNumber, 
-            `📄 Aquí tienes el documento detallado de la propiedad.`, 
-            pdfUrl, 
-            `Ficha-${slug}.pdf`
-          );
-          await delay(1200); // espacio mínimo entre request 2 y 3 (el texto final, más abajo)
+          slug = ultimaMostrada?.slug;
+        }
 
-          messages.push(responseMessage);
-          messages.push({
-            tool_call_id: toolCall.id,
-            role: "tool",
-            name: toolCall.function.name,
-            content: JSON.stringify({ success: true, message: "PDF generado y enviado exitosamente." }),
-          });
+        if (!slug) {
+          textoFinalParaEnviar = "No logré identificar con certeza qué propiedad quieres en PDF. ¿Puedes confirmarme el nombre o la ubicación?";
+        } else {
 
-          const finalCompletion = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: messages,
-          });
+          await sendWhatsAppMessage(cleanNumber, "⏳ *Generando el PDF de la propiedad...* Dame un momento por favor.");
+          await delay(1200);
 
-          textoFinalParaEnviar = finalCompletion.choices[0].message.content || "PDF enviado correctamente.";
+          try {
+            const pdfUrl = `${BASE_DOMAIN}/api/pdf-generator?slug=${slug}&agent_id=${agent.id}`;
 
-        } catch (error) {
-          console.error("Error al despachar el PDF:", error);
-          textoFinalParaEnviar = "❌ Lo siento, tuve un problema al generar el documento. Inténtalo de nuevo.";
+            await sendWhatsAppMessage(
+              cleanNumber, 
+              `📄 Aquí tienes el documento detallado de la propiedad.`, 
+              pdfUrl, 
+              `Ficha-${slug}.pdf`
+            );
+            await delay(1200);
+
+            messages.push(responseMessage);
+            messages.push({
+              tool_call_id: toolCall.id,
+              role: "tool",
+              name: toolCall.function.name,
+              content: JSON.stringify({ success: true, message: "PDF generado y enviado exitosamente." }),
+            });
+
+            const finalCompletion = await openai.chat.completions.create({
+              model: "gpt-4o",
+              messages: messages,
+            });
+
+            textoFinalParaEnviar = finalCompletion.choices[0].message.content || "PDF enviado correctamente.";
+
+          } catch (error) {
+            console.error("Error al despachar el PDF:", error);
+            textoFinalParaEnviar = "❌ Lo siento, tuve un problema al generar el documento. Inténtalo de nuevo.";
+          }
         }
       }
 

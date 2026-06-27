@@ -87,11 +87,11 @@ export async function POST(req: NextRequest) {
         type: "function" as const,
         function: {
           name: "enviar_pdf_propiedad",
-          description: "Úsalo ÚNICAMENTE cuando el agente pide un PDF o documento descargable de una propiedad específica.",
+          description: "Úsalo ÚNICAMENTE cuando el agente pide un PDF. DEBES extraer el 'slug' de la propiedad del contexto de la charla y enviarlo en los parámetros.",
           parameters: {
             type: "object",
             properties: {
-              slug: { type: "string", description: "El slug de la propiedad para generar el PDF" },
+              slug: { type: "string", description: "El slug exacto de la propiedad solicitada." },
             },
             required: ["slug"]
           },

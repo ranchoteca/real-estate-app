@@ -12,11 +12,10 @@ export async function sendWhatsAppMessage(
       text 
     };
 
-    // Si la IA decide enviar un PDF, Wasender lo adjuntará automáticamente
     if (documentUrl) {
       payload.documentUrl = documentUrl;
       if (fileName) {
-        payload.fileName = fileName; // Opcional: Wasender usará "document.pdf" por defecto si no se envía
+        payload.fileName = fileName;
       }
     }
 
@@ -40,7 +39,6 @@ export async function sendWhatsAppMessage(
   }
 }
 
-// FUNCION DE LIMPIEZA PARA WHATSAPP
 export function formatForWhatsApp(text: string): string {
   return text.replace(/\*\*(.*?)\*\*/g, '*$1*');
 }

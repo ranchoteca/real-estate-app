@@ -47,15 +47,17 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const slug = searchParams.get('slug');
+    const agentId = searchParams.get('agent_id');
 
-    if (!slug) {
-      return NextResponse.json({ error: 'Se requiere el slug' }, { status: 400 });
+    if (!slug || !agentId) {
+      return NextResponse.json({ error: 'Se requiere el slug y agent_id' }, { status: 400 });
     }
 
     const { data: property, error: dbError } = await supabaseAdmin
       .from('properties')
       .select('*')
       .eq('slug', slug)
+      .eq('agent_id', agentId)
       .single();
 
     if (dbError || !property) {

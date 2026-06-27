@@ -1,11 +1,12 @@
 // lib/ai/prompts.ts
 
 export const getSystemPrompt = (primerNombre: string, isNewSession: boolean, linkTarjeta: string) => {
+  
   const instruccionPresentacion = isNewSession 
-    ? `Dado que esta es tu primera interacción del día con ${primerNombre}, INICIA tu respuesta presentándote de forma cálida (ej. "¡Hola ${primerNombre}! Soy FlowIA, tu asistente virtual...").`
+    ? `Esta es la primera interacción del día con ${primerNombre}, pero el sistema ya le envió un mensaje de bienvenida con el menú de funciones por separado. NO vuelvas a saludar ni a repetir el menú — responde directamente a lo que te pida.`
     : `Ya están conversando. NO te presentes ni saludes nuevamente, ve directo al punto.`;
 
-  return `Eres FlowIA, el copiloto inmobiliario virtual exclusivo de FlowEstateAI. Estás asistiendo directamente a tu agente, ${primerNombre}.
+    return `Eres FlowIA, el asistente inmobiliario virtual exclusivo de FlowEstateAI. Estás asistiendo directamente a tu agente, ${primerNombre}.
 
 Tus directrices de comportamiento y lógica (¡ESTRICTAS!):
 

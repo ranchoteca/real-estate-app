@@ -55,6 +55,21 @@ export async function POST(req: NextRequest) {
     const history = historyData || [];
     const isNewSession = history.length === 0;
 
+    const hace30Segundos = new Date(Date.now() - 30 * 1000).toISOString();
+    const { data: mensajeDuplicado } = await supabaseAdmin
+      .from('chat_messages')
+      .select('id')
+      .eq('agent_id', agent.id)
+      .eq('role', 'user')
+      .eq('content', messageText)
+      .gte('created_at', hace30Segundos)
+      .maybeSingle();
+
+    if (mensajeDuplicado) {
+      console.log('⏳ Reintento de webhook de Wasender detectado. Ignorando para evitar colapso (429).');
+      return NextResponse.json({ success: true, status: 'ignored_webhook_retry' });
+    }
+
     await supabaseAdmin.from('chat_messages').insert({ agent_id: agent.id, role: 'user', content: messageText });
 
     const systemPrompt = getSystemPrompt(primerNombre, isNewSession, linkTarjeta);
@@ -182,7 +197,7 @@ export async function POST(req: NextRequest) {
         try {
           const pdfUrl = `${BASE_DOMAIN}/api/pdf-generator?slug=${slug}`;
           await delay(2000);
-          
+
           await sendWhatsAppMessage(
             cleanNumber, 
             `📄 Aquí tienes el documento detallado de la propiedad.`, 

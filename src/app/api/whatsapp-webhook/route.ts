@@ -8,6 +8,8 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const BASE_DOMAIN = 'https://www.flowestateai.com';
 const PROPERTY_PATH = '/p/';
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 const CURRENCY_MAP: Record<string, { code: string; symbol: string }> = {
   'ec8528a3-d504-47fa-97db-2c07716d8b47': { code: 'CRC', symbol: '₡' },
   '839f44d5-bee2-4bc1-b5da-50364f14c681': { code: 'USD', symbol: '$' }
@@ -115,7 +117,7 @@ export async function POST(req: NextRequest) {
       if (functionName === "buscar_propiedades") {
         let query = supabaseAdmin
           .from('properties')
-          .select('title, description, price, city, address, state, property_type, listing_type, currency_id, slug')
+          .select('title, description, price, city, address, state, property_type, listing_type, currency_id, slug', { count: 'exact' })
           .eq('agent_id', agent.id);
 
         if (args.termino_busqueda) {
@@ -127,7 +129,7 @@ export async function POST(req: NextRequest) {
           query = query.eq('listing_type', dbListingType);
         }
 
-        let { data: properties, error: dbError } = await query;
+        let { data: properties, count, error: dbError } = await query.limit(5);
         if (dbError) console.error("❌ Error DB:", dbError);
 
         if (properties && properties.length > 0) {
@@ -158,7 +160,11 @@ export async function POST(req: NextRequest) {
           tool_call_id: toolCall.id,
           role: "tool",
           name: toolCall.function.name,
-          content: JSON.stringify(properties || []),
+          content: JSON.stringify({
+            total_encontradas: count || 0,
+            propiedades_mostradas: properties?.length || 0,
+            resultados: properties || []
+          }),
         });
 
         const finalCompletion = await openai.chat.completions.create({
@@ -170,18 +176,20 @@ export async function POST(req: NextRequest) {
 
       } else if (functionName === "enviar_pdf_propiedad") {
         const slug = args.slug;
-        
+    
         await sendWhatsAppMessage(cleanNumber, "⏳ *Generando el PDF de la propiedad...* Dame un momento por favor.");
 
         try {
           const pdfUrl = `${BASE_DOMAIN}/api/pdf-generator?slug=${slug}`;
-
+          await delay(2000);
+          
           await sendWhatsAppMessage(
             cleanNumber, 
             `📄 Aquí tienes el documento detallado de la propiedad.`, 
             pdfUrl, 
             `Ficha-${slug}.pdf`
           );
+          await delay(2000);
 
           messages.push(responseMessage);
           messages.push({

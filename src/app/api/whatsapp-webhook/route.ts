@@ -91,6 +91,41 @@ export async function POST(req: NextRequest) {
 
     await supabaseAdmin.from('chat_messages').insert({ agent_id: agent.id, role: 'user', content: messageText });
 
+    const ultimoMensajeAsistente = history.length > 0 ? history[history.length - 1] : null;
+    const ofrecioPdf = ultimoMensajeAsistente?.role === 'assistant' 
+      && ultimoMensajeAsistente.content?.includes('¿Te gustaría que te envíe un PDF');
+
+    const esConfirmacionCorta = /^(s[ií]|s[ií] por favor|s[ií] me gustar[ií]a|dale|claro|ok|okay|va|porfa|porfavor)\.?!?$/i.test(messageText.trim());
+
+    if (ofrecioPdf && esConfirmacionCorta) {
+      const { data: ultimaMostrada } = await supabaseAdmin
+        .from('agent_last_property_shown')
+        .select('slug')
+        .eq('agent_id', agent.id)
+        .maybeSingle();
+
+      if (ultimaMostrada?.slug) {
+        const slug = ultimaMostrada.slug;
+
+        await sendWhatsAppMessage(cleanNumber, "⏳ *Generando el PDF de la propiedad...* Dame un momento por favor.");
+        await delay(1200);
+
+        const pdfUrl = `${BASE_DOMAIN}/api/pdf-generator?slug=${slug}&agent_id=${agent.id}`;
+        await sendWhatsAppMessage(
+          cleanNumber,
+          `📄 Aquí tienes el documento detallado de la propiedad.`,
+          pdfUrl,
+          `Ficha-${slug}.pdf`
+        );
+
+        const respuestaFinal = "PDF enviado correctamente. 📄 Si necesitas algo más, aquí estoy para ayudarte.";
+        await supabaseAdmin.from('chat_messages').insert({ agent_id: agent.id, role: 'assistant', content: respuestaFinal });
+        await sendWhatsAppMessage(cleanNumber, respuestaFinal);
+
+        return NextResponse.json({ success: true, status: 'pdf_sent_via_shortcut' });
+      }
+    }
+
     const systemPrompt = getSystemPrompt(primerNombre, isNewSession, linkTarjeta);
 
     const messages: any[] = [
@@ -203,8 +238,11 @@ export async function POST(req: NextRequest) {
           content: JSON.stringify({
             total_encontradas: count || 0,
             propiedades_mostradas: properties?.length || 0,
-            resultados: properties || []
-          }),
+            resultados: properties || [],
+            instruccion_pdf: properties?.length === 1 
+              ? "Hay UNA sola propiedad. Al final de tu respuesta, ofrece el PDF."
+              : "Hay MÚLTIPLES propiedades. NO ofrezcas PDF bajo ninguna circunstancia."
+            }),
         });
 
         const finalCompletion = await openai.chat.completions.create({

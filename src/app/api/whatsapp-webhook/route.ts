@@ -295,7 +295,11 @@ export async function POST(req: NextRequest) {
               tool_call_id: toolCall.id,
               role: "tool",
               name: toolCall.function.name,
-              content: JSON.stringify({ success: true, message: "PDF generado y enviado exitosamente." }),
+              content: JSON.stringify({ 
+                success: true, 
+                message: "PDF generado y enviado exitosamente.",
+                instruccion_sistema: "El PDF YA fue enviado. NO vuelvas a ofrecerlo ni a generarlo de nuevo a menos que el agente pida explícitamente OTRA propiedad o diga la palabra 'PDF' de forma clara y nueva. Si el agente solo dice 'sí', 'gracias' o algo ambiguo después de esto, asume que está cerrando la conversación o agradeciendo — NO ejecutes la función de PDF otra vez."
+              }),
             });
 
             const finalCompletion = await openai.chat.completions.create({

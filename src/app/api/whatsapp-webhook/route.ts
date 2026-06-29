@@ -95,8 +95,18 @@ export async function POST(req: NextRequest) {
     const ofrecioPdf = ultimoMensajeAsistente?.role === 'assistant' 
       && ultimoMensajeAsistente.content?.includes('¿Te gustaría que te envíe un PDF');
 
+    const yaEnvioPdfRecientemente = ultimoMensajeAsistente?.role === 'assistant'
+      && /pdf.*(enviado|generado)/i.test(ultimoMensajeAsistente.content || '');
+
     const esConfirmacionCorta = /^(s[ií]|s[ií] por favor|s[ií] me gustar[ií]a|dale|claro|ok|okay|va|porfa|porfavor)\.?!?$/i.test(messageText.trim());
 
+    if (yaEnvioPdfRecientemente && esConfirmacionCorta && !ofrecioPdf) {
+      const respuestaCierre = "Perfecto, dime en qué más puedo ayudarte.";
+      await supabaseAdmin.from('chat_messages').insert({ agent_id: agent.id, role: 'assistant', content: respuestaCierre });
+      await sendWhatsAppMessage(cleanNumber, respuestaCierre);
+      return NextResponse.json({ success: true, status: 'closed_pdf_followup' });
+    }
+    
     if (ofrecioPdf && esConfirmacionCorta) {
       const { data: ultimaMostrada } = await supabaseAdmin
         .from('agent_last_property_shown')

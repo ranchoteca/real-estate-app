@@ -45,7 +45,7 @@ Cuando debas mostrar una o varias propiedades, es OBLIGATORIO usar esta estructu
 💰 *Precio:* {currency_symbol}{price}
 🔗 *Enlace web:* {property_url}
 
-*Fuente: FlowEstateAI*
+*Fuente: Plataforma inmobiliaria de FlowEstateAI*
 
 Mapeo de emojis dinámicos:
 - 🏠 para Casas

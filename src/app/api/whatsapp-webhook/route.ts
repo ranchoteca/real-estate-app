@@ -222,14 +222,18 @@ export async function POST(req: NextRequest) {
             };
           });
 
-          if (args.precio_min !== undefined || args.precio_max !== undefined) {
+          const tieneFiltroPrecio = args.precio_min !== undefined || args.precio_max !== undefined;
+          const tieneFiltroMoneda = !!args.moneda_referencia;
+
+          if (tieneFiltroPrecio || tieneFiltroMoneda) {
             const min = args.precio_min ?? 0;
             const max = args.precio_max ?? Infinity;
             const monedaFiltro = args.moneda_referencia;
 
             properties = properties.filter(p => {
               if (monedaFiltro && p.currency_code !== monedaFiltro) return false;
-              return p.price >= min && p.price <= max;
+              if (tieneFiltroPrecio && (p.price < min || p.price > max)) return false;
+              return true;
             });
           }
 
@@ -305,11 +309,7 @@ export async function POST(req: NextRequest) {
               tool_call_id: toolCall.id,
               role: "tool",
               name: toolCall.function.name,
-              content: JSON.stringify({ 
-                success: true, 
-                message: "PDF generado y enviado exitosamente.",
-                instruccion_sistema: "El PDF YA fue enviado. NO vuelvas a ofrecerlo ni a generarlo de nuevo a menos que el agente pida explícitamente OTRA propiedad o diga la palabra 'PDF' de forma clara y nueva. Si el agente solo dice 'sí', 'gracias' o algo ambiguo después de esto, asume que está cerrando la conversación o agradeciendo — NO ejecutes la función de PDF otra vez."
-              }),
+              content: JSON.stringify({ success: true, message: "PDF generado y enviado exitosamente." }),
             });
 
             const finalCompletion = await openai.chat.completions.create({
@@ -330,7 +330,13 @@ export async function POST(req: NextRequest) {
       textoFinalParaEnviar = responseMessage.content || `Hola ${primerNombre}, ¿en qué puedo ayudarte hoy?`;
     }
 
-    const cleanFinalResponse = formatForWhatsApp(textoFinalParaEnviar);
+    const mencionaPropiedad = textoFinalParaEnviar.includes('🔗');
+    const yaTieneFuente = textoFinalParaEnviar.includes('Fuente:');
+    const textoConFuente = (mencionaPropiedad && !yaTieneFuente)
+      ? `${textoFinalParaEnviar}\n\n*Fuente: Plataforma inmobiliaria de FlowEstateAI*`
+      : textoFinalParaEnviar;
+
+    const cleanFinalResponse = formatForWhatsApp(textoConFuente);
     
     await supabaseAdmin.from('chat_messages').insert({ agent_id: agent.id, role: 'assistant', content: cleanFinalResponse });
     await sendWhatsAppMessage(cleanNumber, cleanFinalResponse);

@@ -348,20 +348,40 @@ export async function POST(req: NextRequest) {
         await sendWhatsAppMessage(cleanNumber, "📍 *Procesando ubicación...* Calculando la altitud, dame un segundo.");
 
         try {
-          // Expandir la URL corta de Google Maps para obtener las coordenadas
-          const responseUrl = await fetch(mapsUrl, { redirect: 'follow' });
+          // Expandir la URL engañando a Google con un User-Agent de navegador real
+          const responseUrl = await fetch(mapsUrl, { 
+            redirect: 'follow',
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+          });
+
           const finalUrl = responseUrl.url;
+          const htmlText = await responseUrl.text();
 
-          // Extraer latitud y longitud de la URL final usando Regex (busca el patrón @lat,lng)
-          const regexCoord = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
-          const match = finalUrl.match(regexCoord);
+          let lat, lng;
 
-          if (!match) {
-            throw new Error("No se pudieron extraer las coordenadas del enlace.");
+          // Primer intento: Buscar las coordenadas en la URL final expandida
+          let match = finalUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || 
+                      finalUrl.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+                      finalUrl.match(/\/place\/[^\/]+\/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+
+          if (match) {
+            lat = match[1];
+            lng = match[2];
+          } else {
+            // Segundo intento (Fallback): Extraerlas a la fuerza del código HTML
+            const htmlMatch = htmlText.match(/center=(-?\d+\.\d+)%2C(-?\d+\.\d+)/) || 
+                              htmlText.match(/ll=(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+                              htmlText.match(/\[null,null,(-?\d+\.\d+),(-?\d+\.\d+)\]/);
+            
+            if (htmlMatch) {
+              lat = htmlMatch[1];
+              lng = htmlMatch[2];
+            } else {
+              throw new Error("No se pudieron extraer las coordenadas ni de la URL ni del HTML.");
+            }
           }
-
-          const lat = match[1];
-          const lng = match[2];
 
           // Consultar la API de Elevación de Google Maps
           const apiKey = process.env.NEXT_PUBLIC_ELEVATION_API_KEY;

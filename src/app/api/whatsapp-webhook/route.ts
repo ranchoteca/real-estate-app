@@ -348,9 +348,10 @@ export async function POST(req: NextRequest) {
         await sendWhatsAppMessage(cleanNumber, "📍 *Procesando ubicación...* Calculando la altitud, dame un segundo.");
 
         try {
-          // Expandir la URL engañando a Google con un User-Agent de navegador real
+          // Expandir la URL engañando a Google y APAGANDO EL CACHÉ de Next.js
           const responseUrl = await fetch(mapsUrl, { 
             redirect: 'follow',
+            cache: 'no-store',
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             }
@@ -370,24 +371,25 @@ export async function POST(req: NextRequest) {
             lat = match[1];
             lng = match[2];
           } else {
-            // Segundo intento (Fallback): Extraerlas a la fuerza del código HTML
-            const htmlMatch = htmlText.match(/center=(-?\d+\.\d+)%2C(-?\d+\.\d+)/) || 
-                              htmlText.match(/ll=(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+            // Segundo intento (Fallback): Extraer el PIN exacto del HTML (no el centro genérico)
+            const htmlMatch = htmlText.match(/markers=(-?\d+\.\d+)%2C(-?\d+\.\d+)/) || 
+                              htmlText.match(/markers=(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+                              htmlText.match(/q=(-?\d+\.\d+)%2C(-?\d+\.\d+)/) ||
                               htmlText.match(/\[null,null,(-?\d+\.\d+),(-?\d+\.\d+)\]/);
             
             if (htmlMatch) {
               lat = htmlMatch[1];
               lng = htmlMatch[2];
             } else {
-              throw new Error("No se pudieron extraer las coordenadas ni de la URL ni del HTML.");
+              throw new Error("No se pudieron extraer las coordenadas exactas del pin.");
             }
           }
 
-          // Consultar la API de Elevación de Google Maps
+          // Consultar la API de Elevación SIN CACHÉ
           const apiKey = process.env.NEXT_PUBLIC_ELEVATION_API_KEY;
           const elevationApiUrl = `https://maps.googleapis.com/maps/api/elevation/json?locations=${lat},${lng}&key=${apiKey}`;
           
-          const elevationResponse = await fetch(elevationApiUrl);
+          const elevationResponse = await fetch(elevationApiUrl, { cache: 'no-store' });
           const elevationData = await elevationResponse.json();
 
           let altitud = null;

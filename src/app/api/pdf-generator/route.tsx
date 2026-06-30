@@ -109,82 +109,96 @@ function getCurrency(property: any) {
   return { symbol: '$', code: 'USD' };
 }
 
+// Divide un array en parejas para forzar SIEMPRE una grilla de 2 columnas,
+// sin depender de que flexWrap calcule bien los porcentajes (en @react-pdf/renderer
+// el wrap con anchos en % puede comportarse de forma inconsistente).
+function chunkPairs<T>(items: T[]): T[][] {
+  const pairs: T[][] = [];
+  for (let i = 0; i < items.length; i += 2) {
+    pairs.push(items.slice(i, i + 2));
+  }
+  return pairs;
+}
+
 const styles = StyleSheet.create({
   page: { fontFamily: 'Helvetica', backgroundColor: COLORS.white },
 
   // ---- Portada ----
-  coverImageWrap: { position: 'relative', width: '100%', height: 380 },
-  coverImage: { width: '100%', height: 380, objectFit: 'cover' },
+  coverImageWrap: { position: 'relative', width: '100%', height: 500 },
+  coverImage: { width: '100%', height: 500, objectFit: 'cover' },
   coverOverlay: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, height: 130,
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 160,
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
   logoBadge: {
     position: 'absolute', top: 15, left: 15,
     backgroundColor: 'rgba(31,41,55,0.85)', borderRadius: 4,
-    paddingVertical: 5, paddingHorizontal: 8,
+    paddingVertical: 6, paddingHorizontal: 9,
   },
-  logoBadgeText: { color: COLORS.white, fontSize: 11, fontFamily: 'Helvetica-Bold' },
+  logoBadgeText: { color: COLORS.white, fontSize: 12, fontFamily: 'Helvetica-Bold' },
   statusBadge: {
     position: 'absolute', top: 15, right: 15,
     backgroundColor: COLORS.gold, borderRadius: 4,
-    paddingVertical: 5, paddingHorizontal: 10,
+    paddingVertical: 6, paddingHorizontal: 12,
   },
-  statusBadgeText: { color: COLORS.white, fontSize: 10, fontFamily: 'Helvetica-Bold' },
+  statusBadgeText: { color: COLORS.white, fontSize: 11, fontFamily: 'Helvetica-Bold' },
 
   coverTextBlock: { position: 'absolute', bottom: 14, left: 15, right: 15 },
-  coverTitle: { color: COLORS.white, fontSize: 22, fontFamily: 'Helvetica-Bold', marginBottom: 4 },
-  coverLocation: { color: COLORS.gold, fontSize: 12, marginBottom: 6 },
-  coverPrice: { color: COLORS.gold, fontSize: 26, fontFamily: 'Helvetica-Bold', marginBottom: 6 },
+  coverTitle: { color: COLORS.white, fontSize: 25, fontFamily: 'Helvetica-Bold', marginBottom: 4 },
+  coverLocation: { color: COLORS.gold, fontSize: 14, marginBottom: 6 },
+  coverPrice: { color: COLORS.gold, fontSize: 30, fontFamily: 'Helvetica-Bold', marginBottom: 6 },
   coverFeaturesRow: { flexDirection: 'row', alignItems: 'center' },
-  coverFeatureValue: { color: COLORS.white, fontSize: 13, fontFamily: 'Helvetica-Bold', marginRight: 3 },
-  coverFeatureLabel: { color: COLORS.white, fontSize: 9, marginRight: 10 },
+  coverFeatureValue: { color: COLORS.white, fontSize: 15, fontFamily: 'Helvetica-Bold', marginRight: 3 },
+  coverFeatureLabel: { color: COLORS.white, fontSize: 11, marginRight: 10 },
 
-  goldDivider: { width: 40, height: 2, backgroundColor: COLORS.gold, marginTop: 14, marginBottom: 10, marginLeft: 15 },
+  goldDivider: { width: 40, height: 3, backgroundColor: COLORS.gold, marginTop: 14, marginBottom: 10, marginLeft: 15 },
 
   propertyTypeRow: { flexDirection: 'row', marginLeft: 15, marginBottom: 10 },
-  propertyTypeLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: COLORS.text, marginRight: 6 },
-  propertyTypeValue: { fontSize: 10, color: COLORS.textLight },
+  propertyTypeLabel: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: COLORS.text, marginRight: 6 },
+  propertyTypeValue: { fontSize: 12, color: COLORS.textLight },
 
   agentBox: {
-    marginHorizontal: 15, borderWidth: 1, borderColor: COLORS.gold, borderRadius: 4,
+    marginHorizontal: 15, borderWidth: 1.5, borderColor: COLORS.gold, borderRadius: 4,
     backgroundColor: COLORS.background, padding: 10,
   },
-  agentLabel: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: COLORS.gold, marginBottom: 4 },
-  agentName: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: COLORS.text, marginBottom: 4 },
-  agentContact: { fontSize: 10, color: COLORS.textLight, marginBottom: 2 },
-  agentBrokerage: { fontSize: 9, fontFamily: 'Helvetica-Oblique', color: COLORS.textMuted },
-  poweredByText: { fontSize: 10, color: COLORS.textMuted, marginLeft: 15 },
+  agentLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: COLORS.gold, marginBottom: 4 },
+  agentName: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: COLORS.text, marginBottom: 4 },
+  agentContact: { fontSize: 12, color: COLORS.textLight, marginBottom: 2 },
+  agentBrokerage: { fontSize: 11, fontFamily: 'Helvetica-Oblique', color: COLORS.textMuted },
+  poweredByText: { fontSize: 12, color: COLORS.textMuted, marginLeft: 15 },
 
   // ---- Header compartido (páginas 2 y 3) ----
   header: { paddingHorizontal: 15, paddingTop: 14, marginBottom: 10 },
-  headerLogoText: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: COLORS.text },
-  headerDivider: { height: 0.5, backgroundColor: COLORS.gold, marginTop: 6 },
+  headerLogoText: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: COLORS.text },
+  headerDivider: { height: 1.5, backgroundColor: COLORS.gold, marginTop: 6 },
 
   // ---- Página de detalles ----
   body: { paddingHorizontal: 15 },
-  sectionTitle: { fontSize: 15, fontFamily: 'Helvetica-Bold', color: COLORS.text, marginBottom: 4 },
-  sectionDivider: { width: 60, height: 1.5, backgroundColor: COLORS.gold, marginBottom: 10 },
+  sectionTitle: { fontSize: 17, fontFamily: 'Helvetica-Bold', color: COLORS.text, marginBottom: 4 },
+  sectionDivider: { width: 60, height: 2.5, backgroundColor: COLORS.gold, marginBottom: 10 },
 
-  fieldsGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 },
+  fieldsGrid: { marginBottom: 6 },
+  fieldRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   fieldBox: {
-    width: '49%', backgroundColor: COLORS.background, borderRadius: 2,
-    paddingVertical: 5, paddingHorizontal: 6, marginBottom: 4, marginRight: '2%',
+    width: '48%', backgroundColor: COLORS.background, borderRadius: 2,
+    paddingVertical: 6, paddingHorizontal: 7,
     flexDirection: 'row',
   },
-  fieldLabel: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: COLORS.text, marginRight: 4 },
-  fieldValue: { fontSize: 9, color: COLORS.textLight, flexShrink: 1 },
+  fieldBoxSpacer: { width: '48%' },
+  fieldLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: COLORS.text, marginRight: 4 },
+  fieldValue: { fontSize: 11, color: COLORS.textLight, flexShrink: 1 },
 
-  description: { fontSize: 10.5, color: COLORS.textLight, lineHeight: 1.5, marginBottom: 10 },
+  description: { fontSize: 12, color: COLORS.textLight, lineHeight: 1.5, marginBottom: 10 },
 
   locationRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  locationText: { fontSize: 10.5, color: COLORS.textLight, lineHeight: 1.5, maxWidth: '70%' },
+  locationText: { fontSize: 12, color: COLORS.textLight, lineHeight: 1.5, maxWidth: '68%' },
+  qrBoxWrap: { width: 70, alignItems: 'center' },
   qrBox: {
     width: 70, height: 70, borderWidth: 0.5, borderColor: COLORS.border, borderRadius: 2,
     alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.white,
   },
   qrImage: { width: 64, height: 64 },
-  qrCaption: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: COLORS.text, marginTop: 3, textAlign: 'center' },
+  qrCaption: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: COLORS.text, marginTop: 4, textAlign: 'center' },
 
   // ---- Footer compartido ----
   footer: {
@@ -192,14 +206,16 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5, borderTopColor: COLORS.border, paddingTop: 6,
     alignItems: 'center',
   },
-  footerText: { fontSize: 9, color: COLORS.textMuted },
+  footerText: { fontSize: 10, color: COLORS.textMuted },
 
   // ---- Galería ----
-  galleryGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 15 },
+  galleryGrid: { paddingHorizontal: 15 },
+  galleryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   galleryImageWrap: {
-    width: '48.5%', height: 150, marginBottom: 8, marginRight: '3%',
+    width: '48.5%', height: 150,
     borderWidth: 0.5, borderColor: COLORS.border,
   },
+  galleryImageWrapSpacer: { width: '48.5%' },
   galleryImage: { width: '100%', height: '100%', objectFit: 'cover' },
 });
 
@@ -335,16 +351,23 @@ function DetailsPage({ property, agent, t, lang, customFieldsDefinitions, baseDo
             <Text style={styles.sectionTitle}>{t.propertyFeatures}</Text>
             <View style={styles.sectionDivider} />
             <View style={styles.fieldsGrid}>
-              {entries.map(([key, value]) => {
-                const fieldDef = (customFieldsDefinitions || []).find((f: any) => f.field_key === key);
-                const fieldName = (lang === 'en' && fieldDef?.field_name_en) ? fieldDef.field_name_en : (fieldDef?.field_name || key);
-                return (
-                  <View key={key} style={styles.fieldBox}>
-                    <Text style={styles.fieldLabel}>{fieldName}:</Text>
-                    <Text style={styles.fieldValue}>{String(value)}</Text>
-                  </View>
-                );
-              })}
+              {chunkPairs(entries as [string, any][]).map((pair, rowIndex) => (
+                <View key={rowIndex} style={styles.fieldRow}>
+                  {pair.map(([key, value]) => {
+                    const fieldDef = (customFieldsDefinitions || []).find((f: any) => f.field_key === key);
+                    const fieldName = (lang === 'en' && fieldDef?.field_name_en)
+                      ? fieldDef.field_name_en
+                      : (fieldDef?.field_name || key);
+                    return (
+                      <View key={key} style={styles.fieldBox}>
+                        <Text style={styles.fieldLabel}>{fieldName}:</Text>
+                        <Text style={styles.fieldValue}>{String(value)}</Text>
+                      </View>
+                    );
+                  })}
+                  {pair.length === 1 && <View style={styles.fieldBoxSpacer} />}
+                </View>
+              ))}
             </View>
           </>
         )}
@@ -362,14 +385,14 @@ function DetailsPage({ property, agent, t, lang, customFieldsDefinitions, baseDo
         <View style={styles.locationRow}>
           <Text style={styles.locationText}>{locationParts.join(', ')}</Text>
           {validQrUrl && (
-            <View style={styles.qrBox}>
-              <Image src={validQrUrl} style={styles.qrImage} />
+            <View style={styles.qrBoxWrap}>
+              <View style={styles.qrBox}>
+                <Image src={validQrUrl} style={styles.qrImage} />
+              </View>
+              <Text style={styles.qrCaption}>{t.scanToView}</Text>
             </View>
           )}
         </View>
-        {validQrUrl && (
-          <Text style={[styles.qrCaption, { marginLeft: '70%', marginTop: -3 }]}>{t.scanToView}</Text>
-        )}
       </View>
 
       <CompactFooter agent={agent} t={t} />
@@ -388,9 +411,14 @@ function GalleryPage({ agent, t, validGalleryPhotos, validLogoUrl }: any) {
       </View>
 
       <View style={styles.galleryGrid}>
-        {validGalleryPhotos.map((url: string, i: number) => (
-          <View key={i} style={styles.galleryImageWrap}>
-            <Image src={url} style={styles.galleryImage} />
+        {chunkPairs(validGalleryPhotos as string[]).map((pair, rowIndex) => (
+          <View key={rowIndex} style={styles.galleryRow}>
+            {pair.map((url, i) => (
+              <View key={i} style={styles.galleryImageWrap}>
+                <Image src={url} style={styles.galleryImage} />
+              </View>
+            ))}
+            {pair.length === 1 && <View style={styles.galleryImageWrapSpacer} />}
           </View>
         ))}
       </View>
@@ -477,9 +505,16 @@ export async function GET(req: NextRequest) {
       .eq('id', agentId)
       .single();
 
-    const { data: customFieldsDefinitions } = await supabaseAdmin
+    const { data: customFieldsDefinitions, error: customFieldsError } = await supabaseAdmin
       .from('custom_fields_definitions')
       .select('field_key, field_name, field_name_en');
+
+    if (customFieldsError) {
+      // Si esto aparece en los logs de Vercel, el nombre de la tabla o de alguna
+      // columna no coincide con el esquema real, y por eso cada campo cae al
+      // fallback (la key cruda) en el PDF.
+      console.error('Error obteniendo custom_fields_definitions:', customFieldsError);
+    }
 
     const documentElement = await PropertyDocument({
       property,

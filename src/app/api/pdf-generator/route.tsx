@@ -124,8 +124,8 @@ const styles = StyleSheet.create({
   page: { fontFamily: 'Helvetica', backgroundColor: COLORS.white },
 
   // ---- Portada ----
-  coverImageWrap: { position: 'relative', width: '100%', height: 500 },
-  coverImage: { width: '100%', height: 500, objectFit: 'cover' },
+  coverImageWrap: { position: 'relative', width: '100%', height: 580 },
+  coverImage: { width: '100%', height: 580, objectFit: 'cover' },
   coverOverlay: {
     position: 'absolute', bottom: 0, left: 0, right: 0, height: 160,
     backgroundColor: 'rgba(0,0,0,0.55)',
@@ -191,13 +191,13 @@ const styles = StyleSheet.create({
   description: { fontSize: 12, color: COLORS.textLight, lineHeight: 1.5, marginBottom: 10 },
 
   locationRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  locationText: { fontSize: 12, color: COLORS.textLight, lineHeight: 1.5, maxWidth: '68%' },
-  qrBoxWrap: { width: 70, alignItems: 'center' },
+  locationText: { fontSize: 12, color: COLORS.textLight, lineHeight: 1.5, maxWidth: '62%' },
+  qrBoxWrap: { width: 95, alignItems: 'center' },
   qrBox: {
-    width: 70, height: 70, borderWidth: 0.5, borderColor: COLORS.border, borderRadius: 2,
+    width: 95, height: 95, borderWidth: 0.5, borderColor: COLORS.border, borderRadius: 2,
     alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.white,
   },
-  qrImage: { width: 64, height: 64 },
+  qrImage: { width: 85, height: 85 },
   qrCaption: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: COLORS.text, marginTop: 4, textAlign: 'center' },
 
   // ---- Footer compartido ----
@@ -506,14 +506,11 @@ export async function GET(req: NextRequest) {
       .single();
 
     const { data: customFieldsDefinitions, error: customFieldsError } = await supabaseAdmin
-      .from('custom_fields_definitions')
+      .from('custom_fields')
       .select('field_key, field_name, field_name_en');
 
     if (customFieldsError) {
-      // Si esto aparece en los logs de Vercel, el nombre de la tabla o de alguna
-      // columna no coincide con el esquema real, y por eso cada campo cae al
-      // fallback (la key cruda) en el PDF.
-      console.error('Error obteniendo custom_fields_definitions:', customFieldsError);
+      console.error('Error obteniendo custom_fields:', customFieldsError);
     }
 
     const documentElement = await PropertyDocument({

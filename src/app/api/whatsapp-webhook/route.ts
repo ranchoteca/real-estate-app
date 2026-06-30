@@ -466,7 +466,7 @@ export async function POST(req: NextRequest) {
               || "❌ No pude procesar ese enlace. Intenta compartirlo desde Google Maps tocando *Compartir → Copiar enlace*. Si sigue sin funcionar, el lugar podría no tener pin exacto.";
           }
         }
-
+      }
     } else {
       textoFinalParaEnviar = responseMessage.content || `Hola ${primerNombre}, ¿en qué puedo ayudarte hoy?`;
     }

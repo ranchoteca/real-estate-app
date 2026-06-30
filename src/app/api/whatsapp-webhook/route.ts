@@ -345,100 +345,127 @@ export async function POST(req: NextRequest) {
         }
       } else if (functionName === "calcular_altura_ubicacion") {
         const mapsUrl = args.url_google_maps;
-        await sendWhatsAppMessage(cleanNumber, "📍 *Procesando ubicación...* Calculando la altitud, dame un segundo.");
 
-        try {
-          // Expandir la URL engañando a Google y APAGANDO EL CACHÉ de Next.js
-          const responseUrl = await fetch(mapsUrl, { 
-            redirect: 'follow',
-            cache: 'no-store',
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        // ─── Guard: solo ejecutar si el mensaje ACTUAL contiene una URL de Maps ───
+        const mensajeContieneUrl = /maps\.app\.goo\.gl|google\.com\/maps|maps\.google\.com/i.test(messageText);
+
+        if (!mensajeContieneUrl) {
+          textoFinalParaEnviar = `No encontré un enlace de Google Maps en tu mensaje. Por favor envíame el enlace directamente para calcular la altitud. 🗺️`;
+        } else {
+          await sendWhatsAppMessage(cleanNumber, "📍 *Procesando ubicación...* Calculando la altitud, dame un segundo.");
+
+          try {
+            // ─── User-Agent MÓVIL: con UA de escritorio Google a veces redirige a
+            // una consent page sin coordenadas; con móvil va directo al mapa. ───
+            const responseUrl = await fetch(mapsUrl, {
+              redirect: 'follow',
+              cache: 'no-store',
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+                'Accept-Language': 'es-CR,es;q=0.9',
+              }
+            });
+
+            const finalUrl = responseUrl.url;
+            const htmlText = await responseUrl.text();
+
+            let lat: string | null = null;
+            let lng: string | null = null;
+
+            // ─── Estrategia 1: Coordenadas directas en la URL expandida ───
+            const urlPatterns = [
+              /@(-?\d+\.\d+),(-?\d+\.\d+)/,
+              /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/,
+              /\/place\/[^/]+\/@(-?\d+\.\d+),(-?\d+\.\d+)/,
+              /ll=(-?\d+\.\d+),(-?\d+\.\d+)/,
+              /center=(-?\d+\.\d+)%2C(-?\d+\.\d+)/,
+              /[?&]center=(-?\d+\.\d+),(-?\d+\.\d+)/,
+            ];
+
+            for (const pattern of urlPatterns) {
+              const m = finalUrl.match(pattern);
+              if (m) { lat = m[1]; lng = m[2]; break; }
             }
-          });
 
-          const finalUrl = responseUrl.url;
-          const htmlText = await responseUrl.text();
+            // ─── Estrategia 2: Coordenadas en el HTML ───
+            if (!lat || !lng) {
+              const htmlPatterns = [
+                /markers=(-?\d+\.\d+)%2C(-?\d+\.\d+)/,
+                /markers=(-?\d+\.\d+),(-?\d+\.\d+)/,
+                /q=(-?\d+\.\d+)%2C(-?\d+\.\d+)/,
+                /\[null,null,(-?\d+\.\d+),(-?\d+\.\d+)\]/,
+                /"lat":(-?\d+\.\d+),"lng":(-?\d+\.\d+)/,
+                /\["",(-?\d+\.\d+),(-?\d+\.\d+)\]/,
+                /\[\[(-?\d+\.\d+),(-?\d+\.\d+)\],null,null,null,null,\[/,
+                /APP_INITIALIZATION_STATE=\[.*?(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/,
+              ];
 
-          let lat, lng;
-
-          // Primer intento: Buscar las coordenadas en la URL final expandida
-          let match = finalUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || 
-                      finalUrl.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-                      finalUrl.match(/\/place\/[^\/]+\/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-
-          if (match) {
-            lat = match[1];
-            lng = match[2];
-          } else {
-            // Segundo intento (Fallback): Extraer el PIN exacto del HTML (no el centro genérico)
-            const htmlMatch = htmlText.match(/markers=(-?\d+\.\d+)%2C(-?\d+\.\d+)/) || 
-                              htmlText.match(/markers=(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-                              htmlText.match(/q=(-?\d+\.\d+)%2C(-?\d+\.\d+)/) ||
-                              htmlText.match(/\[null,null,(-?\d+\.\d+),(-?\d+\.\d+)\]/);
-            
-            if (htmlMatch) {
-              lat = htmlMatch[1];
-              lng = htmlMatch[2];
-            } else {
-              throw new Error("No se pudieron extraer las coordenadas exactas del pin.");
+              for (const pattern of htmlPatterns) {
+                const m = htmlText.match(pattern);
+                if (m) { lat = m[1]; lng = m[2]; break; }
+              }
             }
+
+            if (!lat || !lng) {
+              throw new Error("No se pudieron extraer coordenadas del enlace.");
+            }
+
+            const apiKey = process.env.NEXT_PUBLIC_ELEVATION_API_KEY;
+            const elevationResponse = await fetch(
+              `https://maps.googleapis.com/maps/api/elevation/json?locations=${lat},${lng}&key=${apiKey}`,
+              { cache: 'no-store' }
+            );
+            const elevationData = await elevationResponse.json();
+
+            if (elevationData.status !== "OK" || !elevationData.results.length) {
+              throw new Error(`Elevation API status: ${elevationData.status}`);
+            }
+
+            const altitud = Math.round(elevationData.results[0].elevation);
+
+            messages.push(responseMessage);
+            messages.push({
+              tool_call_id: toolCall.id,
+              role: "tool",
+              name: toolCall.function.name,
+              content: JSON.stringify({
+                success: true,
+                latitud: lat,
+                longitud: lng,
+                elevacion_metros: altitud,
+              }),
+            });
+
+            const finalCompletion = await openai.chat.completions.create({
+              model: "gpt-4o",
+              messages: messages,
+            });
+
+            textoFinalParaEnviar = finalCompletion.choices[0].message.content || "He calculado la altura exitosamente.";
+
+          } catch (error) {
+            console.error("Error al calcular la altitud:", error);
+
+            messages.push(responseMessage);
+            messages.push({
+              tool_call_id: toolCall.id,
+              role: "tool",
+              name: toolCall.function.name,
+              content: JSON.stringify({
+                success: false,
+                error: "No se pudieron extraer coordenadas del enlace proporcionado.",
+              }),
+            });
+
+            const finalCompletion = await openai.chat.completions.create({
+              model: "gpt-4o",
+              messages: messages,
+            });
+
+            textoFinalParaEnviar = finalCompletion.choices[0].message.content
+              || "❌ No pude procesar ese enlace. Intenta compartirlo desde Google Maps tocando *Compartir → Copiar enlace*. Si sigue sin funcionar, el lugar podría no tener pin exacto.";
           }
-
-          // Consultar la API de Elevación SIN CACHÉ
-          const apiKey = process.env.NEXT_PUBLIC_ELEVATION_API_KEY;
-          const elevationApiUrl = `https://maps.googleapis.com/maps/api/elevation/json?locations=${lat},${lng}&key=${apiKey}`;
-          
-          const elevationResponse = await fetch(elevationApiUrl, { cache: 'no-store' });
-          const elevationData = await elevationResponse.json();
-
-          let altitud = null;
-          if (elevationData.status === "OK" && elevationData.results.length > 0) {
-            altitud = Math.round(elevationData.results[0].elevation);
-          } else {
-            throw new Error("La API de Google no devolvió resultados de elevación.");
-          }
-
-          // Devolver los datos a OpenAI para que arme un mensaje amigable
-          messages.push(responseMessage);
-          messages.push({
-            tool_call_id: toolCall.id,
-            role: "tool",
-            name: toolCall.function.name,
-            content: JSON.stringify({ 
-              success: true, 
-              latitud: lat, 
-              longitud: lng, 
-              elevacion_metros: altitud 
-            }),
-          });
-
-          const finalCompletion = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: messages,
-          });
-
-          textoFinalParaEnviar = finalCompletion.choices[0].message.content || "He calculado la altura exitosamente.";
-
-        } catch (error) {
-          console.error("Error al calcular la altitud:", error);
-          
-          messages.push(responseMessage);
-          messages.push({
-            tool_call_id: toolCall.id,
-            role: "tool",
-            name: toolCall.function.name,
-            content: JSON.stringify({ success: false, error: "No se pudo calcular la altura. Pídele al usuario que verifique que el enlace sea correcto." }),
-          });
-
-          const finalCompletion = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: messages,
-          });
-
-          textoFinalParaEnviar = finalCompletion.choices[0].message.content || "❌ Lo siento, no pude procesar ese enlace de Google Maps para calcular la altitud.";
         }
-      }
 
     } else {
       textoFinalParaEnviar = responseMessage.content || `Hola ${primerNombre}, ¿en qué puedo ayudarte hoy?`;

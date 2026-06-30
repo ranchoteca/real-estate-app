@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
         await sendWhatsAppMessage(cleanNumber, "⏳ *Generando el PDF de la propiedad...* Dame un momento por favor.");
         await delay(1200);
 
-        const pdfUrl = `${BASE_DOMAIN}/api/pdf-generator?slug=${slug}&agent_id=${agent.id}`;
+        const pdfUrl = `${BASE_DOMAIN}/api/pdf-generator?slug=${slug}&agent_id=${agent.id}&t=${Date.now()}`;
         await sendWhatsAppMessage(
           cleanNumber,
           `📄 Aquí tienes el documento detallado de la propiedad.`,
@@ -313,7 +313,7 @@ export async function POST(req: NextRequest) {
           await delay(1200);
 
           try {
-            const pdfUrl = `${BASE_DOMAIN}/api/pdf-generator?slug=${slug}&agent_id=${agent.id}`;
+            const pdfUrl = `${BASE_DOMAIN}/api/pdf-generator?slug=${slug}&agent_id=${agent.id}&t=${Date.now()}`;
 
             await sendWhatsAppMessage(
               cleanNumber, 

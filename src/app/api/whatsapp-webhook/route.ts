@@ -56,13 +56,14 @@ export async function POST(req: NextRequest) {
     const isNewSession = history.length === 0;
 
     if (isNewSession) {
-      const mensajeBienvenida = `¡Hola ${primerNombre}! 👋 Soy *FlowIA*, tu asistente inmobiliario.
+      const mensajeBienvenida = `¡Hola ${primerNombre}! 👋 Soy *Flow*, tu asistente inmobiliario.
 
     Esto es lo que puedo hacer por ti hoy:
 
     🔍 *Buscar propiedades* de tu inventario por ubicación, tipo o presupuesto.
     📄 *Enviarte el PDF* con la ficha de cualquier propiedad específica.
-    🪪 *Compartir tu tarjeta digital* para que la envíes a tus clientes.
+     🪪 *Compartir tu tarjeta digital* para que la envíes a tus clientes.
+    ⛰️ *Obtener la altura de un lugar* que compartas usando google maps.
 
     ¿En qué te ayudo?`;
 
@@ -173,6 +174,24 @@ export async function POST(req: NextRequest) {
               slug: { type: "string", description: "El slug exacto de la propiedad solicitada." },
             },
             required: ["slug"]
+          },
+        },
+      },
+      // Añade esto dentro de tu array 'tools' existente
+      {
+        type: "function" as const,
+        function: {
+          name: "calcular_altura_ubicacion",
+          description: "Calcula la altitud (elevación) en metros sobre el nivel del mar a partir de un enlace de Google Maps compartido por el usuario.",
+          parameters: {
+            type: "object",
+            properties: {
+              url_google_maps: { 
+                type: "string", 
+                description: "El enlace de Google Maps extraído del mensaje del usuario (ej. https://maps.app.goo.gl/... o https://www.google.com/maps/...)." 
+              },
+            },
+            required: ["url_google_maps"]
           },
         },
       }
@@ -323,6 +342,79 @@ export async function POST(req: NextRequest) {
             console.error("Error al despachar el PDF:", error);
             textoFinalParaEnviar = "❌ Lo siento, tuve un problema al generar el documento. Inténtalo de nuevo.";
           }
+        }
+      } else if (functionName === "calcular_altura_ubicacion") {
+        const mapsUrl = args.url_google_maps;
+        await sendWhatsAppMessage(cleanNumber, "📍 *Procesando ubicación...* Calculando la altitud, dame un segundo.");
+
+        try {
+          // Expandir la URL corta de Google Maps para obtener las coordenadas
+          const responseUrl = await fetch(mapsUrl, { redirect: 'follow' });
+          const finalUrl = responseUrl.url;
+
+          // Extraer latitud y longitud de la URL final usando Regex (busca el patrón @lat,lng)
+          const regexCoord = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+          const match = finalUrl.match(regexCoord);
+
+          if (!match) {
+            throw new Error("No se pudieron extraer las coordenadas del enlace.");
+          }
+
+          const lat = match[1];
+          const lng = match[2];
+
+          // Consultar la API de Elevación de Google Maps
+          const apiKey = process.env.NEXT_PUBLIC_ELEVATION_API_KEY;
+          const elevationApiUrl = `https://maps.googleapis.com/maps/api/elevation/json?locations=${lat},${lng}&key=${apiKey}`;
+          
+          const elevationResponse = await fetch(elevationApiUrl);
+          const elevationData = await elevationResponse.json();
+
+          let altitud = null;
+          if (elevationData.status === "OK" && elevationData.results.length > 0) {
+            altitud = Math.round(elevationData.results[0].elevation);
+          } else {
+            throw new Error("La API de Google no devolvió resultados de elevación.");
+          }
+
+          // Devolver los datos a OpenAI para que arme un mensaje amigable
+          messages.push(responseMessage);
+          messages.push({
+            tool_call_id: toolCall.id,
+            role: "tool",
+            name: toolCall.function.name,
+            content: JSON.stringify({ 
+              success: true, 
+              latitud: lat, 
+              longitud: lng, 
+              elevacion_metros: altitud 
+            }),
+          });
+
+          const finalCompletion = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: messages,
+          });
+
+          textoFinalParaEnviar = finalCompletion.choices[0].message.content || "He calculado la altura exitosamente.";
+
+        } catch (error) {
+          console.error("Error al calcular la altitud:", error);
+          
+          messages.push(responseMessage);
+          messages.push({
+            tool_call_id: toolCall.id,
+            role: "tool",
+            name: toolCall.function.name,
+            content: JSON.stringify({ success: false, error: "No se pudo calcular la altura. Pídele al usuario que verifique que el enlace sea correcto." }),
+          });
+
+          const finalCompletion = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: messages,
+          });
+
+          textoFinalParaEnviar = finalCompletion.choices[0].message.content || "❌ Lo siento, no pude procesar ese enlace de Google Maps para calcular la altitud.";
         }
       }
 

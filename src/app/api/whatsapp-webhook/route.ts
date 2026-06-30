@@ -49,10 +49,10 @@ export async function POST(req: NextRequest) {
       .select('role, content')
       .eq('agent_id', agent.id)
       .gte('created_at', tresHorasAtras)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(15);
 
-    const history = historyData || [];
+    const history = historyData ? [...historyData].reverse() : [];
     const isNewSession = history.length === 0;
 
     if (isNewSession) {

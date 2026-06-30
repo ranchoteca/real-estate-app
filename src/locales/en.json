@@ -252,7 +252,9 @@
     "inicio": "Home",
     "analiticas": "Analytics",
     "ajustes": "Settings",
-    "perfil": "Profile"
+    "perfil": "Profile",
+    "crearPropiedad": "Create property",
+    "crearPropiedadHintVoz": "Available from your phone to record the description by voice"
   },
   "analytics": {
     "title": "My Business",

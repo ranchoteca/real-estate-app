@@ -252,7 +252,9 @@
     "inicio": "Inicio",
     "analiticas": "Analíticas",
     "ajustes": "Ajustes",
-    "perfil": "Perfil"
+    "perfil": "Perfil",
+    "crearPropiedad": "Crear propiedad",
+    "crearPropiedadHintVoz": "Disponible desde tu celular para grabar la descripción por voz"
   },
   "analytics": {
     "title": "Mi Negocio",

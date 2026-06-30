@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { trackEvent } from '@/lib/fbpixel';
 import GeneratingPDFModal from '@/components/GeneratingPDFModal';
 import FacebookPublishModal from '@/components/FacebookPublishModal';
-import MobileLayout from '@/components/MobileLayout';
+import AppLayout from '@/components/AppLayout';
 import Image from 'next/image';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useI18nStore } from '@/lib/i18n-store';
@@ -83,11 +83,10 @@ export default function DashboardPage() {
     { value: 'en', label: '🇺🇸 English' },
   ];
 
-  // ── ESTADO EXISTENTE ───────────────────────────────────────────────────────
+  // ── ESTADO ────────────────────────────────────────────────────────────────
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState<string | null>(null);
-  
   const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [planInfo, setPlanInfo] = useState<{ plan: string; role: string; expires_at: string | null } | null>(null);
@@ -113,8 +112,6 @@ export default function DashboardPage() {
   const [isAltitudeModalOpen, setIsAltitudeModalOpen] = useState(false);
   const [isCreateProposalOpen, setIsCreateProposalOpen] = useState(false);
   const [isMyProposalsOpen, setIsMyProposalsOpen] = useState(false);
-
-  // ── NUEVO: PROPOSAL SELECTION STATE ───────────────────────────────────────
   const [selectedForProposal, setSelectedForProposal] = useState<Set<string>>(new Set());
   const [proposalLanguage, setProposalLanguage] = useState<'es' | 'en' | null>(null);
   const [proposalLangToast, setProposalLangToast] = useState(false);
@@ -125,7 +122,7 @@ export default function DashboardPage() {
     return localStorage.getItem('proposal_hint_dismissed') === 'true';
   });
 
-  // ── EFFECTS EXISTENTES ────────────────────────────────────────────────────
+  // ── EFFECTS ───────────────────────────────────────────────────────────────
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
@@ -149,12 +146,7 @@ export default function DashboardPage() {
             const now = Date.now();
             const diffMinutes = (now - createdAt) / 1000 / 60;
             if (diffMinutes < 2) {
-              trackEvent('CompleteRegistration', {
-                value: 0,
-                currency: 'CRC',
-                content_name: 'Google Sign Up',
-              });
-              console.log('✅ Facebook: CompleteRegistration fired');
+              trackEvent('CompleteRegistration', { value: 0, currency: 'CRC', content_name: 'Google Sign Up' });
             }
           }
         } catch (error) {
@@ -165,7 +157,7 @@ export default function DashboardPage() {
     }
   }, [session?.user?.id]);
 
-  // ── FUNCIONES EXISTENTES ──────────────────────────────────────────────────
+  // ── FUNCIONES ─────────────────────────────────────────────────────────────
   const loadPlanInfo = async () => {
     try {
       const response = await fetch('/api/agent/current-plan');
@@ -273,7 +265,6 @@ export default function DashboardPage() {
 
   const hasActiveFilters = filterPropertyType || filterStatus || filterLanguage || searchQuery.trim();
 
-  // ── NUEVAS FUNCIONES: PROPOSALS ───────────────────────────────────────────
   const toggleCardExpand = (e: React.MouseEvent, propertyId: string) => {
     const target = e.target as HTMLElement;
     if (target.closest('[data-bookmark]') || target.closest('[data-menu]')) return;
@@ -294,16 +285,13 @@ export default function DashboardPage() {
         const next = new Set(prev);
         if (next.has(property.id)) {
           next.delete(property.id);
-          // Si queda vacío, resetear idioma
           if (next.size === 0) setProposalLanguage(null);
         } else {
-          // Primera propiedad — determina el idioma
           if (next.size === 0) {
             setProposalLanguage(property.language);
             setProposalLangToast(true);
             setTimeout(() => setProposalLangToast(false), 3000);
           }
-          // Solo agregar si el idioma coincide
           if (proposalLanguage === null || property.language === proposalLanguage) {
             next.add(property.id);
           }
@@ -344,7 +332,7 @@ export default function DashboardPage() {
   // ── GUARDS ────────────────────────────────────────────────────────────────
   if (status === 'loading' || loading) {
     return (
-      <MobileLayout title={language === 'en' ? 'My Properties' : 'Mis Propiedades'} showTabs={false}>
+      <AppLayout title={language === 'en' ? 'My Properties' : 'Mis Propiedades'} showTabs={false}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">🏠</div>
@@ -353,7 +341,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      </MobileLayout>
+      </AppLayout>
     );
   }
 
@@ -374,10 +362,10 @@ export default function DashboardPage() {
   const filteredProperties = getFilteredProperties();
   const hasProperties = properties.length > 0;
 
-  // ── PANTALLA DE BIENVENIDA (0 propiedades) ─────────────────────────────────
+  // ── PANTALLA DE BIENVENIDA (0 propiedades) ────────────────────────────────
   if (!hasProperties) {
     return (
-      <MobileLayout
+      <AppLayout
         title={language === 'en' ? 'My Properties' : 'Mis Propiedades'}
         showTabs={true}
         currentPropertyCount={0}
@@ -407,84 +395,94 @@ export default function DashboardPage() {
             {language === 'en' ? 'Free forever for your first 5 properties' : 'Gratis para tus primeras 5 propiedades'}
           </p>
         </div>
-      </MobileLayout>
+      </AppLayout>
     );
   }
 
   // ── DASHBOARD NORMAL (1+ propiedades) ─────────────────────────────────────
   return (
-    <MobileLayout
+    <AppLayout
       title={language === 'en' ? 'My Properties' : 'Mis Propiedades'}
       showTabs={true}
       currentPropertyCount={properties.length}
       onCreateLimitReached={() => setShowLimitModal(true)}
     >
-      {/* Stats Card */}
-      <div className="px-4 pt-3 pb-2">
-        {isProActivo && (
-          <div className="mt-2 mb-2 px-3 py-2 rounded-xl flex items-center gap-2" style={{ backgroundColor: '#F0FDF4', border: '1.5px solid #BBF7D0' }}>
-            <span className="text-lg">⭐</span>
-            <p className="text-sm font-bold" style={{ color: '#15803D' }}>
-              {language === 'en' ? 'Your current plan is Pro' : 'Tu plan actual es Pro'}
+      {/* ── STATS + FILTROS ──────────────────────────────────────────────── */}
+      {/*
+        En mobile: layout de una columna (como siempre).
+        En tablet/desktop: stats + filtros en una barra compacta horizontal,
+        sin sticky (el sidebar ya da contexto visual permanente).
+      */}
+      <div className="px-4 pt-3 pb-2 md:px-6 md:pt-5">
+
+        {/* Stats row — en desktop, 3 columnas horizontales */}
+        <div className="md:grid md:grid-cols-3 md:gap-4 md:mb-4">
+          {isProActivo && (
+            <div className="mt-2 mb-2 md:mt-0 md:mb-0 px-3 py-2 rounded-xl flex items-center gap-2 md:col-span-3" style={{ backgroundColor: '#F0FDF4', border: '1.5px solid #BBF7D0' }}>
+              <span className="text-lg">⭐</span>
+              <p className="text-sm font-bold" style={{ color: '#15803D' }}>
+                {language === 'en' ? 'Your current plan is Pro' : 'Tu plan actual es Pro'}
+              </p>
+            </div>
+          )}
+
+          <div className="rounded-xl p-3 shadow-md mb-2 md:mb-0" style={{ backgroundColor: '#FFFFFF' }}>
+            <div className="flex items-center justify-between md:block">
+              <div>
+                <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                  {language === 'en' ? 'Total properties' : 'Total propiedades'}
+                </p>
+                <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>{properties.length}</p>
+              </div>
+              <div className="text-right md:hidden">
+                <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                  {language === 'en' ? 'Limit' : 'Límite'}
+                </p>
+                <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>
+                  {planInfo?.plan === 'free' ? `${properties.length} / 5` : `${properties.length} / 150`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden md:block rounded-xl p-3 shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
+            <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+              {language === 'en' ? 'Limit' : 'Límite'}
+            </p>
+            <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>
+              {planInfo?.plan === 'free' ? `${properties.length} / 5` : `${properties.length} / 150`}
             </p>
           </div>
-        )}
-        {/* ── Stats badge (sin botón Propuestas) ── */}
-        <div className="rounded-xl p-3 shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                {language === 'en' ? 'Total properties' : 'Total propiedades'}
-              </p>
-              <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>{properties.length}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                {language === 'en' ? 'Limit' : 'Límite'}
-              </p>
-              <p className="text-2xl font-bold mt-1" style={{ color: '#2563EB' }}>
-                {planInfo?.plan === 'free' ? `${properties.length} / 5` : `${properties.length} / 150`}
-              </p>
-            </div>
-          </div>
+
+          <button
+            onClick={() => setIsMyProposalsOpen(true)}
+            className="w-full md:w-auto rounded-xl font-semibold text-sm flex items-center justify-center gap-2 px-4 py-2.5 active:scale-95 transition-transform mt-2 md:mt-0"
+            style={{ backgroundColor: '#EFF6FF', color: '#2563EB', border: '1.5px solid #BFDBFE' }}
+          >
+            🗂️ {language === 'en' ? 'My Proposals' : 'Mis Propuestas'}
+          </button>
         </div>
 
-        {proposalLanguage && (
-          <span className="text-xs mt-0.5 font-semibold" style={{ color: '#6B7280' }}>
-            {proposalLanguage === 'es' ? '🇪🇸 Español' : '🇺🇸 English'}
-          </span>
-        )}
-
-        {/* ── Botón Mis Propuestas — debajo del stats badge, encima de filtros ── */}
-        <button
-          onClick={() => setIsMyProposalsOpen(true)}
-          className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
-          style={{ backgroundColor: '#EFF6FF', color: '#2563EB', border: '1.5px solid #BFDBFE' }}
-        >
-          🗂️ {language === 'en' ? 'My Proposals' : 'Mis Propuestas'}
-        </button>
-      </div>
-
-      {/* Filters Section */}
-      <div className="sticky top-0 z-20 px-4 pt-3 pb-2" style={{ backgroundColor: '#F5EAD3' }}>
-        <div className="rounded-2xl p-4 shadow-xl space-y-3" style={{ backgroundColor: '#FFFFFF' }}>
-          <h3 className="font-bold text-sm" style={{ color: '#0F172A' }}>
+        {/* Filtros — en desktop, barra horizontal siempre visible (sin collapsable) */}
+        <div className="rounded-2xl p-4 shadow-xl space-y-3 md:space-y-0 md:flex md:flex-wrap md:gap-3 md:items-center mt-2 md:mt-4" style={{ backgroundColor: '#FFFFFF' }}>
+          <h3 className="font-bold text-sm md:hidden" style={{ color: '#0F172A' }}>
             🔍 {language === 'en' ? 'Filter Properties' : 'Filtrar Propiedades'}
           </h3>
-          <div>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={language === 'en' ? 'Search by title, city or state...' : 'Buscar por título, ciudad o estado...'}
-              className="w-full px-4 py-2.5 rounded-xl border-2 focus:outline-none text-sm"
-              style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}
-            />
-          </div>
-          <div className="flex gap-2">
+
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={language === 'en' ? 'Search by title, city or state...' : 'Buscar por título, ciudad o estado...'}
+            className="w-full md:flex-1 md:min-w-[200px] px-4 py-2.5 rounded-xl border-2 focus:outline-none text-sm"
+            style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}
+          />
+
+          {/* En mobile: botón para expandir filtros avanzados. En desktop: siempre visibles */}
+          <div className="flex gap-2 md:hidden">
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className="flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
+              className="flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2"
               style={{ backgroundColor: '#EFF6FF', color: '#2563EB' }}
             >
               {showAdvancedFilters ? '▲' : '▼'}
@@ -492,86 +490,92 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setIsAltitudeModalOpen(true)}
-              className="flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors border-2 shadow-sm"
+              className="flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 border-2"
               style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', color: '#0F172A' }}
             >
               🏔️ {language === 'en' ? 'Calculate Altitude' : 'Calcular Altura'}
             </button>
           </div>
-          {showAdvancedFilters && (
-            <div className="space-y-2 pt-2 border-t" style={{ borderTopColor: '#E5E7EB' }}>
-              <select value={filterPropertyType} onChange={(e) => setFilterPropertyType(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}>
-                {PROPERTY_TYPES.map(type => <option key={type.value} value={type.value}>{type.label}</option>)}
-              </select>
-              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}>
-                {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-              </select>
-              <select value={filterLanguage} onChange={(e) => setFilterLanguage(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}>
-                {LANGUAGE_OPTIONS.map(lang => <option key={lang.value} value={lang.value}>{lang.label}</option>)}
-              </select>
-            </div>
-          )}
-          {/* Toggle modo propuesta */}
-            <div className="flex items-center justify-between px-1 py-1">
-              <span className="text-sm font-semibold" style={{ color: '#0F172A' }}>
-                {language === 'en' ? '🗂️ Enable proposal mode' : '🗂️ Habilitar modo propuesta'}
-              </span>
-              <button
-                onClick={() => {
-                  const next = !proposalModeActive;
-                  setProposalModeActive(next);
-                  if (!next) {
-                    setSelectedForProposal(new Set());
-                    setProposalLanguage(null);
-                  }
-                }}
-                className="relative flex-shrink-0 transition-colors duration-200"
-                style={{
-                  width: '48px',
-                  height: '26px',
-                  borderRadius: '100px',
-                  backgroundColor: proposalModeActive ? '#2563EB' : '#D1D5DB',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                }}
-                aria-label="Toggle proposal mode"
-              >
-                <span
-                  className="absolute transition-transform duration-200"
-                  style={{
-                    top: '3px',
-                    left: '3px',
-                    width: '20px',
-                    height: '20px',
-                    borderRadius: '50%',
-                    backgroundColor: '#FFFFFF',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                    transform: proposalModeActive ? 'translateX(22px)' : 'translateX(0px)',
-                    display: 'block',
-                  }}
-                />
-              </button>
-          </div>
-          {hasActiveFilters && (
-            <button onClick={clearFilters} className="text-sm font-semibold underline" style={{ color: '#2563EB' }}>
-              {language === 'en' ? 'Clear filters' : 'Limpiar filtros'}
+
+          {/* Selects: visibles siempre en desktop, colapsables en mobile */}
+          <div className={`space-y-2 pt-2 border-t md:border-0 md:pt-0 md:space-y-0 md:flex md:gap-3 ${showAdvancedFilters ? 'block' : 'hidden md:flex'}`} style={{ borderTopColor: '#E5E7EB' }}>
+            <select value={filterPropertyType} onChange={(e) => setFilterPropertyType(e.target.value)} className="w-full md:w-auto px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}>
+              {PROPERTY_TYPES.map(type => <option key={type.value} value={type.value}>{type.label}</option>)}
+            </select>
+            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full md:w-auto px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}>
+              {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+            <select value={filterLanguage} onChange={(e) => setFilterLanguage(e.target.value)} className="w-full md:w-auto px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}>
+              {LANGUAGE_OPTIONS.map(lang => <option key={lang.value} value={lang.value}>{lang.label}</option>)}
+            </select>
+            <button
+              onClick={() => setIsAltitudeModalOpen(true)}
+              className="hidden md:flex w-full md:w-auto py-2.5 px-4 rounded-xl font-semibold text-sm items-center justify-center gap-2 border-2"
+              style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', color: '#0F172A' }}
+            >
+              🏔️ {language === 'en' ? 'Calculate Altitude' : 'Calcular Altura'}
             </button>
-          )}
+          </div>
+
+          {/* Toggle modo propuesta */}
+          <div className="flex items-center justify-between px-1 py-1 md:ml-auto">
+            <span className="text-sm font-semibold mr-3 md:mr-2" style={{ color: '#0F172A' }}>
+              {language === 'en' ? '🗂️ Proposal mode' : '🗂️ Modo propuesta'}
+            </span>
+            <button
+              onClick={() => {
+                const next = !proposalModeActive;
+                setProposalModeActive(next);
+                if (!next) {
+                  setSelectedForProposal(new Set());
+                  setProposalLanguage(null);
+                }
+              }}
+              className="relative flex-shrink-0 transition-colors duration-200"
+              style={{
+                width: '48px', height: '26px', borderRadius: '100px',
+                backgroundColor: proposalModeActive ? '#2563EB' : '#D1D5DB',
+                border: 'none', cursor: 'pointer', padding: 0,
+              }}
+              aria-label="Toggle proposal mode"
+            >
+              <span
+                className="absolute transition-transform duration-200"
+                style={{
+                  top: '3px', left: '3px', width: '20px', height: '20px',
+                  borderRadius: '50%', backgroundColor: '#FFFFFF',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  transform: proposalModeActive ? 'translateX(22px)' : 'translateX(0px)',
+                  display: 'block',
+                }}
+              />
+            </button>
+          </div>
+
           {hasActiveFilters && (
-            <div className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ backgroundColor: '#EFF6FF', color: '#1E40AF' }}>
-              {filteredProperties.length === 0
-                ? (language === 'en' ? '❌ No matches' : '❌ No hay coincidencias')
-                : `✓ ${filteredProperties.length} ${language === 'en' ? (filteredProperties.length === 1 ? 'result' : 'results') : (filteredProperties.length === 1 ? 'resultado' : 'resultados')}`
-              }
+            <div className="flex items-center gap-3 md:w-full">
+              <button onClick={clearFilters} className="text-sm font-semibold underline" style={{ color: '#2563EB' }}>
+                {language === 'en' ? 'Clear filters' : 'Limpiar filtros'}
+              </button>
+              <div className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ backgroundColor: '#EFF6FF', color: '#1E40AF' }}>
+                {filteredProperties.length === 0
+                  ? (language === 'en' ? '❌ No matches' : '❌ No hay coincidencias')
+                  : `✓ ${filteredProperties.length} ${language === 'en' ? (filteredProperties.length === 1 ? 'result' : 'results') : (filteredProperties.length === 1 ? 'resultado' : 'resultados')}`
+                }
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── PROPERTIES LIST ─────────────────────────────────────────────────── */}
+      {/* ── GRID DE PROPIEDADES ───────────────────────────────────────────── */}
+      {/*
+        mobile:  1 columna  — cards horizontales (foto izq, info der) — igual que antes
+        tablet:  2 columnas — cards verticales (foto arriba, info abajo)
+        desktop: 3 columnas — cards verticales
+      */}
       {filteredProperties.length === 0 ? (
-        <div className="px-4 pt-8">
+        <div className="px-4 md:px-6 pt-8">
           <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: '#FFFFFF' }}>
             <div className="text-6xl mb-4">{hasActiveFilters ? '🔍' : '🏘️'}</div>
             <h3 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>
@@ -596,10 +600,9 @@ export default function DashboardPage() {
           </div>
         </div>
       ) : (
-        <div className="px-4 pt-3 space-y-2.5 pb-32">
-          {/* Hint educativo — visible solo en modo propuesta */}
+        <div className="px-4 md:px-6 pt-3 pb-32 md:pb-8">
           {proposalModeActive && (
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: '#EFF6FF', color: '#1E40AF' }}>
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold mb-3" style={{ backgroundColor: '#EFF6FF', color: '#1E40AF' }}>
               <span className="flex-shrink-0">💡</span>
               <span>
                 {language === 'en'
@@ -609,193 +612,191 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {filteredProperties.map((property) => {
-            const isBlockedByLanguage = proposalLanguage !== null && property.language !== proposalLanguage;
-            const isSelected = selectedForProposal.has(property.id);
-            const isExpanded = expandedCards.has(property.id);
-            const hasFacebook = !!property.last_facebook_published_at;
+          {/*
+            GRID RESPONSIVE:
+            - mobile (default):  space-y-2.5  (lista vertical, una columna)
+            - tablet (md):       grid 2 cols
+            - desktop (lg):      grid 3 cols
+          */}
+          <div className="space-y-2.5 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3">
+            {filteredProperties.map((property) => {
+              const isBlockedByLanguage = proposalLanguage !== null && property.language !== proposalLanguage;
+              const isSelected = selectedForProposal.has(property.id);
+              const isExpanded = expandedCards.has(property.id);
+              const hasFacebook = !!property.last_facebook_published_at;
 
-            return (
-              <div
-                key={property.id}
-                className="rounded-2xl overflow-hidden relative transition-all"
-                style={{
-                  backgroundColor: '#FFFFFF',
-                  border: isSelected ? '1.5px solid #2563EB' : '1.5px solid transparent',
-                  boxShadow: isSelected
-                    ? '0 0 0 3px rgba(37,99,235,0.10), 0 2px 8px rgba(0,0,0,0.08)'
-                    : '0 2px 8px rgba(0,0,0,0.06)',
-                  opacity: isBlockedByLanguage ? 0.35 : 1,
-                  pointerEvents: isBlockedByLanguage ? 'none' : 'auto',
-                }}
-              >
-                {/* ── Cuerpo horizontal de la card ── */}
-                {/* CAMBIO: altura aumentada de 110px a 130px para cards más grandes */}
+              return (
                 <div
-                  className="flex flex-row active:bg-gray-50 transition-colors cursor-pointer"
-                  style={{ minHeight: '130px' }}
-                  onClick={() => router.push(`/p/${property.slug}`)}
-                  onTouchStart={(e) => handlePropertyPressStart(e, property)}
-                  onTouchEnd={() => handlePropertyPressEnd(property.id)}
-                  onMouseDown={(e) => handlePropertyPressStart(e, property)}
-                  onMouseUp={() => handlePropertyPressEnd(property.id)}
-                  onMouseLeave={() => handlePropertyPressEnd(property.id)}
-                >
-                  {/* Foto — CAMBIO: ancho aumentado de 110px a 130px */}
-                  <div
-                    className="relative flex-shrink-0 overflow-hidden"
-                    style={{ width: '130px', backgroundColor: '#1f2937' }}
-                  >
-                    {property.photos && property.photos.length > 0 ? (
-                      <Image
-                        src={property.photos[0]}
-                        alt={property.title}
-                        fill
-                        className="object-cover"
-                        sizes="130px"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">🏠</div>
-                    )}
-                    {/* Badge de estado */}
-                    <div className="absolute bottom-1.5 left-1.5">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold text-white ${
-                          property.status === 'active'
-                            ? 'bg-green-500'
-                            : property.status === 'rented'
-                            ? 'bg-blue-500'
-                            : 'bg-gray-500'
-                        }`}
-                      >
-                        {property.status === 'active'
-                          ? (language === 'en' ? '● Available' : '● Disponible')
-                          : property.status === 'rented'
-                          ? (language === 'en' ? '● Rented' : '● Alquilada')
-                          : (language === 'en' ? '● Sold' : '● Vendida')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Info — CAMBIO: padding derecho aumentado para los dos botones apilados */}
-                  <div className="flex flex-col justify-between flex-1 min-w-0 py-3 pl-3 pr-14">
-                    {/* CAMBIO: título con text-[14px] en lugar de text-[13px] */}
-                    <p className="text-[14px] font-semibold leading-snug line-clamp-2" style={{ color: '#0F172A' }}>
-                      {property.title}
-                    </p>
-                    {/* CAMBIO: precio con text-[16px] en lugar de text-[15px] */}
-                    <p className="text-[16px] font-bold" style={{ color: '#2563EB' }}>
-                      {formatPrice(property.price, property.currency_id)}
-                    </p>
-                    {property.city && property.state && (
-                      <p className="text-[12px]" style={{ color: '#6B7280' }}>
-                        📍 {property.city}, {property.state}
-                      </p>
-                    )}
-                    {/* Tags */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span
-                        className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: '#F5EAD3', color: '#44403C' }}
-                      >
-                        🏡 {translatePropertyType(property.property_type, language)}
-                      </span>
-                      <span
-                        className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                        style={{
-                          backgroundColor: property.listing_type === 'rent' ? '#FEF3C7' : '#D1FAE5',
-                          color: property.listing_type === 'rent' ? '#92400E' : '#065F46',
-                        }}
-                      >
-                        {property.listing_type === 'rent'
-                          ? (language === 'en' ? 'Rent' : 'Alquiler')
-                          : (language === 'en' ? 'Sale' : 'Venta')}
-                      </span>
-                      <span className="text-[13px] leading-none">
-                        {property.language === 'es' ? '🇪🇸' : property.language === 'en' ? '🇺🇸' : '❓'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Botón expandir detalles */}
-                <button
-                  onClick={(e) => toggleCardExpand(e, property.id)}
-                  className="w-full flex items-center justify-center py-1 active:bg-gray-50 transition-colors"
-                  style={{ borderTop: '0.5px solid #F3F4F6', color: '#9CA3AF' }}
-                  aria-label="Ver detalles"
-                >
-                  <svg
-                    className="transition-transform duration-200"
-                    style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                    width="14" height="14" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="2.5"
-                    strokeLinecap="round" strokeLinejoin="round"
-                  >
-                    <path d="M6 9l6 6 6-6"/>
-                  </svg>
-                </button>
-
-                {/* ── Panel expandible ── */}
-                <div
-                  className="overflow-hidden transition-all duration-200 ease-in-out"
+                  key={property.id}
+                  className="rounded-2xl overflow-hidden relative transition-all"
                   style={{
-                    maxHeight: isExpanded ? '38px' : '0px',
-                    opacity: isExpanded ? 1 : 0,
-                    borderTop: isExpanded ? '0.5px solid #F3F4F6' : 'none',
+                    backgroundColor: '#FFFFFF',
+                    border: isSelected ? '1.5px solid #2563EB' : '1.5px solid transparent',
+                    boxShadow: isSelected
+                      ? '0 0 0 3px rgba(37,99,235,0.10), 0 2px 8px rgba(0,0,0,0.08)'
+                      : '0 2px 8px rgba(0,0,0,0.06)',
+                    opacity: isBlockedByLanguage ? 0.35 : 1,
+                    pointerEvents: isBlockedByLanguage ? 'none' : 'auto',
                   }}
                 >
+                  {/*
+                    LAYOUT INTERNO DE CADA CARD:
+                    - mobile:  fila horizontal (foto izq 130px, info der) — igual que antes
+                    - tablet+: columna vertical (foto arriba, info abajo)
+                  */}
                   <div
-                    className="flex items-center gap-2 px-3 py-1.5 text-[11px]"
-                    style={{ color: '#6B7280', whiteSpace: 'nowrap', overflow: 'hidden' }}
+                    className="flex flex-row md:flex-col active:bg-gray-50 transition-colors cursor-pointer"
+                    style={{ minHeight: '130px' }}
+                    onClick={() => router.push(`/p/${property.slug}`)}
+                    onTouchStart={(e) => handlePropertyPressStart(e, property)}
+                    onTouchEnd={() => handlePropertyPressEnd(property.id)}
+                    onMouseDown={(e) => handlePropertyPressStart(e, property)}
+                    onMouseUp={() => handlePropertyPressEnd(property.id)}
+                    onMouseLeave={() => handlePropertyPressEnd(property.id)}
                   >
-                    <span>👁️ {property.views} {language === 'en' ? 'views' : 'vistas'}</span>
-                    <span style={{ color: '#D1D5DB' }}>·</span>
-                    <span>📅 {formatExpandDate(property.created_at)}</span>
-                    <span style={{ color: '#D1D5DB' }}>·</span>
-                    <span style={{ color: hasFacebook ? '#10B981' : '#9CA3AF' }}>
-                      📘 {hasFacebook
-                        ? formatExpandDate(property.last_facebook_published_at)
-                        : (language === 'en' ? 'Not on FB' : 'Sin publicar')}
-                    </span>
-                  </div>
-                </div>
+                    {/* Foto */}
+                    <div
+                      className="relative flex-shrink-0 overflow-hidden md:flex-shrink md:w-full"
+                      style={{ width: '130px', minHeight: '130px', backgroundColor: '#1f2937' }}
+                    >
+                      {/* En tablet/desktop la foto ocupa el ancho completo de la card */}
+                      <style jsx>{`
+                        @media (min-width: 768px) {
+                          .photo-wrapper {
+                            width: 100% !important;
+                            height: 160px !important;
+                          }
+                        }
+                      `}</style>
+                      <div className="photo-wrapper relative w-full h-full" style={{ minHeight: '130px' }}>
+                        {property.photos && property.photos.length > 0 ? (
+                          <Image
+                            src={property.photos[0]}
+                            alt={property.title}
+                            fill
+                            className="object-cover"
+                            sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 130px"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-4xl">🏠</div>
+                        )}
+                        <div className="absolute bottom-1.5 left-1.5">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold text-white ${
+                              property.status === 'active' ? 'bg-green-500'
+                              : property.status === 'rented' ? 'bg-blue-500'
+                              : 'bg-gray-500'
+                            }`}
+                          >
+                            {property.status === 'active'
+                              ? (language === 'en' ? '● Available' : '● Disponible')
+                              : property.status === 'rented'
+                              ? (language === 'en' ? '● Rented' : '● Alquilada')
+                              : (language === 'en' ? '● Sold' : '● Vendida')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-                {/* ── Botones apilados: tres puntos arriba, bookmark abajo ── */}
-                {/* CAMBIO: los botones ahora están en una columna vertical en la esquina superior derecha */}
-                <div
-                  className="absolute flex flex-col items-center gap-1.5"
-                  style={{ top: '8px', right: '8px' }}
-                >
-                  {/* Menú tres puntos — PRIMERO (arriba) */}
+                    {/* Info */}
+                    <div className="flex flex-col justify-between flex-1 min-w-0 py-3 pl-3 pr-10 md:pr-3">
+                      <p className="text-[14px] font-semibold leading-snug line-clamp-2 mb-1" style={{ color: '#0F172A' }}>
+                        {property.title}
+                      </p>
+                      <p className="text-[16px] font-bold mb-1" style={{ color: '#2563EB' }}>
+                        {formatPrice(property.price, property.currency_id)}
+                      </p>
+                      {property.city && property.state && (
+                        <p className="text-[12px] mb-1" style={{ color: '#6B7280' }}>
+                          📍 {property.city}, {property.state}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#F5EAD3', color: '#44403C' }}>
+                          🏡 {translatePropertyType(property.property_type, language)}
+                        </span>
+                        <span
+                          className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                          style={{
+                            backgroundColor: property.listing_type === 'rent' ? '#FEF3C7' : '#D1FAE5',
+                            color: property.listing_type === 'rent' ? '#92400E' : '#065F46',
+                          }}
+                        >
+                          {property.listing_type === 'rent'
+                            ? (language === 'en' ? 'Rent' : 'Alquiler')
+                            : (language === 'en' ? 'Sale' : 'Venta')}
+                        </span>
+                        <span className="text-[13px] leading-none">
+                          {property.language === 'es' ? '🇪🇸' : property.language === 'en' ? '🇺🇸' : '❓'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Botón expandir */}
                   <button
-                    data-menu="true"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowMenu(showMenu === property.id ? null : property.id);
-                    }}
-                    className="flex items-center justify-center rounded-full active:scale-90 transition-transform shadow-md"
-                    style={{
-                      width: '28px',
-                      height: '28px',
-                      backgroundColor: 'rgba(255,255,255,0.95)',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                    aria-label="Opciones"
+                    onClick={(e) => toggleCardExpand(e, property.id)}
+                    className="w-full flex items-center justify-center py-1 active:bg-gray-50 transition-colors"
+                    style={{ borderTop: '0.5px solid #F3F4F6', color: '#9CA3AF' }}
+                    aria-label="Ver detalles"
                   >
-                    <svg className="w-4 h-4" fill="#0F172A" viewBox="0 0 24 24">
-                      <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                    <svg
+                      className="transition-transform duration-200"
+                      style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                      width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="2.5"
+                      strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      <path d="M6 9l6 6 6-6"/>
                     </svg>
                   </button>
-                </div>
-              </div>
-            );
-          })}
 
-          {/* Banner Pro */}
+                  {/* Panel expandible */}
+                  <div
+                    className="overflow-hidden transition-all duration-200 ease-in-out"
+                    style={{
+                      maxHeight: isExpanded ? '38px' : '0px',
+                      opacity: isExpanded ? 1 : 0,
+                      borderTop: isExpanded ? '0.5px solid #F3F4F6' : 'none',
+                    }}
+                  >
+                    <div className="flex items-center gap-2 px-3 py-1.5 text-[11px]" style={{ color: '#6B7280', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                      <span>👁️ {property.views} {language === 'en' ? 'views' : 'vistas'}</span>
+                      <span style={{ color: '#D1D5DB' }}>·</span>
+                      <span>📅 {formatExpandDate(property.created_at)}</span>
+                      <span style={{ color: '#D1D5DB' }}>·</span>
+                      <span style={{ color: hasFacebook ? '#10B981' : '#9CA3AF' }}>
+                        📘 {hasFacebook
+                          ? formatExpandDate(property.last_facebook_published_at)
+                          : (language === 'en' ? 'Not on FB' : 'Sin publicar')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Botón menú 3 puntos */}
+                  <div className="absolute flex flex-col items-center gap-1.5" style={{ top: '8px', right: '8px' }}>
+                    <button
+                      data-menu="true"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowMenu(showMenu === property.id ? null : property.id);
+                      }}
+                      className="flex items-center justify-center rounded-full active:scale-90 transition-transform shadow-md"
+                      style={{ width: '28px', height: '28px', backgroundColor: 'rgba(255,255,255,0.95)', border: 'none', cursor: 'pointer' }}
+                      aria-label="Opciones"
+                    >
+                      <svg className="w-4 h-4" fill="#0F172A" viewBox="0 0 24 24">
+                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
           {isFree && (
-            <div className="rounded-2xl p-5 shadow-md mt-2" style={{ backgroundColor: '#EFF6FF', border: '1.5px solid #BFDBFE' }}>
+            <div className="rounded-2xl p-5 shadow-md mt-4" style={{ backgroundColor: '#EFF6FF', border: '1.5px solid #BFDBFE' }}>
               <p className="font-bold text-sm mb-1" style={{ color: '#1E40AF' }}>
                 🚀 {language === 'en' ? 'Ready for more?' : '¿Listo para más?'}
               </p>
@@ -804,11 +805,7 @@ export default function DashboardPage() {
                   ? 'Upgrade to Pro and manage up to 150 properties with AI tools.'
                   : 'Pásate a Pro y gestiona hasta 150 propiedades con funciones IA.'}
               </p>
-              <a
-                href="/pro"
-                className="inline-block px-4 py-2 rounded-xl font-bold text-white text-sm active:scale-95 transition-transform"
-                style={{ backgroundColor: '#2563EB' }}
-              >
+              <a href="/pro" className="inline-block px-4 py-2 rounded-xl font-bold text-white text-sm active:scale-95 transition-transform" style={{ backgroundColor: '#2563EB' }}>
                 {language === 'en' ? 'See Pro plan' : 'Ver plan Pro'}
               </a>
             </div>
@@ -816,26 +813,24 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── MODAL DE OPCIONES DE PROPIEDAD ── */}
+      {/* ── MODAL DE OPCIONES DE PROPIEDAD (sin cambios) ─────────────────── */}
       {showMenu && (() => {
         const property = properties.find(p => p.id === showMenu);
         if (!property) return null;
         return (
           <div
-            className="fixed inset-0 z-50 flex flex-col justify-end"
+            className="fixed inset-0 z-50 flex flex-col justify-end md:items-center md:justify-center"
             style={{ backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(2px)' }}
             onClick={() => setShowMenu(null)}
           >
             <div
-              className="w-full rounded-t-3xl shadow-2xl flex flex-col"
+              className="w-full rounded-t-3xl md:rounded-2xl md:max-w-sm shadow-2xl flex flex-col"
               style={{ backgroundColor: '#FFFFFF', maxHeight: '92dvh' }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Handle */}
-              <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="flex justify-center pt-3 pb-1 flex-shrink-0 md:hidden">
                 <div className="w-10 h-1 rounded-full" style={{ backgroundColor: '#E5E7EB' }} />
               </div>
-              {/* Header */}
               <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #F3F4F6' }}>
                 <div className="flex-1 min-w-0 pr-3">
                   <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: '#9CA3AF' }}>
@@ -845,47 +840,25 @@ export default function DashboardPage() {
                     {property.title}
                   </h3>
                 </div>
-                <button
-                  onClick={() => setShowMenu(null)}
-                  className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full"
-                  style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}
-                >
+                <button onClick={() => setShowMenu(null)} className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full" style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}>
                   ✕
                 </button>
               </div>
-              {/* Opciones */}
-              <div className="flex-1 overflow-y-auto min-h-0" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 90px)' }}>
-                <button
-                  onClick={() => { setShowMenu(null); router.push(`/edit-property/${property.id}`); }}
-                  className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-gray-50 transition-colors"
-                  style={{ color: '#0F172A', borderBottom: '1px solid #F3F4F6' }}
-                >
+              <div className="flex-1 overflow-y-auto min-h-0" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
+                <button onClick={() => { setShowMenu(null); router.push(`/edit-property/${property.id}`); }} className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-gray-50 transition-colors" style={{ color: '#0F172A', borderBottom: '1px solid #F3F4F6' }}>
                   <span className="text-xl">✏️</span> {language === 'en' ? 'Edit' : 'Editar'}
                 </button>
-                <button
-                  onClick={() => { setShowMenu(null); handleDuplicate(property.id); }}
-                  className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-gray-50 transition-colors"
-                  style={{ color: '#0F172A', borderBottom: '1px solid #F3F4F6' }}
-                  disabled={duplicating}
-                >
+                <button onClick={() => { setShowMenu(null); handleDuplicate(property.id); }} className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-gray-50 transition-colors" style={{ color: '#0F172A', borderBottom: '1px solid #F3F4F6' }} disabled={duplicating}>
                   <span className="text-xl">📋</span> {language === 'en' ? 'Duplicate' : 'Duplicar'}
                 </button>
                 <button
-                  onClick={() => {
-                    if (isFree) return;
-                    setShowMenu(null);
-                    setTranslateModal({ open: true, propertyId: property.id, currentLang: property.language });
-                  }}
+                  onClick={() => { if (isFree) return; setShowMenu(null); setTranslateModal({ open: true, propertyId: property.id, currentLang: property.language }); }}
                   className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-gray-50 transition-colors"
                   style={{ color: isFree ? '#9CA3AF' : '#0F172A', borderBottom: '1px solid #F3F4F6' }}
                 >
                   <span className="text-xl">🌐</span>
-                  {language === 'en'
-                    ? `Translate to ${property.language === 'es' ? 'English' : 'Spanish'}`
-                    : `Traducir a ${property.language === 'es' ? 'Inglés' : 'Español'}`}
-                  {isFree && (
-                    <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>Pro</span>
-                  )}
+                  {language === 'en' ? `Translate to ${property.language === 'es' ? 'English' : 'Spanish'}` : `Traducir a ${property.language === 'es' ? 'Inglés' : 'Español'}`}
+                  {isFree && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>Pro</span>}
                 </button>
                 <button
                   onClick={async () => {
@@ -920,26 +893,15 @@ export default function DashboardPage() {
                   <span className="text-xl">📄</span> {language === 'en' ? 'Export PDF' : 'Exportar PDF'}
                 </button>
                 <button
-                  onClick={() => {
-                    if (isFree) return;
-                    setShowMenu(null);
-                    setSelectedPropertyId(property.id);
-                    setPublishModalOpen(true);
-                  }}
+                  onClick={() => { if (isFree) return; setShowMenu(null); setSelectedPropertyId(property.id); setPublishModalOpen(true); }}
                   className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-gray-50 transition-colors"
                   style={{ color: isFree ? '#9CA3AF' : '#0F172A', borderBottom: '1px solid #F3F4F6' }}
                 >
                   <span className="text-xl">📘</span>
                   {language === 'en' ? 'Publish on Facebook' : 'Publicar en Facebook'}
-                  {isFree && (
-                    <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>Pro</span>
-                  )}
+                  {isFree && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>Pro</span>}
                 </button>
-                <button
-                  onClick={() => { setShowMenu(null); handleDeleteProperty(property.id); }}
-                  className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-red-50 transition-colors"
-                  style={{ color: '#DC2626' }}
-                >
+                <button onClick={() => { setShowMenu(null); handleDeleteProperty(property.id); }} className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-red-50 transition-colors" style={{ color: '#DC2626' }}>
                   <span className="text-xl">🗑️</span> {language === 'en' ? 'Delete' : 'Eliminar'}
                 </button>
               </div>
@@ -950,70 +912,33 @@ export default function DashboardPage() {
 
       {/* ── TOAST DE IDIOMA ── */}
       {proposalLangToast && (
-        <div
-          className="fixed left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-xl"
-          style={{
-            bottom: '170px',
-            backgroundColor: '#0F172A',
-            color: 'white',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <div className="fixed left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-xl" style={{ bottom: '170px', backgroundColor: '#0F172A', color: 'white', whiteSpace: 'nowrap' }}>
           <span>{proposalLanguage === 'es' ? '🇪🇸' : '🇺🇸'}</span>
           <span className="text-sm font-semibold">
-            {proposalLanguage === 'es'
-              ? 'Propuesta en Español — solo propiedades en Español'
-              : 'Proposal in English — only English properties'}
+            {proposalLanguage === 'es' ? 'Propuesta en Español — solo propiedades en Español' : 'Proposal in English — only English properties'}
           </span>
         </div>
       )}
 
       {/* ── FLOATING PROPOSAL BAR ─────────────────────────────────────────── */}
-      {/* CAMBIO: bottom aumentado de 6 (24px) a 24 (96px) para que quede por encima del footer */}
       {selectedForProposal.size > 0 && (
-        <div
-          className="fixed left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl"
-          style={{
-            bottom: '96px',
-            backgroundColor: '#1E3A8A',
-            color: 'white',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <span
-            className="px-2.5 py-0.5 rounded-full text-sm font-bold"
-            style={{ backgroundColor: '#2563EB' }}
-          >
+        <div className="fixed left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl" style={{ bottom: '96px', backgroundColor: '#1E3A8A', color: 'white', whiteSpace: 'nowrap' }}>
+          <span className="px-2.5 py-0.5 rounded-full text-sm font-bold" style={{ backgroundColor: '#2563EB' }}>
             {selectedForProposal.size}
           </span>
-          <span className="text-sm">
-            {language === 'en' ? 'selected' : 'seleccionadas'}
-          </span>
-          <button
-            onClick={() => setIsCreateProposalOpen(true)}
-            className="px-3.5 py-1.5 rounded-xl text-sm font-bold active:scale-95 transition-transform"
-            style={{ backgroundColor: 'white', color: '#1E3A8A', border: 'none', cursor: 'pointer' }}
-          >
+          <span className="text-sm">{language === 'en' ? 'selected' : 'seleccionadas'}</span>
+          <button onClick={() => setIsCreateProposalOpen(true)} className="px-3.5 py-1.5 rounded-xl text-sm font-bold active:scale-95 transition-transform" style={{ backgroundColor: 'white', color: '#1E3A8A', border: 'none', cursor: 'pointer' }}>
             {language === 'en' ? 'Create proposal ↗' : 'Crear propuesta ↗'}
           </button>
-          <button
-            onClick={clearProposalSelection}
-            className="opacity-60 active:opacity-100 text-base"
-            style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}
-            aria-label="Limpiar selección"
-          >
+          <button onClick={clearProposalSelection} className="opacity-60 active:opacity-100 text-base" style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }} aria-label="Limpiar selección">
             ✕
           </button>
         </div>
       )}
 
-      {/* ── MODALES EXISTENTES ─────────────────────────────── */}
+      {/* ── MODALES (sin cambios) ─────────────────────────────────────────── */}
       <GeneratingPDFModal isOpen={isGeneratingPDF} />
-      <FacebookPublishModal
-        isOpen={publishModalOpen}
-        onClose={() => setPublishModalOpen(false)}
-        propertyId={selectedPropertyId || ''}
-      />
+      <FacebookPublishModal isOpen={publishModalOpen} onClose={() => setPublishModalOpen(false)} propertyId={selectedPropertyId || ''} />
 
       {translateModal.open && translateModal.propertyId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
@@ -1037,45 +962,27 @@ export default function DashboardPage() {
                 <label className="flex items-start gap-3 mb-3 cursor-pointer">
                   <input type="radio" name="translate-option" value="ai" defaultChecked className="mt-1" />
                   <div>
-                    <div className="font-semibold text-sm" style={{ color: '#0F172A' }}>
-                      🤖 {language === 'en' ? 'With AI (recommended)' : 'Con IA (recomendado)'}
-                    </div>
-                    <div className="text-xs" style={{ color: '#6B7280' }}>
-                      {language === 'en'
-                        ? 'Automatically translates title, description, address and custom fields'
-                        : 'Traduce automáticamente título, descripción, dirección y campos personalizados'}
-                    </div>
+                    <div className="font-semibold text-sm" style={{ color: '#0F172A' }}>🤖 {language === 'en' ? 'With AI (recommended)' : 'Con IA (recomendado)'}</div>
+                    <div className="text-xs" style={{ color: '#6B7280' }}>{language === 'en' ? 'Automatically translates title, description, address and custom fields' : 'Traduce automáticamente título, descripción, dirección y campos personalizados'}</div>
                   </div>
                 </label>
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input type="radio" name="translate-option" value="manual" className="mt-1" />
                   <div>
-                    <div className="font-semibold text-sm" style={{ color: '#0F172A' }}>
-                      ✍️ {language === 'en' ? 'Manual' : 'Manual'}
-                    </div>
-                    <div className="text-xs" style={{ color: '#6B7280' }}>
-                      {language === 'en'
-                        ? 'Creates a copy without translating (you will have to edit manually)'
-                        : 'Crea una copia sin traducir (tendrás que editar manualmente)'}
-                    </div>
+                    <div className="font-semibold text-sm" style={{ color: '#0F172A' }}>✍️ {language === 'en' ? 'Manual' : 'Manual'}</div>
+                    <div className="text-xs" style={{ color: '#6B7280' }}>{language === 'en' ? 'Creates a copy without translating (you will have to edit manually)' : 'Crea una copia sin traducir (tendrás que editar manualmente)'}</div>
                   </div>
                 </label>
               </div>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                 <p className="text-xs" style={{ color: '#92400E' }}>
                   ⚠️ <strong>{language === 'en' ? 'Note:' : 'Nota:'}</strong>{' '}
-                  {language === 'en'
-                    ? 'The original property will remain unchanged. You can edit the translation after creating it.'
-                    : 'La propiedad original se mantendrá sin cambios. Podrás editar la traducción después de crearla.'}
+                  {language === 'en' ? 'The original property will remain unchanged. You can edit the translation after creating it.' : 'La propiedad original se mantendrá sin cambios. Podrás editar la traducción después de crearla.'}
                 </p>
               </div>
             </div>
             <div className="flex gap-3">
-              <button
-                onClick={() => setTranslateModal({ open: false, propertyId: null, currentLang: null })}
-                className="flex-1 py-3 rounded-xl font-bold border-2"
-                style={{ borderColor: '#E5E7EB', color: '#0F172A' }}
-              >
+              <button onClick={() => setTranslateModal({ open: false, propertyId: null, currentLang: null })} className="flex-1 py-3 rounded-xl font-bold border-2" style={{ borderColor: '#E5E7EB', color: '#0F172A' }}>
                 {language === 'en' ? 'Cancel' : 'Cancelar'}
               </button>
               <button
@@ -1083,29 +990,15 @@ export default function DashboardPage() {
                   const useAI = (document.querySelector('input[name="translate-option"]:checked') as HTMLInputElement)?.value === 'ai';
                   const targetLang = translateModal.currentLang === 'es' ? 'en' : 'es';
                   setTranslateModal({ open: false, propertyId: null, currentLang: null });
-                  setActionModal({
-                    open: true,
-                    type: 'translating',
-                    message: useAI
-                      ? (language === 'en' ? 'Translating with AI...' : 'Traduciendo con IA...')
-                      : (language === 'en' ? 'Creating copy...' : 'Creando copia...'),
-                  });
+                  setActionModal({ open: true, type: 'translating', message: useAI ? (language === 'en' ? 'Translating with AI...' : 'Traduciendo con IA...') : (language === 'en' ? 'Creating copy...' : 'Creando copia...') });
                   try {
-                    const response = await fetch('/api/property/translate', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ propertyId: translateModal.propertyId, targetLanguage: targetLang, useAI }),
-                    });
+                    const response = await fetch('/api/property/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ propertyId: translateModal.propertyId, targetLanguage: targetLang, useAI }) });
                     if (!response.ok) throw new Error('Error al traducir');
                     const { newPropertyId } = await response.json();
                     await loadProperties();
                     await refreshSession();
                     setActionModal({ open: false, type: 'translating', message: '' });
-                    alert(
-                      useAI
-                        ? (language === 'en' ? '✅ Property translated with AI. Review and adjust if necessary.' : '✅ Propiedad traducida con IA. Revisa y ajusta si es necesario.')
-                        : (language === 'en' ? '✅ Property cloned. Edit the content manually.' : '✅ Propiedad clonada. Edita el contenido manualmente.')
-                    );
+                    alert(useAI ? (language === 'en' ? '✅ Property translated with AI. Review and adjust if necessary.' : '✅ Propiedad traducida con IA. Revisa y ajusta si es necesario.') : (language === 'en' ? '✅ Property cloned. Edit the content manually.' : '✅ Propiedad clonada. Edita el contenido manualmente.'));
                     router.push(`/edit-property/${newPropertyId}`);
                   } catch (error) {
                     setActionModal({ open: false, type: 'translating', message: '' });
@@ -1126,27 +1019,13 @@ export default function DashboardPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <div className="text-center mb-4"><span className="text-4xl">🔒</span></div>
-            <h3 className="text-lg font-bold text-center mb-2" style={{ color: '#0F172A' }}>
-              {language === 'en' ? 'Property limit reached' : 'Límite de propiedades alcanzado'}
-            </h3>
-            <p className="text-sm text-center mb-5 opacity-70" style={{ color: '#0F172A' }}>
-              {language === 'en'
-                ? 'Your current plan is Free. Please upgrade to Pro to keep adding more properties.'
-                : 'Tu plan actual es Free. Por favor actualiza tu plan a Pro para poder seguir agregando más propiedades.'}
-            </p>
+            <h3 className="text-lg font-bold text-center mb-2" style={{ color: '#0F172A' }}>{language === 'en' ? 'Property limit reached' : 'Límite de propiedades alcanzado'}</h3>
+            <p className="text-sm text-center mb-5 opacity-70" style={{ color: '#0F172A' }}>{language === 'en' ? 'Your current plan is Free. Please upgrade to Pro to keep adding more properties.' : 'Tu plan actual es Free. Por favor actualiza tu plan a Pro para poder seguir agregando más propiedades.'}</p>
             <div className="flex flex-col gap-2">
-              <a
-                href="/pro"
-                className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
-                style={{ backgroundColor: '#2563EB' }}
-              >
+              <a href="/pro" className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2" style={{ backgroundColor: '#2563EB' }}>
                 🚀 {language === 'en' ? 'Upgrade to Pro' : 'Actualizar a Pro'}
               </a>
-              <button
-                onClick={() => setShowLimitModal(false)}
-                className="w-full py-3 rounded-xl font-bold border-2 active:scale-95 transition-transform"
-                style={{ borderColor: '#E5E7EB', color: '#0F172A' }}
-              >
+              <button onClick={() => setShowLimitModal(false)} className="w-full py-3 rounded-xl font-bold border-2 active:scale-95 transition-transform" style={{ borderColor: '#E5E7EB', color: '#0F172A' }}>
                 {language === 'en' ? 'Close' : 'Cerrar'}
               </button>
             </div>
@@ -1155,26 +1034,15 @@ export default function DashboardPage() {
       )}
 
       <PropertyActionModal isOpen={actionModal.open} message={actionModal.message} type={actionModal.type} />
-
-      <CalculateAltitudeModal
-        isOpen={isAltitudeModalOpen}
-        onClose={() => setIsAltitudeModalOpen(false)}
-      />
-
-      <MyProposalsModal
-        isOpen={isMyProposalsOpen}
-        onClose={() => setIsMyProposalsOpen(false)}
-      />
-
+      <CalculateAltitudeModal isOpen={isAltitudeModalOpen} onClose={() => setIsAltitudeModalOpen(false)} />
+      <MyProposalsModal isOpen={isMyProposalsOpen} onClose={() => setIsMyProposalsOpen(false)} />
       <CreateProposalModal
         isOpen={isCreateProposalOpen}
         onClose={() => setIsCreateProposalOpen(false)}
         selectedPropertyIds={Array.from(selectedForProposal)}
         proposalLanguage={proposalLanguage}
-        onProposalCreated={(proposalId, publicUrl) => {
-          clearProposalSelection();
-        }}
+        onProposalCreated={() => { clearProposalSelection(); }}
       />
-    </MobileLayout>
+    </AppLayout>
   );
 }

@@ -135,6 +135,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(31,41,55,0.85)', borderRadius: 4,
     paddingVertical: 6, paddingHorizontal: 9,
   },
+  logoBadgeImage: {
+    position: 'absolute', top: 15, left: 15,
+    backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 4,
+    paddingVertical: 5, paddingHorizontal: 8,
+  },
   logoBadgeText: { color: COLORS.white, fontSize: 12, fontFamily: 'Helvetica-Bold' },
   statusBadge: {
     position: 'absolute', top: 15, right: 15,
@@ -273,7 +278,11 @@ function CoverPage({ property, agent, t, lang, currency, baseDomain, coverPhoto,
 
         <View style={styles.coverOverlay} />
 
-        {!hasCustomLogo && (
+        {validLogoUrl ? (
+          <View style={styles.logoBadgeImage}>
+            <Image src={validLogoUrl} style={{ height: 28, objectFit: 'contain' }} />
+          </View>
+        ) : (
           <View style={styles.logoBadge}>
             <Text style={styles.logoBadgeText}>FLOW ESTATE AI</Text>
           </View>
@@ -435,15 +444,14 @@ const PropertyDocument = async ({ property, agent, customFieldsDefinitions, lang
   const propertyUrl = `${baseDomain}/p/${property.slug}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(propertyUrl)}`;
 
-  const [validCoverPhotos, validLogoUrls, validQrUrls, validGalleryPhotos] = await Promise.all([
+  const [validCoverPhotos, validQrUrls, validGalleryPhotos] = await Promise.all([
     filterValidImageUrls([property.photos?.[0]]),
-    filterValidImageUrls([agent?.watermark_logo]),
     filterValidImageUrls([qrCodeUrl]),
     filterValidImageUrls((property.photos || []).slice(1, 7)),
   ]);
-
+  
+  const validLogoUrl = agent?.watermark_logo?.trim() || null;
   const coverPhoto = validCoverPhotos[0] || null;
-  const validLogoUrl = validLogoUrls[0] || null;
   const validQrUrl = validQrUrls[0] || null;
   const hasGallery = validGalleryPhotos.length > 0;
 

@@ -656,10 +656,10 @@ export default function DashboardPage() {
                   >
                     {/* Foto */}
                     <div
-                      className="relative flex-shrink-0 overflow-hidden md:flex-shrink-0 md:w-full md:h-48"
-                      style={{ width: '130px', minHeight: '130px', backgroundColor: '#1f2937' }}
+                      className="photo-container relative flex-shrink-0 overflow-hidden"
+                      style={{ backgroundColor: '#1f2937' }}
                     >
-                      <div className="relative w-full h-full" style={{ minHeight: '130px' }}>
+                      <div className="relative w-full h-full">
                         {property.photos && property.photos.length > 0 ? (
                           <Image
                             src={property.photos[0]}

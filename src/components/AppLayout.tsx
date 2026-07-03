@@ -291,6 +291,22 @@ export default function AppLayout({
           .sidebar-nav-item { justify-content: flex-start; padding: 10px 12px; }
           .sidebar-create-box button { padding: 12px; }
         }
+        
+        /* Dashboard property cards — photo responsive */
+        .photo-container {
+          width: 130px;
+          min-height: 130px;
+          flex-shrink: 0;
+        }
+
+        @media (min-width: 768px) {
+          .photo-container {
+            width: 100%;
+            height: 180px;
+            min-height: 180px;
+            flex-shrink: 0;
+          }
+        }
       `}</style>
     </div>
   );

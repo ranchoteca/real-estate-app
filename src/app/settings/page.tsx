@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import MobileLayout from '@/components/MobileLayout';
+import AppLayout from '@/components/AppLayout';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useI18nStore } from '@/lib/i18n-store';
 
@@ -35,7 +35,7 @@ export default function SettingsPage() {
 
   if (status === 'loading') {
     return (
-      <MobileLayout title={t('settings.title')} showTabs={true}>
+      <AppLayout title={t('settings.title')} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">⚙️</div>
@@ -44,7 +44,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-      </MobileLayout>
+      </AppLayout>
     );
   }
 
@@ -146,7 +146,7 @@ export default function SettingsPage() {
     try {
       const response = await fetch('/api/agent/export-csv');
       if (!response.ok) throw new Error('Error al exportar');
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -156,7 +156,7 @@ export default function SettingsPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       alert(t('settings.alerts.exportSuccess'));
     } catch (error) {
       alert(t('settings.alerts.exportError'));
@@ -179,16 +179,21 @@ export default function SettingsPage() {
   };
 
   return (
-    <MobileLayout title={t('settings.title')} showTabs={true}>
-      <div className="px-4 pt-4 pb-6 space-y-4">
+    <AppLayout title={t('settings.title')} showTabs={true}>
+      {/*
+        mobile:   padding normal, lista full-width — igual que antes
+        tablet+:  contenido centrado con max-w, padding horizontal mayor
+      */}
+      <div className="px-4 pt-4 pb-6 md:px-8 md:pt-8 md:pb-10 md:max-w-2xl md:mx-auto">
+
         {/* Header Info */}
-        <div 
-          className="rounded-2xl p-5 shadow-lg"
+        <div
+          className="rounded-2xl p-5 shadow-lg mb-4"
           style={{ backgroundColor: '#FFFFFF' }}
         >
           <div className="flex items-center gap-4">
-            <div 
-              className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-lg"
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-lg flex-shrink-0"
               style={{ backgroundColor: '#2563EB' }}
             >
               {session.user.name?.charAt(0).toUpperCase() || '?'}
@@ -201,11 +206,11 @@ export default function SettingsPage() {
                 {session.user.email}
               </p>
               <div className="mt-2">
-                <span 
+                <span
                   className="inline-block px-3 py-1 rounded-full text-xs font-bold text-white"
                   style={{ backgroundColor: session.user.plan === 'pro' ? '#10B981' : '#6B7280' }}
                 >
-                  {session.user.plan === 'pro' 
+                  {session.user.plan === 'pro'
                     ? t('settings.userInfo.planPro')
                     : t('settings.userInfo.planFree')
                   }
@@ -221,8 +226,8 @@ export default function SettingsPage() {
             <button
               key={index}
               onClick={() => handleOptionClick(option)}
-              className="w-full rounded-2xl p-5 shadow-lg active:scale-98 transition-transform"
-              style={{ 
+              className="w-full rounded-2xl p-5 shadow-lg active:scale-98 transition-transform text-left"
+              style={{
                 backgroundColor: '#FFFFFF',
                 opacity: option.proOnly && !isProUser ? 0.45 : 1,
                 cursor: option.proOnly && !isProUser ? 'default' : 'pointer',
@@ -230,13 +235,13 @@ export default function SettingsPage() {
               disabled={option.disabled}
             >
               <div className="flex items-center gap-4">
-                <div 
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm"
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm flex-shrink-0"
                   style={{ backgroundColor: option.proOnly && !isProUser ? '#E5E7EB' : `${option.color}20` }}
                 >
                   {option.icon}
                 </div>
-                <div className="flex-1 text-left">
+                <div className="flex-1 min-w-0">
                   <h3 className="font-bold mb-0.5" style={{ color: '#0F172A' }}>
                     {option.title}
                     {option.disabled && (
@@ -244,22 +249,27 @@ export default function SettingsPage() {
                         {t('settings.options.portfolio.requireUsername')}
                       </span>
                     )}
+                    {option.proOnly && !isProUser && (
+                      <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                        Pro
+                      </span>
+                    )}
                   </h3>
                   <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
                     {option.description}
                   </p>
                 </div>
-                <svg 
-                  className="w-6 h-6 opacity-50" 
-                  fill="none" 
-                  stroke="#0F172A" 
+                <svg
+                  className="w-6 h-6 opacity-50 flex-shrink-0"
+                  fill="none"
+                  stroke="#0F172A"
                   viewBox="0 0 24 24"
                 >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M9 5l7 7-7 7" 
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
                   />
                 </svg>
               </div>
@@ -267,6 +277,6 @@ export default function SettingsPage() {
           ))}
         </div>
       </div>
-    </MobileLayout>
+    </AppLayout>
   );
 }

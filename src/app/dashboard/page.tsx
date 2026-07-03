@@ -656,19 +656,10 @@ export default function DashboardPage() {
                   >
                     {/* Foto */}
                     <div
-                      className="relative flex-shrink-0 overflow-hidden md:flex-shrink md:w-full"
+                      className="relative flex-shrink-0 overflow-hidden md:flex-shrink-0 md:w-full md:h-48"
                       style={{ width: '130px', minHeight: '130px', backgroundColor: '#1f2937' }}
                     >
-                      {/* En tablet/desktop la foto ocupa el ancho completo de la card */}
-                      <style jsx>{`
-                        @media (min-width: 768px) {
-                          .photo-wrapper {
-                            width: 100% !important;
-                            height: 160px !important;
-                          }
-                        }
-                      `}</style>
-                      <div className="photo-wrapper relative w-full h-full" style={{ minHeight: '130px' }}>
+                      <div className="relative w-full h-full" style={{ minHeight: '130px' }}>
                         {property.photos && property.photos.length > 0 ? (
                           <Image
                             src={property.photos[0]}

@@ -19,7 +19,6 @@ export default function SettingsPage() {
     }
   }, [status, router]);
 
-  // Load user's preferred language from Supabase on mount
   useEffect(() => {
     if (session?.user?.email) {
       fetch('/api/user/language')
@@ -181,10 +180,11 @@ export default function SettingsPage() {
   return (
     <AppLayout title={t('settings.title')} showTabs={true}>
       {/*
-        mobile:   padding normal, lista full-width — igual que antes
-        tablet+:  contenido centrado con max-w, padding horizontal mayor
+        mobile:   1 columna, lista full-width
+        tablet:   1 columna centrada con max-w-2xl
+        desktop:  2 columnas con max-w-4xl
       */}
-      <div className="px-4 pt-4 pb-6 md:px-8 md:pt-8 md:pb-10 md:max-w-2xl md:mx-auto">
+      <div className="px-4 pt-4 pb-6 md:px-8 md:pt-8 md:pb-10 md:max-w-2xl md:mx-auto lg:max-w-4xl">
 
         {/* Header Info */}
         <div
@@ -220,8 +220,12 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Settings Options */}
-        <div className="space-y-3">
+        {/* Settings Options
+            mobile:   space-y-3, columna única
+            tablet:   space-y-3, columna única (igual)
+            desktop:  grid 2 columnas, gap entre cards
+        */}
+        <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4">
           {settingsOptions.map((option, index) => (
             <button
               key={index}

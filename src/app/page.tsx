@@ -276,6 +276,63 @@ const COPY = {
 type Lang = keyof typeof COPY;
 
 // ─────────────────────────────────────────────────────────────────────────────
+// VIDEOS — playbackId de Mux por idioma. Si "en" es null, se usa el de "es"
+// y se muestra un badge avisando que el audio está en español.
+// Cuando grabes/subas la versión en inglés, solo pega el playbackId en "en".
+// ─────────────────────────────────────────────────────────────────────────────
+const VIDEOS: Record<'crear' | 'facebook' | 'tiktok', { es: string; en: string | null }> = {
+  crear: { es: '9i9RHXUIHHIqYqRLCykCIpQ727VBpE7lO9Kzxic02Pi8', en: null },
+  facebook: { es: 'yCYWwv00Hiohs27xTuRSm6SfEmGM1vcdt8B7v4d9y00Oc', en: null },
+  tiktok: { es: '2GGgMmXJhWQoQp2XpOTPRw5uPnzN6Mwy8OjkhyP9mXY', en: null },
+};
+
+function getPlaybackId(key: keyof typeof VIDEOS, lang: Lang) {
+  return VIDEOS[key][lang] ?? VIDEOS[key].es;
+}
+
+function isFallbackToSpanish(key: keyof typeof VIDEOS, lang: Lang) {
+  return lang === 'en' && !VIDEOS[key].en;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Banderas en SVG — los emojis 🇺🇸/🇪🇸 no renderizan en muchos sistemas
+// (Windows, algunos Android/Linux), así que usamos SVG propio: se ve igual
+// en cualquier navegador y OS.
+// ─────────────────────────────────────────────────────────────────────────────
+function USFlagIcon() {
+  return (
+    <svg width="20" height="14" viewBox="0 0 20 14" className="rounded-[2px] flex-shrink-0" aria-hidden="true">
+      <rect width="20" height="14" fill="#B22234" />
+      <rect y="1.08" width="20" height="1.08" fill="#FFFFFF" />
+      <rect y="3.23" width="20" height="1.08" fill="#FFFFFF" />
+      <rect y="5.38" width="20" height="1.08" fill="#FFFFFF" />
+      <rect y="7.54" width="20" height="1.08" fill="#FFFFFF" />
+      <rect y="9.69" width="20" height="1.08" fill="#FFFFFF" />
+      <rect y="11.85" width="20" height="1.08" fill="#FFFFFF" />
+      <rect width="8" height="7.54" fill="#3C3B6E" />
+    </svg>
+  );
+}
+
+function ESFlagIcon() {
+  return (
+    <svg width="20" height="14" viewBox="0 0 20 14" className="rounded-[2px] flex-shrink-0" aria-hidden="true">
+      <rect width="20" height="14" fill="#AA151B" />
+      <rect y="3.5" width="20" height="7" fill="#F1BF00" />
+    </svg>
+  );
+}
+
+// Badge que avisa cuando el video mostrado sigue en español (no hay versión EN todavía)
+function SpanishAudioBadge() {
+  return (
+    <p className="text-center text-xs font-semibold mt-3 opacity-60" style={{ color: '#0F172A' }}>
+      🔊 Narrated in Spanish
+    </p>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
   const { data: session, status } = useSession();
@@ -368,7 +425,7 @@ export default function LandingPage() {
               }}
               aria-label="Switch language"
             >
-              <span className="text-base leading-none">{lang === 'es' ? '🇺🇸' : '🇪🇸'}</span>
+              {lang === 'es' ? <USFlagIcon /> : <ESFlagIcon />}
               <span>{lang === 'es' ? 'English' : 'Español'}</span>
             </button>
           </div>
@@ -432,12 +489,13 @@ export default function LandingPage() {
           <div className="rounded-2xl overflow-hidden shadow-2xl mx-auto" style={{ maxWidth: '360px' }}>
             <MuxPlayer
               ref={videoCrearRef}
-              playbackId="9i9RHXUIHHIqYqRLCykCIpQ727VBpE7lO9Kzxic02Pi8"
+              playbackId={getPlaybackId('crear', lang)}
               autoPlay={false}
               muted={false}
               style={{ width: '100%', aspectRatio: '9/16' }}
             />
           </div>
+          {isFallbackToSpanish('crear', lang) && <SpanishAudioBadge />}
         </div>
       </section>
 
@@ -533,12 +591,13 @@ export default function LandingPage() {
           </div>
           <div className="rounded-2xl overflow-hidden shadow-2xl mx-auto" style={{ maxWidth: '360px' }}>
             <MuxPlayer
-              playbackId="yCYWwv00Hiohs27xTuRSm6SfEmGM1vcdt8B7v4d9y00Oc"
+              playbackId={getPlaybackId('facebook', lang)}
               autoPlay={false}
               muted={false}
               style={{ width: '100%', aspectRatio: '9/16' }}
             />
           </div>
+          {isFallbackToSpanish('facebook', lang) && <SpanishAudioBadge />}
         </div>
       </section>
 
@@ -605,12 +664,13 @@ export default function LandingPage() {
           </div>
           <div className="rounded-2xl overflow-hidden shadow-2xl mx-auto" style={{ maxWidth: '360px' }}>
             <MuxPlayer
-              playbackId="2GGgMmXJhWQoQp2XpOTPRw5uPnzN6Mwy8OjkhyP9mXY"
+              playbackId={getPlaybackId('tiktok', lang)}
               autoPlay={false}
               muted={false}
               style={{ width: '100%', aspectRatio: '9/16' }}
             />
           </div>
+          {isFallbackToSpanish('tiktok', lang) && <SpanishAudioBadge />}
         </div>
       </section>
 

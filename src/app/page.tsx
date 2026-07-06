@@ -456,7 +456,7 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
-            <Link href="/login" className="px-8 py-4 rounded-xl font-bold text-lg shadow-xl transition-all active:scale-95" style={{ backgroundColor: '#FFFFFF', color: '#1D4ED8' }}>
+            <Link href={`/login?lang=${lang}`} className="px-8 py-4 rounded-xl font-bold text-lg shadow-xl transition-all active:scale-95" style={{ backgroundColor: '#FFFFFF', color: '#1D4ED8' }}>
               {c.heroCta}
             </Link>
             <button onClick={handleVerDemo} className="px-8 py-4 rounded-xl font-semibold text-white border-2 transition-all text-lg" style={{ borderColor: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.1)' }}>
@@ -695,7 +695,7 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/login" className="block w-full py-3 rounded-xl font-bold text-center border-2 active:scale-95 transition-transform" style={{ borderColor: '#2563EB', color: '#2563EB', backgroundColor: '#FFFFFF' }}>
+              <Link href={`/login?lang=${lang}`} className="block w-full py-3 rounded-xl font-bold text-center border-2 active:scale-95 transition-transform" style={{ borderColor: '#2563EB', color: '#2563EB', backgroundColor: '#FFFFFF' }}>
                 {c.planFreeCta}
               </Link>
             </div>
@@ -715,7 +715,7 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/pro" className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold active:scale-95 transition-transform" style={{ backgroundColor: '#FFFFFF', color: '#1D4ED8' }}>
+              <Link href={`/pro?lang=${lang}`} className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold active:scale-95 transition-transform" style={{ backgroundColor: '#FFFFFF', color: '#1D4ED8' }}>
                 {c.planProCta}
               </Link>
             </div>
@@ -765,7 +765,7 @@ export default function LandingPage() {
           <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white uppercase">{c.ctaTitle}</h2>
           <p className="text-lg mb-2 text-white opacity-80">{c.ctaSubtitle}</p>
           <p className="text-sm mb-8 opacity-50 text-white">{c.ctaHint}</p>
-          <Link href="/login" className="inline-block px-10 py-4 rounded-xl font-bold text-lg shadow-xl active:scale-95 transition-transform" style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}>
+          <Link href={`/login?lang=${lang}`} className="inline-block px-10 py-4 rounded-xl font-bold text-lg shadow-xl active:scale-95 transition-transform" style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}>
             {c.ctaButton}
           </Link>
           <p className="text-sm mt-4 text-white opacity-60">{c.ctaFootnote}</p>

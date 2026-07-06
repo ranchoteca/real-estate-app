@@ -150,8 +150,8 @@ function LoginPageContent() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950 pointer-events-none" />
 
       <div className="flex flex-col flex-grow p-6">
-        {/* Logo + toggle de idioma */}
-        <header className={`relative z-10 w-full flex items-center justify-between pb-4 ${isInAppBrowser ? 'pt-16' : 'pt-10'}`}>
+        {/* Logo + toggle de idioma (logo arriba, bandera debajo, todo centrado) */}
+        <header className={`relative z-10 w-full flex flex-col items-center gap-3 pb-4 ${isInAppBrowser ? 'pt-16' : 'pt-10'}`}>
           <Link href="/">
             <Image
               src="/logo_header.png"

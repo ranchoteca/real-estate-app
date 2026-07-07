@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
@@ -172,8 +173,18 @@ export default function AppLayout({
 
           <aside className="sidebar" style={{ flexShrink: 0, backgroundColor: '#0F172A', display: 'flex', flexDirection: 'column', padding: '20px 0' }}>
             <div className="sidebar-brand" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '0 20px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '16px' }}>
-              <span style={{ fontSize: '22px', flexShrink: 0 }}>🏠</span>
-              <span className="sidebar-brand-text" style={{ color: 'white', fontWeight: 700, fontSize: '15px', whiteSpace: 'nowrap' }}>FlowEstateAI</span>
+              {/* Tablet colapsado: solo icono de casita */}
+              <span className="sidebar-brand-icon" style={{ fontSize: '22px', flexShrink: 0 }}>🏠</span>
+              {/* Desktop full: logo imagen */}
+              <Image
+                src="/logo_header.png"
+                alt="FlowEstateAI"
+                width={410}
+                height={184}
+                className="sidebar-brand-logo"
+                style={{ width: '120px', height: 'auto' }}
+                priority
+              />
             </div>
 
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '0 12px' }}>
@@ -278,6 +289,10 @@ export default function AppLayout({
           .sidebar-brand { justify-content: center; padding: 0 0 24px; }
           .sidebar-nav-item { justify-content: center; padding: 10px 0; }
           .sidebar-create-box button { padding: 10px 0; }
+
+          /* Tablet: mostrar solo el icono, ocultar logo */
+          .sidebar-brand-logo { display: none; }
+          .sidebar-brand-icon { display: inline; }
         }
 
         @media (min-width: 1200px) {
@@ -290,6 +305,10 @@ export default function AppLayout({
           .sidebar-brand { justify-content: flex-start; padding: 0 20px 24px; }
           .sidebar-nav-item { justify-content: flex-start; padding: 10px 12px; }
           .sidebar-create-box button { padding: 12px; }
+
+          /* Desktop: mostrar logo, ocultar icono */
+          .sidebar-brand-logo { display: block; }
+          .sidebar-brand-icon { display: none; }
         }
         
         /* Dashboard property cards — photo responsive */

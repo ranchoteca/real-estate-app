@@ -122,13 +122,16 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(2px)' }}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center md:items-center md:p-4"
+      style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(2px)' }}
+    >
       <div
-        className="w-full rounded-t-3xl shadow-2xl overflow-hidden"
-        style={{ backgroundColor: '#FFFFFF', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
+        className="w-full rounded-t-3xl md:rounded-2xl md:max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh] md:max-h-[90vh]"
+        style={{ backgroundColor: '#FFFFFF' }}
       >
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+        {/* Handle — solo en mobile, es la afordancia visual de "desliza para cerrar" */}
+        <div className="flex justify-center pt-3 pb-1 flex-shrink-0 md:hidden">
           <div className="w-10 h-1 rounded-full" style={{ backgroundColor: '#E5E7EB' }} />
         </div>
 
@@ -186,7 +189,7 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
           )}
 
           {!loading && proposals.length > 0 && (
-            <div className="space-y-3 pb-24">
+            <div className="space-y-3 pb-24 md:pb-4">
               {proposals.map((proposal) => {
                 const tpl = TEMPLATE_LABELS[proposal.template_style];
                 const isCopied = copiedId === proposal.id;

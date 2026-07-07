@@ -454,32 +454,34 @@ export default function DashboardPage() {
             </p>
           </div>
 
+          {/* Mis Propuestas — azul sólido, texto e ícono en blanco, igual en mobile/tablet/desktop */}
           <button
             onClick={() => setIsMyProposalsOpen(true)}
             className="w-full md:w-auto rounded-xl font-semibold text-sm flex items-center justify-center gap-2 px-4 py-2.5 active:scale-95 transition-transform mt-2 md:mt-0"
-            style={{ backgroundColor: '#EFF6FF', color: '#2563EB', border: '1.5px solid #BFDBFE' }}
+            style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}
           >
             🗂️ {language === 'en' ? 'My Proposals' : 'Mis Propuestas'}
           </button>
         </div>
 
-        {/* Filtros — en desktop, barra horizontal siempre visible (sin collapsable) */}
-        <div className="rounded-2xl p-4 shadow-xl space-y-3 md:space-y-0 md:flex md:flex-wrap md:gap-3 md:items-center mt-2 md:mt-4" style={{ backgroundColor: '#FFFFFF' }}>
-          <h3 className="font-bold text-sm md:hidden" style={{ color: '#0F172A' }}>
+        {/* Filtros — búsqueda en su propia fila a ancho completo, filtros + modo propuesta debajo */}
+        <div className="rounded-2xl p-4 shadow-xl mt-2 md:mt-4" style={{ backgroundColor: '#FFFFFF' }}>
+          <h3 className="font-bold text-sm md:hidden mb-3" style={{ color: '#0F172A' }}>
             🔍 {language === 'en' ? 'Filter Properties' : 'Filtrar Propiedades'}
           </h3>
 
+          {/* Barra de búsqueda — ancho completo siempre, en su propia fila */}
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={language === 'en' ? 'Search by title, city or state...' : 'Buscar por título, ciudad o estado...'}
-            className="w-full md:flex-1 md:min-w-[200px] px-4 py-2.5 rounded-xl border-2 focus:outline-none text-sm"
+            className="w-full px-4 py-2.5 rounded-xl border-2 focus:outline-none text-sm mb-3"
             style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}
           />
 
           {/* En mobile: botón para expandir filtros avanzados. En desktop: siempre visibles */}
-          <div className="flex gap-2 md:hidden">
+          <div className="flex gap-2 md:hidden mb-2">
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
               className="flex-1 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-2"
@@ -497,63 +499,66 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {/* Selects: visibles siempre en desktop, colapsables en mobile */}
-          <div className={`space-y-2 pt-2 border-t md:border-0 md:pt-0 md:space-y-0 md:flex md:gap-3 ${showAdvancedFilters ? 'block' : 'hidden md:flex'}`} style={{ borderTopColor: '#E5E7EB' }}>
-            <select value={filterPropertyType} onChange={(e) => setFilterPropertyType(e.target.value)} className="w-full md:w-auto px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}>
-              {PROPERTY_TYPES.map(type => <option key={type.value} value={type.value}>{type.label}</option>)}
-            </select>
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full md:w-auto px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}>
-              {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-            </select>
-            <select value={filterLanguage} onChange={(e) => setFilterLanguage(e.target.value)} className="w-full md:w-auto px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}>
-              {LANGUAGE_OPTIONS.map(lang => <option key={lang.value} value={lang.value}>{lang.label}</option>)}
-            </select>
-            <button
-              onClick={() => setIsAltitudeModalOpen(true)}
-              className="hidden md:flex w-full md:w-auto py-2.5 px-4 rounded-xl font-semibold text-sm items-center justify-center gap-2 border-2"
-              style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', color: '#0F172A' }}
-            >
-              🏔️ {language === 'en' ? 'Calculate Altitude' : 'Calcular Altura'}
-            </button>
-          </div>
+          {/* Fila de filtros + modo propuesta — debajo de la búsqueda */}
+          <div className="md:flex md:flex-wrap md:gap-3 md:items-center">
+            {/* Selects: visibles siempre en desktop, colapsables en mobile */}
+            <div className={`space-y-2 pt-2 border-t md:border-0 md:pt-0 md:space-y-0 md:flex md:flex-wrap md:gap-3 ${showAdvancedFilters ? 'block' : 'hidden md:flex'}`} style={{ borderTopColor: '#E5E7EB' }}>
+              <select value={filterPropertyType} onChange={(e) => setFilterPropertyType(e.target.value)} className="w-full md:w-auto px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}>
+                {PROPERTY_TYPES.map(type => <option key={type.value} value={type.value}>{type.label}</option>)}
+              </select>
+              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full md:w-auto px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}>
+                {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+              <select value={filterLanguage} onChange={(e) => setFilterLanguage(e.target.value)} className="w-full md:w-auto px-3 py-2.5 rounded-xl border-2 focus:outline-none text-sm font-semibold" style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', color: '#0F172A' }}>
+                {LANGUAGE_OPTIONS.map(lang => <option key={lang.value} value={lang.value}>{lang.label}</option>)}
+              </select>
+              <button
+                onClick={() => setIsAltitudeModalOpen(true)}
+                className="hidden md:flex w-full md:w-auto py-2.5 px-4 rounded-xl font-semibold text-sm items-center justify-center gap-2 border-2"
+                style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', color: '#0F172A' }}
+              >
+                🏔️ {language === 'en' ? 'Calculate Altitude' : 'Calcular Altura'}
+              </button>
+            </div>
 
-          {/* Toggle modo propuesta */}
-          <div className="flex items-center justify-between px-1 py-1 md:ml-auto">
-            <span className="text-sm font-semibold mr-3 md:mr-2" style={{ color: '#0F172A' }}>
-              {language === 'en' ? '🗂️ Proposal mode' : '🗂️ Modo propuesta'}
-            </span>
-            <button
-              onClick={() => {
-                const next = !proposalModeActive;
-                setProposalModeActive(next);
-                if (!next) {
-                  setSelectedForProposal(new Set());
-                  setProposalLanguage(null);
-                }
-              }}
-              className="relative flex-shrink-0 transition-colors duration-200"
-              style={{
-                width: '48px', height: '26px', borderRadius: '100px',
-                backgroundColor: proposalModeActive ? '#2563EB' : '#D1D5DB',
-                border: 'none', cursor: 'pointer', padding: 0,
-              }}
-              aria-label="Toggle proposal mode"
-            >
-              <span
-                className="absolute transition-transform duration-200"
-                style={{
-                  top: '3px', left: '3px', width: '20px', height: '20px',
-                  borderRadius: '50%', backgroundColor: '#FFFFFF',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                  transform: proposalModeActive ? 'translateX(22px)' : 'translateX(0px)',
-                  display: 'block',
+            {/* Toggle modo propuesta — siempre visible, sin importar filtros avanzados */}
+            <div className="flex items-center justify-between px-1 py-1 mt-2 md:mt-0 md:ml-auto">
+              <span className="text-sm font-semibold mr-3 md:mr-2" style={{ color: '#0F172A' }}>
+                {language === 'en' ? '🗂️ Proposal mode' : '🗂️ Modo propuesta'}
+              </span>
+              <button
+                onClick={() => {
+                  const next = !proposalModeActive;
+                  setProposalModeActive(next);
+                  if (!next) {
+                    setSelectedForProposal(new Set());
+                    setProposalLanguage(null);
+                  }
                 }}
-              />
-            </button>
+                className="relative flex-shrink-0 transition-colors duration-200"
+                style={{
+                  width: '48px', height: '26px', borderRadius: '100px',
+                  backgroundColor: proposalModeActive ? '#2563EB' : '#D1D5DB',
+                  border: 'none', cursor: 'pointer', padding: 0,
+                }}
+                aria-label="Toggle proposal mode"
+              >
+                <span
+                  className="absolute transition-transform duration-200"
+                  style={{
+                    top: '3px', left: '3px', width: '20px', height: '20px',
+                    borderRadius: '50%', backgroundColor: '#FFFFFF',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                    transform: proposalModeActive ? 'translateX(22px)' : 'translateX(0px)',
+                    display: 'block',
+                  }}
+                />
+              </button>
+            </div>
           </div>
 
           {hasActiveFilters && (
-            <div className="flex items-center gap-3 md:w-full">
+            <div className="flex items-center gap-3 md:w-full mt-3">
               <button onClick={clearFilters} className="text-sm font-semibold underline" style={{ color: '#2563EB' }}>
                 {language === 'en' ? 'Clear filters' : 'Limpiar filtros'}
               </button>
@@ -643,9 +648,10 @@ export default function DashboardPage() {
                     LAYOUT INTERNO DE CADA CARD:
                     - mobile:  fila horizontal (foto izq 130px, info der) — igual que antes
                     - tablet+: columna vertical (foto arriba, info abajo)
+                    "group" habilita el hover de zoom en la foto, solo activo en desktop (lg:)
                   */}
                   <div
-                    className="flex flex-row md:flex-col active:bg-gray-50 transition-colors cursor-pointer"
+                    className="flex flex-row md:flex-col active:bg-gray-50 transition-colors cursor-pointer group"
                     style={{ minHeight: '130px' }}
                     onClick={() => router.push(`/p/${property.slug}`)}
                     onTouchStart={(e) => handlePropertyPressStart(e, property)}
@@ -665,7 +671,7 @@ export default function DashboardPage() {
                             src={property.photos[0]}
                             alt={property.title}
                             fill
-                            className="object-cover"
+                            className="object-cover lg:transition-transform lg:duration-300 lg:group-hover:scale-105"
                             sizes="(min-width: 1200px) 33vw, (min-width: 768px) 50vw, 130px"
                           />
                         ) : (

@@ -5,7 +5,7 @@ import { useI18nStore } from '@/lib/i18n-store';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useEffect, useState } from 'react';
-import MobileLayout from '@/components/MobileLayout';
+import AppLayout from '@/components/AppLayout';
 import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
 import VideoUploader from '@/components/property/VideoUploader';
@@ -612,14 +612,14 @@ export default function EditPropertyPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <MobileLayout title="Cargando..." showBack={true} showTabs={true}>
+      <AppLayout title="Cargando..." showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">✏️</div>
             <div className="text-lg" style={{ color: '#0F172A' }}>{t('common.editProperty.loading')}</div>
           </div>
         </div>
-      </MobileLayout>
+      </AppLayout>
     );
   }
 
@@ -630,12 +630,14 @@ export default function EditPropertyPage() {
   const totalPhotos = existingPhotos.length + newPhotos.length;
 
   return (
-    <MobileLayout title={t('common.editProperty.title')} showBack={true} showTabs={true}>
-      <div className="px-4 py-6 space-y-4">
+    <AppLayout title={t('common.editProperty.title')} showBack={true} showTabs={true}>
+      {/* ── Wrapper externo con padding ── */}
+      <div className="edit-property-outer">
+
         {/* Error Message */}
         {error && (
           <div 
-            className="rounded-2xl p-4 border-2"
+            className="rounded-2xl p-4 border-2 mb-4"
             style={{ 
               backgroundColor: '#FEE2E2',
               borderColor: '#DC2626',
@@ -646,415 +648,247 @@ export default function EditPropertyPage() {
           </div>
         )}
 
-        {/* Photos Editor */}
-        <div 
-          className="rounded-2xl p-4 shadow-lg"
-          style={{ backgroundColor: '#FFFFFF' }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold" style={{ color: '#0F172A' }}>
-              {t('common.editProperty.photos')} ({totalPhotos}/15)
-            </h3>
-            <label className="cursor-pointer">
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleAddPhotos}
-                className="hidden"
-                disabled={totalPhotos >= 15 || compressing} // Deshabilitar cuando está comprimiendo
-              />
-              <span 
-                className="px-4 py-2 rounded-xl font-semibold text-white shadow-lg active:scale-95 transition-transform inline-block"
-                style={{ backgroundColor: (totalPhotos >= 15 || compressing) ? '#9CA3AF' : '#2563EB' }}
-              >
-                {/* Mostrar estado de compresión */}
-                {compressing ? `⏳ ${t('common.editProperty.compressing')}` : `➕ ${t('common.editProperty.addPhotos')}`}
-              </span>
-            </label>
-          </div>
+        {/* ── Grid: columna única en móvil, dos columnas en tablet/desktop ── */}
+        <div className="edit-property-grid">
 
-          {/* Existing Photos */}
-          {existingPhotos.length > 0 && (
-            <div>
-              <p className="text-xs mb-2 opacity-70" style={{ color: '#0F172A' }}>
-                {t('common.editProperty.currentPhotos')}
-              </p>
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                {existingPhotos.map((photo, index) => (
-                  <div key={photo} className="relative aspect-square rounded-xl overflow-hidden">
-                    <Image
-                      src={photo}
-                      alt={`Photo ${index + 1}`}
-                      fill
-                      className="object-cover"
-                    />
-                    <button
-                      onClick={() => handleDeleteExistingPhoto(photo)}
-                      className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
-                    >
-                      ✕
-                    </button>
-                    {index === 0 && (
-                      <div className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-xs font-bold text-white" style={{ backgroundColor: '#2563EB' }}>
-                        {t('photoUploader.principal')}
-                      </div>
-                    )}
-                  </div>
-                ))}
+          {/* ── COLUMNA IZQUIERDA: Fotos + Videos ── */}
+          <div className="edit-col-left space-y-4">
+
+            {/* Photos Editor */}
+            <div 
+              className="rounded-2xl p-4 shadow-lg"
+              style={{ backgroundColor: '#FFFFFF' }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold" style={{ color: '#0F172A' }}>
+                  {t('common.editProperty.photos')} ({totalPhotos}/15)
+                </h3>
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleAddPhotos}
+                    className="hidden"
+                    disabled={totalPhotos >= 15 || compressing} // Deshabilitar cuando está comprimiendo
+                  />
+                  <span 
+                    className="px-4 py-2 rounded-xl font-semibold text-white shadow-lg active:scale-95 transition-transform inline-block"
+                    style={{ backgroundColor: (totalPhotos >= 15 || compressing) ? '#9CA3AF' : '#2563EB' }}
+                  >
+                    {/* Mostrar estado de compresión */}
+                    {compressing ? `⏳ ${t('common.editProperty.compressing')}` : `➕ ${t('common.editProperty.addPhotos')}`}
+                  </span>
+                </label>
               </div>
-            </div>
-          )}
 
-          {/* New Photos */}
-          {newPhotos.length > 0 && (
-            <div>
-              <p className="text-xs mb-2 opacity-70" style={{ color: '#0F172A' }}>
-                {t('common.editProperty.newPhotos')}
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {newPhotosPreviews.map((preview, index) => (
-                  <div key={index} className="relative aspect-square rounded-xl overflow-hidden">
-                    <Image
-                      src={preview}
-                      alt={`New ${index + 1}`}
-                      fill
-                      className="object-cover"
-                    />
-                    <button
-                      onClick={() => handleDeleteNewPhoto(index)}
-                      className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
-                    >
-                      ✕
-                    </button>
-                    <div className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-xs font-bold text-white bg-green-500">
-                      {t('photoUploader.new')}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {totalPhotos < 2 && (
-            <p className="text-xs mt-2" style={{ color: '#DC2626' }}>
-              ⚠️ {t('common.editProperty.minPhotosRequired')}
-            </p>
-          )}
-        </div>
-
-        {/* Videos Editor */}
-        <div className="rounded-2xl p-4 shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
-          <h3 className="font-bold mb-3" style={{ color: '#0F172A' }}>
-            🎬 Videos
-          </h3>
-
-          {session.user.plan === 'pro' ? (
-            <>
-              {/* Videos existentes */}
-              {existingVideos.length > 0 && (
-                <div className="space-y-2 mb-4">
-                  <p className="text-xs opacity-70 mb-2" style={{ color: '#0F172A' }}>
-                    Videos actuales:
+              {/* Existing Photos */}
+              {existingPhotos.length > 0 && (
+                <div>
+                  <p className="text-xs mb-2 opacity-70" style={{ color: '#0F172A' }}>
+                    {t('common.editProperty.currentPhotos')}
                   </p>
-                  {existingVideos.map((url, index) => (
-                    <div key={index} className="relative rounded-xl overflow-hidden border-2" style={{ borderColor: '#E5E7EB' }}>
-                      <video
-                        src={url}
-                        className="w-full aspect-video object-cover bg-black"
-                        controls
-                        preload="metadata"
-                      />
-                      <button
-                        onClick={() => handleDeleteExistingVideo(index)}
-                        className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
-                      >
-                        ✕
-                      </button>
-                      <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded text-xs font-bold text-white" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
-                        Video {index + 1}
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {existingPhotos.map((photo, index) => (
+                      <div key={photo} className="relative aspect-square rounded-xl overflow-hidden">
+                        <Image
+                          src={photo}
+                          alt={`Photo ${index + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                        <button
+                          onClick={() => handleDeleteExistingPhoto(photo)}
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
+                        >
+                          ✕
+                        </button>
+                        {index === 0 && (
+                          <div className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-xs font-bold text-white" style={{ backgroundColor: '#2563EB' }}>
+                            {t('photoUploader.principal')}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* Agregar nuevos videos */}
-              {Math.floor(60 - existingVideosDuration) > 0 && (
-                <VideoUploader
-                  onVideosChange={handleNewVideosChange}
-                  maxVideos={4}
-                  maxDurationSeconds={Math.ceil(60 - existingVideosDuration)}
-                />
+              {/* New Photos */}
+              {newPhotos.length > 0 && (
+                <div>
+                  <p className="text-xs mb-2 opacity-70" style={{ color: '#0F172A' }}>
+                    {t('common.editProperty.newPhotos')}
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {newPhotosPreviews.map((preview, index) => (
+                      <div key={index} className="relative aspect-square rounded-xl overflow-hidden">
+                        <Image
+                          src={preview}
+                          alt={`New ${index + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                        <button
+                          onClick={() => handleDeleteNewPhoto(index)}
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
+                        >
+                          ✕
+                        </button>
+                        <div className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-xs font-bold text-white bg-green-500">
+                          {t('photoUploader.new')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
 
-              {Math.floor(60 - existingVideosDuration) <= 0 && (
-                <p className="text-xs text-center opacity-60 mt-2" style={{ color: '#0F172A' }}>
-                  {language === 'en' ? 'Maximum 60 seconds reached' : 'Has alcanzado el máximo de 60 segundos'}
+              {totalPhotos < 2 && (
+                <p className="text-xs mt-2" style={{ color: '#DC2626' }}>
+                  ⚠️ {t('common.editProperty.minPhotosRequired')}
                 </p>
               )}
+            </div>
 
-              {/* Progreso */}
-              {videoProgress && (
-                <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                  <p className="text-sm font-semibold text-purple-900">🎬 {videoProgress}</p>
-                </div>
+            {/* Videos Editor */}
+            <div className="rounded-2xl p-4 shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
+              <h3 className="font-bold mb-3" style={{ color: '#0F172A' }}>
+                🎬 Videos
+              </h3>
+
+              {session.user.plan === 'pro' ? (
+                <>
+                  {/* Videos existentes */}
+                  {existingVideos.length > 0 && (
+                    <div className="space-y-2 mb-4">
+                      <p className="text-xs opacity-70 mb-2" style={{ color: '#0F172A' }}>
+                        Videos actuales:
+                      </p>
+                      {existingVideos.map((url, index) => (
+                        <div key={index} className="relative rounded-xl overflow-hidden border-2" style={{ borderColor: '#E5E7EB' }}>
+                          <video
+                            src={url}
+                            className="w-full aspect-video object-cover bg-black"
+                            controls
+                            preload="metadata"
+                          />
+                          <button
+                            onClick={() => handleDeleteExistingVideo(index)}
+                            className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
+                          >
+                            ✕
+                          </button>
+                          <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded text-xs font-bold text-white" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                            Video {index + 1}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Agregar nuevos videos */}
+                  {Math.floor(60 - existingVideosDuration) > 0 && (
+                    <VideoUploader
+                      onVideosChange={handleNewVideosChange}
+                      maxVideos={4}
+                      maxDurationSeconds={Math.ceil(60 - existingVideosDuration)}
+                    />
+                  )}
+
+                  {Math.floor(60 - existingVideosDuration) <= 0 && (
+                    <p className="text-xs text-center opacity-60 mt-2" style={{ color: '#0F172A' }}>
+                      {language === 'en' ? 'Maximum 60 seconds reached' : 'Has alcanzado el máximo de 60 segundos'}
+                    </p>
+                  )}
+
+                  {/* Progreso */}
+                  {videoProgress && (
+                    <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <p className="text-sm font-semibold text-purple-900">🎬 {videoProgress}</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Plan Free */
+                existingVideos.length > 0 ? (
+                  <div
+                    className="rounded-xl p-4 flex items-center gap-3"
+                    style={{ backgroundColor: '#EFF6FF', border: '2px solid #BFDBFE' }}
+                  >
+                    <span className="text-2xl">🎬</span>
+                    <div>
+                      <p className="text-sm font-bold" style={{ color: '#1E40AF' }}>
+                        {language === 'en'
+                          ? `This property has ${existingVideos.length} video${existingVideos.length > 1 ? 's' : ''} associated`
+                          : `Esta propiedad tiene ${existingVideos.length} video${existingVideos.length > 1 ? 's' : ''} relacionado${existingVideos.length > 1 ? 's' : ''}`
+                        }
+                      </p>
+                      <p className="text-xs mt-1" style={{ color: '#1D4ED8' }}>
+                        {language === 'en'
+                          ? 'Upgrade to Pro to view and manage your videos.'
+                          : 'Pásate a Pro para poder ver y gestionar tus videos.'}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="rounded-xl p-4 flex items-center gap-3"
+                    style={{ backgroundColor: '#FEF3C7', border: '2px solid #FDE68A' }}
+                  >
+                    <span className="text-2xl">🎬</span>
+                    <div>
+                      <p className="text-sm font-bold" style={{ color: '#92400E' }}>
+                        {language === 'en' ? 'Videos are a Pro feature' : 'Los videos son una función Pro'}
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: '#B45309' }}>
+                        {language === 'en'
+                          ? 'Upgrade to Pro to add videos to your properties.'
+                          : 'Pásate al plan Pro para subir videos a tu propiedad.'}
+                      </p>
+                    </div>
+                  </div>
+                )
               )}
-            </>
-          ) : (
-            /* Plan Free */
-            existingVideos.length > 0 ? (
-              <div
-                className="rounded-xl p-4 flex items-center gap-3"
-                style={{ backgroundColor: '#EFF6FF', border: '2px solid #BFDBFE' }}
-              >
-                <span className="text-2xl">🎬</span>
-                <div>
-                  <p className="text-sm font-bold" style={{ color: '#1E40AF' }}>
-                    {language === 'en'
-                      ? `This property has ${existingVideos.length} video${existingVideos.length > 1 ? 's' : ''} associated`
-                      : `Esta propiedad tiene ${existingVideos.length} video${existingVideos.length > 1 ? 's' : ''} relacionado${existingVideos.length > 1 ? 's' : ''}`
-                    }
-                  </p>
-                  <p className="text-xs mt-1" style={{ color: '#1D4ED8' }}>
-                    {language === 'en'
-                      ? 'Upgrade to Pro to view and manage your videos.'
-                      : 'Pásate a Pro para poder ver y gestionar tus videos.'}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div
-                className="rounded-xl p-4 flex items-center gap-3"
-                style={{ backgroundColor: '#FEF3C7', border: '2px solid #FDE68A' }}
-              >
-                <span className="text-2xl">🎬</span>
-                <div>
-                  <p className="text-sm font-bold" style={{ color: '#92400E' }}>
-                    {language === 'en' ? 'Videos are a Pro feature' : 'Los videos son una función Pro'}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: '#B45309' }}>
-                    {language === 'en'
-                      ? 'Upgrade to Pro to add videos to your properties.'
-                      : 'Pásate al plan Pro para subir videos a tu propiedad.'}
-                  </p>
-                </div>
-              </div>
-            )
-          )}
-        </div>
-
-        {/* Badge de idioma de la propiedad */}
-        <div 
-          className="rounded-2xl p-4 shadow-lg"
-          style={{ backgroundColor: '#FFFFFF' }}
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">
-              {property.language === 'es' ? '🇪🇸' : '🇺🇸'}
-            </span>
-            <div>
-              <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                {t('common.editProperty.propertyLanguage')}:
-              </p>
-              <p className="text-lg font-bold" style={{ color: '#0F172A' }}>
-                {property.language === 'es' ? 'Español' : 'English'}
-              </p>
             </div>
-          </div>
-        </div>
 
-        {/* Title */}
-        <div 
-          className="rounded-2xl p-4 shadow-lg"
-          style={{ backgroundColor: '#FFFFFF' }}
-        >
-          <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-            {t('common.editProperty.propertyTitle')}
-          </label>
-          <input
-            type="text"
-            value={property.title}
-            onChange={(e) => setProperty({ ...property, title: e.target.value })}
-            className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
-            style={{ 
-              borderColor: '#E5E7EB',
-              backgroundColor: '#F9FAFB',
-              color: '#0F172A'
-            }}
-          />
-        </div>
+          </div>{/* fin edit-col-left */}
 
-        {/* Description */}
-        <div 
-          className="rounded-2xl p-4 shadow-lg"
-          style={{ backgroundColor: '#FFFFFF' }}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-bold" style={{ color: '#0F172A' }}>
-              {t('common.editProperty.description')}
-            </label>
-            <button
-              type="button"
-              onClick={handleInsertPhonesInDescription}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold active:scale-95 transition-transform"
-              style={{ backgroundColor: '#DBEAFE', color: '#1D4ED8' }}
-              title={language === 'en' ? 'Insert phone numbers' : 'Insertar teléfonos'}
+          {/* ── COLUMNA DERECHA: Formulario completo ── */}
+          <div className="edit-col-right space-y-4">
+
+            {/* Badge de idioma de la propiedad */}
+            <div 
+              className="rounded-2xl p-4 shadow-lg"
+              style={{ backgroundColor: '#FFFFFF' }}
             >
-              📲 {language === 'en' ? 'Insert phones' : 'Insertar tel.'}
-            </button>
-          </div>
-          <textarea
-            value={property.description}
-            onChange={(e) => setProperty({ ...property, description: e.target.value })}
-            rows={8}
-            className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none resize-none"
-            style={{ 
-              borderColor: '#E5E7EB',
-              backgroundColor: '#F9FAFB',
-              color: '#0F172A'
-            }}
-          />
-        </div>
-
-        {/* Price and Details */}
-        <div 
-          className="rounded-2xl p-4 shadow-lg space-y-4"
-          style={{ backgroundColor: '#FFFFFF' }}
-        >
-          <h3 className="font-bold" style={{ color: '#0F172A' }}>
-            {t('common.editProperty.details')}
-          </h3>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                {t('common.editProperty.price')} ({currencies.find(c => c.id === (selectedCurrency || property.currency_id))?.symbol || '$'})
-              </label>
-              <input
-                type="number"
-                value={property.price || ''}
-                onChange={(e) => setProperty({ ...property, price: Number(e.target.value) || null })}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
-                style={{ 
-                  borderColor: '#E5E7EB',
-                  backgroundColor: '#F9FAFB',
-                  color: '#0F172A'
-                }}
-              />
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">
+                  {property.language === 'es' ? '🇪🇸' : '🇺🇸'}
+                </span>
+                <div>
+                  <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
+                    {t('common.editProperty.propertyLanguage')}:
+                  </p>
+                  <p className="text-lg font-bold" style={{ color: '#0F172A' }}>
+                    {property.language === 'es' ? 'Español' : 'English'}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                {t('common.editProperty.propertyType')}
-              </label>
-              <select
-                value={property.property_type}
-                onChange={(e) => setProperty({ ...property, property_type: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none appearance-none"
-                style={{ 
-                  borderColor: '#E5E7EB',
-                  backgroundColor: '#F9FAFB',
-                  color: '#0F172A'
-                }}
-              >
-                <option value="house">{t('common.editProperty.house')}</option>
-                <option value="condo">{t('common.editProperty.condo')}</option>
-                <option value="apartment">{t('common.editProperty.apartment')}</option>
-                <option value="land">{t('common.editProperty.land')}</option>
-                <option value="commercial">{t('common.editProperty.commercial')}</option>
-                <option value="hotel">{t('common.editProperty.hotel')}</option>
-                <option value="finca">{t('common.editProperty.finca')}</option>
-                <option value="quinta">{t('common.editProperty.quinta')}</option>
-                <option value="other">{t('common.editProperty.other')}</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                {t('common.editProperty.listingType')}
-              </label>
-              <select
-                value={property.listing_type || 'sale'}
-                onChange={(e) => setProperty({ ...property, listing_type: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none appearance-none"
-                style={{ 
-                  borderColor: '#E5E7EB',
-                  backgroundColor: '#F9FAFB',
-                  color: '#0F172A'
-                }}
-              >
-                <option value="sale">{t('common.editProperty.sale')}</option>
-                <option value="rent">{t('common.editProperty.rent')}</option>
-              </select>
-            </div>
-            {/* NUEVO: Selector de Divisa */}
-            <div className="col-span-2">
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                💰 {t('common.editProperty.currency')}
-              </label>
-              <select
-                value={selectedCurrency || property.currency_id || ''}
-                onChange={(e) => {
-                  const newCurrencyId = e.target.value;
-                  setSelectedCurrency(newCurrencyId);
-                  setProperty({ ...property, currency_id: newCurrencyId });
-                }}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none appearance-none"
-                style={{ 
-                  borderColor: '#E5E7EB',
-                  backgroundColor: '#F9FAFB',
-                  color: '#0F172A'
-                }}
-              >
-                {currencies.map(currency => (
-                  <option key={currency.id} value={currency.id}>
-                    {currency.symbol} {currency.code} - {currency.name}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
-                💡 {t('common.editProperty.currencyTip')}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Location */}
-        <div 
-          className="rounded-2xl p-4 shadow-lg space-y-4"
-          style={{ backgroundColor: '#FFFFFF' }}
-        >
-          <h3 className="font-bold" style={{ color: '#0F172A' }}>
-            {t('common.editProperty.location')}
-          </h3>
-
-          <div>
-            <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-              {t('common.editProperty.address')}
-            </label>
-            <input
-              type="text"
-              value={property.address}
-              onChange={(e) => setProperty({ ...property, address: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
-              style={{ 
-                borderColor: '#E5E7EB',
-                backgroundColor: '#F9FAFB',
-                color: '#0F172A'
-              }}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                {t('common.editProperty.city')}
+            {/* Title */}
+            <div 
+              className="rounded-2xl p-4 shadow-lg"
+              style={{ backgroundColor: '#FFFFFF' }}
+            >
+              <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
+                {t('common.editProperty.propertyTitle')}
               </label>
               <input
                 type="text"
-                value={property.city}
-                onChange={(e) => setProperty({ ...property, city: e.target.value })}
+                value={property.title}
+                onChange={(e) => setProperty({ ...property, title: e.target.value })}
                 className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
                 style={{ 
                   borderColor: '#E5E7EB',
@@ -1064,15 +898,30 @@ export default function EditPropertyPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                {t('common.editProperty.state')}
-              </label>
-              <input
-                type="text"
-                value={property.state}
-                onChange={(e) => setProperty({ ...property, state: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+            {/* Description */}
+            <div 
+              className="rounded-2xl p-4 shadow-lg"
+              style={{ backgroundColor: '#FFFFFF' }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-bold" style={{ color: '#0F172A' }}>
+                  {t('common.editProperty.description')}
+                </label>
+                <button
+                  type="button"
+                  onClick={handleInsertPhonesInDescription}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold active:scale-95 transition-transform"
+                  style={{ backgroundColor: '#DBEAFE', color: '#1D4ED8' }}
+                  title={language === 'en' ? 'Insert phone numbers' : 'Insertar teléfonos'}
+                >
+                  📲 {language === 'en' ? 'Insert phones' : 'Insertar tel.'}
+                </button>
+              </div>
+              <textarea
+                value={property.description}
+                onChange={(e) => setProperty({ ...property, description: e.target.value })}
+                rows={8}
+                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none resize-none"
                 style={{ 
                   borderColor: '#E5E7EB',
                   backgroundColor: '#F9FAFB',
@@ -1081,222 +930,428 @@ export default function EditPropertyPage() {
               />
             </div>
 
-            <div className="col-span-2">
-              <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                {t('common.editProperty.zipCode')}
-              </label>
-              <input
-                type="text"
-                value={property.zip_code}
-                onChange={(e) => setProperty({ ...property, zip_code: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
-                style={{ 
-                  borderColor: '#E5E7EB',
-                  backgroundColor: '#F9FAFB',
-                  color: '#0F172A'
-                }}
-              />
-            </div>
-          </div>
+            {/* Price and Details */}
+            <div 
+              className="rounded-2xl p-4 shadow-lg space-y-4"
+              style={{ backgroundColor: '#FFFFFF' }}
+            >
+              <h3 className="font-bold" style={{ color: '#0F172A' }}>
+                {t('common.editProperty.details')}
+              </h3>
 
-          {/* MAP SECTION (CON PLUS CODE) */}
-          <div className="pt-4 border-t" style={{ borderTopColor: '#E5E7EB' }}>
-            <label className="flex items-center gap-2 cursor-pointer mb-3">
-              <input
-                type="checkbox"
-                checked={property.show_map}
-                onChange={(e) => setProperty({ 
-                  ...property, 
-                  show_map: e.target.checked 
-                })}
-                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm font-semibold" style={{ color: '#0F172A' }}>
-                🗺️ {t('common.editProperty.showOnMap')}
-              </span>
-            </label>
-
-            <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2 text-gray-700">
-                🌎 {t('common.editProperty.propertyCountry')}
-              </label>
-              <select
-                value={selectedCountry}
-                onChange={(e) => setSelectedCountry(e.target.value as CountryCode)}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-base text-gray-900 font-semibold"
-              >
-                {SUPPORTED_COUNTRIES.map((country) => (
-                  <option key={country.code} value={country.code}>
-                    {country.flag} {country.name}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-600 mt-1">
-                {t('common.editProperty.selectCountry')}
-              </p>
-            </div>
-
-            {property.show_map && (
-              <GoogleMapEditor
-                address={property.address}
-                city={property.city}
-                state={property.state}
-                selectedCountry={selectedCountry}
-                initialLat={property.latitude}
-                initialLng={property.longitude}
-                initialPlusCode={property.plus_code}
-                onLocationChange={(lat, lng, plusCode) => {
-                  console.log('📍 Nueva ubicación:', lat, lng, plusCode);
-                  setProperty({ 
-                    ...property, 
-                    latitude: lat, 
-                    longitude: lng,
-                    plus_code: plusCode
-                  });
-                }}
-                editable={true}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Campos Personalizados */}
-        <div 
-          className="rounded-2xl p-4 shadow-lg space-y-4"
-          style={{ backgroundColor: '#FFFFFF' }}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold" style={{ color: '#0F172A' }}>
-              🏷️ {t('common.editProperty.customFields')}
-            </h3>
-            {session.user.plan === 'pro' && (
-              <button
-                onClick={() => router.push('/settings/custom-fields')}
-                className="text-xs font-semibold underline"
-                style={{ color: '#2563EB' }}
-              >
-                {t('common.editProperty.manageFields')}
-              </button>
-            )}
-          </div>
-
-          {loadingCustomFields ? (
-            <div className="text-center py-4">
-              <div className="text-3xl mb-2 animate-pulse">⏳</div>
-              <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                {t('common.editProperty.loadingFields')}
-              </p>
-            </div>
-          ) : customFields.length > 0 ? (
-            <div className="space-y-3">
-              {customFields.map((field) => (
-                <div key={field.id}>
-                  <label className="block text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#0F172A' }}>
-                    <span className="text-lg">{field.icon || '🏷️'}</span>
-                    {getCustomFieldName(field)}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+                    {t('common.editProperty.price')} ({currencies.find(c => c.id === (selectedCurrency || property.currency_id))?.symbol || '$'})
                   </label>
                   <input
-                    type={field.field_type === 'number' ? 'number' : 'text'}
-                    value={getCustomFieldValue(field.field_key)}
-                    onChange={(e) => handleCustomFieldChange(field.field_key, e.target.value)}
-                    placeholder={field.placeholder}
-                    maxLength={field.field_type === 'text' ? 200 : undefined}
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
+                    type="number"
+                    value={property.price || ''}
+                    onChange={(e) => setProperty({ ...property, price: Number(e.target.value) || null })}
+                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
                     style={{ 
                       borderColor: '#E5E7EB',
-                      backgroundColor: '#F9FAFB'
+                      backgroundColor: '#F9FAFB',
+                      color: '#0F172A'
                     }}
                   />
                 </div>
-              ))}
-              
-              <div 
-                className="px-3 py-2 rounded-lg text-xs"
-                style={{ backgroundColor: '#F0F9FF', color: '#0369A1' }}
-              >
-                💡 <strong>Tip:</strong> Los campos se guardan automáticamente al actualizar la propiedad. 
-                Si cambias el tipo de propiedad, los datos se mantienen y puedes volver a verlos cuando regreses a esta configuración.
+
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+                    {t('common.editProperty.propertyType')}
+                  </label>
+                  <select
+                    value={property.property_type}
+                    onChange={(e) => setProperty({ ...property, property_type: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none appearance-none"
+                    style={{ 
+                      borderColor: '#E5E7EB',
+                      backgroundColor: '#F9FAFB',
+                      color: '#0F172A'
+                    }}
+                  >
+                    <option value="house">{t('common.editProperty.house')}</option>
+                    <option value="condo">{t('common.editProperty.condo')}</option>
+                    <option value="apartment">{t('common.editProperty.apartment')}</option>
+                    <option value="land">{t('common.editProperty.land')}</option>
+                    <option value="commercial">{t('common.editProperty.commercial')}</option>
+                    <option value="hotel">{t('common.editProperty.hotel')}</option>
+                    <option value="finca">{t('common.editProperty.finca')}</option>
+                    <option value="quinta">{t('common.editProperty.quinta')}</option>
+                    <option value="other">{t('common.editProperty.other')}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+                    {t('common.editProperty.listingType')}
+                  </label>
+                  <select
+                    value={property.listing_type || 'sale'}
+                    onChange={(e) => setProperty({ ...property, listing_type: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none appearance-none"
+                    style={{ 
+                      borderColor: '#E5E7EB',
+                      backgroundColor: '#F9FAFB',
+                      color: '#0F172A'
+                    }}
+                  >
+                    <option value="sale">{t('common.editProperty.sale')}</option>
+                    <option value="rent">{t('common.editProperty.rent')}</option>
+                  </select>
+                </div>
+                {/* NUEVO: Selector de Divisa */}
+                <div className="col-span-2">
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+                    💰 {t('common.editProperty.currency')}
+                  </label>
+                  <select
+                    value={selectedCurrency || property.currency_id || ''}
+                    onChange={(e) => {
+                      const newCurrencyId = e.target.value;
+                      setSelectedCurrency(newCurrencyId);
+                      setProperty({ ...property, currency_id: newCurrencyId });
+                    }}
+                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none appearance-none"
+                    style={{ 
+                      borderColor: '#E5E7EB',
+                      backgroundColor: '#F9FAFB',
+                      color: '#0F172A'
+                    }}
+                  >
+                    {currencies.map(currency => (
+                      <option key={currency.id} value={currency.id}>
+                        {currency.symbol} {currency.code} - {currency.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
+                    💡 {t('common.editProperty.currencyTip')}
+                  </p>
+                </div>
               </div>
             </div>
-          ) : (
+
+            {/* Location */}
             <div 
-              className="rounded-xl p-4 text-center"
-              style={{ backgroundColor: '#FEF3C7' }}
+              className="rounded-2xl p-4 shadow-lg space-y-4"
+              style={{ backgroundColor: '#FFFFFF' }}
             >
-              <div className="text-3xl mb-2">📝</div>
-              <p className="text-sm font-semibold mb-1" style={{ color: '#92400E' }}>
-                {t('common.editProperty.noCustomFields')}
-              </p>
-              <p className="text-xs opacity-70 mb-3" style={{ color: '#92400E' }}>
-                {property?.property_type && property?.listing_type && (
-                  <>Tipo: {property.property_type} → {property.listing_type === 'sale' ? 'Venta' : 'Alquiler'}</>
+              <h3 className="font-bold" style={{ color: '#0F172A' }}>
+                {t('common.editProperty.location')}
+              </h3>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+                  {t('common.editProperty.address')}
+                </label>
+                <input
+                  type="text"
+                  value={property.address}
+                  onChange={(e) => setProperty({ ...property, address: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                  style={{ 
+                    borderColor: '#E5E7EB',
+                    backgroundColor: '#F9FAFB',
+                    color: '#0F172A'
+                  }}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+                    {t('common.editProperty.city')}
+                  </label>
+                  <input
+                    type="text"
+                    value={property.city}
+                    onChange={(e) => setProperty({ ...property, city: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style={{ 
+                      borderColor: '#E5E7EB',
+                      backgroundColor: '#F9FAFB',
+                      color: '#0F172A'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+                    {t('common.editProperty.state')}
+                  </label>
+                  <input
+                    type="text"
+                    value={property.state}
+                    onChange={(e) => setProperty({ ...property, state: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style={{ 
+                      borderColor: '#E5E7EB',
+                      backgroundColor: '#F9FAFB',
+                      color: '#0F172A'
+                    }}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+                    {t('common.editProperty.zipCode')}
+                  </label>
+                  <input
+                    type="text"
+                    value={property.zip_code}
+                    onChange={(e) => setProperty({ ...property, zip_code: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
+                    style={{ 
+                      borderColor: '#E5E7EB',
+                      backgroundColor: '#F9FAFB',
+                      color: '#0F172A'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* MAP SECTION (CON PLUS CODE) */}
+              <div className="pt-4 border-t" style={{ borderTopColor: '#E5E7EB' }}>
+                <label className="flex items-center gap-2 cursor-pointer mb-3">
+                  <input
+                    type="checkbox"
+                    checked={property.show_map}
+                    onChange={(e) => setProperty({ 
+                      ...property, 
+                      show_map: e.target.checked 
+                    })}
+                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-semibold" style={{ color: '#0F172A' }}>
+                    🗺️ {t('common.editProperty.showOnMap')}
+                  </span>
+                </label>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    🌎 {t('common.editProperty.propertyCountry')}
+                  </label>
+                  <select
+                    value={selectedCountry}
+                    onChange={(e) => setSelectedCountry(e.target.value as CountryCode)}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-base text-gray-900 font-semibold"
+                  >
+                    {SUPPORTED_COUNTRIES.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        {country.flag} {country.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {t('common.editProperty.selectCountry')}
+                  </p>
+                </div>
+
+                {property.show_map && (
+                  <GoogleMapEditor
+                    address={property.address}
+                    city={property.city}
+                    state={property.state}
+                    selectedCountry={selectedCountry}
+                    initialLat={property.latitude}
+                    initialLng={property.longitude}
+                    initialPlusCode={property.plus_code}
+                    onLocationChange={(lat, lng, plusCode) => {
+                      console.log('📍 Nueva ubicación:', lat, lng, plusCode);
+                      setProperty({ 
+                        ...property, 
+                        latitude: lat, 
+                        longitude: lng,
+                        plus_code: plusCode
+                      });
+                    }}
+                    editable={true}
+                  />
                 )}
-              </p>
+              </div>
+            </div>
+
+            {/* Campos Personalizados */}
+            <div 
+              className="rounded-2xl p-4 shadow-lg space-y-4"
+              style={{ backgroundColor: '#FFFFFF' }}
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold" style={{ color: '#0F172A' }}>
+                  🏷️ {t('common.editProperty.customFields')}
+                </h3>
+                {session.user.plan === 'pro' && (
+                  <button
+                    onClick={() => router.push('/settings/custom-fields')}
+                    className="text-xs font-semibold underline"
+                    style={{ color: '#2563EB' }}
+                  >
+                    {t('common.editProperty.manageFields')}
+                  </button>
+                )}
+              </div>
+
+              {loadingCustomFields ? (
+                <div className="text-center py-4">
+                  <div className="text-3xl mb-2 animate-pulse">⏳</div>
+                  <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
+                    {t('common.editProperty.loadingFields')}
+                  </p>
+                </div>
+              ) : customFields.length > 0 ? (
+                <div className="space-y-3">
+                  {customFields.map((field) => (
+                    <div key={field.id}>
+                      <label className="block text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#0F172A' }}>
+                        <span className="text-lg">{field.icon || '🏷️'}</span>
+                        {getCustomFieldName(field)}
+                      </label>
+                      <input
+                        type={field.field_type === 'number' ? 'number' : 'text'}
+                        value={getCustomFieldValue(field.field_key)}
+                        onChange={(e) => handleCustomFieldChange(field.field_key, e.target.value)}
+                        placeholder={field.placeholder}
+                        maxLength={field.field_type === 'text' ? 200 : undefined}
+                        className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
+                        style={{ 
+                          borderColor: '#E5E7EB',
+                          backgroundColor: '#F9FAFB'
+                        }}
+                      />
+                    </div>
+                  ))}
+                  
+                  <div 
+                    className="px-3 py-2 rounded-lg text-xs"
+                    style={{ backgroundColor: '#F0F9FF', color: '#0369A1' }}
+                  >
+                    💡 <strong>Tip:</strong> Los campos se guardan automáticamente al actualizar la propiedad. 
+                    Si cambias el tipo de propiedad, los datos se mantienen y puedes volver a verlos cuando regreses a esta configuración.
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  className="rounded-xl p-4 text-center"
+                  style={{ backgroundColor: '#FEF3C7' }}
+                >
+                  <div className="text-3xl mb-2">📝</div>
+                  <p className="text-sm font-semibold mb-1" style={{ color: '#92400E' }}>
+                    {t('common.editProperty.noCustomFields')}
+                  </p>
+                  <p className="text-xs opacity-70 mb-3" style={{ color: '#92400E' }}>
+                    {property?.property_type && property?.listing_type && (
+                      <>Tipo: {property.property_type} → {property.listing_type === 'sale' ? 'Venta' : 'Alquiler'}</>
+                    )}
+                  </p>
+                  <button
+                    onClick={() => router.push('/settings/custom-fields')}
+                    className="px-4 py-2 rounded-xl font-bold text-white active:scale-95 transition-transform"
+                    style={{ backgroundColor: '#2563EB' }}
+                  >
+                    ➕ {t('common.editProperty.createFields')}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Status */}
+            <div 
+              className="rounded-2xl p-4 shadow-lg"
+              style={{ backgroundColor: '#FFFFFF' }}
+            >
+              <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
+                {t('common.editProperty.propertyStatus')}
+              </label>
+              <select
+                value={property.status}
+                onChange={(e) => setProperty({ ...property, status: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none appearance-none"
+                style={{ 
+                  borderColor: '#E5E7EB',
+                  backgroundColor: '#F9FAFB',
+                  color: '#0F172A'
+                }}
+              >
+                <option value="active">{t('common.editProperty.active')}</option>
+                <option value="pending">{t('common.editProperty.pending')}</option>
+                <option value="sold">{t('common.editProperty.sold')}</option>
+                <option value="rented">{t('common.editProperty.rented')}</option>
+              </select>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
               <button
-                onClick={() => router.push('/settings/custom-fields')}
-                className="px-4 py-2 rounded-xl font-bold text-white active:scale-95 transition-transform"
+                onClick={() => router.back()}
+                className="flex-1 py-3 rounded-xl font-bold border-2 active:scale-95 transition-transform"
+                style={{ 
+                  borderColor: '#E5E7EB',
+                  color: '#0F172A',
+                  backgroundColor: '#FFFFFF'
+                }}
+              >
+                {t('common.editProperty.cancel')}
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving || totalPhotos < 2}
+                className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
                 style={{ backgroundColor: '#2563EB' }}
               >
-                ➕ {t('common.editProperty.createFields')}
+                {saving ? `${t('common.editProperty.saving')}` : `💾 ${t('common.editProperty.save')}`}
               </button>
             </div>
-          )}
-        </div>
 
-        {/* Status */}
-        <div 
-          className="rounded-2xl p-4 shadow-lg"
-          style={{ backgroundColor: '#FFFFFF' }}
-        >
-          <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-            {t('common.editProperty.propertyStatus')}
-          </label>
-          <select
-            value={property.status}
-            onChange={(e) => setProperty({ ...property, status: e.target.value })}
-            className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none appearance-none"
-            style={{ 
-              borderColor: '#E5E7EB',
-              backgroundColor: '#F9FAFB',
-              color: '#0F172A'
-            }}
-          >
-            <option value="active">{t('common.editProperty.active')}</option>
-            <option value="pending">{t('common.editProperty.pending')}</option>
-            <option value="sold">{t('common.editProperty.sold')}</option>
-            <option value="rented">{t('common.editProperty.rented')}</option>
-          </select>
-        </div>
+          </div>{/* fin edit-col-right */}
 
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          <button
-            onClick={() => router.back()}
-            className="flex-1 py-3 rounded-xl font-bold border-2 active:scale-95 transition-transform"
-            style={{ 
-              borderColor: '#E5E7EB',
-              color: '#0F172A',
-              backgroundColor: '#FFFFFF'
-            }}
-          >
-            {t('common.editProperty.cancel')}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving || totalPhotos < 2}
-            className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
-            style={{ backgroundColor: '#2563EB' }}
-          >
-            {saving ? `${t('common.editProperty.saving')}` : `💾 ${t('common.editProperty.save')}`}
-          </button>
-        </div>
-      </div>
+        </div>{/* fin edit-property-grid */}
+      </div>{/* fin edit-property-outer */}
+
       <PublishingModal
         isOpen={savingModalOpen}
         steps={savingSteps}
         hasVideos={newVideos.length > 0}
         language={language}
       />
-    </MobileLayout>
+
+      <style jsx global>{`
+        .edit-property-outer {
+          padding: 16px;
+        }
+        .edit-property-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        /* Tablet y desktop: dos columnas */
+        @media (min-width: 768px) {
+          .edit-property-outer {
+            padding: 28px 32px;
+          }
+          .edit-property-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 24px;
+            align-items: start;
+          }
+          /* Columna de fotos sticky: se queda fija mientras scrolleas el formulario */
+          .edit-col-left {
+            position: sticky;
+            top: 0;
+          }
+        }
+        @media (min-width: 1200px) {
+          .edit-property-outer {
+            padding: 32px 40px;
+          }
+          .edit-property-grid {
+            grid-template-columns: 420px 1fr;
+            gap: 32px;
+          }
+        }
+      `}</style>
+    </AppLayout>
   );
 }

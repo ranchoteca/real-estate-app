@@ -146,8 +146,11 @@ export default function CalculateAltitudeModal({ isOpen, onClose }: CalculateAlt
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col h-[85vh] max-h-[800px]">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(2px)' }}
+    >
+      <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col h-[85vh] max-h-[800px] md:h-[90vh] md:max-h-[900px]">
         
         {/* Header */}
         <div className="px-5 py-4 border-b flex justify-between items-center" style={{ borderColor: '#E5E7EB' }}>

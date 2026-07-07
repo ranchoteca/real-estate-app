@@ -15,8 +15,6 @@ interface AppLayoutProps {
   onCreateLimitReached?: () => void;
 }
 
-// Misma lista de navegación usada tanto en el bottom-tab-bar (mobile) como
-// en el sidebar (tablet/desktop). Un solo lugar para agregar/quitar items.
 const NAV_ITEMS = [
   { path: '/dashboard', labelKey: 'inicio', icon: '🏘️' },
   { path: '/analytics', labelKey: 'analiticas', icon: '📊' },
@@ -56,8 +54,7 @@ export default function AppLayout({
   return (
     <div className="app-shell" style={{ backgroundColor: '#F5EAD3' }}>
       {/* ════════════════════════════════════════════════════════════════
-          MOBILE SHELL (< 768px) — idéntico al MobileLayout original.
-          Header arriba + bottom tab bar con FAB central.
+          MOBILE SHELL (< 768px)
          ════════════════════════════════════════════════════════════════ */}
       <div className="shell-mobile flex flex-col h-screen">
         <header className="flex-shrink-0 shadow-lg relative z-50" style={{ backgroundColor: '#0F172A' }}>
@@ -162,16 +159,24 @@ export default function AppLayout({
       </div>
 
       {/* ════════════════════════════════════════════════════════════════
-          TABLET + DESKTOP SHELL (≥ 768px) — sidebar.
-          .shell-sidebar-collapsed (768–1199px): solo iconos, sin texto.
-          .shell-sidebar-full (≥1200px): iconos + texto.
-          El ancho del sidebar se controla 100% por CSS (ver <style> abajo);
-          el JSX es el mismo para ambos, solo cambia el ancho del contenedor.
+          TABLET + DESKTOP SHELL (≥ 768px) — sidebar fijo
          ════════════════════════════════════════════════════════════════ */}
       <div className="shell-desktop" style={{ display: 'none' }}>
-        <div style={{ display: 'flex', minHeight: '100vh' }}>
+        {/* Wrapper: altura fija 100vh, sin scroll en este nivel */}
+        <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 
-          <aside className="sidebar" style={{ flexShrink: 0, backgroundColor: '#0F172A', display: 'flex', flexDirection: 'column', padding: '20px 0' }}>
+          {/* Sidebar: sticky, no se mueve con el scroll del contenido */}
+          <aside className="sidebar" style={{
+            flexShrink: 0,
+            backgroundColor: '#0F172A',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '20px 0',
+            position: 'sticky',
+            top: 0,
+            height: '100vh',
+            overflowY: 'auto',
+          }}>
             <div className="sidebar-brand" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '0 20px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '16px' }}>
               {/* Tablet colapsado: solo icono de casita */}
               <span className="sidebar-brand-icon" style={{ fontSize: '22px', flexShrink: 0 }}>🏠</span>
@@ -237,8 +242,20 @@ export default function AppLayout({
             </div>
           </aside>
 
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-            <header style={{ backgroundColor: 'white', borderBottom: '1px solid #E5E7EB', padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Área de contenido: flex column, header fijo arriba, main con scroll */}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <header style={{
+              backgroundColor: 'white',
+              borderBottom: '1px solid #E5E7EB',
+              padding: '14px 28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexShrink: 0,
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
+            }}>
               <h1 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#0F172A' }}>{title || ''}</h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 {session && (
@@ -256,6 +273,7 @@ export default function AppLayout({
               </div>
             </header>
 
+            {/* Main: único elemento con scroll */}
             <main style={{ flex: 1, overflowY: 'auto' }}>{children}</main>
           </div>
         </div>
@@ -269,18 +287,12 @@ export default function AppLayout({
         .overflow-y-auto::-webkit-scrollbar { display: none; }
         .overflow-y-auto { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Breakpoints del shell -------------------------------------------
-           < 768px            -> shell-mobile visible
-           768px – 1199px     -> shell-desktop visible, sidebar colapsado a iconos
-           >= 1200px          -> shell-desktop visible, sidebar completo
-        */
         .shell-desktop { display: none; }
 
         @media (min-width: 768px) {
           .shell-mobile { display: none !important; }
           .shell-desktop { display: block !important; }
 
-          /* Tablet: sidebar colapsado a solo iconos */
           .sidebar { width: 72px; }
           .sidebar-brand-text,
           .sidebar-nav-text,
@@ -296,7 +308,6 @@ export default function AppLayout({
         }
 
         @media (min-width: 1200px) {
-          /* Desktop: sidebar completo con texto */
           .sidebar { width: 220px; }
           .sidebar-brand-text,
           .sidebar-nav-text,
@@ -310,7 +321,7 @@ export default function AppLayout({
           .sidebar-brand-logo { display: block; }
           .sidebar-brand-icon { display: none; }
         }
-        
+
         /* Dashboard property cards — photo responsive */
         .photo-container {
           width: 130px;

@@ -858,14 +858,30 @@ export default function EditPropertyPage() {
           <div className="edit-col-right space-y-4">
 
             {/* Badge de idioma de la propiedad */}
-            <div 
+            <div
               className="rounded-2xl p-4 shadow-lg"
               style={{ backgroundColor: '#FFFFFF' }}
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl">
-                  {property.language === 'es' ? '🇪🇸' : '🇺🇸'}
-                </span>
+                {property.language === 'es' ? (
+                  /* Bandera España */
+                  <svg width="28" height="20" viewBox="0 0 20 14" className="rounded-sm flex-shrink-0" aria-hidden="true">
+                    <rect width="20" height="14" fill="#c60b1e"/>
+                    <rect y="3.5" width="20" height="7" fill="#ffc400"/>
+                  </svg>
+                ) : (
+                  /* Bandera USA */
+                  <svg width="28" height="20" viewBox="0 0 20 14" className="rounded-sm flex-shrink-0" aria-hidden="true">
+                    <rect width="20" height="14" fill="#B22234"/>
+                    <rect y="1.08" width="20" height="1.08" fill="#FFFFFF"/>
+                    <rect y="3.23" width="20" height="1.08" fill="#FFFFFF"/>
+                    <rect y="5.38" width="20" height="1.08" fill="#FFFFFF"/>
+                    <rect y="7.54" width="20" height="1.08" fill="#FFFFFF"/>
+                    <rect y="9.69" width="20" height="1.08" fill="#FFFFFF"/>
+                    <rect y="11.85" width="20" height="1.08" fill="#FFFFFF"/>
+                    <rect width="8" height="7.54" fill="#3C3B6E"/>
+                  </svg>
+                )}
                 <div>
                   <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
                     {t('common.editProperty.propertyLanguage')}:
@@ -1325,23 +1341,32 @@ export default function EditPropertyPage() {
           flex-direction: column;
           gap: 16px;
         }
-        /* Tablet y desktop: dos columnas */
+
         @media (min-width: 768px) {
           .edit-property-outer {
             padding: 28px 32px;
+            height: calc(100vh - 57px);
+            overflow: hidden;
           }
           .edit-property-grid {
             display: grid;
             grid-template-columns: 380px 1fr;
             gap: 24px;
             align-items: start;
+            height: 100%;
           }
-          /* Columna de fotos sticky: se queda fija mientras scrolleas el formulario */
           .edit-col-left {
-            position: sticky;
-            top: 0;
+            height: 100%;
+            overflow-y: auto;
+            padding-right: 4px;
+          }
+          .edit-col-right {
+            height: 100%;
+            overflow-y: auto;
+            padding-right: 4px;
           }
         }
+
         @media (min-width: 1200px) {
           .edit-property-outer {
             padding: 32px 40px;

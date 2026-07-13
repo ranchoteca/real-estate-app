@@ -107,14 +107,14 @@ export default function SettingsPage() {
       color: '#1877F2',
       proOnly: true,
     },
-    {
+    /*{
       icon: '🔑',
       title: t('settings.options.uploadToken.title'),
       description: t('settings.options.uploadToken.description'),
       href: '/settings/upload-token',
       color: '#8B5CF6',
       proOnly: true,
-    },
+    },*/
     {
       icon: '🔗',
       title: t('settings.options.portfolio.title'),

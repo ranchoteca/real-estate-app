@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import MobileLayout from '@/components/MobileLayout';
+import AppLayout from '@/components/AppLayout';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useI18nStore } from '@/lib/i18n-store';
 
@@ -312,14 +312,14 @@ export default function CustomFieldsPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <MobileLayout title={t('customFields.title')} showBack={true} showTabs={true}>
+      <AppLayout title={t('customFields.title')} showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">🏷️</div>
             <div className="text-lg" style={{ color: '#0F172A' }}>{t('common.loading')}</div>
           </div>
         </div>
-      </MobileLayout>
+      </AppLayout>
     );
   }
 
@@ -328,33 +328,34 @@ export default function CustomFieldsPage() {
   const filteredFields = getFilteredFields();
 
   return (
-    <MobileLayout title={t('customFields.title')} showBack={true} showTabs={true}>
-      <div className="px-4 pt-4 pb-24 space-y-4">
-        {/* Info Card */}
-        <div 
-          className="rounded-2xl p-4 shadow-lg"
-          style={{ backgroundColor: '#EFF6FF', borderLeft: '4px solid #2563EB' }}
-        >
-          <p className="text-sm font-semibold" style={{ color: '#1E40AF' }}>
-            💡 <strong>Tip:</strong> {t('customFields.tip')}
-          </p>
-        </div>
+    <AppLayout title={t('customFields.title')} showBack={true} showTabs={true}>
+      <div className="px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-12 md:max-w-5xl md:mx-auto space-y-4">
+        {/* Info Card + Stats: apiladas en móvil, lado a lado desde tablet */}
+        <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
+          <div 
+            className="rounded-2xl p-4 shadow-lg"
+            style={{ backgroundColor: '#EFF6FF', borderLeft: '4px solid #2563EB' }}
+          >
+            <p className="text-sm font-semibold" style={{ color: '#1E40AF' }}>
+              💡 <strong>Tip:</strong> {t('customFields.tip')}
+            </p>
+          </div>
 
-        {/* Stats */}
-        <div 
-          className="rounded-2xl p-4 shadow-lg"
-          style={{ backgroundColor: '#FFFFFF' }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                {t('customFields.totalFields')}
-              </p>
-              <p className="text-3xl font-bold" style={{ color: '#2563EB' }}>
-                {getTotalFieldsCount()}
-              </p>
+          <div 
+            className="rounded-2xl p-4 shadow-lg"
+            style={{ backgroundColor: '#FFFFFF' }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
+                  {t('customFields.totalFields')}
+                </p>
+                <p className="text-3xl font-bold" style={{ color: '#2563EB' }}>
+                  {getTotalFieldsCount()}
+                </p>
+              </div>
+              <div className="text-5xl">🏷️</div>
             </div>
-            <div className="text-5xl">🏷️</div>
           </div>
         </div>
 
@@ -376,7 +377,7 @@ export default function CustomFieldsPage() {
         {!showAddForm && (
           <button
             onClick={() => setShowAddForm(true)}
-            className="w-full rounded-2xl p-4 shadow-lg active:scale-98 transition-transform font-bold text-white"
+            className="w-full md:w-auto md:px-10 rounded-2xl p-4 shadow-lg active:scale-98 transition-transform font-bold text-white"
             style={{ backgroundColor: '#2563EB' }}
           >
             ➕ {t('customFields.createNew')}
@@ -395,36 +396,38 @@ export default function CustomFieldsPage() {
 
             {!editingField && (
               <>
-                <div>
-                  <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                    {t('customFields.propertyType')}
-                  </label>
-                  <select
-                    value={selectedPropertyType}
-                    onChange={(e) => setSelectedPropertyType(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                    style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-                  >
-                    {PROPERTY_TYPES.map(type => (
-                      <option key={type.value} value={type.value}>{getPropertyTypeLabel(type.value)}</option>
-                    ))}
-                  </select>
-                </div>
+                <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
+                  <div>
+                    <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
+                      {t('customFields.propertyType')}
+                    </label>
+                    <select
+                      value={selectedPropertyType}
+                      onChange={(e) => setSelectedPropertyType(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
+                      style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
+                    >
+                      {PROPERTY_TYPES.map(type => (
+                        <option key={type.value} value={type.value}>{getPropertyTypeLabel(type.value)}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                    {t('customFields.listingType')}
-                  </label>
-                  <select
-                    value={selectedListingType}
-                    onChange={(e) => setSelectedListingType(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                    style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-                  >
-                    {LISTING_TYPES.map(type => (
-                      <option key={type.value} value={type.value}>{getListingTypeLabel(type.value)}</option>
-                    ))}
-                  </select>
+                  <div>
+                    <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
+                      {t('customFields.listingType')}
+                    </label>
+                    <select
+                      value={selectedListingType}
+                      onChange={(e) => setSelectedListingType(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
+                      style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
+                    >
+                      {LISTING_TYPES.map(type => (
+                        <option key={type.value} value={type.value}>{getListingTypeLabel(type.value)}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div 
@@ -502,43 +505,46 @@ export default function CustomFieldsPage() {
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                {t('customFields.fieldName')}
-              </label>
-              <input
-                type="text"
-                value={fieldName}
-                onChange={(e) => setFieldName(e.target.value)}
-                placeholder={t('customFields.fieldNamePlaceholder')}
-                maxLength={30}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-              />
-              <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
-                ⚠️ {t('customFields.maxChars')}
-              </p>
+            <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
+              <div>
+                <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
+                  {t('customFields.fieldName')}
+                </label>
+                <input
+                  type="text"
+                  value={fieldName}
+                  onChange={(e) => setFieldName(e.target.value)}
+                  placeholder={t('customFields.fieldNamePlaceholder')}
+                  maxLength={30}
+                  className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
+                  style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
+                />
+                <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
+                  ⚠️ {t('customFields.maxChars')}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
+                  {t('customFields.fieldNameEn')}
+                </label>
+                <input
+                  type="text"
+                  value={fieldNameEn}
+                  onChange={(e) => setFieldNameEn(e.target.value)}
+                  placeholder={t('customFields.fieldNameEnPlaceholder')}
+                  maxLength={30}
+                  className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
+                  style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
+                />
+                <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
+                  💡 {t('customFields.bilingualTip')}
+                </p>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                {t('customFields.fieldNameEn')}
-              </label>
-              <input
-                type="text"
-                value={fieldNameEn}
-                onChange={(e) => setFieldNameEn(e.target.value)}
-                placeholder={t('customFields.fieldNameEnPlaceholder')}
-                maxLength={30}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-              />
-              <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
-                💡 {t('customFields.bilingualTip')}
-              </p>
-            </div>
-
-            <div>
+            <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
+              <div>
                 <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
                   {t('customFields.fieldType')}
                 </label>
@@ -553,19 +559,20 @@ export default function CustomFieldsPage() {
                 </select>
               </div>
 
-            <div>
-              <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                {t('customFields.placeholder')}
-              </label>
-              <input
-                type="text"
-                value={placeholder}
-                onChange={(e) => setPlaceholder(e.target.value)}
-                placeholder={t('customFields.placeholderText')}
-                maxLength={50}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-              />
+              <div>
+                <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
+                  {t('customFields.placeholder')}
+                </label>
+                <input
+                  type="text"
+                  value={placeholder}
+                  onChange={(e) => setPlaceholder(e.target.value)}
+                  placeholder={t('customFields.placeholderText')}
+                  maxLength={50}
+                  className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
+                  style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
+                />
+              </div>
             </div>
 
             <div className="flex gap-3">
@@ -655,9 +662,10 @@ export default function CustomFieldsPage() {
             {t('customFields.fieldsCreated')} ({filteredFields.length})
           </h3>
 
+          <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3">
           {filteredFields.length === 0 ? (
             <div 
-              className="rounded-2xl p-8 text-center"
+              className="rounded-2xl p-8 text-center md:col-span-full"
               style={{ backgroundColor: '#FFFFFF' }}
             >
               <div className="text-5xl mb-3">📝</div>
@@ -766,6 +774,7 @@ export default function CustomFieldsPage() {
               );
             })
           )}
+          </div>
         </div>
 
         {/* Clone Modal */}
@@ -1108,6 +1117,6 @@ export default function CustomFieldsPage() {
           </>
         )}
       </div>
-    </MobileLayout>
+    </AppLayout>
   );
 }

@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import MobileLayout from '@/components/MobileLayout';
+import AppLayout from '@/components/AppLayout';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function FacebookSettingsContent() {
@@ -258,7 +258,7 @@ export default function FacebookSettingsContent() {
 
   if (status === 'loading' || loading) {
     return (
-      <MobileLayout title={t('facebook.title')} showBack={true} showTabs={true}>
+      <AppLayout title={t('facebook.title')} showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">📘</div>
@@ -267,7 +267,7 @@ export default function FacebookSettingsContent() {
             </div>
           </div>
         </div>
-      </MobileLayout>
+      </AppLayout>
     );
   }
 
@@ -281,8 +281,11 @@ export default function FacebookSettingsContent() {
   ];
 
   return (
-    <MobileLayout title={t('facebook.title')} showBack={true} showTabs={true}>
-      <div className="px-4 pt-4 pb-24 space-y-4">
+    <AppLayout title={t('facebook.title')} showBack={true} showTabs={true}>
+      <div className="px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-12 md:max-w-5xl md:mx-auto md:grid md:grid-cols-2 md:gap-6 md:items-start lg:grid-cols-[1fr_420px] space-y-4 md:space-y-0">
+
+        {/* Columna izquierda: estado de conexión y acciones */}
+        <div className="space-y-4">
         {/* Info Card */}
         <div 
           className="rounded-2xl p-4 shadow-lg"
@@ -504,7 +507,10 @@ export default function FacebookSettingsContent() {
             </button>
           </div>
         )} */}
+        </div>
 
+        {/* Columna derecha: ayuda / FAQ (sticky en desktop) */}
+        <div className="space-y-4 md:sticky md:top-4">
         {/* Help Card */}
         <div 
           className="rounded-2xl p-5 shadow-lg"
@@ -543,7 +549,9 @@ export default function FacebookSettingsContent() {
             </div>
           </div>
         </div>
+
+        </div>
       </div>
-    </MobileLayout>
+    </AppLayout>
   );
 }

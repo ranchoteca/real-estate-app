@@ -3,13 +3,14 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import MobileLayout from '@/components/MobileLayout';
+import AppLayout from '@/components/AppLayout';
 
 export default function FlowIASettingsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [isActive, setIsActive] = useState(false);
   
   const [loading, setLoading] = useState(true);
@@ -46,14 +47,25 @@ export default function FlowIASettingsPage() {
     }
   };
 
+  // Formato: + seguido del código de país y el número, todo pegado sin espacios (ej. +50688888888)
+  const isValidWhatsAppFormat = (value: string) => /^\+\d{8,15}$/.test(value.trim());
+
   const handleSave = async () => {
+    const trimmedPhone = phoneNumber.trim();
+
+    if (!isValidWhatsAppFormat(trimmedPhone)) {
+      setPhoneError('Formato inválido. Debe ser código de país + número pegado, sin espacios (ej. +50688888888)');
+      return;
+    }
+
+    setPhoneError('');
     setSaving(true);
     try {
       const response = await fetch('/api/agent/flowia', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          whatsapp_number: phoneNumber,
+          whatsapp_number: trimmedPhone,
           is_flowia_active: isActive
         }),
       });
@@ -74,7 +86,7 @@ export default function FlowIASettingsPage() {
 
   if (loading) {
     return (
-      <MobileLayout title="FlowIA Asistente" showBack={true} showTabs={true}>
+      <AppLayout title="FlowIA Asistente" showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-bounce">🤖</div>
@@ -83,17 +95,17 @@ export default function FlowIASettingsPage() {
             </div>
           </div>
         </div>
-      </MobileLayout>
+      </AppLayout>
     );
   }
 
   return (
-    <MobileLayout title="FlowIA Asistente" showBack={true} showTabs={true}>
-      <div className="px-4 py-6 space-y-6">
+    <AppLayout title="FlowIA Asistente" showBack={true} showTabs={true}>
+      <div className="px-4 py-6 md:px-6 md:max-w-5xl md:mx-auto md:grid md:grid-cols-2 md:gap-6 md:items-start lg:grid-cols-[1fr_420px] space-y-6 md:space-y-0">
         
-        {/* Info Banner */}
+        {/* Info Banner: en mobile va primero (igual que antes); en tablet/desktop pasa a columna derecha sticky */}
         <div 
-          className="rounded-2xl p-4 border-2"
+          className="rounded-2xl p-4 border-2 md:order-2 md:sticky md:top-4"
           style={{ backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }}
         >
           <div className="flex items-start gap-3">
@@ -109,6 +121,9 @@ export default function FlowIASettingsPage() {
           </div>
         </div>
 
+        {/* Columna principal: formulario + guardar */}
+        <div className="space-y-6 md:order-1">
+
         {/* Formulario */}
         <div className="space-y-4">
           <div className="space-y-2">
@@ -118,12 +133,20 @@ export default function FlowIASettingsPage() {
             <input
               type="tel"
               value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
+              onChange={(e) => {
+                setPhoneNumber(e.target.value);
+                if (phoneError) setPhoneError('');
+              }}
               placeholder="+50688888888"
-              className="w-full rounded-xl p-4 border-2 shadow-sm focus:outline-none"
-              style={{ borderColor: '#E5E7EB', backgroundColor: '#FFFFFF' }}
+              className="w-full rounded-xl p-4 border-2 shadow-sm focus:outline-none text-gray-900 font-semibold text-lg"
+              style={{ borderColor: phoneError ? '#DC2626' : '#E5E7EB', backgroundColor: '#FFFFFF' }}
             />
             <p className="text-xs opacity-70">Incluye el código de país (ej. +506)</p>
+            {phoneError && (
+              <p className="text-xs font-semibold" style={{ color: '#DC2626' }}>
+                ⚠️ {phoneError}
+              </p>
+            )}
           </div>
 
           <div 
@@ -166,8 +189,10 @@ export default function FlowIASettingsPage() {
           </button>
         </div>
 
-        <div style={{ height: '80px' }}></div>
+        </div>
+
+        <div style={{ height: '80px' }} className="md:hidden"></div>
       </div>
-    </MobileLayout>
+    </AppLayout>
   );
 }

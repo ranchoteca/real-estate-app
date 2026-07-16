@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { trackEvent } from '@/lib/fbpixel';
 import GeneratingPDFModal from '@/components/GeneratingPDFModal';
 import FacebookPublishModal from '@/components/FacebookPublishModal';
+import FacebookReelPublishModal from '@/components/FacebookReelPublishModal';
 import AppLayout from '@/components/AppLayout';
 import Image from 'next/image';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -88,6 +89,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState<string | null>(null);
   const [publishModalOpen, setPublishModalOpen] = useState(false);
+  const [reelModalOpen, setReelModalOpen] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [planInfo, setPlanInfo] = useState<{ plan: string; role: string; expires_at: string | null } | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -898,6 +900,17 @@ export default function DashboardPage() {
                   {language === 'en' ? 'Publish on Facebook' : 'Publicar en Facebook'}
                   {isFree && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>Pro</span>}
                 </button>
+                {!!property.video_urls?.length && (
+                  <button
+                    onClick={() => { if (isFree) return; setShowMenu(null); setSelectedPropertyId(property.id); setReelModalOpen(true); }}
+                    className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-gray-50 transition-colors"
+                    style={{ color: isFree ? '#9CA3AF' : '#0F172A', borderBottom: '1px solid #F3F4F6' }}
+                  >
+                    <span className="text-xl">🎬</span>
+                    {language === 'en' ? 'Publish Reel to Facebook' : 'Publicar Reel en Facebook'}
+                    {isFree && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>Pro</span>}
+                  </button>
+                )}
                 <button onClick={() => { setShowMenu(null); handleDeleteProperty(property.id); }} className="w-full px-5 py-4 text-left font-semibold text-sm flex items-center gap-3 active:bg-red-50 transition-colors" style={{ color: '#DC2626' }}>
                   <span className="text-xl">🗑️</span> {language === 'en' ? 'Delete' : 'Eliminar'}
                 </button>
@@ -936,7 +949,13 @@ export default function DashboardPage() {
       {/* ── MODALES (sin cambios) ─────────────────────────────────────────── */}
       <GeneratingPDFModal isOpen={isGeneratingPDF} />
       <FacebookPublishModal isOpen={publishModalOpen} onClose={() => setPublishModalOpen(false)} propertyId={selectedPropertyId || ''} />
-
+      <FacebookReelPublishModal
+        isOpen={reelModalOpen}
+        onClose={() => setReelModalOpen(false)}
+        propertyId={selectedPropertyId || ''}
+        videoUrls={properties.find(p => p.id === selectedPropertyId)?.video_urls || []}
+        language={language}
+      />
       {translateModal.open && translateModal.propertyId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">

@@ -81,3 +81,39 @@ export async function publishViaPostForMe(
   const post = await response.json();
   return post;
 }
+
+// Publicar un Reel en Facebook via Post for Me
+export async function publishReelViaPostForMe(
+  accountId: string,
+  caption: string,
+  videoUrl: string
+) {
+  const payload = {
+    caption,
+    social_accounts: [accountId],
+    media: [{ url: videoUrl }],
+    platform_configurations: {
+      facebook: {
+        placement: 'reels',
+      },
+    },
+  };
+
+  const response = await fetch('https://api.postforme.dev/v1/social-posts', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.POSTFORME_API_KEY}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error('❌ Error de Post For Me API (Reel):', errorData);
+    throw new Error(errorData.message || 'Error al publicar el Reel vía Post For Me');
+  }
+
+  const post = await response.json();
+  return post;
+}

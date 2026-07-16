@@ -10,6 +10,7 @@ import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
 import VideoUploader from '@/components/property/VideoUploader';
 import PublishingModal from '@/components/property/PublishingModal';
+import FacebookReelPublishModal from '@/components/FacebookReelPublishModal';
 import { uploadVideoToMux, waitForPlaybackId } from '@/lib/muxUpload';
 import { WatermarkConfig } from '@/lib/watermark';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
@@ -97,6 +98,9 @@ export default function EditPropertyPage() {
 
   // Compresión
   const [compressing, setCompressing] = useState(false);
+
+  // Reels
+  const [reelModalOpen, setReelModalOpen] = useState(false);
 
   // Estados del modal de guardado
   const [savingModalOpen, setSavingModalOpen] = useState(false);
@@ -787,6 +791,16 @@ export default function EditPropertyPage() {
                     </div>
                   )}
 
+                  {existingVideos.length > 0 && (
+                    <button
+                      onClick={() => setReelModalOpen(true)}
+                      className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform mb-4"
+                      style={{ backgroundColor: '#1877F2' }}
+                    >
+                      🎬 {language === 'en' ? 'Publish Reel to Facebook' : 'Publicar Reel en Facebook'}
+                    </button>
+                  )}
+
                   {/* Agregar nuevos videos */}
                   {Math.floor(60 - existingVideosDuration) > 0 && (
                     <VideoUploader
@@ -1329,6 +1343,14 @@ export default function EditPropertyPage() {
         isOpen={savingModalOpen}
         steps={savingSteps}
         hasVideos={newVideos.length > 0}
+        language={language}
+      />
+
+      <FacebookReelPublishModal
+        isOpen={reelModalOpen}
+        onClose={() => setReelModalOpen(false)}
+        propertyId={propertyId}
+        videoUrls={existingVideos}
         language={language}
       />
 

@@ -4,33 +4,49 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { publishReelViaPostForMe } from '@/lib/facebook';
+import { uploadMuxVideoToCloudinary, buildReelWithMusic, deleteCloudinaryVideo } from '@/lib/cloudinary';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { supabaseAdmin } from '@/lib/supabase';
 
+interface MusicOptions {
+  musicPublicId: string | null;
+  keepOriginalAudio: boolean;
+  volumeDb: number;
+}
+
 export async function GET(req: NextRequest) {
   const propertyId = req.nextUrl.searchParams.get('propertyId');
   const videoUrl = req.nextUrl.searchParams.get('videoUrl');
+  const musicPublicId = req.nextUrl.searchParams.get('musicPublicId');
+  const keepOriginalAudio = req.nextUrl.searchParams.get('keepOriginalAudio') === 'true';
+  const volumeParam = req.nextUrl.searchParams.get('musicVolume');
 
   if (!propertyId || !videoUrl) {
     return NextResponse.json({ error: 'propertyId y videoUrl requeridos' }, { status: 400 });
   }
 
-  return handlePublishReel(propertyId, videoUrl);
+  return handlePublishReel(propertyId, videoUrl, {
+    musicPublicId,
+    keepOriginalAudio,
+    volumeDb: volumeParam ? Number(volumeParam) : -20,
+  });
 }
 
 export async function POST(req: NextRequest) {
-  const { propertyId, videoUrl } = await req.json();
+  const { propertyId, videoUrl, musicPublicId, keepOriginalAudio, musicVolume } = await req.json();
 
   if (!propertyId || !videoUrl) {
     return NextResponse.json({ error: 'propertyId y videoUrl requeridos' }, { status: 400 });
   }
 
-  return handlePublishReel(propertyId, videoUrl);
+  return handlePublishReel(propertyId, videoUrl, {
+    musicPublicId: musicPublicId || null,
+    keepOriginalAudio: !!keepOriginalAudio,
+    volumeDb: typeof musicVolume === 'number' ? musicVolume : -20,
+  });
 }
 
-// Caption más corto, pensado para Reels (no lleva el bloque completo
-// de características que sí lleva el post normal de Facebook)
 function buildReelCaption(
   property: any,
   agent: any,
@@ -105,7 +121,7 @@ ${tags}
   return message;
 }
 
-function handlePublishReel(propertyId: string, videoUrl: string) {
+function handlePublishReel(propertyId: string, videoUrl: string, music: MusicOptions) {
   const encoder = new TextEncoder();
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
@@ -119,6 +135,8 @@ function handlePublishReel(propertyId: string, videoUrl: string) {
   };
 
   (async () => {
+    let tempCloudinaryPublicId: string | null = null;
+
     try {
       const session = await getServerSession(authOptions);
 
@@ -178,8 +196,6 @@ function handlePublishReel(propertyId: string, videoUrl: string) {
         return;
       }
 
-      // Validar que el video pertenece realmente a esta propiedad
-      // (evita que alguien mande una URL arbitraria en el body)
       const videoBelongsToProperty = (property.video_urls || []).includes(videoUrl);
       if (!videoBelongsToProperty) {
         await sendEvent({ error: 'El video no pertenece a esta propiedad', progress: 0 });
@@ -187,7 +203,27 @@ function handlePublishReel(propertyId: string, videoUrl: string) {
         return;
       }
 
-      await sendEvent({ message: 'Preparando video...', progress: 30 });
+      // ── Fusión con música (opcional) ──────────────────────────
+      let finalVideoUrl = videoUrl;
+
+      if (music.musicPublicId) {
+        await sendEvent({ message: 'Subiendo video a Cloudinary...', progress: 30 });
+        const uploaded = await uploadMuxVideoToCloudinary(videoUrl, propertyId);
+        tempCloudinaryPublicId = uploaded.publicId;
+
+        await sendEvent({ message: 'Fusionando video con música...', progress: 45 });
+        finalVideoUrl = await buildReelWithMusic(
+          uploaded.publicId,
+          music.musicPublicId,
+          uploaded.durationSeconds,
+          {
+            keepOriginalAudio: music.keepOriginalAudio,
+            volumeDb: music.volumeDb,
+          }
+        );
+      }
+
+      await sendEvent({ message: 'Preparando publicación...', progress: 55 });
 
       let currencySymbol = '$';
       if (property.currency_id) {
@@ -202,19 +238,16 @@ function handlePublishReel(propertyId: string, videoUrl: string) {
       const propertyLanguage = property.language || 'es';
       const caption = buildReelCaption(property, agent, propertyLanguage, currencySymbol);
 
-      await sendEvent({ message: 'Publicando Reel en Facebook...', progress: 60 });
+      await sendEvent({ message: 'Publicando Reel en Facebook...', progress: 70 });
 
       const post = await publishReelViaPostForMe(
         agent.postforme_account_id,
         caption,
-        videoUrl
+        finalVideoUrl
       );
 
       await sendEvent({ message: 'Guardando registro...', progress: 90 });
 
-      // Reutiliza la misma tabla facebook_posts; requiere agregar la
-      // columna `type` (ver instrucciones aparte). Si no quieres esa
-      // columna, puedes quitar esta línea y solo dejar el insert base.
       const { error: insertError } = await supabaseAdmin.from('facebook_posts').insert({
         property_id: propertyId,
         agent_id: agent.id,
@@ -238,6 +271,9 @@ function handlePublishReel(propertyId: string, videoUrl: string) {
       console.error('💥 Error publicando Reel:', error);
       await sendEvent({ error: error.message || 'Error al publicar el Reel', progress: 0 });
     } finally {
+      if (tempCloudinaryPublicId) {
+        await deleteCloudinaryVideo(tempCloudinaryPublicId);
+      }
       try {
         await writer.close();
       } catch (err) {

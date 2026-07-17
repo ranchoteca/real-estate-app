@@ -221,6 +221,7 @@ function handlePublishReel(propertyId: string, videoUrl: string, music: MusicOpt
             volumeDb: music.volumeDb,
           }
         );
+        console.log('🎬 URL del video fusionado:', finalVideoUrl);
       }
 
       await sendEvent({ message: 'Preparando publicación...', progress: 55 });
@@ -271,9 +272,10 @@ function handlePublishReel(propertyId: string, videoUrl: string, music: MusicOpt
       console.error('💥 Error publicando Reel:', error);
       await sendEvent({ error: error.message || 'Error al publicar el Reel', progress: 0 });
     } finally {
-      if (tempCloudinaryPublicId) {
-        await deleteCloudinaryVideo(tempCloudinaryPublicId);
-      }
+      // if (tempCloudinaryPublicId) {
+      //   await deleteCloudinaryVideo(tempCloudinaryPublicId);
+      // }
+      console.log('🗑️ Cloudinary public_id (sin borrar, para debug):', tempCloudinaryPublicId);
       try {
         await writer.close();
       } catch (err) {

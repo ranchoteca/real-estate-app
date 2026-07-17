@@ -19,7 +19,22 @@ interface VideoMeta {
   isHorizontal: boolean;
 }
 
-type Step = 'loading' | 'select' | 'horizontal-warning' | 'publishing' | 'success' | 'error';
+interface MusicTrack {
+  id: string;
+  name: string;
+  genre: string;
+  cloudinary_public_id: string;
+  preview_url: string;
+  duration_seconds: number;
+}
+
+type Step = 'loading' | 'select-video' | 'horizontal-warning' | 'select-music' | 'publishing' | 'success' | 'error';
+
+const VOLUME_PRESETS = [
+  { label: 'Suave', labelEn: 'Soft', db: -35 },
+  { label: 'Media', labelEn: 'Medium', db: -20 },
+  { label: 'Fuerte', labelEn: 'Strong', db: -10 },
+];
 
 function getVideoMeta(url: string): Promise<VideoMeta | null> {
   return new Promise((resolve) => {
@@ -45,6 +60,12 @@ export default function FacebookReelPublishModal({ isOpen, onClose, propertyId, 
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  const [musicCatalog, setMusicCatalog] = useState<MusicTrack[]>([]);
+  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState<MusicTrack | null>(null);
+  const [keepOriginalAudio, setKeepOriginalAudio] = useState(false);
+  const [volumeDb, setVolumeDb] = useState(-20);
+
   const t = (es: string, en: string) => (language === 'en' ? en : es);
 
   useEffect(() => {
@@ -54,24 +75,42 @@ export default function FacebookReelPublishModal({ isOpen, onClose, propertyId, 
     setError(null);
     setProgress(0);
     setSelectedVideo(videoUrls.length === 1 ? videoUrls[0] : null);
+    setSelectedGenre(null);
+    setSelectedTrack(null);
+    setKeepOriginalAudio(false);
+    setVolumeDb(-20);
 
     (async () => {
-      const entries = await Promise.all(
-        videoUrls.map(async (url) => [url, await getVideoMeta(url)] as const)
-      );
-      setVideoMeta(Object.fromEntries(entries));
-      setStep('select');
+      const [metaEntries, catalogRes] = await Promise.all([
+        Promise.all(videoUrls.map(async (url) => [url, await getVideoMeta(url)] as const)),
+        fetch('/api/music/catalog').then(r => (r.ok ? r.json() : { tracks: [] })).catch(() => ({ tracks: [] })),
+      ]);
+      setVideoMeta(Object.fromEntries(metaEntries));
+      setMusicCatalog(catalogRes.tracks || []);
+      setStep('select-video');
     })();
   }, [isOpen, videoUrls]);
 
   if (!isOpen) return null;
 
-  const startPublish = (videoUrl: string) => {
+  const formatDuration = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.round(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const startPublish = (videoUrl: string, musicPublicId: string | null) => {
     setStep('publishing');
     setProgress(0);
     setMessage(t('Iniciando...', 'Starting...'));
 
     const params = new URLSearchParams({ propertyId, videoUrl });
+    if (musicPublicId) {
+      params.set('musicPublicId', musicPublicId);
+      params.set('keepOriginalAudio', String(keepOriginalAudio));
+      params.set('musicVolume', String(volumeDb));
+    }
+
     const eventSource = new EventSource(`/api/facebook/publish-reel?${params.toString()}`);
 
     eventSource.onmessage = (event) => {
@@ -96,21 +135,23 @@ export default function FacebookReelPublishModal({ isOpen, onClose, propertyId, 
     };
   };
 
-  const handlePublishClick = () => {
+  const handleVideoPublishClick = () => {
     if (!selectedVideo) return;
     const meta = videoMeta[selectedVideo];
     if (meta?.isHorizontal) {
       setStep('horizontal-warning');
     } else {
-      startPublish(selectedVideo);
+      setStep('select-music');
     }
   };
+
+  const genres = Array.from(new Set(musicCatalog.map(tr => tr.genre)));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
       <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
 
-        {(step === 'loading') && (
+        {step === 'loading' && (
           <div className="text-center py-6">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3" />
             <p className="text-sm" style={{ color: '#0F172A' }}>
@@ -119,7 +160,7 @@ export default function FacebookReelPublishModal({ isOpen, onClose, propertyId, 
           </div>
         )}
 
-        {step === 'select' && (
+        {step === 'select-video' && (
           <>
             <h3 className="text-xl font-bold mb-4 text-center" style={{ color: '#0F172A' }}>
               🎬 {t('Publicar Reel en Facebook', 'Publish Reel to Facebook')}
@@ -167,12 +208,12 @@ export default function FacebookReelPublishModal({ isOpen, onClose, propertyId, 
                 {t('Cancelar', 'Cancel')}
               </button>
               <button
-                onClick={handlePublishClick}
+                onClick={handleVideoPublishClick}
                 disabled={!selectedVideo}
                 className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg disabled:opacity-50"
                 style={{ backgroundColor: '#2563EB' }}
               >
-                🎬 {t('Publicar Reel', 'Publish Reel')}
+                {t('Continuar', 'Continue')}
               </button>
             </div>
           </>
@@ -192,14 +233,14 @@ export default function FacebookReelPublishModal({ isOpen, onClose, propertyId, 
             </p>
             <div className="flex gap-3">
               <button
-                onClick={() => setStep('select')}
+                onClick={() => setStep('select-video')}
                 className="flex-1 py-3 rounded-xl font-bold border-2"
                 style={{ borderColor: '#E5E7EB', color: '#0F172A' }}
               >
                 {t('Elegir otro video', 'Choose another video')}
               </button>
               <button
-                onClick={() => selectedVideo && startPublish(selectedVideo)}
+                onClick={() => setStep('select-music')}
                 className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg"
                 style={{ backgroundColor: '#2563EB' }}
               >
@@ -207,6 +248,141 @@ export default function FacebookReelPublishModal({ isOpen, onClose, propertyId, 
               </button>
             </div>
           </div>
+        )}
+
+        {step === 'select-music' && (
+          <>
+            <h3 className="text-xl font-bold mb-4 text-center" style={{ color: '#0F172A' }}>
+              🎵 {t('Agregar música (opcional)', 'Add music (optional)')}
+            </h3>
+
+            {/* Toggle: ¿el video ya tiene audio/narración? */}
+            <div className="rounded-xl p-3 mb-4" style={{ backgroundColor: '#F9FAFB', border: '1.5px solid #E5E7EB' }}>
+              <p className="text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
+                🎙️ {t('¿Este video ya tiene audio o narración tuya que quieres conservar?', 'Does this video already have audio or narration you want to keep?')}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setKeepOriginalAudio(false)}
+                  className="flex-1 py-2 rounded-lg text-xs font-bold"
+                  style={{
+                    backgroundColor: !keepOriginalAudio ? '#2563EB' : '#FFFFFF',
+                    color: !keepOriginalAudio ? '#FFFFFF' : '#0F172A',
+                    border: '1.5px solid #E5E7EB',
+                  }}
+                >
+                  {t('No, reemplazar todo', 'No, replace it all')}
+                </button>
+                <button
+                  onClick={() => { setKeepOriginalAudio(true); setVolumeDb(-35); }}
+                  className="flex-1 py-2 rounded-lg text-xs font-bold"
+                  style={{
+                    backgroundColor: keepOriginalAudio ? '#2563EB' : '#FFFFFF',
+                    color: keepOriginalAudio ? '#FFFFFF' : '#0F172A',
+                    border: '1.5px solid #E5E7EB',
+                  }}
+                >
+                  {t('Sí, conservar mi voz', 'Yes, keep my voice')}
+                </button>
+              </div>
+              {keepOriginalAudio && (
+                <p className="text-xs mt-2 opacity-70" style={{ color: '#0F172A' }}>
+                  {t('La música sonará muy baja, de fondo, para no tapar tu narración.', 'The music will play very low, in the background, so it doesn\'t cover your narration.')}
+                </p>
+              )}
+            </div>
+
+            {genres.length === 0 && (
+              <p className="text-sm text-center opacity-70 mb-4" style={{ color: '#0F172A' }}>
+                {t('No hay pistas disponibles todavía.', 'No tracks available yet.')}
+              </p>
+            )}
+
+            {genres.length > 0 && (
+              <>
+                <div className="flex flex-wrap gap-2 mb-4 justify-center">
+                  {genres.map((genre) => (
+                    <button
+                      key={genre}
+                      onClick={() => setSelectedGenre(genre)}
+                      className="px-3 py-1.5 rounded-full text-xs font-bold capitalize"
+                      style={{
+                        backgroundColor: selectedGenre === genre ? '#2563EB' : '#F3F4F6',
+                        color: selectedGenre === genre ? '#FFFFFF' : '#0F172A',
+                      }}
+                    >
+                      {genre}
+                    </button>
+                  ))}
+                </div>
+
+                {selectedGenre && (
+                  <div className="space-y-2 mb-4">
+                    {musicCatalog.filter(track => track.genre === selectedGenre).map((track) => (
+                      <div
+                        key={track.id}
+                        onClick={() => setSelectedTrack(track)}
+                        className="w-full rounded-xl border-2 p-3 cursor-pointer"
+                        style={{ borderColor: selectedTrack?.id === track.id ? '#2563EB' : '#E5E7EB' }}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-sm font-semibold" style={{ color: '#0F172A' }}>
+                            {track.name}
+                          </span>
+                          <span className="text-xs opacity-60" style={{ color: '#0F172A' }}>
+                            {formatDuration(track.duration_seconds)}
+                          </span>
+                        </div>
+                        <audio controls src={track.preview_url} className="w-full h-8" onClick={(e) => e.stopPropagation()} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Control de volumen — solo si ya eligió una pista */}
+                {selectedTrack && (
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold mb-2" style={{ color: '#0F172A' }}>
+                      🔊 {t('Volumen de la música', 'Music volume')}
+                    </p>
+                    <div className="flex gap-2">
+                      {VOLUME_PRESETS.map((preset) => (
+                        <button
+                          key={preset.db}
+                          onClick={() => setVolumeDb(preset.db)}
+                          className="flex-1 py-2 rounded-lg text-xs font-bold"
+                          style={{
+                            backgroundColor: volumeDb === preset.db ? '#2563EB' : '#F3F4F6',
+                            color: volumeDb === preset.db ? '#FFFFFF' : '#0F172A',
+                          }}
+                        >
+                          {t(preset.label, preset.labelEn)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => startPublish(selectedVideo!, null)}
+                className="flex-1 py-3 rounded-xl font-bold border-2"
+                style={{ borderColor: '#E5E7EB', color: '#0F172A' }}
+              >
+                {t('Publicar sin música', 'Publish without music')}
+              </button>
+              <button
+                onClick={() => startPublish(selectedVideo!, selectedTrack?.cloudinary_public_id || null)}
+                disabled={!selectedTrack}
+                className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg disabled:opacity-50"
+                style={{ backgroundColor: '#2563EB' }}
+              >
+                🎬 {t('Publicar Reel', 'Publish Reel')}
+              </button>
+            </div>
+          </>
         )}
 
         {step === 'publishing' && (

@@ -303,10 +303,18 @@ export default function FacebookReelPublishModal({ isOpen, onClose, propertyId, 
                   </div>
                 )}
 
-                {/* Volumen + preview real con audio */}
+                {/* Volumen + preview real con audio (ahora el video SÍ se ve) */}
                 {selectedTrack && selectedVideo && (
                   <div className="rounded-xl p-3 mb-3" style={{ backgroundColor: '#F9FAFB', border: '1.5px solid #E5E7EB' }}>
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-3 mb-2">
+                      <video
+                        ref={previewVideoRef}
+                        src={selectedVideo}
+                        playsInline
+                        onEnded={handlePreviewEnded}
+                        className="rounded-lg object-cover bg-black flex-shrink-0"
+                        style={{ width: '52px', height: '80px' }}
+                      />
                       <button
                         onClick={togglePreview}
                         className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white"
@@ -316,7 +324,7 @@ export default function FacebookReelPublishModal({ isOpen, onClose, propertyId, 
                       </button>
                       <div className="flex-1">
                         <p className="text-xs font-semibold" style={{ color: '#0F172A' }}>
-                          {t('Escuchar cómo sonará', 'Preview how it will sound')}
+                          {t('Escuchar y ver cómo sonará', 'Preview how it will look/sound')}
                         </p>
                         <p className="text-[11px] opacity-60" style={{ color: '#0F172A' }}>
                           {t('Ajusta el volumen mientras suena', 'Adjust volume while it plays')}
@@ -337,14 +345,7 @@ export default function FacebookReelPublishModal({ isOpen, onClose, propertyId, 
                       <span className="text-xs">🔊</span>
                     </div>
 
-                    {/* Elementos ocultos que reproducen el preview real */}
-                    <video
-                      ref={previewVideoRef}
-                      src={selectedVideo}
-                      playsInline
-                      onEnded={handlePreviewEnded}
-                      className="hidden"
-                    />
+                    {/* Solo el audio permanece oculto — no necesita mostrarse */}
                     <audio ref={previewAudioRef} src={selectedTrack.preview_url} className="hidden" />
                   </div>
                 )}

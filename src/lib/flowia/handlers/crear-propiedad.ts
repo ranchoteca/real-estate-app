@@ -26,8 +26,9 @@ export interface PropertyDraft {
   maps_url?: string;
   latitude?: number;
   longitude?: number;
-  photos: string[];       // URLs de Supabase Storage ya subidas
-  pending_photos: number; // fotos recibidas en WhatsApp aún no procesadas
+  photos: string[];               // URLs de Supabase Storage ya subidas
+  pending_photos: number;         // fotos recibidas en WhatsApp aún no procesadas
+  processed_media_ids?: string[]; // messageIds de media ya procesados
 }
 
 // ─── Draft en Supabase ────────────────────────────────────────────────────────
@@ -93,7 +94,7 @@ export async function handleIniciarCreacion(
 
   const mensaje = `¡Perfecto ${primerNombre}! 🏠 Vamos a crear una nueva propiedad.
 
-Puedes enviarme la información en el orden que prefieras, por escrito o por audio. Estos son los campos que necesito:
+Puedes enviarme la información en el orden que prefieras — *por escrito o por audio* 🎤. Estos son los campos que necesito:
 
 📌 *Título* de la propiedad
 💰 *Precio* y *divisa* (USD o CRC)
@@ -105,7 +106,8 @@ Puedes enviarme la información en el orden que prefieras, por escrito o por aud
 🌐 *Idioma* (Español o Inglés)
 🖼️ *Fotos* (mínimo ${PHOTO_MIN}, máximo ${PHOTO_MAX} imágenes)
 
-Cuando hayas enviado todo, escribe *LISTO* y yo verificaré la información antes de crear la propiedad.`;
+_Puedes enviar cada dato por separado o todo junto, en el orden que quieras._
+Cuando termines, escribe *LISTO* y yo verificaré todo antes de crear la propiedad.`;
 
   await sendWhatsAppMessage(cleanNumber, mensaje);
 }
@@ -123,7 +125,22 @@ export async function handleMediaEnDraft(
 
   if (mediaInfo.type === 'image') {
     try {
+      // Verificar que este messageId no fue procesado ya (dedup por messageId, no por texto)
+      const { data: yaProcessed } = await supabaseAdmin
+        .from('agent_property_draft')
+        .select('processed_media_ids')
+        .eq('agent_id', agentId)
+        .maybeSingle();
+
+      const processedIds: string[] = yaProcessed?.processed_media_ids || [];
+      if (processedIds.includes(messageId)) {
+        console.log(`⏭️ Media ${messageId} ya procesada, ignorando.`);
+        return null;
+      }
+
       const { publicUrl } = await decryptWasenderMedia(messageId, mediaInfo.messageObject);
+
+      // Leer el draft fresco justo antes de escribir (minimiza race condition)
       const draft = await getDraft(agentId);
       const currentPhotos = draft?.photos || [];
       const index = currentPhotos.length;
@@ -132,12 +149,12 @@ export async function handleMediaEnDraft(
         return `Ya tienes ${PHOTO_MAX} fotos que es el máximo permitido. ✅`;
       }
 
-      // Subir a Supabase Storage usando un slug temporal basado en agent_id
       const tempSlug = `draft-${agentId.substring(0, 8)}`;
       const supabaseUrl = await uploadPhotoFromUrl(agentId, tempSlug, publicUrl, index);
 
       const updatedPhotos = [...currentPhotos, supabaseUrl];
-      await upsertDraft(agentId, { photos: updatedPhotos });
+      const updatedIds = [...processedIds, messageId];
+      await upsertDraft(agentId, { photos: updatedPhotos, processed_media_ids: updatedIds });
 
       const count = updatedPhotos.length;
       const faltanMensaje = count < PHOTO_MIN ? ` (necesito al menos ${PHOTO_MIN})` : ' ✅';
@@ -186,12 +203,30 @@ export async function handleListo(
 
   await sendWhatsAppMessage(cleanNumber, '⏳ Analizando la información que me enviaste...');
 
+  // Datos ya guardados en el draft de rondas anteriores (contexto acumulado)
+  const draftActual = {
+    title: draft.title || null,
+    description: draft.description || null,
+    price: draft.price || null,
+    currency_id: draft.currency_id || null,
+    city: draft.city || null,
+    address: draft.address || null,
+    state_province: draft.state_province || null,
+    property_type: draft.property_type || null,
+    listing_type: draft.listing_type || null,
+    language: draft.language || null,
+    maps_url: draft.maps_url || null,
+  };
+
   // Extraer campos del historial con OpenAI
   const extractionPrompt = `Eres un extractor de datos para fichas de propiedades inmobiliarias.
 Analiza el historial de conversación y extrae los campos de la propiedad.
 Devuelve ÚNICAMENTE un JSON válido sin texto adicional ni backticks.
 
-Campos a extraer:
+IMPORTANTE: Ya tienes estos datos confirmados de rondas anteriores. Úsalos como base y solo sobreescribe si el agente envió información más reciente o corregida:
+${JSON.stringify(draftActual, null, 2)}
+
+Campos a extraer (combinando lo anterior con lo nuevo del historial):
 {
   "title": "string o null",
   "description": "string o null",
@@ -204,7 +239,7 @@ Campos a extraer:
   "listing_type": "sale | rent",
   "language": "es | en",
   "maps_url": "string o null (link de Google Maps si fue compartido)",
-  "campos_faltantes": ["lista de campos obligatorios que faltan"]
+  "campos_faltantes": ["lista de campos obligatorios que aún faltan"]
 }
 
 Campos obligatorios: title, description, price, currency_id, city, property_type, listing_type, language.
@@ -213,7 +248,7 @@ state_province y address son opcionales pero deseables.`;
   const messagesForExtraction = [
     { role: 'system' as const, content: extractionPrompt },
     ...history.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-    { role: 'user' as const, content: 'Extrae los datos de la propiedad del historial anterior.' },
+    { role: 'user' as const, content: 'Extrae los datos de la propiedad combinando el draft anterior con el historial.' },
   ];
 
   let extractedData: any = null;
@@ -327,8 +362,10 @@ async function crearPropiedadEnBackground(
   draft: PropertyDraft
 ) {
   try {
-    // Generar slug único
+    // Generar slug único — normalize elimina tildes antes de limpiar
     const baseSlug = (draft.title || 'propiedad')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');

@@ -81,9 +81,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, status: 'ignored_webhook_retry' });
     }
 
-    await saveMessage(agent.id, 'user', messageText);
+        // ── Resolver shortcuts numéricos del menú ─────────────────────────────────────────
+    const MENU_SHORTCUTS: Record<string, string> = {
+      '1': 'buscar propiedades',
+      '2': 'enviar pdf',
+      '3': 'tarjeta digital',
+      '4': 'calcular altura',
+      '5': 'quiero crear una propiedad',
+    };
+    const resolvedText = MENU_SHORTCUTS[messageText.trim()] || messageText;
 
-    // ── Detectar modo activo del agente ───────────────────────────────────────
+    await saveMessage(agent.id, 'user', resolvedText);
+
+    // ── Detectar modo activo del agente ─────────────────────────────────────────
     const agentMode = await getAgentMode(agent.id);
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -127,9 +137,21 @@ export async function POST(req: NextRequest) {
     // ══════════════════════════════════════════════════════════════════════════
 
     // Intent: crear propiedad
-    if (esIntentCrearPropiedad(messageText)) {
+    if (esIntentCrearPropiedad(resolvedText)) {
       await handleIniciarCreacion(agent.id, cleanNumber, primerNombre);
       return NextResponse.json({ success: true, status: 'crear_propiedad_initiated' });
+    }
+
+    // Fix mensaje fantasma: si el último mensaje fue confirmación de propiedad creada
+    // y el agente manda un agradecimiento corto, no llamar a OpenAI
+    const ultimoAsistente = history.findLast(m => m.role === 'assistant');
+    const fueCreacionExitosa = ultimoAsistente?.content?.includes('¡Tu propiedad fue creada exitosamente!');
+    const esAgradecimiento = /^(gracias|ok|okay|perfecto|genial|excelente|listo|dale|bien|👍|🙏)[\s!.]*$/i.test(resolvedText.trim());
+    if (fueCreacionExitosa && esAgradecimiento) {
+      const respuesta = `¡Con gusto ${primerNombre}! 😊 Si necesitas crear otra propiedad o tienes alguna consulta, aquí estoy.`;
+      await saveMessage(agent.id, 'assistant', respuesta);
+      await sendWhatsAppMessage(cleanNumber, respuesta);
+      return NextResponse.json({ success: true, status: 'post_creation_ack' });
     }
 
     // Shortcut: PDF confirmado sin necesidad de llamar a OpenAI
@@ -138,7 +160,7 @@ export async function POST(req: NextRequest) {
       && ultimoMensajeAsistente.content?.includes('¿Te gustaría que te envíe un PDF');
     const yaEnvioPdf = ultimoMensajeAsistente?.role === 'assistant'
       && /pdf.*(enviado|generado)/i.test(ultimoMensajeAsistente.content || '');
-    const esConfirmacionCorta = /^(s[ií]|s[ií] por favor|s[ií] me gustar[ií]a|dale|claro|ok|okay|va|porfa|porfavor)\.?!?$/i.test(messageText.trim());
+    const esConfirmacionCorta = /^(s[ií]|s[ií] por favor|s[ií] me gustar[ií]a|dale|claro|ok|okay|va|porfa|porfavor)\.?!?$/i.test(resolvedText.trim());
 
     if (yaEnvioPdf && esConfirmacionCorta && !ofrecioPdf) {
       const respuesta = 'Perfecto, dime en qué más puedo ayudarte.';
@@ -171,7 +193,7 @@ export async function POST(req: NextRequest) {
     const messages: any[] = [
       { role: 'system', content: systemPrompt },
       ...history,
-      { role: 'user', content: messageText },
+      { role: 'user', content: resolvedText },
     ];
 
     const completion = await openai.chat.completions.create({

@@ -39,6 +39,10 @@ export async function isDuplicateMessage(
   agentId: string,
   messageText: string
 ): Promise<boolean> {
+  // Los webhooks de media llegan con messageBody vacío — nunca son duplicados,
+  // se manejan por messageId en handleMediaEnDraft
+  if (!messageText || messageText.trim() === '') return false;
+
   const windowStart = new Date(
     Date.now() - DUPLICATE_WINDOW_SECONDS * 1000
   ).toISOString();
@@ -78,11 +82,11 @@ export function buildWelcomeMessage(primerNombre: string): string {
 
 Esto es lo que puedo hacer por ti hoy:
 
-🔍 *Buscar propiedades* de tu inventario por ubicación, tipo o presupuesto.
-📄 *Enviarte el PDF* con la ficha de cualquier propiedad específica.
-🪪 *Compartir tu tarjeta digital* para que la envíes a tus clientes.
-⛰️ *Obtener la altura de un lugar* que compartas usando Google Maps.
-🏠 *Crear una propiedad* nueva en tu inventario.
+🔍 *1.* Buscar propiedades de tu inventario
+📄 *2.* Enviar el PDF de una propiedad
+🪪 *3.* Compartir tu tarjeta digital
+⛰️ *4.* Obtener la altura de un lugar
+🏠 *5.* Crear una nueva propiedad
 
-¿En qué te ayudo?`;
+Escribe el número de la opción o dime directamente en qué te ayudo. 😊`;
 }

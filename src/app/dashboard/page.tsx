@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { trackEvent } from '@/lib/fbpixel';
 import GeneratingPDFModal from '@/components/GeneratingPDFModal';
 import FacebookPublishModal from '@/components/FacebookPublishModal';
@@ -816,7 +817,7 @@ export default function DashboardPage() {
       {showMenu && (() => {
         const property = properties.find(p => p.id === showMenu);
         if (!property) return null;
-        return (
+        return createPortal(
           <div
             className="fixed inset-0 z-50 flex flex-col justify-end md:items-center md:justify-center"
             style={{ backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(2px)' }}
@@ -916,7 +917,8 @@ export default function DashboardPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         );
       })()}
 

@@ -18,18 +18,29 @@ import {
   handleListo,
   handleConfirmacion,
   getDraft,
+  clearDraft,
   esConfirmacionSi,
   esComandoListo,
+  esIntentCancelar,
   esIntentCrearPropiedad,
 } from '@/lib/flowia/handlers/crear-propiedad';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Numeric shortcuts shown in the welcome menu — maps digit to natural language intent
+const MENU_SHORTCUTS: Record<string, string> = {
+  '1': 'buscar propiedades',
+  '2': 'enviar pdf',
+  '3': 'tarjeta digital',
+  '4': 'calcular altura',
+  '5': 'quiero crear una propiedad',
+};
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // ── Filtros de evento ──────────────────────────────────────────────────────
+    // Only handle incoming message events — ignore status updates, etc.
     if (body.event !== 'messages.received') {
       return NextResponse.json({ success: true, status: 'ignored_not_message_event' });
     }
@@ -48,7 +59,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, status: 'ignored_no_sender' });
     }
 
-    // ── Identificar agente ─────────────────────────────────────────────────────
+    // ── Identify agent ─────────────────────────────────────────────────────────
+    // Accept phone with or without leading '+' since Wasender may omit it
     const searchNumberWithPlus = cleanNumber.startsWith('+') ? cleanNumber : `+${cleanNumber}`;
     const { data: agent, error } = await supabaseAdmin
       .from('agents')
@@ -65,7 +77,7 @@ export async function POST(req: NextRequest) {
       ? `${BASE_DOMAIN}/agent/${agent.username}/card?lang=es`
       : BASE_DOMAIN;
 
-    // ── Sesión: historial y bienvenida ─────────────────────────────────────────
+    // ── Session: load history and send welcome if new session ─────────────────
     const history = await loadHistory(agent.id);
     const isNewSession = history.length === 0;
 
@@ -73,34 +85,45 @@ export async function POST(req: NextRequest) {
       const mensajeBienvenida = buildWelcomeMessage(primerNombre);
       await sendWhatsAppMessage(cleanNumber, mensajeBienvenida);
       await saveMessage(agent.id, 'assistant', mensajeBienvenida);
+      // Save the incoming message and return — the welcome IS the response for
+      // the first message of a session. This also prevents the double-welcome bug
+      // where Wasender retries the webhook and OpenAI responds a second time.
+      await saveMessage(agent.id, 'user', messageText);
+      return NextResponse.json({ success: true, status: 'new_session_welcomed' });
     }
 
-    // ── Deduplicación de webhooks ──────────────────────────────────────────────
+    // ── Deduplication ──────────────────────────────────────────────────────────
+    // Media webhooks arrive with empty messageBody — never deduplicate them here;
+    // they are deduplicated by messageId inside handleMediaEnDraft instead.
     if (await isDuplicateMessage(agent.id, messageText)) {
-      console.log('⏳ Webhook duplicado detectado. Ignorando.');
+      console.log('⏳ Duplicate webhook detected. Ignoring.');
       return NextResponse.json({ success: true, status: 'ignored_webhook_retry' });
     }
 
-        // ── Resolver shortcuts numéricos del menú ─────────────────────────────────────────
-    const MENU_SHORTCUTS: Record<string, string> = {
-      '1': 'buscar propiedades',
-      '2': 'enviar pdf',
-      '3': 'tarjeta digital',
-      '4': 'calcular altura',
-      '5': 'quiero crear una propiedad',
-    };
+    // Resolve numeric menu shortcut before saving so history stores the intent
     const resolvedText = MENU_SHORTCUTS[messageText.trim()] || messageText;
-
     await saveMessage(agent.id, 'user', resolvedText);
 
-    // ── Detectar modo activo del agente ─────────────────────────────────────────
+    // ── Detect active agent mode ───────────────────────────────────────────────
     const agentMode = await getAgentMode(agent.id);
 
     // ══════════════════════════════════════════════════════════════════════════
-    // MODO: CREAR_PROPIEDAD
+    // MODE: CREAR_PROPIEDAD
+    // The agent is in the middle of creating a property. All messages are routed
+    // here until the flow completes or the agent cancels.
     // ══════════════════════════════════════════════════════════════════════════
     if (agentMode === 'CREAR_PROPIEDAD') {
-      // 1. Media recibida (foto o audio)
+
+      // 1. Cancellation — agent wants to exit the flow at any point
+      if (esIntentCancelar(resolvedText)) {
+        await clearDraft(agent.id);
+        const respuesta = `Entendido ${primerNombre}, cancelé la creación de la propiedad. ¿En qué más te puedo ayudar?`;
+        await saveMessage(agent.id, 'assistant', respuesta);
+        await sendWhatsAppMessage(cleanNumber, respuesta);
+        return NextResponse.json({ success: true, status: 'creation_cancelled' });
+      }
+
+      // 2. Incoming media (photo or audio)
       const mediaInfo = extractMediaInfo(rawMessage);
       if (mediaInfo) {
         const respuesta = await handleMediaEnDraft(agent.id, cleanNumber, messageId, rawMessage);
@@ -111,21 +134,21 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, status: 'media_processed_in_draft' });
       }
 
-      // 2. Comando LISTO — validar y mostrar resumen
-      if (esComandoListo(messageText)) {
+      // 3. LISTO command — validate fields and show confirmation summary
+      if (esComandoListo(resolvedText)) {
         await handleListo(agent.id, cleanNumber, primerNombre, history);
         return NextResponse.json({ success: true, status: 'listo_processed' });
       }
 
-      // 3. Confirmación SÍ tras el resumen — crear la propiedad
+      // 4. SÍ confirmation after the summary — trigger background property creation
       const draft = await getDraft(agent.id);
-      const esperandoConfirmacion = draft && draft.title && draft.description; // tiene datos extraídos
-      if (esperandoConfirmacion && esConfirmacionSi(messageText)) {
+      const esperandoConfirmacion = draft && draft.title && draft.description;
+      if (esperandoConfirmacion && esConfirmacionSi(resolvedText)) {
         await handleConfirmacion(agent.id, cleanNumber, primerNombre);
         return NextResponse.json({ success: true, status: 'property_creation_started' });
       }
 
-      // 4. Mensaje de texto libre dentro del modo — acusar recibo y seguir
+      // 5. Free-form text — acknowledge and save to history so LISTO extractor sees it
       const ack = `📝 Recibido. Sigue enviando la información de la propiedad. Cuando termines, escribe *LISTO*.`;
       await saveMessage(agent.id, 'assistant', ack);
       await sendWhatsAppMessage(cleanNumber, ack);
@@ -133,17 +156,17 @@ export async function POST(req: NextRequest) {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // MODO: NORMAL — shortcuts y flujo OpenAI
+    // MODE: NORMAL — shortcuts and OpenAI flow
     // ══════════════════════════════════════════════════════════════════════════
 
-    // Intent: crear propiedad
+    // Property creation intent (also triggered by menu shortcut '5')
     if (esIntentCrearPropiedad(resolvedText)) {
       await handleIniciarCreacion(agent.id, cleanNumber, primerNombre);
       return NextResponse.json({ success: true, status: 'crear_propiedad_initiated' });
     }
 
-    // Fix mensaje fantasma: si el último mensaje fue confirmación de propiedad creada
-    // y el agente manda un agradecimiento corto, no llamar a OpenAI
+    // Suppress phantom OpenAI response after a successful property creation:
+    // if the agent sends a short thanks, respond without calling OpenAI
     const ultimoAsistente = history.findLast(m => m.role === 'assistant');
     const fueCreacionExitosa = ultimoAsistente?.content?.includes('¡Tu propiedad fue creada exitosamente!');
     const esAgradecimiento = /^(gracias|ok|okay|perfecto|genial|excelente|listo|dale|bien|👍|🙏)[\s!.]*$/i.test(resolvedText.trim());
@@ -154,7 +177,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, status: 'post_creation_ack' });
     }
 
-    // Shortcut: PDF confirmado sin necesidad de llamar a OpenAI
+    // PDF shortcut: if the bot just offered a PDF and the agent confirms, send it without OpenAI
     const ultimoMensajeAsistente = history.length > 0 ? history[history.length - 1] : null;
     const ofrecioPdf = ultimoMensajeAsistente?.role === 'assistant'
       && ultimoMensajeAsistente.content?.includes('¿Te gustaría que te envíe un PDF');
@@ -188,7 +211,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── Flujo principal OpenAI ─────────────────────────────────────────────────
+    // ── Main OpenAI flow ───────────────────────────────────────────────────────
     const systemPrompt = getSystemPrompt(primerNombre, isNewSession, linkTarjeta);
     const messages: any[] = [
       { role: 'system', content: systemPrompt },
@@ -215,6 +238,7 @@ export async function POST(req: NextRequest) {
       if (functionName === 'buscar_propiedades') {
         const { toolResult, slugParaPdf } = await handleBuscarPropiedades(agent.id, args);
 
+        // Track last shown property so PDF shortcut knows which slug to use
         if (slugParaPdf) {
           await supabaseAdmin
             .from('agent_last_property_shown')
@@ -234,7 +258,7 @@ export async function POST(req: NextRequest) {
         textoFinalParaEnviar = textoFinal;
 
       } else if (functionName === 'calcular_altura_ubicacion') {
-        const { toolResult } = await handleCalcularAltura(cleanNumber, args, messageText);
+        const { toolResult } = await handleCalcularAltura(cleanNumber, args, resolvedText);
         messages.push(responseMessage);
         messages.push({ tool_call_id: toolCall.id, role: 'tool', name: functionName, content: JSON.stringify(toolResult) });
         const finalCompletion = await openai.chat.completions.create({ model: 'gpt-4o', messages });
@@ -245,7 +269,7 @@ export async function POST(req: NextRequest) {
       textoFinalParaEnviar = responseMessage.content || `Hola ${primerNombre}, ¿en qué puedo ayudarte hoy?`;
     }
 
-    // ── Fuente en respuestas con propiedades ───────────────────────────────────
+    // Append source footer when property listings are shown
     const mencionaPropiedad = textoFinalParaEnviar.includes('🔗');
     const yaTieneFuente = textoFinalParaEnviar.includes('Fuente:');
     const textoConFuente = mencionaPropiedad && !yaTieneFuente
@@ -260,7 +284,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, status: 'replied_success' });
 
   } catch (error) {
-    console.error('❌ Error crítico en el webhook:', error);
+    console.error('❌ Critical error in webhook:', error);
     return NextResponse.json({ success: true, error: 'Internal Server Error' });
   }
 }

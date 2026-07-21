@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import OpenAI from 'openai';
 import { getSystemPrompt } from '@/lib/ai/prompts';
-import { sendWhatsAppMessage, formatForWhatsApp } from '@/lib/api/wasender';
+import { sendWhatsAppMessage, sendQueued, formatForWhatsApp } from '@/lib/api/wasender';
 
 import { loadHistory, saveMessage, isDuplicateMessage, getAgentMode, buildWelcomeMessage } from '@/lib/flowia/session';
 import { FLOWIA_TOOLS } from '@/lib/flowia/tools';
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     if (isNewSession) {
       const mensajeBienvenida = buildWelcomeMessage(primerNombre);
-      await sendWhatsAppMessage(cleanNumber, mensajeBienvenida);
+      await sendQueued(agent.id, cleanNumber, mensajeBienvenida);
       await saveMessage(agent.id, 'assistant', mensajeBienvenida);
       // Save the incoming message and return — the welcome IS the response for
       // the first message of a session. This also prevents the double-welcome bug
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
         await clearDraft(agent.id);
         const respuesta = `Entendido ${primerNombre}, cancelé la creación de la propiedad. ¿En qué más te puedo ayudar?`;
         await saveMessage(agent.id, 'assistant', respuesta);
-        await sendWhatsAppMessage(cleanNumber, respuesta);
+        await sendQueued(agent.id, cleanNumber, respuesta);
         return NextResponse.json({ success: true, status: 'creation_cancelled' });
       }
 
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
         const respuesta = await handleMediaEnDraft(agent.id, cleanNumber, messageId, rawMessage);
         if (respuesta) {
           await saveMessage(agent.id, 'assistant', respuesta);
-          await sendWhatsAppMessage(cleanNumber, respuesta);
+          await sendQueued(agent.id, cleanNumber, respuesta);
         }
         return NextResponse.json({ success: true, status: 'media_processed_in_draft' });
       }
@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
       // 5. Free-form text — acknowledge and save to history so LISTO extractor sees it
       const ack = `📝 Recibido. Sigue enviando la información de la propiedad. Cuando termines, escribe *LISTO*.`;
       await saveMessage(agent.id, 'assistant', ack);
-      await sendWhatsAppMessage(cleanNumber, ack);
+      await sendQueued(agent.id, cleanNumber, ack);
       return NextResponse.json({ success: true, status: 'draft_text_acknowledged' });
     }
 
@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
     if (fueCreacionExitosa && esAgradecimiento) {
       const respuesta = `¡Con gusto ${primerNombre}! 😊 Si necesitas crear otra propiedad o tienes alguna consulta, aquí estoy.`;
       await saveMessage(agent.id, 'assistant', respuesta);
-      await sendWhatsAppMessage(cleanNumber, respuesta);
+      await sendQueued(agent.id, cleanNumber, respuesta);
       return NextResponse.json({ success: true, status: 'post_creation_ack' });
     }
 
@@ -200,13 +200,13 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
 
       if (ultimaMostrada?.slug) {
-        await sendWhatsAppMessage(cleanNumber, '⏳ *Generando el PDF de la propiedad...* Dame un momento por favor.');
+        await sendQueued(agent.id, cleanNumber, '⏳ *Generando el PDF de la propiedad...* Dame un momento por favor.');
         await delay(1200);
         const pdfUrl = `${BASE_DOMAIN}/api/pdf-generator?slug=${ultimaMostrada.slug}&agent_id=${agent.id}&t=${Date.now()}`;
-        await sendWhatsAppMessage(cleanNumber, '📄 Aquí tienes el documento detallado de la propiedad.', pdfUrl, `Ficha-${ultimaMostrada.slug}.pdf`);
+        await sendQueued(agent.id, cleanNumber, '📄 Aquí tienes el documento detallado de la propiedad.', pdfUrl, `Ficha-${ultimaMostrada.slug}.pdf`);
         const respuestaFinal = 'PDF enviado correctamente. 📄 Si necesitas algo más, aquí estoy para ayudarte.';
         await saveMessage(agent.id, 'assistant', respuestaFinal);
-        await sendWhatsAppMessage(cleanNumber, respuestaFinal);
+        await sendQueued(agent.id, cleanNumber, respuestaFinal);
         return NextResponse.json({ success: true, status: 'pdf_sent_via_shortcut' });
       }
     }
@@ -258,7 +258,7 @@ export async function POST(req: NextRequest) {
         textoFinalParaEnviar = textoFinal;
 
       } else if (functionName === 'calcular_altura_ubicacion') {
-        const { toolResult } = await handleCalcularAltura(cleanNumber, args, resolvedText);
+        const { toolResult } = await handleCalcularAltura(agent.id, cleanNumber, args, resolvedText);
         messages.push(responseMessage);
         messages.push({ tool_call_id: toolCall.id, role: 'tool', name: functionName, content: JSON.stringify(toolResult) });
         const finalCompletion = await openai.chat.completions.create({ model: 'gpt-4o', messages });
@@ -279,7 +279,7 @@ export async function POST(req: NextRequest) {
     const cleanFinalResponse = formatForWhatsApp(textoConFuente);
 
     await saveMessage(agent.id, 'assistant', cleanFinalResponse);
-    await sendWhatsAppMessage(cleanNumber, cleanFinalResponse);
+    await sendQueued(agent.id, cleanNumber, cleanFinalResponse);
 
     return NextResponse.json({ success: true, status: 'replied_success' });
 

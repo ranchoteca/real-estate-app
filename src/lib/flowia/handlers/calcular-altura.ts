@@ -1,10 +1,11 @@
-import { sendWhatsAppMessage } from '@/lib/api/wasender';
+import { sendQueued } from '@/lib/api/wasender';
 
 interface CalcularAlturaArgs {
   url_google_maps: string;
 }
 
 export async function handleCalcularAltura(
+  agentId: string,
   cleanNumber: string,
   args: CalcularAlturaArgs,
   messageText: string
@@ -22,7 +23,7 @@ export async function handleCalcularAltura(
     };
   }
 
-  await sendWhatsAppMessage(cleanNumber, '📍 *Procesando ubicación...* Calculando la altitud, dame un segundo.');
+  await sendQueued(agentId, cleanNumber, '📍 *Procesando ubicación...* Calculando la altitud, dame un segundo.');
 
   try {
     const responseUrl = await fetch(mapsUrl, {

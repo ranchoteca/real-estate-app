@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase';
-import { sendWhatsAppMessage } from '@/lib/api/wasender';
+import { sendQueued } from '@/lib/api/wasender';
 import { BASE_DOMAIN, delay } from '../constants';
 
 interface EnviarPdfArgs {
@@ -32,7 +32,7 @@ export async function handleEnviarPdf(
   }
 
   try {
-    await sendWhatsAppMessage(cleanNumber, '⏳ *Generando el PDF de la propiedad...* Dame un momento por favor.');
+    await sendQueued(agentId, cleanNumber, '⏳ *Generando el PDF de la propiedad...* Dame un momento por favor.');
     await delay(1200);
 
     const pdfUrl = `${BASE_DOMAIN}/api/pdf-generator?slug=${slug}&agent_id=${agentId}&t=${Date.now()}`;

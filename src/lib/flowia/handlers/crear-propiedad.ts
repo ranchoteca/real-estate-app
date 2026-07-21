@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { supabaseAdmin } from '@/lib/supabase';
-import { sendWhatsAppMessage } from '@/lib/api/wasender';
+import { sendQueued } from '@/lib/api/wasender';
 import { decryptWasenderMedia, extractMediaInfo } from '../media/decrypt';
 import { uploadPhotoFromUrl } from '../media/upload-photo';
 import { transcribeAudioFromUrl } from '../media/transcribe-audio';
@@ -109,7 +109,7 @@ Puedes enviarme la información en el orden que prefieras — *por escrito o por
 _Puedes enviar cada dato por separado o todo junto, en el orden que quieras._
 Cuando termines, escribe *LISTO* y yo verificaré todo antes de crear la propiedad.`;
 
-  await sendWhatsAppMessage(cleanNumber, mensaje);
+  await sendQueued(agentId, cleanNumber, mensaje);
 }
 
 // ─── Media handling inside CREAR_PROPIEDAD mode ───────────────────────────────
@@ -210,7 +210,7 @@ export async function handleListo(
     return;
   }
 
-  await sendWhatsAppMessage(cleanNumber, '⏳ Analizando la información que me enviaste...');
+  await sendQueued(agentId, cleanNumber, '⏳ Analizando la información que me enviaste...');
 
   // Seed the extractor with data already confirmed in previous LISTO rounds.
   // This prevents losing fields when the agent sends corrections and writes LISTO again.
@@ -333,7 +333,7 @@ state_province y address son opcionales pero deseables.`;
 
 ¿Todo correcto? Responde *SÍ* para crear la propiedad, o corrígeme lo que esté mal.`;
 
-  await sendWhatsAppMessage(cleanNumber, resumen);
+  await sendQueued(agentId, cleanNumber, resumen);
   await upsertDraft(agentId, { pending_photos: photoCount });
 }
 
@@ -347,7 +347,7 @@ export async function handleConfirmacion(
   const draft = await getDraft(agentId);
 
   if (!draft) {
-    await sendWhatsAppMessage(cleanNumber, '❌ No encontré información de la propiedad. Por favor inicia el proceso de nuevo.');
+    await sendQueued(agentId, cleanNumber, '❌ No encontré información de la propiedad. Por favor inicia el proceso de nuevo.');
     return;
   }
 

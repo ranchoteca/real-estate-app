@@ -203,7 +203,7 @@ export async function handleListo(
   // Hard requirement: at least PHOTO_MIN photos before proceeding
   const photoCount = draft?.photos?.length || 0;
   if (photoCount < PHOTO_MIN) {
-    await sendWhatsAppMessage(
+    await sendQueued(agentId, 
       cleanNumber,
       `⚠️ Aún necesito al menos *${PHOTO_MIN} fotos* para crear la propiedad. Actualmente tienes *${photoCount}*. Envíalas y escribe LISTO de nuevo.`
     );
@@ -277,7 +277,7 @@ state_province y address son opcionales pero deseables.`;
     extractedData = JSON.parse(clean);
   } catch (error) {
     console.error('Error extracting property data:', error);
-    await sendWhatsAppMessage(
+    await sendQueued(agentId, 
       cleanNumber,
       '❌ Tuve un problema analizando la información. Por favor intenta de nuevo o escribe los datos más claramente.'
     );
@@ -288,7 +288,7 @@ state_province y address son opcionales pero deseables.`;
   const camposFaltantes: string[] = extractedData.campos_faltantes || [];
   if (camposFaltantes.length > 0) {
     const lista = camposFaltantes.map(c => `• ${c}`).join('\n');
-    await sendWhatsAppMessage(
+    await sendQueued(agentId, 
       cleanNumber,
       `⚠️ Faltan algunos datos para poder crear la propiedad:\n\n${lista}\n\nEnvíalos y escribe *LISTO* de nuevo cuando estés listo.`
     );
@@ -351,7 +351,7 @@ export async function handleConfirmacion(
     return;
   }
 
-  await sendWhatsAppMessage(
+  await sendQueued(agentId, 
     cleanNumber,
     `⏳ Perfecto ${primerNombre}, estoy creando tu propiedad. Te aviso cuando esté lista.`
   );
@@ -418,7 +418,7 @@ async function crearPropiedadEnBackground(
     const editUrl = `${BASE_DOMAIN}/dashboard/properties/${property.slug}/edit`;
     const shareUrl = `${BASE_DOMAIN}/p/${property.slug}`;
 
-    await sendWhatsAppMessage(
+    await sendQueued(agentId, 
       cleanNumber,
       `✅ ¡Tu propiedad fue creada exitosamente!\n\n*${draft.title}*\n\n✏️ *Editar y agregar videos:*\n${editUrl}\n\n🔗 *Link para compartir con clientes:*\n${shareUrl}`
     );
@@ -428,7 +428,7 @@ async function crearPropiedadEnBackground(
     // Keep the draft with mode_active=false so last_error is available for debugging
     await failDraft(agentId, error.message);
 
-    await sendWhatsAppMessage(
+    await sendQueued(agentId, 
       cleanNumber,
       `❌ Lo siento, ocurrió un error al crear la propiedad.\n\nPor favor intenta de nuevo escribiendo *"quiero crear una propiedad"*.`
     );

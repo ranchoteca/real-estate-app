@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import OpenAI from 'openai';
 import { getSystemPrompt } from '@/lib/ai/prompts';
-import { sendWhatsAppMessage, sendQueued, formatForWhatsApp } from '@/lib/api/wasender';
+import { sendQueued, formatForWhatsApp } from '@/lib/api/wasender';
 
 import { loadHistory, saveMessage, isDuplicateMessage, getAgentMode, buildWelcomeMessage } from '@/lib/flowia/session';
 import { FLOWIA_TOOLS } from '@/lib/flowia/tools';
@@ -188,7 +188,7 @@ export async function POST(req: NextRequest) {
     if (yaEnvioPdf && esConfirmacionCorta && !ofrecioPdf) {
       const respuesta = 'Perfecto, dime en qué más puedo ayudarte.';
       await saveMessage(agent.id, 'assistant', respuesta);
-      await sendWhatsAppMessage(cleanNumber, respuesta);
+      await sendQueued(agent.id, cleanNumber, respuesta);
       return NextResponse.json({ success: true, status: 'closed_pdf_followup' });
     }
 

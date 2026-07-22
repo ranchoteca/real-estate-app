@@ -37,7 +37,7 @@ export async function handleEnviarPdf(
 
     const pdfUrl = `${BASE_DOMAIN}/api/pdf-generator?slug=${slug}&agent_id=${agentId}&t=${Date.now()}`;
 
-    await sendWhatsAppMessage(
+    await sendQueued(agentId, 
       cleanNumber,
       '📄 Aquí tienes el documento detallado de la propiedad.',
       pdfUrl,

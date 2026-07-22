@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
 
       // 3. LISTO command — validate fields and show confirmation summary
       if (esComandoListo(resolvedText)) {
-        await handleListo(agent.id, cleanNumber, primerNombre, history);
+        await handleListo(agent.id, cleanNumber, primerNombre);
         return NextResponse.json({ success: true, status: 'listo_processed' });
       }
 

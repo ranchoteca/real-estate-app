@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { supabaseAdmin } from '@/lib/supabase';
+import { loadHistory } from '../session';
 import { sendQueued } from '@/lib/api/wasender';
 import { decryptWasenderMedia, extractMediaInfo } from '../media/decrypt';
 import { uploadPhotoFromUrl } from '../media/upload-photo';
@@ -160,9 +161,9 @@ export async function handleMediaEnDraft(
       // Atomic update: photos array + processed IDs in a single write
       await upsertDraft(agentId, { photos: updatedPhotos, processed_media_ids: updatedIds });
 
-      const count = updatedPhotos.length;
-      const faltanMensaje = count < PHOTO_MIN ? ` (necesito al menos ${PHOTO_MIN})` : ' ✅';
-      return `📸 Foto ${count} recibida${faltanMensaje}`;
+      // No per-photo response — we accumulate silently and report total at LISTO.
+      // This avoids 429 errors from Wasender when multiple gallery photos arrive at once.
+      return null;
     } catch (error) {
       console.error('Error processing image in draft:', error);
       return '❌ Tuve un problema procesando esa foto. Intenta enviarla de nuevo.';
@@ -195,8 +196,7 @@ export async function handleMediaEnDraft(
 export async function handleListo(
   agentId: string,
   cleanNumber: string,
-  primerNombre: string,
-  history: Array<{ role: string; content: string }>
+  primerNombre: string
 ) {
   const draft = await getDraft(agentId);
 
@@ -210,7 +210,11 @@ export async function handleListo(
     return;
   }
 
-  await sendQueued(agentId, cleanNumber, '⏳ Analizando la información que me enviaste...');
+  await sendQueued(agentId, cleanNumber, `⏳ Analizando la información que me enviaste... _(${photoCount} foto${photoCount !== 1 ? 's' : ''} recibida${photoCount !== 1 ? 's' : ''})_`);
+
+  // Load history fresh here — not from the webhook's initial load — so all messages
+  // saved during this session (audio transcriptions, free-form text) are included.
+  const history = await loadHistory(agentId);
 
   // Seed the extractor with data already confirmed in previous LISTO rounds.
   // This prevents losing fields when the agent sends corrections and writes LISTO again.

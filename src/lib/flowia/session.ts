@@ -5,7 +5,9 @@ const HISTORY_WINDOW_HOURS = 3;
 const HISTORY_LIMIT = 15;
 const DUPLICATE_WINDOW_SECONDS = 30;
 
-// ─── Historial de conversación ───────────────────────────────────────────────
+// ─── Normal conversation history ─────────────────────────────────────────────
+// Used in normal mode — last 15 messages within 3 hours is enough for
+// conversational context (property search, PDF, altitude, etc.)
 
 export async function loadHistory(agentId: string) {
   const windowStart = new Date(
@@ -23,6 +25,23 @@ export async function loadHistory(agentId: string) {
   return data ? [...data].reverse() : [];
 }
 
+// ─── Property creation history ────────────────────────────────────────────────
+// Used exclusively by handleListo — loads ALL messages since the draft was
+// created, with no limit. This ensures audio transcriptions, free-form text,
+// and Google Maps links sent during the session are always visible to the
+// extractor regardless of how many messages the session generated.
+
+export async function loadDraftHistory(agentId: string, draftCreatedAt: string) {
+  const { data } = await supabaseAdmin
+    .from('chat_messages')
+    .select('role, content')
+    .eq('agent_id', agentId)
+    .gte('created_at', draftCreatedAt)
+    .order('created_at', { ascending: true });
+
+  return data || [];
+}
+
 export async function saveMessage(
   agentId: string,
   role: 'user' | 'assistant',
@@ -33,14 +52,14 @@ export async function saveMessage(
     .insert({ agent_id: agentId, role, content });
 }
 
-// ─── Detección de duplicados ──────────────────────────────────────────────────
+// ─── Deduplication ────────────────────────────────────────────────────────────
+// Media webhooks arrive with empty messageBody — never deduplicate them here;
+// they are deduplicated by messageId inside handleMediaEnDraft instead.
 
 export async function isDuplicateMessage(
   agentId: string,
   messageText: string
 ): Promise<boolean> {
-  // Los webhooks de media llegan con messageBody vacío — nunca son duplicados,
-  // se manejan por messageId en handleMediaEnDraft
   if (!messageText || messageText.trim() === '') return false;
 
   const windowStart = new Date(
@@ -59,23 +78,24 @@ export async function isDuplicateMessage(
   return !!data;
 }
 
-// ─── Modo activo del agente ───────────────────────────────────────────────────
-// Consultamos agent_property_draft para saber si el agente está en medio
-// de una creación de propiedad. Esto permite que el webhook sepa a qué
-// handler derivar el mensaje sin depender del historial de chat.
+// ─── Agent mode ───────────────────────────────────────────────────────────────
+// Check agent_property_draft to know if the agent is mid-creation.
+// Returns the draft's created_at so loadDraftHistory can scope correctly.
 
-export async function getAgentMode(agentId: string): Promise<AgentMode> {
+export async function getAgentMode(agentId: string): Promise<{ mode: AgentMode; draftCreatedAt?: string }> {
   const { data } = await supabaseAdmin
     .from('agent_property_draft')
-    .select('mode_active')
+    .select('mode_active, created_at')
     .eq('agent_id', agentId)
     .eq('mode_active', true)
     .maybeSingle();
 
-  return data ? 'CREAR_PROPIEDAD' : null;
+  return data
+    ? { mode: 'CREAR_PROPIEDAD', draftCreatedAt: data.created_at }
+    : { mode: null };
 }
 
-// ─── Mensaje de bienvenida ────────────────────────────────────────────────────
+// ─── Welcome message ──────────────────────────────────────────────────────────
 
 export function buildWelcomeMessage(primerNombre: string): string {
   return `¡Hola ${primerNombre}! 👋 Soy *Flow*, tu asistente inmobiliario.

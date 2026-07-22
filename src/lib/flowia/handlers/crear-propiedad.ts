@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { supabaseAdmin } from '@/lib/supabase';
-import { loadHistory } from '../session';
+import { loadDraftHistory } from '../session';
 import { sendQueued } from '@/lib/api/wasender';
 import { decryptWasenderMedia, extractMediaInfo } from '../media/decrypt';
 import { uploadPhotoFromUrl } from '../media/upload-photo';
@@ -108,6 +108,7 @@ Puedes enviarme la información en el orden que prefieras — *por escrito o por
 🖼️ *Fotos* (mínimo ${PHOTO_MIN}, máximo ${PHOTO_MAX} imágenes)
 
 _Puedes enviar cada dato por separado o todo junto, en el orden que quieras._
+_Para las fotos, envíalas en grupos de máximo 5 a la vez para que se procesen correctamente._
 Cuando termines, escribe *LISTO* y yo verificaré todo antes de crear la propiedad.`;
 
   await sendQueued(agentId, cleanNumber, mensaje);
@@ -150,6 +151,13 @@ export async function handleMediaEnDraft(
 
       if (index >= PHOTO_MAX) {
         return `Ya tienes ${PHOTO_MAX} fotos que es el máximo permitido. ✅`;
+      }
+
+      // Soft limit per batch: warn if agent is sending too many at once.
+      // More than 5 simultaneous webhooks causes race conditions on upsertDraft.
+      // Agent can send more in a second batch after this one is processed.
+      if (index >= 5 && currentPhotos.length === index) {
+        console.log(`[media] Agent has ${index} photos — accepting but race condition risk increases above 5.`);
       }
 
       const tempSlug = `draft-${agentId.substring(0, 8)}`;
@@ -196,7 +204,8 @@ export async function handleMediaEnDraft(
 export async function handleListo(
   agentId: string,
   cleanNumber: string,
-  primerNombre: string
+  primerNombre: string,
+  draftCreatedAt: string
 ) {
   const draft = await getDraft(agentId);
 
@@ -212,9 +221,10 @@ export async function handleListo(
 
   await sendQueued(agentId, cleanNumber, `⏳ Analizando la información que me enviaste... _(${photoCount} foto${photoCount !== 1 ? 's' : ''} recibida${photoCount !== 1 ? 's' : ''})_`);
 
-  // Load history fresh here — not from the webhook's initial load — so all messages
-  // saved during this session (audio transcriptions, free-form text) are included.
-  const history = await loadHistory(agentId);
+  // Load ALL messages since the draft was created — no limit, no time window.
+  // This guarantees the extractor sees every audio transcription, free-form text,
+  // and Google Maps link sent during this session regardless of message count.
+  const history = await loadDraftHistory(agentId, draftCreatedAt);
 
   // Seed the extractor with data already confirmed in previous LISTO rounds.
   // This prevents losing fields when the agent sends corrections and writes LISTO again.

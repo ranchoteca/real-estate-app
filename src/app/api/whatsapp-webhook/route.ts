@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     await saveMessage(agent.id, 'user', resolvedText);
 
     // ── Detect active agent mode ───────────────────────────────────────────────
-    const agentMode = await getAgentMode(agent.id);
+    const { mode: agentMode, draftCreatedAt } = await getAgentMode(agent.id);
 
     // ══════════════════════════════════════════════════════════════════════════
     // MODE: CREAR_PROPIEDAD
@@ -128,7 +128,13 @@ export async function POST(req: NextRequest) {
       if (mediaInfo) {
         const respuesta = await handleMediaEnDraft(agent.id, cleanNumber, messageId, rawMessage);
         if (respuesta) {
-          await saveMessage(agent.id, 'assistant', respuesta);
+          // Audio transcriptions are already saved as 'user' inside handleMediaEnDraft.
+          // We only save as 'assistant' the display string for non-audio media responses.
+          // For audio, we skip the assistant save to prevent double-counting in history.
+          const isAudioTranscription = respuesta.startsWith('🎙️');
+          if (!isAudioTranscription) {
+            await saveMessage(agent.id, 'assistant', respuesta);
+          }
           await sendQueued(agent.id, cleanNumber, respuesta);
         }
         return NextResponse.json({ success: true, status: 'media_processed_in_draft' });
@@ -136,7 +142,7 @@ export async function POST(req: NextRequest) {
 
       // 3. LISTO command — validate fields and show confirmation summary
       if (esComandoListo(resolvedText)) {
-        await handleListo(agent.id, cleanNumber, primerNombre);
+        await handleListo(agent.id, cleanNumber, primerNombre, draftCreatedAt!);
         return NextResponse.json({ success: true, status: 'listo_processed' });
       }
 

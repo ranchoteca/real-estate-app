@@ -143,34 +143,32 @@ export async function handleMediaEnDraft(
 
       const { publicUrl } = await decryptWasenderMedia(messageId, mediaInfo.messageObject);
 
-      // Re-read draft right before writing to minimize race condition window
-      // when multiple gallery photos arrive simultaneously
+      // Check current photo count before uploading to enforce PHOTO_MAX.
+      // This read is safe here — the atomic RPC below handles the actual write.
       const draft = await getDraft(agentId);
-      const currentPhotos = draft?.photos || [];
-      const index = currentPhotos.length;
+      const currentCount = draft?.photos?.length || 0;
 
-      if (index >= PHOTO_MAX) {
+      if (currentCount >= PHOTO_MAX) {
         return `Ya tienes ${PHOTO_MAX} fotos que es el máximo permitido. ✅`;
       }
 
-      // Soft limit per batch: warn if agent is sending too many at once.
-      // More than 5 simultaneous webhooks causes race conditions on upsertDraft.
-      // Agent can send more in a second batch after this one is processed.
-      if (index >= 5 && currentPhotos.length === index) {
-        console.log(`[media] Agent has ${index} photos — accepting but race condition risk increases above 5.`);
+      const tempSlug = `draft-${agentId.substring(0, 8)}`;
+      const supabaseUrl = await uploadPhotoFromUrl(agentId, tempSlug, publicUrl, currentCount);
+
+      // Atomic append via Supabase RPC — avoids race condition when multiple gallery
+      // webhooks arrive simultaneously and would otherwise overwrite each other's arrays.
+      const { error: appendError } = await supabaseAdmin.rpc('draft_append_photo', {
+        p_agent_id: agentId,
+        p_photo_url: supabaseUrl,
+        p_media_id: messageId,
+      });
+
+      if (appendError) {
+        console.error('Error appending photo to draft:', appendError);
+        return '❌ Tuve un problema guardando esa foto. Intenta enviarla de nuevo.';
       }
 
-      const tempSlug = `draft-${agentId.substring(0, 8)}`;
-      const supabaseUrl = await uploadPhotoFromUrl(agentId, tempSlug, publicUrl, index);
-
-      const updatedPhotos = [...currentPhotos, supabaseUrl];
-      const updatedIds = [...processedIds, messageId];
-
-      // Atomic update: photos array + processed IDs in a single write
-      await upsertDraft(agentId, { photos: updatedPhotos, processed_media_ids: updatedIds });
-
-      // No per-photo response — we accumulate silently and report total at LISTO.
-      // This avoids 429 errors from Wasender when multiple gallery photos arrive at once.
+      // No per-photo response — report total at LISTO to avoid 429 on gallery uploads.
       return null;
     } catch (error) {
       console.error('Error processing image in draft:', error);
@@ -365,23 +363,20 @@ export async function handleConfirmacion(
     return;
   }
 
-  await sendQueued(agentId, 
-    cleanNumber,
-    `⏳ Perfecto ${primerNombre}, estoy creando tu propiedad. Te aviso cuando esté lista.`
-  );
+  // Send "wait" message immediately so the agent knows we're working
+  await sendQueued(agentId, cleanNumber, `⏳ Perfecto ${primerNombre}, creando tu propiedad... Dame un momento.`);
 
-  // Close the mode immediately so the agent can use the bot normally while we work
+  // Close the mode before creating — agent can use the bot normally if creation is slow
   await clearDraft(agentId);
 
-  // Fire-and-forget: create the property in the background
-  setImmediate(async () => {
-    await crearPropiedadEnBackground(agentId, cleanNumber, draft);
-  });
+  // Create synchronously in the same webhook — no setImmediate (doesn't survive
+  // Vercel serverless function termination). Success/error message sent here directly.
+  await crearPropiedad(agentId, cleanNumber, draft);
 }
 
-// ─── Background property creation ────────────────────────────────────────────
+// ─── Property creation (synchronous) ────────────────────────────────────────
 
-async function crearPropiedadEnBackground(
+async function crearPropiedad(
   agentId: string,
   cleanNumber: string,
   draft: PropertyDraft

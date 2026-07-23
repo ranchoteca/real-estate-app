@@ -171,18 +171,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, status: 'crear_propiedad_initiated' });
     }
 
-    // Suppress phantom OpenAI response after a successful property creation:
-    // if the agent sends a short thanks, respond without calling OpenAI
-    const ultimoAsistente = history.findLast(m => m.role === 'assistant');
-    const fueCreacionExitosa = ultimoAsistente?.content?.includes('¡Tu propiedad fue creada exitosamente!');
-    const esAgradecimiento = /^(gracias|ok|okay|perfecto|genial|excelente|listo|dale|bien|👍|🙏)[\s!.]*$/i.test(resolvedText.trim());
-    if (fueCreacionExitosa && esAgradecimiento) {
-      const respuesta = `¡Con gusto ${primerNombre}! 😊 Si necesitas crear otra propiedad o tienes alguna consulta, aquí estoy.`;
-      await saveMessage(agent.id, 'assistant', respuesta);
-      await sendQueued(agent.id, cleanNumber, respuesta);
-      return NextResponse.json({ success: true, status: 'post_creation_ack' });
-    }
-
     // PDF shortcut: if the bot just offered a PDF and the agent confirms, send it without OpenAI
     const ultimoMensajeAsistente = history.length > 0 ? history[history.length - 1] : null;
     const ofrecioPdf = ultimoMensajeAsistente?.role === 'assistant'

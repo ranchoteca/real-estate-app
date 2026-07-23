@@ -127,11 +127,18 @@ export async function POST(req: NextRequest) {
       const mediaInfo = extractMediaInfo(rawMessage);
       if (mediaInfo) {
         const respuesta = await handleMediaEnDraft(agent.id, cleanNumber, messageId, rawMessage);
+
+        if (respuesta === '__PHOTO_MAX_REACHED__') {
+          // Agent just uploaded the last allowed photo — auto-proceed to summary
+          // without requiring another LISTO. No extra step needed from the agent.
+          await handleListo(agent.id, cleanNumber, primerNombre, draftCreatedAt!);
+          return NextResponse.json({ success: true, status: 'photo_max_auto_listo' });
+        }
+
         if (respuesta) {
           // Audio transcriptions are already saved as 'user' inside handleMediaEnDraft.
-          // We only save as 'assistant' the display string for non-audio media responses.
-          // For audio, we skip the assistant save to prevent double-counting in history.
-          const isAudioTranscription = respuesta.startsWith('🎙️');
+          // Skip assistant save for audio to prevent double-counting in history.
+          const isAudioTranscription = respuesta.startsWith('🎤️');
           if (!isAudioTranscription) {
             await saveMessage(agent.id, 'assistant', respuesta);
           }

@@ -168,6 +168,13 @@ export async function handleMediaEnDraft(
         return '❌ Tuve un problema guardando esa foto. Intenta enviarla de nuevo.';
       }
 
+      // Check if we just hit the photo limit — signal auto-proceed to summary
+      const updatedDraft = await getDraft(agentId);
+      if ((updatedDraft?.photos?.length || 0) >= PHOTO_MAX) {
+        // Return sentinel so route.ts knows to auto-trigger LISTO flow
+        return '__PHOTO_MAX_REACHED__';
+      }
+
       // No per-photo response — report total at LISTO to avoid 429 on gallery uploads.
       return null;
     } catch (error) {

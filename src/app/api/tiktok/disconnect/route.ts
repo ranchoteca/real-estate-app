@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabaseAdmin } from '@/lib/supabase';
-import { disconnectPostForMeAccount } from '@/lib/facebook';
+import { disconnectTikTokAccount } from '@/lib/tiktok';
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,7 +10,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    // Obtener agente
     const { data: agent } = await supabaseAdmin
       .from('agents')
       .select('id')
@@ -21,40 +20,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Agente no encontrado' }, { status: 404 });
     }
 
-    // Obtener account_id antes de limpiar
     const { data: agentData } = await supabaseAdmin
       .from('agents')
-      .select('facebook_account_id')
+      .select('tiktok_account_id')
       .eq('id', agent.id)
       .single();
 
-    // Desconectar en Post for Me si hay cuenta vinculada
-    if (agentData?.facebook_account_id) {
+    if (agentData?.tiktok_account_id) {
       try {
-        await disconnectPostForMeAccount(agentData.facebook_account_id);
+        await disconnectTikTokAccount(agentData.tiktok_account_id);
       } catch (pfmError) {
         // No es crítico si falla en Post for Me, igual limpiamos la BD
-        console.error('Error desconectando en Post for Me (no crítico):', pfmError);
+        console.error('Error desconectando TikTok en Post for Me (no crítico):', pfmError);
       }
     }
 
-    // Limpiar datos en Supabase
     const { error } = await supabaseAdmin
       .from('agents')
       .update({
-        facebook_account_id: null,
-        facebook_username: null,
-        facebook_connected_at: null,
+        tiktok_account_id: null,
+        tiktok_username: null,
+        tiktok_connected_at: null,
       })
       .eq('id', agent.id);
 
     if (error) {
-      throw new Error('Error al desvincular cuenta');
+      throw new Error('Error al desvincular cuenta de TikTok');
     }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Error en disconnect:', error);
+    console.error('Error en TikTok disconnect:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -10,7 +10,7 @@ import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
 import VideoUploader from '@/components/property/VideoUploader';
 import PublishingModal from '@/components/property/PublishingModal';
-import FacebookReelPublishModal from '@/components/FacebookReelPublishModal';
+import SocialReelPublishModal from '@/components/SocialReelPublishModal';
 import { uploadVideoToMux, waitForPlaybackId } from '@/lib/muxUpload';
 import { WatermarkConfig } from '@/lib/watermark';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
@@ -1346,11 +1346,11 @@ export default function EditPropertyPage() {
         language={language}
       />
 
-      <FacebookReelPublishModal
+      <SocialReelPublishModal
         isOpen={reelModalOpen}
         onClose={() => setReelModalOpen(false)}
-        propertyId={propertyId}
-        videoUrls={existingVideos}
+        propertyId={selectedPropertyId || ''}
+        videoUrls={properties.find(p => p.id === selectedPropertyId)?.video_urls || []}
         language={language}
       />
 

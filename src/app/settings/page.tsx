@@ -100,10 +100,12 @@ export default function SettingsPage() {
       proOnly: true,
     },
     {
-      icon: '📘',
-      title: t('settings.options.facebook.title'),
-      description: t('settings.options.facebook.description'),
-      href: '/settings/facebook',
+      icon: '📱',
+      title: language === 'en' ? 'Social Networks' : 'Redes Sociales',
+      description: language === 'en'
+        ? 'Connect Facebook and TikTok to publish your properties'
+        : 'Conecta Facebook y TikTok para publicar tus propiedades',
+      href: '/settings/social',
       color: '#1877F2',
       proOnly: true,
     },

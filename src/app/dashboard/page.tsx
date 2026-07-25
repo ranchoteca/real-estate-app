@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 import { trackEvent } from '@/lib/fbpixel';
 import GeneratingPDFModal from '@/components/GeneratingPDFModal';
 import FacebookPublishModal from '@/components/FacebookPublishModal';
-import FacebookReelPublishModal from '@/components/FacebookReelPublishModal';
+import SocialReelPublishModal from '@/components/SocialReelPublishModal';
 import AppLayout from '@/components/AppLayout';
 import Image from 'next/image';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -951,7 +951,7 @@ export default function DashboardPage() {
       {/* ── MODALES (sin cambios) ─────────────────────────────────────────── */}
       <GeneratingPDFModal isOpen={isGeneratingPDF} />
       <FacebookPublishModal isOpen={publishModalOpen} onClose={() => setPublishModalOpen(false)} propertyId={selectedPropertyId || ''} />
-      <FacebookReelPublishModal
+      <SocialReelPublishModal
         isOpen={reelModalOpen}
         onClose={() => setReelModalOpen(false)}
         propertyId={selectedPropertyId || ''}

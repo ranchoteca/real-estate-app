@@ -94,6 +94,7 @@ INSTRUCCIONES PARA TIKTOK:
 - Hashtags mezclados dentro del texto estilo TikTok, no todos al final
 - Máximo 3-4 emojis, bien ubicados
 - CTA muy corto al final (ej: "Link en bio 👆" o "Escríbenos al WhatsApp 👇")
+- NUNCA incluyas la URL completa de WhatsApp (https://wa.me/...) en el texto — TikTok no la hace clickeable, así que solo se ve como texto roto. El CTA debe ser puramente textual, sin ningún link
 - Sin precio exacto, mejor generar intriga
 
 Responde ÚNICAMENTE con un JSON válido con esta estructura exacta, sin markdown:
@@ -132,6 +133,7 @@ INSTRUCTIONS FOR TIKTOK:
 - Hashtags mixed within the text TikTok-style, not all at the end
 - Maximum 3-4 emojis, well placed
 - Very short CTA at the end (e.g., "Link in bio 👆" or "Message us on WhatsApp 👇")
+- NEVER include the full WhatsApp URL (https://wa.me/...) in the text — TikTok doesn't make it clickable, so it just shows as broken text. The CTA must be purely textual, with no link at all
 - No exact price, better to create intrigue
 
 Respond ONLY with a valid JSON with this exact structure, no markdown:

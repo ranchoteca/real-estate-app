@@ -28,21 +28,18 @@ interface MusicTrack {
 }
 
 type PlatformStatus = 'idle' | 'publishing' | 'processing' | 'success' | 'error' | 'timeout';
-
 type Step = 'loading' | 'select-video' | 'select-platforms' | 'copy' | 'music' | 'publishing' | 'done';
 
 function getVideoMeta(url: string): Promise<VideoMeta | null> {
   return new Promise((resolve) => {
     const video = document.createElement('video');
     video.preload = 'metadata';
-    video.onloadedmetadata = () => {
-      resolve({
-        width: video.videoWidth,
-        height: video.videoHeight,
-        isHorizontal: video.videoWidth > video.videoHeight,
-        durationSeconds: video.duration,
-      });
-    };
+    video.onloadedmetadata = () => resolve({
+      width: video.videoWidth,
+      height: video.videoHeight,
+      isHorizontal: video.videoWidth > video.videoHeight,
+      durationSeconds: video.duration,
+    });
     video.onerror = () => resolve(null);
     video.src = url;
   });
@@ -51,22 +48,19 @@ function getVideoMeta(url: string): Promise<VideoMeta | null> {
 export default function SocialReelPublishModal({ isOpen, onClose, propertyId, videoUrls, language }: Props) {
   const t = (es: string, en: string) => language === 'en' ? en : es;
 
-  // ── Estado general ────────────────────────────────────────────────────────
+  // ── Estado ────────────────────────────────────────────────────────────────
   const [step, setStep] = useState<Step>('loading');
   const [videoMeta, setVideoMeta] = useState<Record<string, VideoMeta | null>>({});
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
 
-  // Plataformas
   const [publishFb, setPublishFb] = useState(true);
   const [publishTk, setPublishTk] = useState(false);
 
-  // Copys
   const [captionFb, setCaptionFb] = useState('');
   const [captionTk, setCaptionTk] = useState('');
   const [generatingCopy, setGeneratingCopy] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
 
-  // Música
   const [musicCatalog, setMusicCatalog] = useState<MusicTrack[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<MusicTrack | null>(null);
@@ -75,39 +69,32 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
   const [includeMusicTiktok, setIncludeMusicTiktok] = useState(false);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
 
-  // Publicación
-  const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
   const [fbStatus, setFbStatus] = useState<PlatformStatus>('idle');
   const [tkStatus, setTkStatus] = useState<PlatformStatus>('idle');
   const [fbError, setFbError] = useState<string | null>(null);
   const [tkError, setTkError] = useState<string | null>(null);
+  const [agentId, setAgentId] = useState<string | null>(null);
 
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const previewAudioRef = useRef<HTMLAudioElement>(null);
+  const pollIntervalsRef = useRef<Record<string, ReturnType<typeof setInterval>>>({});
+  const pollTimeoutsRef  = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // ── Reset al abrir ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
     setStep('loading');
     setSelectedVideo(videoUrls.length === 1 ? videoUrls[0] : null);
-    setPublishFb(true);
-    setPublishTk(false);
-    setCaptionFb('');
-    setCaptionTk('');
+    setPublishFb(true); setPublishTk(false);
+    setCaptionFb(''); setCaptionTk('');
     setCopyError(null);
-    setSelectedGenre(null);
-    setSelectedTrack(null);
-    setKeepOriginalAudio(false);
-    setVolumeSlider(50);
-    setIncludeMusicTiktok(false);
-    setIsPreviewPlaying(false);
-    setProgress(0);
+    setSelectedGenre(null); setSelectedTrack(null);
+    setKeepOriginalAudio(false); setVolumeSlider(50);
+    setIncludeMusicTiktok(false); setIsPreviewPlaying(false);
     setStatusMessage('');
-    setFbStatus('idle');
-    setTkStatus('idle');
-    setFbError(null);
-    setTkError(null);
+    setFbStatus('idle'); setTkStatus('idle');
+    setFbError(null); setTkError(null);
 
     (async () => {
       const [metaEntries, catalogRes] = await Promise.all([
@@ -120,14 +107,20 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
     })();
   }, [isOpen, videoUrls]);
 
-  // Detener preview al cambiar video/pista
+  // Limpiar polling al desmontar
+  useEffect(() => {
+    return () => {
+      Object.values(pollIntervalsRef.current).forEach(clearInterval);
+      Object.values(pollTimeoutsRef.current).forEach(clearTimeout);
+    };
+  }, []);
+
   useEffect(() => {
     setIsPreviewPlaying(false);
     previewVideoRef.current?.pause();
     previewAudioRef.current?.pause();
   }, [selectedVideo, selectedTrack, keepOriginalAudio]);
 
-  // Volumen en vivo
   useEffect(() => {
     if (previewAudioRef.current) previewAudioRef.current.volume = volumeSlider / 100;
   }, [volumeSlider]);
@@ -136,10 +129,9 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
 
   const selectedMeta = selectedVideo ? videoMeta[selectedVideo] : null;
   const genres = Array.from(new Set(musicCatalog.map(tr => tr.genre)));
-
   const formatDuration = (s: number) => `${Math.floor(s / 60)}:${Math.round(s % 60).toString().padStart(2, '0')}`;
 
-  // ── Generar copys con IA ──────────────────────────────────────────────────
+  // ── Generar copys ─────────────────────────────────────────────────────────
   const generateCopys = async () => {
     setGeneratingCopy(true);
     setCopyError(null);
@@ -160,7 +152,7 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
     }
   };
 
-  // ── Preview de audio+video ────────────────────────────────────────────────
+  // ── Preview audio+video ───────────────────────────────────────────────────
   const togglePreview = async () => {
     const video = previewVideoRef.current;
     const audio = previewAudioRef.current;
@@ -179,80 +171,161 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
     } catch {}
   };
 
+  // ── Polling desde el cliente ──────────────────────────────────────────────
+  const startPolling = (
+    postId: string,
+    platform: 'facebook' | 'tiktok',
+    currentAgentId: string,
+    setStatus: (s: PlatformStatus) => void,
+    setError: (e: string) => void
+  ) => {
+    const TIMEOUT_MS = 90_000;
+    const INTERVAL_MS = 3_000;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `/api/social/poll-result?postId=${postId}&platform=${platform}&agentId=${currentAgentId}&propertyId=${propertyId}`
+        );
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          clearInterval(pollIntervalsRef.current[postId]);
+          clearTimeout(pollTimeoutsRef.current[postId]);
+          delete pollIntervalsRef.current[postId];
+          delete pollTimeoutsRef.current[postId];
+          setStatus('success');
+          checkAllDone();
+        } else if (data.status === 'error') {
+          clearInterval(pollIntervalsRef.current[postId]);
+          clearTimeout(pollTimeoutsRef.current[postId]);
+          delete pollIntervalsRef.current[postId];
+          delete pollTimeoutsRef.current[postId];
+          setStatus('error');
+          setError(data.error || t('Error desconocido', 'Unknown error'));
+          checkAllDone();
+        }
+        // Si 'processing' → seguir esperando
+      } catch {
+        // Error de red puntual → continuar
+      }
+    }, INTERVAL_MS);
+
+    pollIntervalsRef.current[postId] = interval;
+
+    // Timeout de seguridad
+    const timeout = setTimeout(() => {
+      clearInterval(pollIntervalsRef.current[postId]);
+      delete pollIntervalsRef.current[postId];
+      delete pollTimeoutsRef.current[postId];
+      setStatus('timeout');
+      checkAllDone();
+    }, TIMEOUT_MS);
+
+    pollTimeoutsRef.current[postId] = timeout;
+  };
+
+  // Revisa si ambas plataformas terminaron para pasar a 'done'
+  const checkAllDone = () => {
+    // Usamos setTimeout para que React haya actualizado los estados
+    setTimeout(() => {
+      setFbStatus(prev => {
+        setTkStatus(prev2 => {
+          const fbDone = !publishFb || ['success', 'error', 'timeout'].includes(prev);
+          const tkDone = !publishTk || ['success', 'error', 'timeout'].includes(prev2);
+          if (fbDone && tkDone) setStep('done');
+          return prev2;
+        });
+        return prev;
+      });
+    }, 100);
+  };
+
   // ── Publicar ──────────────────────────────────────────────────────────────
-  const startPublish = () => {
+  const startPublish = async (withMusic: boolean) => {
     if (!selectedVideo) return;
 
     setStep('publishing');
-    setProgress(0);
-    setStatusMessage(t('Iniciando...', 'Starting...'));
+    setStatusMessage(t('Publicando...', 'Publishing...'));
     if (publishFb) setFbStatus('publishing');
     if (publishTk) setTkStatus('publishing');
 
     const platforms = publishFb && publishTk ? 'both' : publishFb ? 'facebook' : 'tiktok';
 
-    const params = new URLSearchParams({
-      propertyId,
-      videoUrl: selectedVideo,
-      platforms,
-      captionFb,
-      captionTk,
-      keepOriginalAudio: String(keepOriginalAudio),
-      includeMusicTiktok: String(includeMusicTiktok),
-    });
-    if (selectedTrack) {
-      params.set('musicPublicId', selectedTrack.cloudinary_public_id);
-      params.set('musicVolume', String(volumeSlider - 100));
-    }
+    try {
+      const res = await fetch('/api/social/publish-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          propertyId,
+          videoUrl: selectedVideo,
+          platforms,
+          captionFb,
+          captionTk,
+          keepOriginalAudio,
+          includeMusicTiktok,
+          musicPublicId: withMusic && selectedTrack ? selectedTrack.cloudinary_public_id : null,
+          musicVolume: volumeSlider - 100,
+        }),
+      });
 
-    const eventSource = new EventSource(`/api/social/publish-video?${params.toString()}`);
+      const data = await res.json();
 
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-
-      if (data.progress !== undefined) setProgress(data.progress);
-      if (data.message) setStatusMessage(data.message);
-
-      // Estados por plataforma
-      if (data.fbStatus) setFbStatus(data.fbStatus as PlatformStatus);
-      if (data.tkStatus) setTkStatus(data.tkStatus as PlatformStatus);
-      if (data.fbError) setFbError(data.fbError);
-      if (data.tkError) setTkError(data.tkError);
-
-      if (data.error) {
-        setStatusMessage(data.error);
+      if (!res.ok) {
+        setStatusMessage(data.error || t('Error al publicar', 'Publish error'));
+        if (publishFb) setFbStatus('error');
+        if (publishTk) setTkStatus('error');
         setStep('done');
-        eventSource.close();
+        return;
       }
-      if (data.done) {
-        setStep('done');
-        eventSource.close();
-      }
-    };
 
-    eventSource.onerror = () => {
-      setStatusMessage(t('Error de conexión', 'Connection error'));
+      const currentAgentId = data.agentId;
+      setAgentId(currentAgentId);
+
+      // Errores inmediatos (no llegó a crear el post)
+      if (data.fbError) { setFbStatus('error'); setFbError(data.fbError); }
+      if (data.tkError) { setTkStatus('error'); setTkError(data.tkError); }
+
+      // Arrancar polling por plataforma
+      if (publishFb && data.fbPostId) {
+        setFbStatus('processing');
+        startPolling(data.fbPostId, 'facebook', currentAgentId, setFbStatus, setFbError);
+      } else if (publishFb && !data.fbError) {
+        setFbStatus('error');
+        setFbError(t('No se recibió ID de publicación', 'No post ID received'));
+      }
+
+      if (publishTk && data.tkPostId) {
+        setTkStatus('processing');
+        startPolling(data.tkPostId, 'tiktok', currentAgentId, setTkStatus, setTkError);
+      } else if (publishTk && !data.tkError) {
+        setTkStatus('error');
+        setTkError(t('No se recibió ID de publicación', 'No post ID received'));
+      }
+
+      // Si ambas fallaron inmediatamente, ir a done
+      if (
+        (!publishFb || data.fbError) &&
+        (!publishTk || data.tkError)
+      ) {
+        setStep('done');
+      }
+
+      setStatusMessage(t('Esperando confirmación de las plataformas...', 'Waiting for platform confirmation...'));
+
+    } catch (err: any) {
+      setStatusMessage(err.message || t('Error de conexión', 'Connection error'));
+      if (publishFb) setFbStatus('error');
+      if (publishTk) setTkStatus('error');
       setStep('done');
-      eventSource.close();
-    };
+    }
   };
 
-  // ── Helpers de UI ─────────────────────────────────────────────────────────
-  const platformIcon = (status: PlatformStatus) => {
-    if (status === 'idle')       return '⬜';
-    if (status === 'publishing') return '📤';
-    if (status === 'processing') return '⏳';
-    if (status === 'success')    return '✅';
-    if (status === 'timeout')    return '⚠️';
-    if (status === 'error')      return '❌';
-    return '⬜';
-  };
-
-  const allDone = () => {
-    const fbDone = !publishFb || ['success', 'error', 'timeout'].includes(fbStatus);
-    const tkDone = !publishTk || ['success', 'error', 'timeout'].includes(tkStatus);
-    return fbDone && tkDone;
-  };
+  // ── Helpers UI ────────────────────────────────────────────────────────────
+  const platformIcon = (status: PlatformStatus) => ({
+    idle: '⬜', publishing: '📤', processing: '⏳',
+    success: '✅', timeout: '⚠️', error: '❌',
+  }[status] || '⬜');
 
   const hasAnySuccess = () =>
     (publishFb && fbStatus === 'success') || (publishTk && tkStatus === 'success');
@@ -262,10 +335,8 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)' }}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)' }}>
       <div className="bg-white rounded-2xl p-5 max-w-md w-full shadow-2xl max-h-[92vh] overflow-y-auto">
 
         {/* ── LOADING ── */}
@@ -288,17 +359,9 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
                 const isSelected = selectedVideo === url;
                 const tooShort = meta?.durationSeconds !== undefined && meta.durationSeconds < 3;
                 return (
-                  <button
-                    key={url}
-                    onClick={() => !tooShort && setSelectedVideo(url)}
-                    disabled={tooShort}
+                  <button key={url} onClick={() => !tooShort && setSelectedVideo(url)} disabled={tooShort}
                     className="flex-shrink-0 rounded-xl overflow-hidden border-2 relative"
-                    style={{
-                      borderColor: isSelected ? '#2563EB' : '#E5E7EB',
-                      width: '80px', height: '120px',
-                      opacity: tooShort ? 0.4 : 1,
-                    }}
-                  >
+                    style={{ borderColor: isSelected ? '#2563EB' : '#E5E7EB', width: '80px', height: '120px', opacity: tooShort ? 0.4 : 1 }}>
                     <video src={url} className="w-full h-full object-cover bg-black" muted preload="metadata" />
                     {meta && (
                       <span className="absolute bottom-1 left-0 right-0 text-center text-[10px] font-bold text-white"
@@ -319,12 +382,8 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
               <button onClick={onClose} className="flex-1 py-2.5 rounded-xl font-bold border-2 text-sm" style={{ borderColor: '#E5E7EB', color: '#0F172A' }}>
                 {t('Cancelar', 'Cancel')}
               </button>
-              <button
-                onClick={() => setStep('select-platforms')}
-                disabled={!canProceedToPlatforms}
-                className="flex-1 py-2.5 rounded-xl font-bold text-white text-sm disabled:opacity-40"
-                style={{ backgroundColor: '#2563EB' }}
-              >
+              <button onClick={() => setStep('select-platforms')} disabled={!canProceedToPlatforms}
+                className="flex-1 py-2.5 rounded-xl font-bold text-white text-sm disabled:opacity-40" style={{ backgroundColor: '#2563EB' }}>
                 {t('Continuar →', 'Continue →')}
               </button>
             </div>
@@ -341,7 +400,6 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
               {t('Selecciona una o ambas plataformas', 'Select one or both platforms')}
             </p>
 
-            {/* Aviso video horizontal */}
             {selectedMeta?.isHorizontal && (
               <div className="rounded-lg p-2.5 mb-3 text-xs flex items-start gap-1.5" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
                 <span>⚠️</span>
@@ -349,18 +407,11 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
               </div>
             )}
 
-            {/* Checkboxes de plataformas */}
             <div className="space-y-2 mb-4">
-              {/* Facebook */}
-              <label
-                className="flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer"
-                style={{ borderColor: publishFb ? '#1877F2' : '#E5E7EB', backgroundColor: publishFb ? '#EFF6FF' : '#FAFAFA' }}
-              >
+              <label className="flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer"
+                style={{ borderColor: publishFb ? '#1877F2' : '#E5E7EB', backgroundColor: publishFb ? '#EFF6FF' : '#FAFAFA' }}>
                 <input type="checkbox" checked={publishFb} onChange={e => setPublishFb(e.target.checked)} className="w-5 h-5 rounded accent-blue-600" />
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: '#1877F2' }}
-                >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1877F2' }}>
                   <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                   </svg>
@@ -371,16 +422,10 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
                 </div>
               </label>
 
-              {/* TikTok */}
-              <label
-                className="flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer"
-                style={{ borderColor: publishTk ? '#010101' : '#E5E7EB', backgroundColor: publishTk ? '#F9FAFB' : '#FAFAFA' }}
-              >
+              <label className="flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer"
+                style={{ borderColor: publishTk ? '#010101' : '#E5E7EB', backgroundColor: publishTk ? '#F9FAFB' : '#FAFAFA' }}>
                 <input type="checkbox" checked={publishTk} onChange={e => setPublishTk(e.target.checked)} className="w-5 h-5 rounded" />
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: '#010101' }}
-                >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#010101' }}>
                   <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.19 8.19 0 004.79 1.52V6.75a4.85 4.85 0 01-1.02-.06z"/>
                   </svg>
@@ -401,17 +446,13 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
             <div className="flex gap-2">
               <button
                 onClick={() => videoUrls.length > 1 ? setStep('select-video') : onClose()}
-                className="flex-1 py-2.5 rounded-xl font-bold border-2 text-sm"
-                style={{ borderColor: '#E5E7EB', color: '#0F172A' }}
-              >
-                ← {t('Atrás', 'Back')}
+                className="flex-1 py-2.5 rounded-xl font-bold border-2 text-sm" style={{ borderColor: '#E5E7EB', color: '#0F172A' }}>
+                {videoUrls.length > 1 ? `← ${t('Atrás', 'Back')}` : t('Cancelar', 'Cancel')}
               </button>
               <button
                 onClick={async () => { setStep('copy'); await generateCopys(); }}
                 disabled={!publishFb && !publishTk}
-                className="flex-1 py-2.5 rounded-xl font-bold text-white text-sm disabled:opacity-40"
-                style={{ backgroundColor: '#2563EB' }}
-              >
+                className="flex-1 py-2.5 rounded-xl font-bold text-white text-sm disabled:opacity-40" style={{ backgroundColor: '#2563EB' }}>
                 {t('Continuar →', 'Continue →')}
               </button>
             </div>
@@ -454,17 +495,14 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
                       </div>
                       <p className="text-xs font-bold" style={{ color: '#0F172A' }}>Facebook Reels</p>
                     </div>
-                    <textarea
-                      value={captionFb}
-                      onChange={e => setCaptionFb(e.target.value)}
-                      rows={6}
+                    <textarea value={captionFb} onChange={e => setCaptionFb(e.target.value)} rows={6}
                       className="w-full rounded-xl border-2 px-3 py-2 text-xs resize-none focus:outline-none"
-                      style={{ borderColor: '#E5E7EB', color: '#0F172A', lineHeight: '1.5' }}
-                    />
-                    <p className="text-right text-[10px] mt-0.5" style={{ color: '#9CA3AF' }}>{captionFb.length} {t('caracteres', 'characters')}</p>
+                      style={{ borderColor: '#E5E7EB', color: '#0F172A', lineHeight: '1.5' }} />
+                    <p className="text-right text-[10px] mt-0.5" style={{ color: '#9CA3AF' }}>
+                      {captionFb.length} {t('caracteres', 'characters')}
+                    </p>
                   </div>
                 )}
-
                 {publishTk && (
                   <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -475,14 +513,11 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
                       </div>
                       <p className="text-xs font-bold" style={{ color: '#0F172A' }}>TikTok</p>
                     </div>
-                    <textarea
-                      value={captionTk}
-                      onChange={e => setCaptionTk(e.target.value)}
-                      rows={4}
+                    <textarea value={captionTk} onChange={e => setCaptionTk(e.target.value)} rows={4}
                       className="w-full rounded-xl border-2 px-3 py-2 text-xs resize-none focus:outline-none"
-                      style={{ borderColor: '#E5E7EB', color: '#0F172A', lineHeight: '1.5' }}
-                    />
-                    <p className="text-right text-[10px] mt-0.5" style={{ color: captionTk.length > 150 ? '#F59E0B' : '#9CA3AF' }}>
+                      style={{ borderColor: '#E5E7EB', color: '#0F172A', lineHeight: '1.5' }} />
+                    <p className="text-right text-[10px] mt-0.5"
+                      style={{ color: captionTk.length > 150 ? '#F59E0B' : '#9CA3AF' }}>
                       {captionTk.length}/150 {t('caracteres recomendados', 'recommended characters')}
                     </p>
                   </div>
@@ -494,12 +529,9 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
               <button onClick={() => setStep('select-platforms')} className="flex-1 py-2.5 rounded-xl font-bold border-2 text-sm" style={{ borderColor: '#E5E7EB', color: '#0F172A' }}>
                 ← {t('Atrás', 'Back')}
               </button>
-              <button
-                onClick={() => setStep('music')}
-                disabled={generatingCopy || (!captionFb && publishFb) || (!captionTk && publishTk)}
-                className="flex-1 py-2.5 rounded-xl font-bold text-white text-sm disabled:opacity-40"
-                style={{ backgroundColor: '#2563EB' }}
-              >
+              <button onClick={() => setStep('music')}
+                disabled={generatingCopy || (publishFb && !captionFb) || (publishTk && !captionTk)}
+                className="flex-1 py-2.5 rounded-xl font-bold text-white text-sm disabled:opacity-40" style={{ backgroundColor: '#2563EB' }}>
                 {t('Continuar →', 'Continue →')}
               </button>
             </div>
@@ -513,10 +545,9 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
               🎵 {t('Música (opcional)', 'Music (optional)')}
             </h3>
             <p className="text-xs text-center mb-3" style={{ color: '#6B7280' }}>
-              {t('Elige una pista de tu catálogo o publica sin música', 'Choose a track from your catalog or publish without music')}
+              {t('Elige una pista o publica sin música', 'Choose a track or publish without music')}
             </p>
 
-            {/* Toggle narración */}
             <div className="rounded-xl p-3 mb-3" style={{ backgroundColor: '#F9FAFB', border: '1.5px solid #E5E7EB' }}>
               <p className="text-xs font-semibold mb-2" style={{ color: '#0F172A' }}>
                 🎙️ {t('¿El video tiene tu voz/narración?', 'Does the video have your voice/narration?')}
@@ -533,7 +564,6 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
               </div>
             </div>
 
-            {/* Géneros */}
             {genres.length > 0 && (
               <>
                 <div className="flex flex-wrap gap-1.5 mb-2">
@@ -545,10 +575,9 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
                     </button>
                   ))}
                 </div>
-
                 {selectedGenre && (
                   <div className="space-y-1.5 mb-3 max-h-28 overflow-y-auto">
-                    {musicCatalog.filter(t => t.genre === selectedGenre).map(track => (
+                    {musicCatalog.filter(tr => tr.genre === selectedGenre).map(track => (
                       <button key={track.id} onClick={() => setSelectedTrack(selectedTrack?.id === track.id ? null : track)}
                         className="w-full text-left rounded-lg border-2 px-3 py-2 flex items-center justify-between"
                         style={{ borderColor: selectedTrack?.id === track.id ? '#2563EB' : '#E5E7EB' }}>
@@ -561,11 +590,11 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
               </>
             )}
 
-            {/* Preview con video visible */}
             {selectedTrack && selectedVideo && (
               <div className="rounded-xl p-3 mb-3" style={{ backgroundColor: '#F9FAFB', border: '1.5px solid #E5E7EB' }}>
                 <div className="flex items-center gap-3 mb-2">
-                  <video ref={previewVideoRef} src={selectedVideo} playsInline onEnded={() => { setIsPreviewPlaying(false); previewAudioRef.current?.pause(); }}
+                  <video ref={previewVideoRef} src={selectedVideo} playsInline
+                    onEnded={() => { setIsPreviewPlaying(false); previewAudioRef.current?.pause(); }}
                     className="rounded-lg object-cover bg-black flex-shrink-0" style={{ width: '52px', height: '80px' }} />
                   <button onClick={togglePreview} className="w-9 h-9 rounded-full flex items-center justify-center text-white flex-shrink-0"
                     style={{ backgroundColor: '#2563EB' }}>
@@ -586,17 +615,14 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
               </div>
             )}
 
-            {/* TikTok + música */}
             {publishTk && selectedTrack && (
               <div className="rounded-xl p-3 mb-3" style={{ backgroundColor: '#FEF3C7', border: '1.5px solid #FCD34D' }}>
-                <p className="text-xs font-semibold mb-2" style={{ color: '#92400E' }}>
+                <p className="text-xs font-semibold mb-1" style={{ color: '#92400E' }}>
                   ⚠️ {t('Música en TikTok', 'Music on TikTok')}
                 </p>
                 <p className="text-xs mb-2" style={{ color: '#92400E' }}>
-                  {t(
-                    'TikTok puede restringir contenido con música de terceros. Puedes incluirla bajo tu propia responsabilidad.',
-                    'TikTok may restrict content with third-party music. You can include it at your own risk.'
-                  )}
+                  {t('TikTok puede restringir contenido con música de terceros. Incluirla es bajo tu responsabilidad.',
+                    'TikTok may restrict third-party music. Including it is at your own risk.')}
                 </p>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={includeMusicTiktok} onChange={e => setIncludeMusicTiktok(e.target.checked)} className="w-4 h-4 rounded" />
@@ -611,12 +637,12 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
               <button onClick={() => setStep('copy')} className="flex-1 py-2.5 rounded-xl font-bold border-2 text-sm" style={{ borderColor: '#E5E7EB', color: '#0F172A' }}>
                 ← {t('Atrás', 'Back')}
               </button>
-              <button onClick={() => { setSelectedTrack(null); startPublish(); }}
+              <button onClick={() => startPublish(false)}
                 className="flex-1 py-2.5 rounded-xl font-bold border-2 text-sm"
                 style={{ borderColor: '#E5E7EB', color: '#0F172A' }}>
                 {t('Sin música', 'No music')}
               </button>
-              <button onClick={startPublish} disabled={!selectedTrack}
+              <button onClick={() => startPublish(true)} disabled={!selectedTrack}
                 className="flex-1 py-2.5 rounded-xl font-bold text-white text-sm disabled:opacity-40"
                 style={{ backgroundColor: '#2563EB' }}>
                 🎬 {t('Publicar', 'Publish')}
@@ -628,21 +654,11 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
         {/* ── PUBLICANDO ── */}
         {step === 'publishing' && (
           <>
-            <h3 className="text-xl font-bold mb-4 text-center" style={{ color: '#0F172A' }}>
+            <h3 className="text-xl font-bold mb-3 text-center" style={{ color: '#0F172A' }}>
               🚀 {t('Publicando...', 'Publishing...')}
             </h3>
-
-            {/* Barra de progreso */}
-            <div className="mb-4">
-              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-600 transition-all duration-500 rounded-full" style={{ width: `${progress}%` }} />
-              </div>
-              <p className="text-center mt-1.5 text-xs font-semibold" style={{ color: '#1877F2' }}>{progress}%</p>
-            </div>
-
             <p className="text-center text-sm mb-4" style={{ color: '#6B7280' }}>{statusMessage}</p>
 
-            {/* Estado por plataforma */}
             <div className="space-y-2 mb-4">
               {publishFb && (
                 <div className="flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: '#F8FAFC' }}>
@@ -650,12 +666,12 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
                   <div>
                     <p className="text-sm font-bold" style={{ color: '#0F172A' }}>Facebook Reels</p>
                     <p className="text-xs" style={{ color: '#6B7280' }}>
-                      {fbStatus === 'idle' && t('En espera...', 'Waiting...')}
+                      {fbStatus === 'idle'       && t('En espera...', 'Waiting...')}
                       {fbStatus === 'publishing' && t('Enviando a Facebook...', 'Sending to Facebook...')}
                       {fbStatus === 'processing' && t('Facebook procesando el video...', 'Facebook processing video...')}
-                      {fbStatus === 'success' && t('¡Publicado exitosamente!', 'Published successfully!')}
-                      {fbStatus === 'timeout' && t('Tardando más de lo esperado — revisa tu página de Facebook', 'Taking longer than expected — check your Facebook page')}
-                      {fbStatus === 'error' && (fbError || t('Error al publicar', 'Publish error'))}
+                      {fbStatus === 'success'    && t('¡Publicado!', 'Published!')}
+                      {fbStatus === 'timeout'    && t('Tardando más de lo esperado', 'Taking longer than expected')}
+                      {fbStatus === 'error'      && (fbError || t('Error al publicar', 'Publish error'))}
                     </p>
                   </div>
                 </div>
@@ -666,12 +682,12 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
                   <div>
                     <p className="text-sm font-bold" style={{ color: '#0F172A' }}>TikTok</p>
                     <p className="text-xs" style={{ color: '#6B7280' }}>
-                      {tkStatus === 'idle' && t('En espera...', 'Waiting...')}
+                      {tkStatus === 'idle'       && t('En espera...', 'Waiting...')}
                       {tkStatus === 'publishing' && t('Enviando a TikTok...', 'Sending to TikTok...')}
                       {tkStatus === 'processing' && t('TikTok procesando el video...', 'TikTok processing video...')}
-                      {tkStatus === 'success' && t('¡Publicado exitosamente!', 'Published successfully!')}
-                      {tkStatus === 'timeout' && t('Tardando más de lo esperado — revisa tu cuenta de TikTok', 'Taking longer than expected — check your TikTok account')}
-                      {tkStatus === 'error' && (tkError || t('Error al publicar', 'Publish error'))}
+                      {tkStatus === 'success'    && t('¡Publicado!', 'Published!')}
+                      {tkStatus === 'timeout'    && t('Tardando más de lo esperado', 'Taking longer than expected')}
+                      {tkStatus === 'error'      && (tkError || t('Error al publicar', 'Publish error'))}
                     </p>
                   </div>
                 </div>
@@ -696,32 +712,37 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
               </h3>
             </div>
 
-            {/* Resultado por plataforma */}
             <div className="space-y-2 mb-5">
               {publishFb && (
                 <div className="flex items-center gap-3 p-3 rounded-xl border-2"
-                  style={{ borderColor: fbStatus === 'success' ? '#10B981' : fbStatus === 'timeout' ? '#F59E0B' : '#DC2626', backgroundColor: fbStatus === 'success' ? '#F0FDF4' : fbStatus === 'timeout' ? '#FFFBEB' : '#FEF2F2' }}>
+                  style={{
+                    borderColor: fbStatus === 'success' ? '#10B981' : fbStatus === 'timeout' ? '#F59E0B' : '#DC2626',
+                    backgroundColor: fbStatus === 'success' ? '#F0FDF4' : fbStatus === 'timeout' ? '#FFFBEB' : '#FEF2F2',
+                  }}>
                   <span className="text-xl">{platformIcon(fbStatus)}</span>
                   <div>
                     <p className="text-sm font-bold" style={{ color: '#0F172A' }}>Facebook Reels</p>
                     <p className="text-xs" style={{ color: '#6B7280' }}>
                       {fbStatus === 'success' && t('Video publicado en tu página de Facebook', 'Video published to your Facebook page')}
-                      {fbStatus === 'timeout' && t('No se pudo confirmar — revisa tu página de Facebook directamente', "Couldn't confirm — check your Facebook page directly")}
-                      {fbStatus === 'error' && (fbError || t('No se pudo publicar', 'Could not publish'))}
+                      {fbStatus === 'timeout' && t('No se pudo confirmar — revisa tu página de Facebook', "Couldn't confirm — check your Facebook page")}
+                      {fbStatus === 'error'   && (fbError || t('No se pudo publicar', 'Could not publish'))}
                     </p>
                   </div>
                 </div>
               )}
               {publishTk && (
                 <div className="flex items-center gap-3 p-3 rounded-xl border-2"
-                  style={{ borderColor: tkStatus === 'success' ? '#10B981' : tkStatus === 'timeout' ? '#F59E0B' : '#DC2626', backgroundColor: tkStatus === 'success' ? '#F0FDF4' : tkStatus === 'timeout' ? '#FFFBEB' : '#FEF2F2' }}>
+                  style={{
+                    borderColor: tkStatus === 'success' ? '#10B981' : tkStatus === 'timeout' ? '#F59E0B' : '#DC2626',
+                    backgroundColor: tkStatus === 'success' ? '#F0FDF4' : tkStatus === 'timeout' ? '#FFFBEB' : '#FEF2F2',
+                  }}>
                   <span className="text-xl">{platformIcon(tkStatus)}</span>
                   <div>
                     <p className="text-sm font-bold" style={{ color: '#0F172A' }}>TikTok</p>
                     <p className="text-xs" style={{ color: '#6B7280' }}>
                       {tkStatus === 'success' && t('Video publicado en tu cuenta de TikTok', 'Video published to your TikTok account')}
-                      {tkStatus === 'timeout' && t('No se pudo confirmar — revisa tu cuenta de TikTok directamente', "Couldn't confirm — check your TikTok account directly")}
-                      {tkStatus === 'error' && (tkError || t('No se pudo publicar', 'Could not publish'))}
+                      {tkStatus === 'timeout' && t('No se pudo confirmar — revisa tu cuenta de TikTok', "Couldn't confirm — check your TikTok account")}
+                      {tkStatus === 'error'   && (tkError || t('No se pudo publicar', 'Could not publish'))}
                     </p>
                   </div>
                 </div>

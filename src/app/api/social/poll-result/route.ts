@@ -36,8 +36,6 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await res.json();
-    console.log(`📊 Poll [${platform}/${postId}]:`, JSON.stringify(data, null, 2));
-
     const results: any[] = data.data || [];
 
     // Sin resultados aún — sigue procesando

@@ -262,8 +262,16 @@ export default function SocialSettingsContent() {
             ? ['Facebook Business or personal account', 'Admin access to a Facebook Page', 'Authorize the requested permissions']
             : ['Cuenta de Facebook Business o personal', 'Acceso de administrador a una página de Facebook', 'Autorizar los permisos solicitados'],
           howTo: language === 'en'
-            ? ['Go to a property and tap Share', 'Choose "Post to Facebook"', 'Your post will publish automatically']
-            : ['Ve a una propiedad y toca Compartir', 'Elige "Publicar en Facebook"', 'Tu publicación se publicará automáticamente'],
+            ? [
+                'Go to the Dashboard and tap the three dots on the property card',
+                'Choose whether to publish a "Facebook Post" or a "Post video to Social Networks"',
+                'Your content will publish automatically',
+              ]
+            : [
+                'Ve al Dashboard y toca los tres puntitos en la esquina de la ficha de la propiedad',
+                'Elige si deseas "Publicar post de Facebook" o "Publicar video en redes sociales"',
+                'Tu contenido se publicará automáticamente',
+              ],
         }
       : {
           name: 'TikTok',
@@ -279,8 +287,16 @@ export default function SocialSettingsContent() {
             ? ['Active TikTok account', 'Allow video upload permissions', 'Public or private account accepted']
             : ['Cuenta de TikTok activa', 'Permitir permisos de subida de videos', 'Se acepta cuenta pública o privada'],
           howTo: language === 'en'
-            ? ['Go to a property and tap Share', 'Choose "Post to TikTok"', 'Your video will publish automatically']
-            : ['Ve a una propiedad y toca Compartir', 'Elige "Publicar en TikTok"', 'Tu video se publicará automáticamente'],
+            ? [
+                'Go to the Dashboard and tap the three dots on the property card',
+                'Choose the "Post video to Social Networks" option',
+                'Your video will publish automatically',
+              ]
+            : [
+                'Ve al Dashboard y toca los tres puntitos en la esquina de la ficha de la propiedad',
+                'Elige la opción "Publicar video en redes sociales"',
+                'Tu video se publicará automáticamente',
+              ],
         };
 
     return (

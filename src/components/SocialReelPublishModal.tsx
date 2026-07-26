@@ -400,7 +400,7 @@ export default function SocialReelPublishModal({ isOpen, onClose, propertyId, vi
 
             <div className="flex gap-2">
               <button
-                onClick={() => setStep(videoUrls.length > 1 ? 'select-video' : 'select-platforms')}
+                onClick={() => videoUrls.length > 1 ? setStep('select-video') : onClose()}
                 className="flex-1 py-2.5 rounded-xl font-bold border-2 text-sm"
                 style={{ borderColor: '#E5E7EB', color: '#0F172A' }}
               >

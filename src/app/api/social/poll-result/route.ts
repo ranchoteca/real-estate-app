@@ -23,8 +23,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'postId y platform requeridos' }, { status: 400 });
     }
 
+    // ⚠️ Endpoint correcto: social-post-results es un recurso propio,
+    // filtrado por query param post_id — NO una sub-ruta de social-posts.
     const res = await fetch(
-      `https://api.postforme.dev/v1/social-posts/${postId}/results`,
+      `https://api.postforme.dev/v1/social-post-results?post_id=${postId}`,
       { headers: { Authorization: `Bearer ${process.env.POSTFORME_API_KEY}` } }
     );
 
@@ -50,7 +52,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ status: 'processing' });
     }
 
-    // Éxito — guardar registro en BD
+    // Éxito — guardar registro en BD (igual que antes: postId de Post For Me)
     if (result.success === true) {
       if (agentId && propertyId) {
         if (platform === 'facebook') {

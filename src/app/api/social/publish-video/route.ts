@@ -30,6 +30,7 @@ async function pollPostResult(
       if (!res.ok) continue;
 
       const data = await res.json();
+      console.log('📊 Poll result raw:', JSON.stringify(data, null, 2));
       const results: any[] = data.data || [];
 
       if (results.length === 0) continue;

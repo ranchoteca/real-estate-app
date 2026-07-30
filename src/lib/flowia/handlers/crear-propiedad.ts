@@ -143,35 +143,38 @@ export async function handleMediaEnDraft(
 
       const { publicUrl } = await decryptWasenderMedia(messageId, mediaInfo.messageObject);
 
-      // Check current photo count before uploading to enforce PHOTO_MAX.
-      // This read is safe here — the atomic RPC below handles the actual write.
-      const draft = await getDraft(agentId);
-      const currentCount = draft?.photos?.length || 0;
-
-      if (currentCount >= PHOTO_MAX) {
-        return `Ya tienes ${PHOTO_MAX} fotos que es el máximo permitido. ✅`;
-      }
-
+      // Upload first — if the RPC rejects (already at limit or duplicate), the file
+      // will be cleaned up by the daily orphan cleanup job.
       const tempSlug = `draft-${agentId.substring(0, 8)}`;
-      const supabaseUrl = await uploadPhotoFromUrl(agentId, tempSlug, publicUrl, currentCount);
+      // Use timestamp as index since we don't know the current count yet (parallel webhooks)
+      const tempIndex = Date.now();
+      const supabaseUrl = await uploadPhotoFromUrl(agentId, tempSlug, publicUrl, tempIndex);
 
-      // Atomic append via Supabase RPC — avoids race condition when multiple gallery
-      // webhooks arrive simultaneously and would otherwise overwrite each other's arrays.
-      const { error: appendError } = await supabaseAdmin.rpc('draft_append_photo', {
+      // v2 RPC: atomic append + dedup + limit enforcement + one-time sentinel.
+      // Returns { appended, photo_count, trigger_summary }.
+      // trigger_summary is true ONLY for the one webhook that pushed count to PHOTO_MAX.
+      const { data: rpcResult, error: appendError } = await supabaseAdmin.rpc('draft_append_photo', {
         p_agent_id: agentId,
         p_photo_url: supabaseUrl,
         p_media_id: messageId,
+        p_photo_max: PHOTO_MAX,
       });
 
       if (appendError) {
-        console.error('Error appending photo to draft:', appendError);
+        console.error('Error in draft_append_photo RPC:', appendError);
         return '❌ Tuve un problema guardando esa foto. Intenta enviarla de nuevo.';
       }
 
-      // Check if we just hit the photo limit — signal auto-proceed to summary
-      const updatedDraft = await getDraft(agentId);
-      if ((updatedDraft?.photos?.length || 0) >= PHOTO_MAX) {
-        // Return sentinel so route.ts knows to auto-trigger LISTO flow
+      const { appended, photo_count, trigger_summary } = rpcResult as {
+        appended: boolean;
+        photo_count: number;
+        trigger_summary: boolean;
+      };
+
+      console.log(`[media] photo append: appended=${appended} count=${photo_count} trigger=${trigger_summary}`);
+
+      if (trigger_summary) {
+        // This is the one webhook that hit PHOTO_MAX — signal route.ts to auto-trigger summary
         return '__PHOTO_MAX_REACHED__';
       }
 

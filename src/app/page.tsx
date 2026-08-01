@@ -450,9 +450,7 @@ export default function LandingPage() {
             {c.heroSubtitle}
           </p>
           <p className="text-base sm:text-lg mb-10 max-w-3xl mx-auto leading-relaxed" style={{ color: '#DBEAFE' }}>
-            {c.heroBody.replace('FlowEstateAI', '')}
-            <span className="font-bold text-white">FlowEstateAI</span>
-            {c.heroBody.split('FlowEstateAI')[1]}
+            {c.heroBody}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">

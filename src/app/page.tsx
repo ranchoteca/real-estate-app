@@ -13,7 +13,7 @@ import MuxPlayer from '@mux/mux-player-react';
 const COPY = {
   es: {
     // Hero
-    heroTitle: '¿Tu celular está a punto de explotar con fotos y videos de propiedades?',
+    heroTitle: '¿Tu móvil está a punto de explotar con fotos y videos de propiedades?',
     heroSubtitle: 'Buscando info por horas para un cliente, propiedades regadas en chats, fotos sin orden... Ya no más.',
     heroBody: 'Con FlowEstateAI creas fichas profesionales hablando desde tu celular, publicas en Facebook en segundos y compartes tu portafolio con un link. Todo lo que necesitas, en un solo lugar.',
     heroCta: '🚀 Comenzar Gratis',
@@ -446,11 +446,15 @@ export default function LandingPage() {
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-6 tracking-tight text-white leading-tight">
             {c.heroTitle}
           </h1>
-          <p className="text-lg sm:text-xl mb-6 max-w-3xl mx-auto leading-relaxed" style={{ color: '#BFDBFE' }}>
+          <p className="text-xl sm:text-2xl mb-6 max-w-3xl mx-auto leading-relaxed font-semibold" style={{ color: '#FFFFFF' }}>
             {c.heroSubtitle}
           </p>
           <p className="text-base sm:text-lg mb-10 max-w-3xl mx-auto leading-relaxed" style={{ color: '#DBEAFE' }}>
-            {c.heroBody}
+            {c.heroBody.split('FlowEstateAI').map((part, i) =>
+              i === 0
+                ? <span key={i}>{part}<strong className="font-bold text-white">FlowEstateAI</strong></span>
+                : <span key={i}>{part}</span>
+            )}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">

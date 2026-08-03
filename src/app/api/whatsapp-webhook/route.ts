@@ -17,12 +17,14 @@ import {
   handleMediaEnDraft,
   handleListo,
   handleConfirmacion,
+  handleQueFalta,
   getDraft,
   clearDraft,
   esConfirmacionSi,
   esComandoListo,
   esIntentCancelar,
   esIntentCrearPropiedad,
+  esConsultaQueFalta,
 } from '@/lib/flowia/handlers/crear-propiedad';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -60,7 +62,6 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Identify agent ─────────────────────────────────────────────────────────
-    // Accept phone with or without leading '+' since Wasender may omit it
     const searchNumberWithPlus = cleanNumber.startsWith('+') ? cleanNumber : `+${cleanNumber}`;
     const { data: agent, error } = await supabaseAdmin
       .from('agents')
@@ -85,9 +86,8 @@ export async function POST(req: NextRequest) {
       const mensajeBienvenida = buildWelcomeMessage(primerNombre);
       await sendQueued(agent.id, cleanNumber, mensajeBienvenida);
       await saveMessage(agent.id, 'assistant', mensajeBienvenida);
-      // Save the incoming message and return — the welcome IS the response for
-      // the first message of a session. This also prevents the double-welcome bug
-      // where Wasender retries the webhook and OpenAI responds a second time.
+      // Save incoming message and return — welcome IS the response for first message.
+      // Also prevents double-welcome bug from Wasender webhook retries.
       await saveMessage(agent.id, 'user', messageText);
       return NextResponse.json({ success: true, status: 'new_session_welcomed' });
     }
@@ -109,12 +109,11 @@ export async function POST(req: NextRequest) {
 
     // ══════════════════════════════════════════════════════════════════════════
     // MODE: CREAR_PROPIEDAD
-    // The agent is in the middle of creating a property. All messages are routed
-    // here until the flow completes or the agent cancels.
+    // All messages routed here until flow completes or agent cancels.
     // ══════════════════════════════════════════════════════════════════════════
     if (agentMode === 'CREAR_PROPIEDAD') {
 
-      // 1. Cancellation — agent wants to exit the flow at any point
+      // 1. Cancellation — agent wants to exit at any point
       if (esIntentCancelar(resolvedText)) {
         await clearDraft(agent.id);
         const respuesta = `Entendido ${primerNombre}, cancelé la creación de la propiedad. ¿En qué más te puedo ayudar?`;
@@ -129,8 +128,8 @@ export async function POST(req: NextRequest) {
         const respuesta = await handleMediaEnDraft(agent.id, cleanNumber, messageId, rawMessage);
 
         if (respuesta === '__PHOTO_MAX_REACHED__') {
-          // Agent just uploaded the last allowed photo — auto-proceed to summary
-          // without requiring another LISTO. No extra step needed from the agent.
+          // Only one webhook fires this sentinel — the one that pushed count to PHOTO_MAX.
+          // Auto-proceed to summary without requiring another LISTO from the agent.
           await handleListo(agent.id, cleanNumber, primerNombre, draftCreatedAt!);
           return NextResponse.json({ success: true, status: 'photo_max_auto_listo' });
         }
@@ -138,7 +137,7 @@ export async function POST(req: NextRequest) {
         if (respuesta) {
           // Audio transcriptions are already saved as 'user' inside handleMediaEnDraft.
           // Skip assistant save for audio to prevent double-counting in history.
-          const isAudioTranscription = respuesta.startsWith('🎤️');
+          const isAudioTranscription = respuesta.startsWith('🎙️');
           if (!isAudioTranscription) {
             await saveMessage(agent.id, 'assistant', respuesta);
           }
@@ -147,13 +146,18 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, status: 'media_processed_in_draft' });
       }
 
-      // 3. LISTO command — validate fields and show confirmation summary
+      // 3. LISTO command — block if summary already auto-triggered to prevent duplicates
       if (esComandoListo(resolvedText)) {
+        const draftCheck = await getDraft(agent.id);
+        if (draftCheck?.summary_triggered) {
+          // Summary already fired automatically via PHOTO_MAX — ignore this manual LISTO
+          return NextResponse.json({ success: true, status: 'listo_ignored_already_triggered' });
+        }
         await handleListo(agent.id, cleanNumber, primerNombre, draftCreatedAt!);
         return NextResponse.json({ success: true, status: 'listo_processed' });
       }
 
-      // 4. SÍ confirmation after the summary — trigger background property creation
+      // 4. SÍ confirmation after the summary — create the property
       const draft = await getDraft(agent.id);
       const esperandoConfirmacion = draft && draft.title && draft.description;
       if (esperandoConfirmacion && esConfirmacionSi(resolvedText)) {
@@ -161,8 +165,23 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, status: 'property_creation_started' });
       }
 
-      // 5. Free-form text — acknowledge and save to history so LISTO extractor sees it
-      const ack = `📝 Recibido. Sigue enviando la información de la propiedad. Cuando termines, escribe *LISTO*.`;
+      // 5. "¿Qué me falta?" — respond with pending fields without triggering LISTO
+      if (esConsultaQueFalta(resolvedText)) {
+        const draftActual = await getDraft(agent.id);
+        const respuesta = await handleQueFalta(agent.id, cleanNumber, draftActual, draftCreatedAt!);
+        await saveMessage(agent.id, 'assistant', respuesta);
+        await sendQueued(agent.id, cleanNumber, respuesta);
+        return NextResponse.json({ success: true, status: 'que_falta_responded' });
+      }
+
+      // 6. Empty message (media webhook with no text body) — ignore silently
+      // to avoid unnecessary Wasender calls that cause 429 errors
+      if (!messageText || messageText.trim() === '') {
+        return NextResponse.json({ success: true, status: 'draft_empty_message_ignored' });
+      }
+
+      // 7. Free-form text — acknowledge and save to history so LISTO extractor sees it
+      const ack = `📝 Recibido. Sigue enviando la información de la propiedad. Cuando termines, escribe *LISTO*.\n_Si no sabes qué falta, escríbeme *"¿qué me falta?"*_`;
       await saveMessage(agent.id, 'assistant', ack);
       await sendQueued(agent.id, cleanNumber, ack);
       return NextResponse.json({ success: true, status: 'draft_text_acknowledged' });
@@ -178,7 +197,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, status: 'crear_propiedad_initiated' });
     }
 
-    // PDF shortcut: if the bot just offered a PDF and the agent confirms, send it without OpenAI
+    // PDF shortcut: if bot offered a PDF and agent confirms, send without OpenAI
     const ultimoMensajeAsistente = history.length > 0 ? history[history.length - 1] : null;
     const ofrecioPdf = ultimoMensajeAsistente?.role === 'assistant'
       && ultimoMensajeAsistente.content?.includes('¿Te gustaría que te envíe un PDF');

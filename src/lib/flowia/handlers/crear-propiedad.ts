@@ -28,6 +28,7 @@ export interface PropertyDraft {
   photos: string[];               // Supabase Storage URLs already uploaded
   pending_photos: number;         // photo count for tracking
   processed_media_ids?: string[]; // messageIds already handled (prevents gallery race conditions)
+  summary_triggered?: boolean;    // true once auto-summary fires at PHOTO_MAX
 }
 
 // ─── Draft CRUD ───────────────────────────────────────────────────────────────
@@ -104,11 +105,11 @@ Puedes enviarme la información en el orden que prefieras — *por escrito o por
 🌍 *Provincia*, *ciudad* y *dirección*
 📍 *Link de Google Maps* de la ubicación
 📝 *Descripción* de la propiedad
-🌐 *Idioma* (Español o Inglés)
 🖼️ *Fotos* (mínimo ${PHOTO_MIN}, máximo ${PHOTO_MAX} imágenes)
 
 _Puedes enviar cada dato por separado o todo junto, en el orden que quieras._
 _Para las fotos, envíalas en grupos de máximo 5 a la vez para que se procesen correctamente._
+_Si en algún momento no sabes qué datos faltan, escríbeme *"¿qué me falta?"* y te lo digo._
 Cuando termines, escribe *LISTO* y yo verificaré todo antes de crear la propiedad.`;
 
   await sendQueued(agentId, cleanNumber, mensaje);
@@ -128,7 +129,6 @@ export async function handleMediaEnDraft(
   if (mediaInfo.type === 'image') {
     try {
       // Dedup by messageId — WhatsApp galleries fire multiple webhooks near-simultaneously.
-      // Using messageId (not messageBody) avoids filtering them as text duplicates.
       const { data: draftRaw } = await supabaseAdmin
         .from('agent_property_draft')
         .select('processed_media_ids, photos')
@@ -143,16 +143,12 @@ export async function handleMediaEnDraft(
 
       const { publicUrl } = await decryptWasenderMedia(messageId, mediaInfo.messageObject);
 
-      // Upload first — if the RPC rejects (already at limit or duplicate), the file
-      // will be cleaned up by the daily orphan cleanup job.
+      // Upload first — rejected photos are cleaned up by the daily orphan cleanup job
       const tempSlug = `draft-${agentId.substring(0, 8)}`;
-      // Use timestamp as index since we don't know the current count yet (parallel webhooks)
       const tempIndex = Date.now();
       const supabaseUrl = await uploadPhotoFromUrl(agentId, tempSlug, publicUrl, tempIndex);
 
-      // v2 RPC: atomic append + dedup + limit enforcement + one-time sentinel.
-      // Returns { appended, photo_count, trigger_summary }.
-      // trigger_summary is true ONLY for the one webhook that pushed count to PHOTO_MAX.
+      // v3 RPC: atomic append + dedup + limit enforcement + one-time sentinel
       const { data: rpcResult, error: appendError } = await supabaseAdmin.rpc('draft_append_photo', {
         p_agent_id: agentId,
         p_photo_url: supabaseUrl,
@@ -174,11 +170,11 @@ export async function handleMediaEnDraft(
       console.log(`[media] photo append: appended=${appended} count=${photo_count} trigger=${trigger_summary}`);
 
       if (trigger_summary) {
-        // This is the one webhook that hit PHOTO_MAX — signal route.ts to auto-trigger summary
+        // Only one webhook reaches here — the one that pushed count to PHOTO_MAX
         return '__PHOTO_MAX_REACHED__';
       }
 
-      // No per-photo response — report total at LISTO to avoid 429 on gallery uploads.
+      // No per-photo response — report total at LISTO to avoid 429 on gallery uploads
       return null;
     } catch (error) {
       console.error('Error processing image in draft:', error);
@@ -191,8 +187,8 @@ export async function handleMediaEnDraft(
       const { publicUrl } = await decryptWasenderMedia(messageId, mediaInfo.messageObject);
       const transcripcion = await transcribeAudioFromUrl(publicUrl);
 
-      // Save transcription as a user message so the extractor sees it in history.
-      // Without this, audio content is lost when LISTO is processed.
+      // Save raw transcription as 'user' so the extractor treats it as agent input.
+      // route.ts saves the display string (with 🎙️ prefix) as 'assistant' separately.
       await supabaseAdmin
         .from('chat_messages')
         .insert({ agent_id: agentId, role: 'user', content: transcripcion });
@@ -220,22 +216,21 @@ export async function handleListo(
   // Hard requirement: at least PHOTO_MIN photos before proceeding
   const photoCount = draft?.photos?.length || 0;
   if (photoCount < PHOTO_MIN) {
-    await sendQueued(agentId, 
+    await sendQueued(agentId,
       cleanNumber,
       `⚠️ Aún necesito al menos *${PHOTO_MIN} fotos* para crear la propiedad. Actualmente tienes *${photoCount}*. Envíalas y escribe LISTO de nuevo.`
     );
     return;
   }
 
-  await sendQueued(agentId, cleanNumber, `⏳ Analizando la información que me enviaste... _(${photoCount} foto${photoCount !== 1 ? 's' : ''} recibida${photoCount !== 1 ? 's' : ''})_`);
+  await sendQueued(agentId, cleanNumber,
+    `⏳ Analizando la información que me enviaste... _(${photoCount} foto${photoCount !== 1 ? 's' : ''} recibida${photoCount !== 1 ? 's' : ''})_ — Espera un momento, ya casi 📋`
+  );
 
   // Load ALL messages since the draft was created — no limit, no time window.
-  // This guarantees the extractor sees every audio transcription, free-form text,
-  // and Google Maps link sent during this session regardless of message count.
   const history = await loadDraftHistory(agentId, draftCreatedAt);
 
   // Seed the extractor with data already confirmed in previous LISTO rounds.
-  // This prevents losing fields when the agent sends corrections and writes LISTO again.
   const draftActual = {
     title: draft.title || null,
     description: draft.description || null,
@@ -250,8 +245,6 @@ export async function handleListo(
     maps_url: draft.maps_url || null,
   };
 
-  // Extract all fields from chat history using GPT-4o at temperature 0 for consistency.
-  // The prompt merges previously confirmed draft data with new messages from history.
   const extractionPrompt = `Eres un extractor de datos para fichas de propiedades inmobiliarias.
 Analiza el historial de conversación y extrae los campos de la propiedad.
 Devuelve ÚNICAMENTE un JSON válido sin texto adicional ni backticks.
@@ -264,7 +257,7 @@ Campos a extraer (combinando lo anterior con lo nuevo del historial):
   "title": "string o null",
   "description": "string o null",
   "price": number o null,
-  "currency_id": "839f44d5-bee2-4bc1-b5da-50364f14c681 para USD o ec8528a3-d504-47fa-97db-2c07716d8b47 para CRC, o null",
+  "currency_id": "839f44d5-bee2-4bc1-b5da-50364f14c681 para USD o ec8528a3-d504-47fa-50364f14c681 para CRC, o null",
   "city": "string o null",
   "address": "string o null",
   "state_province": "string o null (provincia de Costa Rica)",
@@ -275,8 +268,9 @@ Campos a extraer (combinando lo anterior con lo nuevo del historial):
   "campos_faltantes": ["lista de campos obligatorios que aún faltan"]
 }
 
-Campos obligatorios: title, description, price, currency_id, city, property_type, listing_type, language.
-El link de Google Maps (maps_url) también es obligatorio — agrégalo a campos_faltantes si no aparece en el historial.
+Campos obligatorios: title, description, price, currency_id, city, property_type, listing_type, maps_url.
+El idioma (language) se infiere automáticamente del texto de la descripción — NUNCA lo incluyas en campos_faltantes.
+Si la descripción está en español, usa "es". Si está en inglés, usa "en".
 state_province y address son opcionales pero deseables.`;
 
   const messagesForExtraction = [
@@ -299,7 +293,7 @@ state_province y address son opcionales pero deseables.`;
     extractedData = JSON.parse(clean);
   } catch (error) {
     console.error('Error extracting property data:', error);
-    await sendQueued(agentId, 
+    await sendQueued(agentId,
       cleanNumber,
       '❌ Tuve un problema analizando la información. Por favor intenta de nuevo o escribe los datos más claramente.'
     );
@@ -309,10 +303,10 @@ state_province y address son opcionales pero deseables.`;
   // If required fields are still missing, ask for them without closing the mode
   const camposFaltantes: string[] = extractedData.campos_faltantes || [];
   if (camposFaltantes.length > 0) {
-    const lista = camposFaltantes.map(c => `• ${c}`).join('\n');
-    await sendQueued(agentId, 
+    const lista = camposFaltantes.map((c: string) => `• ${c}`).join('\n');
+    await sendQueued(agentId,
       cleanNumber,
-      `⚠️ Faltan algunos datos para poder crear la propiedad:\n\n${lista}\n\nEnvíalos y escribe *LISTO* de nuevo cuando estés listo.`
+      `⚠️ Faltan algunos datos para poder crear la propiedad:\n\n${lista}\n\nEnvíalos y escribe *LISTO* de nuevo cuando estés listo.\n_Si tienes dudas sobre qué falta, escríbeme *"¿qué me falta?"*_`
     );
     return;
   }
@@ -328,11 +322,11 @@ state_province y address son opcionales pero deseables.`;
     state_province: extractedData.state_province,
     property_type: extractedData.property_type,
     listing_type: extractedData.listing_type,
-    language: extractedData.language,
+    language: extractedData.language || 'es',
     maps_url: extractedData.maps_url,
   });
 
-  // Build confirmation summary for the agent to review before creating
+  // Build confirmation summary
   const divisa = extractedData.currency_id === '839f44d5-bee2-4bc1-b5da-50364f14c681' ? 'USD' : 'CRC';
   const tipoMap: Record<string, string> = {
     house: 'Casa', apartment: 'Apartamento', land: 'Terreno/Finca',
@@ -373,18 +367,16 @@ export async function handleConfirmacion(
     return;
   }
 
-  // Send "wait" message immediately so the agent knows we're working
   await sendQueued(agentId, cleanNumber, `⏳ Perfecto ${primerNombre}, creando tu propiedad... Dame un momento.`);
 
-  // Close the mode before creating — agent can use the bot normally if creation is slow
+  // Close the mode before creating so the agent can use the bot normally
   await clearDraft(agentId);
 
-  // Create synchronously in the same webhook — no setImmediate (doesn't survive
-  // Vercel serverless function termination). Success/error message sent here directly.
+  // Synchronous creation in the same webhook — no setImmediate (unreliable in Vercel serverless)
   await crearPropiedad(agentId, cleanNumber, draft);
 }
 
-// ─── Property creation (synchronous) ────────────────────────────────────────
+// ─── Property creation (synchronous) ─────────────────────────────────────────
 
 async function crearPropiedad(
   agentId: string,
@@ -392,7 +384,6 @@ async function crearPropiedad(
   draft: PropertyDraft
 ) {
   try {
-    // Normalize title to produce clean slugs (removes accents before lowercasing)
     const baseSlug = (draft.title || 'propiedad')
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
@@ -401,8 +392,6 @@ async function crearPropiedad(
       .replace(/^-+|-+$/g, '');
     const slug = `${baseSlug}-${Date.now().toString(36)}`;
 
-    // Insert directly via supabaseAdmin — same pattern as all other webhook DB calls,
-    // no need for an HTTP roundtrip to /api/property/create
     const { data: property, error: propertyError } = await supabaseAdmin
       .from('properties')
       .insert({
@@ -421,7 +410,6 @@ async function crearPropiedad(
         longitude: draft.longitude || null,
         plus_code: null,
         photos: draft.photos,
-        // 'pending' maps to the "Pendiente" status in the app (draft/under review)
         status: 'pending',
         slug,
         show_map: !!draft.maps_url,
@@ -437,17 +425,14 @@ async function crearPropiedad(
     const editUrl = `${BASE_DOMAIN}/dashboard/properties/${property.slug}/edit`;
     const shareUrl = `${BASE_DOMAIN}/p/${property.slug}`;
 
-    await sendQueued(agentId, 
+    await sendQueued(agentId,
       cleanNumber,
       `✅ ¡Tu propiedad fue creada exitosamente!\n\n*${draft.title}*\n\n✏️ *Editar y agregar videos:*\n${editUrl}\n\n🔗 *Link para compartir con clientes:*\n${shareUrl}`
     );
   } catch (error: any) {
-    console.error('Error creating property in background:', error);
-
-    // Keep the draft with mode_active=false so last_error is available for debugging
+    console.error('Error creating property:', error);
     await failDraft(agentId, error.message);
-
-    await sendQueued(agentId, 
+    await sendQueued(agentId,
       cleanNumber,
       `❌ Lo siento, ocurrió un error al crear la propiedad.\n\nPor favor intenta de nuevo escribiendo *"quiero crear una propiedad"*.`
     );
@@ -456,22 +441,53 @@ async function crearPropiedad(
 
 // ─── Intent / command detection helpers ──────────────────────────────────────
 
-// Matches common affirmative replies after the summary confirmation step
 export function esConfirmacionSi(text: string): boolean {
   return /^(s[ií]|sí|si|dale|correcto|exacto|ok|okay|va|confirmo|confirmar|así es|todo bien|todo correcto)\.?!?$/i.test(text.trim());
 }
 
-// Matches the LISTO command that triggers field extraction
 export function esComandoListo(text: string): boolean {
   return /^listo\.?!?$/i.test(text.trim());
 }
 
-// Matches cancellation intent so the agent can exit the mode at any time
 export function esIntentCancelar(text: string): boolean {
   return /no quiero|cancelar|cancela|salir|olvida|olvidalo|olv[ií]dalo|dejalo|d[eé]jalo|para|abort/i.test(text.trim());
 }
 
-// Matches property creation intent from the normal conversation mode
 export function esIntentCrearPropiedad(text: string): boolean {
   return /crear\s+(una\s+)?propiedad|nueva\s+propiedad|agregar\s+(una\s+)?propiedad|subir\s+(una\s+)?propiedad|añadir\s+(una\s+)?propiedad/i.test(text);
+}
+
+// Detects when agent asks what data is still missing
+export function esConsultaQueFalta(text: string): boolean {
+  return /qu[eé]\s+(me\s+)?falta|qu[eé]\s+datos\s+faltan|qu[eé]\s+falta\s+por|qu[eé]\s+me\s+hace\s+falta|falta\s+algo|qu[eé]\s+necesitas/i.test(text.trim());
+}
+
+// Responds to "¿qué me falta?" using current draft state — no LISTO extraction needed
+export async function handleQueFalta(
+  agentId: string,
+  cleanNumber: string,
+  draft: PropertyDraft | null,
+  draftCreatedAt: string
+): Promise<string> {
+  const faltantes: string[] = [];
+
+  if (!draft?.title)         faltantes.push('📌 Título de la propiedad');
+  if (!draft?.description)   faltantes.push('📝 Descripción');
+  if (!draft?.price)         faltantes.push('💰 Precio');
+  if (!draft?.currency_id)   faltantes.push('💱 Divisa (USD o CRC)');
+  if (!draft?.city)          faltantes.push('🌆 Ciudad');
+  if (!draft?.property_type) faltantes.push('🏷️ Tipo de propiedad');
+  if (!draft?.listing_type)  faltantes.push('📋 Tipo de negocio (Venta o Alquiler)');
+  // language is inferred from description — never shown as missing
+  if (!draft?.maps_url)      faltantes.push('📍 Link de Google Maps');
+
+  const photoCount = draft?.photos?.length || 0;
+  if (photoCount < PHOTO_MIN) faltantes.push(`🖼️ Fotos (tienes ${photoCount}, necesito al menos ${PHOTO_MIN})`);
+
+  if (faltantes.length === 0) {
+    return `✅ Ya tienes todo lo necesario. Escribe *LISTO* cuando quieras que revise la información.`;
+  }
+
+  const lista = faltantes.join('\n');
+  return `📋 Aún me faltan estos datos:\n\n${lista}\n\nEnvíalos cuando quieras y escribe *LISTO* al terminar.`;
 }

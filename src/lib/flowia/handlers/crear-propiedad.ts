@@ -384,8 +384,7 @@ ${JSON.stringify(customFieldsForExtraction.map(cf => ({ key: cf.field_key, name:
       // Ask for missing custom fields without closing the mode
       const lista = customFaltantes
         .map(cf => `${cf.icon || '🏷️'} *${cf.field_name}*${cf.placeholder ? ` _(ej: ${cf.placeholder})_` : ''}`)
-        .join('
-');
+        .join('\n');
 
       await sendQueued(agentId,
         cleanNumber,

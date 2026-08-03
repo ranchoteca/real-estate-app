@@ -29,6 +29,7 @@ export interface PropertyDraft {
   pending_photos: number;         // photo count for tracking
   processed_media_ids?: string[]; // messageIds already handled (prevents gallery race conditions)
   summary_triggered?: boolean;    // true once auto-summary fires at PHOTO_MAX
+  custom_fields_data?: Record<string, string | number>; // values for agent's custom fields
 }
 
 // ─── Draft CRUD ───────────────────────────────────────────────────────────────
@@ -311,7 +312,93 @@ state_province y address son opcionales pero deseables.`;
     return;
   }
 
-  // Persist extracted fields to draft so they survive subsequent LISTO rounds
+  // ── Custom fields: extract values from history ───────────────────────────────
+  // Run a second LLM pass to extract values for this agent's custom fields.
+  // Only runs if property_type and listing_type were successfully extracted.
+  let customFieldsForExtraction: Array<{field_key: string, field_name: string, field_type: string}> = [];
+  if (extractedData?.property_type && extractedData?.listing_type) {
+    const { data: cfForExtraction } = await supabaseAdmin
+      .from('custom_fields')
+      .select('field_key, field_name, field_type')
+      .eq('agent_id', agentId)
+      .eq('property_type', extractedData.property_type)
+      .eq('listing_type', extractedData.listing_type)
+      .order('display_order', { ascending: true });
+    customFieldsForExtraction = cfForExtraction || [];
+  }
+
+  if (customFieldsForExtraction.length > 0) {
+    const cfPrompt = `Eres un extractor de valores para campos personalizados de propiedades inmobiliarias.
+Analiza el historial y extrae los valores para estos campos específicos.
+Devuelve ÚNICAMENTE un JSON válido sin texto adicional ni backticks.
+Si un valor no se menciona en el historial, usa null.
+
+Campos a extraer:
+${JSON.stringify(customFieldsForExtraction.map(cf => ({ key: cf.field_key, name: cf.field_name, type: cf.field_type })), null, 2)}`;
+
+    try {
+      const cfCompletion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: cfPrompt },
+          ...history.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+          { role: 'user', content: 'Extrae los valores de los campos personalizados del historial.' },
+        ],
+        temperature: 0,
+      });
+      const cfRaw = cfCompletion.choices[0].message.content || '{}';
+      const cfValues = JSON.parse(cfRaw.replace(/```json|```/g, '').trim());
+      // Merge into draftCustomFields — only overwrite if a new non-null value was found
+      Object.entries(cfValues).forEach(([key, val]) => {
+        if (val !== null && val !== undefined) {
+          draftCustomFields[key] = val as string | number;
+        }
+      });
+    } catch (err) {
+      console.error('Error extracting custom field values:', err);
+      // Non-fatal — continue without custom field values
+    }
+  }
+
+  // ── Custom fields check ──────────────────────────────────────────────────────
+  // Query agent's custom fields for this property_type + listing_type combination.
+  // If any exist and weren't mentioned by the agent, ask for them before showing summary.
+  const { data: customFields } = await supabaseAdmin
+    .from('custom_fields')
+    .select('field_key, field_name, field_type, placeholder, icon')
+    .eq('agent_id', agentId)
+    .eq('property_type', extractedData.property_type)
+    .eq('listing_type', extractedData.listing_type)
+    .order('display_order', { ascending: true });
+
+  // Get custom field values already stored in draft (from previous rounds)
+  const draftCustomFields: Record<string, string | number> = draft.custom_fields_data || {};
+
+  if (customFields && customFields.length > 0) {
+    // Check which custom fields are still missing values
+    const customFaltantes = customFields.filter(
+      cf => !draftCustomFields[cf.field_key] && draftCustomFields[cf.field_key] !== 0
+    );
+
+    if (customFaltantes.length > 0) {
+      // Ask for missing custom fields without closing the mode
+      const lista = customFaltantes
+        .map(cf => `${cf.icon || '🏷️'} *${cf.field_name}*${cf.placeholder ? ` _(ej: ${cf.placeholder})_` : ''}`)
+        .join('\n');
+
+      await sendQueued(agentId,
+        cleanNumber,
+        `📋 Esta propiedad tiene campos adicionales que necesito completar:
+
+${lista}
+
+Envíalos y escribe *LISTO* de nuevo cuando estés listo.`
+      );
+      return;
+    }
+  }
+
+  // ── Persist extracted fields to draft so they survive subsequent LISTO rounds ──
   await upsertDraft(agentId, {
     title: extractedData.title,
     description: extractedData.description,
@@ -324,6 +411,7 @@ state_province y address son opcionales pero deseables.`;
     listing_type: extractedData.listing_type,
     language: extractedData.language || 'es',
     maps_url: extractedData.maps_url,
+    custom_fields_data: draftCustomFields,
   });
 
   // Build confirmation summary
@@ -333,6 +421,18 @@ state_province y address son opcionales pero deseables.`;
     commercial: 'Local Comercial', other: 'Otro',
   };
   const negocioMap: Record<string, string> = { sale: 'Venta', rent: 'Alquiler' };
+
+  // Build custom fields section for summary display
+  let customFieldsResumen = '';
+  if (customFields && customFields.length > 0) {
+    const lineas = customFields
+      .map(cf => {
+        const valor = draftCustomFields[cf.field_key];
+        return `${cf.icon || '🏷️'} *${cf.field_name}:* ${valor ?? 'No indicado'}`;
+      })
+      .join('\n');
+    customFieldsResumen = '\n' + lineas;
+  }
 
   const resumen = `✅ *Resumen de la propiedad a crear:*
 
@@ -410,10 +510,10 @@ async function crearPropiedad(
         longitude: draft.longitude || null,
         plus_code: null,
         photos: draft.photos,
-        status: 'pending',
+        status: 'active',
         slug,
         show_map: !!draft.maps_url,
-        custom_fields_data: {},
+        custom_fields_data: draft.custom_fields_data || {},
       })
       .select('id, slug')
       .single();

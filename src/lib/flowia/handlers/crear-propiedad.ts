@@ -341,7 +341,7 @@ ${JSON.stringify(customFieldsForExtraction.map(cf => ({ key: cf.field_key, name:
         model: 'gpt-4o',
         messages: [
           { role: 'system', content: cfPrompt },
-          ...history.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+          ...history.map(msg => ({ role: msg.role as 'user' | 'assistant', content: msg.content })),
           { role: 'user', content: 'Extrae los valores de los campos personalizados del historial.' },
         ],
         temperature: 0,
@@ -385,6 +385,9 @@ ${JSON.stringify(customFieldsForExtraction.map(cf => ({ key: cf.field_key, name:
       const lista = customFaltantes
         .map(cf => `${cf.icon || '🏷️'} *${cf.field_name}*${cf.placeholder ? ` _(ej: ${cf.placeholder})_` : ''}`)
         .join('\n');
+
+      // Reset summary_triggered so the agent can write LISTO again after filling custom fields
+      await upsertDraft(agentId, { summary_triggered: false } as any);
 
       await sendQueued(agentId,
         cleanNumber,

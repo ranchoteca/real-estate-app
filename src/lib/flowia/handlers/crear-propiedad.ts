@@ -550,7 +550,8 @@ export function esComandoListo(text: string): boolean {
 }
 
 export function esIntentCancelar(text: string): boolean {
-  return /no quiero|cancelar|cancela|salir|olvida|olvidalo|olv[ií]dalo|dejalo|d[eé]jalo|para|abort/i.test(text.trim());
+  // Broad match — catches natural phrases like "ya no deseo crear", "no quiero seguir", etc.
+  return /no (quiero|deseo|me interesa)|cancelar|cancela|salir|olvida|olvidalo|olv[ií]dalo|dejalo|d[eé]jalo|para(r)?|abort|ya no|no (sigo|continúo|continuo)/i.test(text.trim());
 }
 
 export function esIntentCrearPropiedad(text: string): boolean {
@@ -562,27 +563,71 @@ export function esConsultaQueFalta(text: string): boolean {
   return /qu[eé]\s+(me\s+)?falta|qu[eé]\s+datos\s+faltan|qu[eé]\s+falta\s+por|qu[eé]\s+me\s+hace\s+falta|falta\s+algo|qu[eé]\s+necesitas/i.test(text.trim());
 }
 
-// Responds to "¿qué me falta?" using current draft state — no LISTO extraction needed
+// Responds to "¿qué me falta?" by doing a quick LLM extraction from history.
+// Reading only the draft is not enough because data sent via audio/text isn't
+// persisted to the draft until LISTO is processed — so we must check the history too.
 export async function handleQueFalta(
   agentId: string,
   cleanNumber: string,
   draft: PropertyDraft | null,
   draftCreatedAt: string
 ): Promise<string> {
-  const faltantes: string[] = [];
-
-  if (!draft?.title)         faltantes.push('📌 Título de la propiedad');
-  if (!draft?.description)   faltantes.push('📝 Descripción');
-  if (!draft?.price)         faltantes.push('💰 Precio');
-  if (!draft?.currency_id)   faltantes.push('💱 Divisa (USD o CRC)');
-  if (!draft?.city)          faltantes.push('🌆 Ciudad');
-  if (!draft?.property_type) faltantes.push('🏷️ Tipo de propiedad');
-  if (!draft?.listing_type)  faltantes.push('📋 Tipo de negocio (Venta o Alquiler)');
-  // language is inferred from description — never shown as missing
-  if (!draft?.maps_url)      faltantes.push('📍 Link de Google Maps');
-
   const photoCount = draft?.photos?.length || 0;
-  if (photoCount < PHOTO_MIN) faltantes.push(`🖼️ Fotos (tienes ${photoCount}, necesito al menos ${PHOTO_MIN})`);
+
+  // Quick extraction from history to see what fields are already present
+  const history = await loadDraftHistory(agentId, draftCreatedAt);
+
+  const quickPrompt = `Eres un extractor de datos para fichas de propiedades inmobiliarias.
+Analiza el historial y devuelve ÚNICAMENTE un JSON válido indicando qué campos ya fueron proporcionados.
+Responde con true si el campo fue mencionado, false si no.
+{
+  "title": boolean,
+  "description": boolean,
+  "price": boolean,
+  "currency": boolean,
+  "city": boolean,
+  "property_type": boolean,
+  "listing_type": boolean,
+  "maps_url": boolean
+}`;
+
+  let provided: Record<string, boolean> = {};
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: quickPrompt },
+        ...history.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+        { role: 'user', content: '¿Cuáles de estos campos ya fueron proporcionados en la conversación?' },
+      ],
+      temperature: 0,
+    });
+    const raw = completion.choices[0].message.content || '{}';
+    provided = JSON.parse(raw.replace(/```json|```/g, '').trim());
+  } catch {
+    // Fallback to draft state if extraction fails
+    provided = {
+      title: !!draft?.title,
+      description: !!draft?.description,
+      price: !!draft?.price,
+      currency: !!draft?.currency_id,
+      city: !!draft?.city,
+      property_type: !!draft?.property_type,
+      listing_type: !!draft?.listing_type,
+      maps_url: !!draft?.maps_url,
+    };
+  }
+
+  const faltantes: string[] = [];
+  if (!provided.title)         faltantes.push('📌 Título de la propiedad');
+  if (!provided.description)   faltantes.push('📝 Descripción');
+  if (!provided.price)         faltantes.push('💰 Precio');
+  if (!provided.currency)      faltantes.push('💱 Divisa (USD o CRC)');
+  if (!provided.city)          faltantes.push('🌆 Ciudad');
+  if (!provided.property_type) faltantes.push('🏷️ Tipo de propiedad');
+  if (!provided.listing_type)  faltantes.push('📋 Tipo de negocio (Venta o Alquiler)');
+  if (!provided.maps_url)      faltantes.push('📍 Link de Google Maps');
+  if (photoCount < PHOTO_MIN)  faltantes.push(`🖼️ Fotos (tienes ${photoCount}, necesito al menos ${PHOTO_MIN})`);
 
   if (faltantes.length === 0) {
     return `✅ Ya tienes todo lo necesario. Escribe *LISTO* cuando quieras que revise la información.`;

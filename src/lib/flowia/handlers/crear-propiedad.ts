@@ -25,11 +25,11 @@ export interface PropertyDraft {
   maps_url?: string;
   latitude?: number;
   longitude?: number;
-  photos: string[];               // Supabase Storage URLs already uploaded
-  pending_photos: number;         // photo count for tracking
-  processed_media_ids?: string[]; // messageIds already handled (prevents gallery race conditions)
-  summary_triggered?: boolean;    // true once auto-summary fires at PHOTO_MAX
-  custom_fields_data?: Record<string, string | number>; // values for agent's custom fields
+  photos: string[];
+  pending_photos: number;
+  processed_media_ids?: string[];
+  summary_triggered?: boolean;
+  custom_fields_data?: Record<string, string | number>;
 }
 
 // ─── Draft CRUD ───────────────────────────────────────────────────────────────
@@ -41,7 +41,6 @@ export async function getDraft(agentId: string): Promise<PropertyDraft | null> {
     .eq('agent_id', agentId)
     .eq('mode_active', true)
     .maybeSingle();
-
   return data || null;
 }
 
@@ -64,7 +63,6 @@ export async function upsertDraft(agentId: string, fields: Partial<PropertyDraft
   }
 }
 
-// Deletes the draft on success — clean state for next property creation
 export async function clearDraft(agentId: string) {
   await supabaseAdmin
     .from('agent_property_draft')
@@ -72,7 +70,6 @@ export async function clearDraft(agentId: string) {
     .eq('agent_id', agentId);
 }
 
-// Keeps the draft on failure with mode_active=false for debugging via last_error
 export async function failDraft(agentId: string, errorMessage: string) {
   await supabaseAdmin
     .from('agent_property_draft')
@@ -87,7 +84,6 @@ export async function handleIniciarCreacion(
   cleanNumber: string,
   primerNombre: string
 ) {
-  // Delete any stale draft before starting fresh (handles abandoned flows)
   await supabaseAdmin
     .from('agent_property_draft')
     .delete()
@@ -129,7 +125,6 @@ export async function handleMediaEnDraft(
 
   if (mediaInfo.type === 'image') {
     try {
-      // Dedup by messageId — WhatsApp galleries fire multiple webhooks near-simultaneously.
       const { data: draftRaw } = await supabaseAdmin
         .from('agent_property_draft')
         .select('processed_media_ids, photos')
@@ -143,13 +138,10 @@ export async function handleMediaEnDraft(
       }
 
       const { publicUrl } = await decryptWasenderMedia(messageId, mediaInfo.messageObject);
-
-      // Upload first — rejected photos are cleaned up by the daily orphan cleanup job
       const tempSlug = `draft-${agentId.substring(0, 8)}`;
       const tempIndex = Date.now();
       const supabaseUrl = await uploadPhotoFromUrl(agentId, tempSlug, publicUrl, tempIndex);
 
-      // v3 RPC: atomic append + dedup + limit enforcement + one-time sentinel
       const { data: rpcResult, error: appendError } = await supabaseAdmin.rpc('draft_append_photo', {
         p_agent_id: agentId,
         p_photo_url: supabaseUrl,
@@ -171,11 +163,9 @@ export async function handleMediaEnDraft(
       console.log(`[media] photo append: appended=${appended} count=${photo_count} trigger=${trigger_summary}`);
 
       if (trigger_summary) {
-        // Only one webhook reaches here — the one that pushed count to PHOTO_MAX
         return '__PHOTO_MAX_REACHED__';
       }
 
-      // No per-photo response — report total at LISTO to avoid 429 on gallery uploads
       return null;
     } catch (error) {
       console.error('Error processing image in draft:', error);
@@ -188,8 +178,6 @@ export async function handleMediaEnDraft(
       const { publicUrl } = await decryptWasenderMedia(messageId, mediaInfo.messageObject);
       const transcripcion = await transcribeAudioFromUrl(publicUrl);
 
-      // Save raw transcription as 'user' so the extractor treats it as agent input.
-      // route.ts saves the display string (with 🎙️ prefix) as 'assistant' separately.
       await supabaseAdmin
         .from('chat_messages')
         .insert({ agent_id: agentId, role: 'user', content: transcripcion });
@@ -214,7 +202,6 @@ export async function handleListo(
 ) {
   const draft = await getDraft(agentId);
 
-  // Hard requirement: at least PHOTO_MIN photos before proceeding
   const photoCount = draft?.photos?.length || 0;
   if (photoCount < PHOTO_MIN) {
     await sendQueued(agentId,
@@ -228,10 +215,8 @@ export async function handleListo(
     `⏳ Analizando la información que me enviaste... _(${photoCount} foto${photoCount !== 1 ? 's' : ''} recibida${photoCount !== 1 ? 's' : ''})_ — Espera un momento, ya casi 📋`
   );
 
-  // Load ALL messages since the draft was created — no limit, no time window.
   const history = await loadDraftHistory(agentId, draftCreatedAt);
 
-  // Seed the extractor with data already confirmed in previous LISTO rounds.
   const draftActual = {
     title: draft.title || null,
     description: draft.description || null,
@@ -246,37 +231,38 @@ export async function handleListo(
     maps_url: draft.maps_url || null,
   };
 
-  const extractionPrompt = `Eres un extractor de datos para fichas de propiedades inmobiliarias.
-Analiza el historial de conversación y extrae los campos de la propiedad.
-Devuelve ÚNICAMENTE un JSON válido sin texto adicional ni backticks.
+  const extractionPrompt = 'Eres un extractor de datos para fichas de propiedades inmobiliarias.\n'
+    + 'Analiza el historial de conversación y extrae los campos de la propiedad.\n'
+    + 'Devuelve ÚNICAMENTE un JSON válido sin texto adicional ni backticks.\n\n'
+    + 'IMPORTANTE: Ya tienes estos datos confirmados de rondas anteriores. Úsalos como base y solo sobreescribe si el agente envió información más reciente o corregida:\n'
+    + JSON.stringify(draftActual, null, 2) + '\n\n'
+    + 'Campos a extraer (combinando lo anterior con lo nuevo del historial):\n'
+    + '{\n'
+    + '  "title": "string o null",\n'
+    + '  "description": "string o null",\n'
+    + '  "price": "number o null",\n'
+    + '  "currency_id": "839f44d5-bee2-4bc1-b5da-50364f14c681 para USD o ec8528a3-d504-47fa-97db-2c07716d8b47 para CRC, o null",\n'
+    + '  "city": "string o null",\n'
+    + '  "address": "string o null",\n'
+    + '  "state_province": "string o null (provincia de Costa Rica)",\n'
+    + '  "property_type": "house | apartment | land | commercial | other",\n'
+    + '  "listing_type": "sale | rent",\n'
+    + '  "language": "es | en",\n'
+    + '  "maps_url": "string o null (link de Google Maps compartido por el agente)",\n'
+    + '  "campos_faltantes": ["lista de campos obligatorios que aún faltan"]\n'
+    + '}\n\n'
+    + 'Campos obligatorios: title, description, price, currency_id, city, property_type, listing_type, maps_url.\n'
+    + 'El idioma (language) se infiere automáticamente del texto de la descripción — NUNCA lo incluyas en campos_faltantes.\n'
+    + 'Si la descripción está en español, usa "es". Si está en inglés, usa "en".\n'
+    + 'state_province y address son opcionales pero deseables.';
 
-IMPORTANTE: Ya tienes estos datos confirmados de rondas anteriores. Úsalos como base y solo sobreescribe si el agente envió información más reciente o corregida:
-${JSON.stringify(draftActual, null, 2)}
-
-Campos a extraer (combinando lo anterior con lo nuevo del historial):
-{
-  "title": "string o null",
-  "description": "string o null",
-  "price": number o null,
-  "currency_id": "839f44d5-bee2-4bc1-b5da-50364f14c681 para USD o ec8528a3-d504-47fa-50364f14c681 para CRC, o null",
-  "city": "string o null",
-  "address": "string o null",
-  "state_province": "string o null (provincia de Costa Rica)",
-  "property_type": "house | apartment | land | commercial | other",
-  "listing_type": "sale | rent",
-  "language": "es | en",
-  "maps_url": "string o null (link de Google Maps compartido por el agente)",
-  "campos_faltantes": ["lista de campos obligatorios que aún faltan"]
-}
-
-Campos obligatorios: title, description, price, currency_id, city, property_type, listing_type, maps_url.
-El idioma (language) se infiere automáticamente del texto de la descripción — NUNCA lo incluyas en campos_faltantes.
-Si la descripción está en español, usa "es". Si está en inglés, usa "en".
-state_province y address son opcionales pero deseables.`;
+  const historyMessages = history.map(function(m) {
+    return { role: m.role as 'user' | 'assistant', content: m.content };
+  });
 
   const messagesForExtraction = [
     { role: 'system' as const, content: extractionPrompt },
-    ...history.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+    ...historyMessages,
     { role: 'user' as const, content: 'Extrae los datos de la propiedad combinando el draft anterior con el historial.' },
   ];
 
@@ -304,19 +290,23 @@ state_province y address son opcionales pero deseables.`;
   // If required fields are still missing, ask for them without closing the mode
   const camposFaltantes: string[] = extractedData.campos_faltantes || [];
   if (camposFaltantes.length > 0) {
-    const lista = camposFaltantes.map((c: string) => `• ${c}`).join('\n');
+    const lista = camposFaltantes.map(function(c: string) { return '• ' + c; }).join('\n');
     await sendQueued(agentId,
       cleanNumber,
-      `⚠️ Faltan algunos datos para poder crear la propiedad:\n\n${lista}\n\nEnvíalos y escribe *LISTO* de nuevo cuando estés listo.\n_Si tienes dudas sobre qué falta, escríbeme *"¿qué me falta?"*_`
+      '⚠️ Faltan algunos datos para poder crear la propiedad:\n\n' + lista + '\n\nEnvíalos y escribe *LISTO* de nuevo cuando estés listo.\n_Si tienes dudas sobre qué falta, escríbeme *"¿qué me falta?"*_'
     );
     return;
   }
 
-  // ── Custom fields: extract values from history ───────────────────────────────
+  // ── Custom fields: declare draftCustomFields BEFORE using it ──────────────
+  // This must come before the extraction pass to avoid "cannot access before init" errors.
+  const draftCustomFields: Record<string, string | number> = draft.custom_fields_data || {};
+
+  // ── Custom fields: extract values from history ────────────────────────────
   // Run a second LLM pass to extract values for this agent's custom fields.
   // Only runs if property_type and listing_type were successfully extracted.
-  let customFieldsForExtraction: Array<{field_key: string, field_name: string, field_type: string}> = [];
-  if (extractedData?.property_type && extractedData?.listing_type) {
+  let customFieldsForExtraction: Array<{ field_key: string; field_name: string; field_type: string }> = [];
+  if (extractedData.property_type && extractedData.listing_type) {
     const { data: cfForExtraction } = await supabaseAdmin
       .from('custom_fields')
       .select('field_key, field_name, field_type')
@@ -328,8 +318,6 @@ state_province y address son opcionales pero deseables.`;
   }
 
   if (customFieldsForExtraction.length > 0) {
-    // Build the fields list outside the template string to avoid Turbopack parse issues
-    // with arrow functions inside template literals
     const cfFieldsList = JSON.stringify(
       customFieldsForExtraction.map(function(cf) {
         return { key: cf.field_key, name: cf.field_name, type: cf.field_type };
@@ -345,7 +333,7 @@ state_province y address son opcionales pero deseables.`;
       + 'Campos a extraer:\n'
       + cfFieldsList;
 
-    const cfHistory = history.map(function(msg) {
+    const cfHistoryMessages = history.map(function(msg) {
       return { role: msg.role as 'user' | 'assistant', content: msg.content };
     });
 
@@ -354,28 +342,27 @@ state_province y address son opcionales pero deseables.`;
         model: 'gpt-4o',
         messages: [
           { role: 'system', content: cfPrompt },
-          ...cfHistory,
+          ...cfHistoryMessages,
           { role: 'user', content: 'Extrae los valores de los campos personalizados del historial.' },
         ],
         temperature: 0,
       });
       const cfRaw = cfCompletion.choices[0].message.content || '{}';
       const cfValues = JSON.parse(cfRaw.replace(/```json|```/g, '').trim());
-      // Merge into draftCustomFields — only overwrite if a new non-null value was found
-      Object.entries(cfValues).forEach(function([key, val]) {
+      Object.entries(cfValues).forEach(function(entry) {
+        const key = entry[0];
+        const val = entry[1];
         if (val !== null && val !== undefined) {
           draftCustomFields[key] = val as string | number;
         }
       });
     } catch (err) {
       console.error('Error extracting custom field values:', err);
-      // Non-fatal — continue without custom field values
     }
   }
 
-  // ── Custom fields check ──────────────────────────────────────────────────────
-  // Query agent's custom fields for this property_type + listing_type combination.
-  // If any exist and weren't mentioned by the agent, ask for them before showing summary.
+  // ── Custom fields check ───────────────────────────────────────────────────
+  // Query all custom fields for this property_type + listing_type combination.
   const { data: customFields } = await supabaseAdmin
     .from('custom_fields')
     .select('field_key, field_name, field_type, placeholder, icon')
@@ -384,37 +371,28 @@ state_province y address son opcionales pero deseables.`;
     .eq('listing_type', extractedData.listing_type)
     .order('display_order', { ascending: true });
 
-  // Get custom field values already stored in draft (from previous rounds)
-  const draftCustomFields: Record<string, string | number> = draft.custom_fields_data || {};
-
   if (customFields && customFields.length > 0) {
-    // Check which custom fields are still missing values
-    const customFaltantes = customFields.filter(
-      cf => !draftCustomFields[cf.field_key] && draftCustomFields[cf.field_key] !== 0
-    );
+    const customFaltantes = customFields.filter(function(cf) {
+      return !draftCustomFields[cf.field_key] && draftCustomFields[cf.field_key] !== 0;
+    });
 
     if (customFaltantes.length > 0) {
-      // Ask for missing custom fields without closing the mode
-      const lista = customFaltantes
-        .map(cf => `${cf.icon || '🏷️'} *${cf.field_name}*${cf.placeholder ? ` _(ej: ${cf.placeholder})_` : ''}`)
-        .join('\n');
+      const lista = customFaltantes.map(function(cf) {
+        return (cf.icon || '🏷️') + ' *' + cf.field_name + '*' + (cf.placeholder ? ' _(ej: ' + cf.placeholder + ')_' : '');
+      }).join('\n');
 
-      // Reset summary_triggered so the agent can write LISTO again after filling custom fields
+      // Reset summary_triggered so agent can write LISTO again after filling custom fields
       await upsertDraft(agentId, { summary_triggered: false } as any);
 
       await sendQueued(agentId,
         cleanNumber,
-        `📋 Esta propiedad tiene campos adicionales que necesito completar:
-
-${lista}
-
-Envíalos y escribe *LISTO* de nuevo cuando estés listo.`
+        '📋 Esta propiedad tiene campos adicionales que necesito completar:\n\n' + lista + '\n\nEnvíalos y escribe *LISTO* de nuevo cuando estés listo.'
       );
       return;
     }
   }
 
-  // ── Persist extracted fields to draft so they survive subsequent LISTO rounds ──
+  // ── Persist extracted fields ──────────────────────────────────────────────
   await upsertDraft(agentId, {
     title: extractedData.title,
     description: extractedData.description,
@@ -430,7 +408,7 @@ Envíalos y escribe *LISTO* de nuevo cuando estés listo.`
     custom_fields_data: draftCustomFields,
   });
 
-  // Build confirmation summary
+  // ── Build confirmation summary ────────────────────────────────────────────
   const divisa = extractedData.currency_id === '839f44d5-bee2-4bc1-b5da-50364f14c681' ? 'USD' : 'CRC';
   const tipoMap: Record<string, string> = {
     house: 'Casa', apartment: 'Apartamento', land: 'Terreno/Finca',
@@ -438,32 +416,28 @@ Envíalos y escribe *LISTO* de nuevo cuando estés listo.`
   };
   const negocioMap: Record<string, string> = { sale: 'Venta', rent: 'Alquiler' };
 
-  // Build custom fields section for summary display
   let customFieldsResumen = '';
   if (customFields && customFields.length > 0) {
-    const lineas = customFields
-      .map(cf => {
-        const valor = draftCustomFields[cf.field_key];
-        return `${cf.icon || '🏷️'} *${cf.field_name}:* ${valor ?? 'No indicado'}`;
-      })
-      .join('\n');
+    const lineas = customFields.map(function(cf) {
+      const valor = draftCustomFields[cf.field_key];
+      return (cf.icon || '🏷️') + ' *' + cf.field_name + ':* ' + (valor !== undefined && valor !== null ? valor : 'No indicado');
+    }).join('\n');
     customFieldsResumen = '\n' + lineas;
   }
 
-  const resumen = `✅ *Resumen de la propiedad a crear:*
-
-📌 *Título:* ${extractedData.title}
-🏷️ *Tipo:* ${tipoMap[extractedData.property_type] || extractedData.property_type}
-📋 *Negocio:* ${negocioMap[extractedData.listing_type] || extractedData.listing_type}
-💰 *Precio:* ${extractedData.price?.toLocaleString('es-CR')} ${divisa}
-📍 *Provincia:* ${extractedData.state_province || 'No indicada'}
-🌆 *Ciudad:* ${extractedData.city}
-🏠 *Dirección:* ${extractedData.address || 'No indicada'}
-📍 *Google Maps:* ${extractedData.maps_url || 'No indicado'}
-🌐 *Idioma:* ${extractedData.language === 'es' ? 'Español' : 'Inglés'}
-🖼️ *Fotos:* ${photoCount}
-
-¿Todo correcto? Responde *SÍ* para crear la propiedad, o corrígeme lo que esté mal.`;
+  const resumen = '✅ *Resumen de la propiedad a crear:*\n\n'
+    + '📌 *Título:* ' + extractedData.title + '\n'
+    + '🏷️ *Tipo:* ' + (tipoMap[extractedData.property_type] || extractedData.property_type) + '\n'
+    + '📋 *Negocio:* ' + (negocioMap[extractedData.listing_type] || extractedData.listing_type) + '\n'
+    + '💰 *Precio:* ' + (extractedData.price?.toLocaleString('es-CR')) + ' ' + divisa + '\n'
+    + '📍 *Provincia:* ' + (extractedData.state_province || 'No indicada') + '\n'
+    + '🌆 *Ciudad:* ' + extractedData.city + '\n'
+    + '🏠 *Dirección:* ' + (extractedData.address || 'No indicada') + '\n'
+    + '📍 *Google Maps:* ' + (extractedData.maps_url || 'No indicado') + '\n'
+    + '🌐 *Idioma:* ' + (extractedData.language === 'es' ? 'Español' : 'Inglés') + '\n'
+    + '🖼️ *Fotos:* ' + photoCount
+    + customFieldsResumen + '\n\n'
+    + '¿Todo correcto? Responde *SÍ* para crear la propiedad, o corrígeme lo que esté mal.';
 
   await sendQueued(agentId, cleanNumber, resumen);
   await upsertDraft(agentId, { pending_photos: photoCount });
@@ -484,11 +458,7 @@ export async function handleConfirmacion(
   }
 
   await sendQueued(agentId, cleanNumber, `⏳ Perfecto ${primerNombre}, creando tu propiedad... Dame un momento.`);
-
-  // Close the mode before creating so the agent can use the bot normally
   await clearDraft(agentId);
-
-  // Synchronous creation in the same webhook — no setImmediate (unreliable in Vercel serverless)
   await crearPropiedad(agentId, cleanNumber, draft);
 }
 
@@ -543,14 +513,14 @@ async function crearPropiedad(
 
     await sendQueued(agentId,
       cleanNumber,
-      `✅ ¡Tu propiedad fue creada exitosamente!\n\n*${draft.title}*\n\n✏️ *Editar y agregar videos:*\n${editUrl}\n\n🔗 *Link para compartir con clientes:*\n${shareUrl}`
+      '✅ ¡Tu propiedad fue creada exitosamente!\n\n*' + draft.title + '*\n\n✏️ *Editar y agregar videos:*\n' + editUrl + '\n\n🔗 *Link para compartir con clientes:*\n' + shareUrl
     );
   } catch (error: any) {
     console.error('Error creating property:', error);
     await failDraft(agentId, error.message);
     await sendQueued(agentId,
       cleanNumber,
-      `❌ Lo siento, ocurrió un error al crear la propiedad.\n\nPor favor intenta de nuevo escribiendo *"quiero crear una propiedad"*.`
+      '❌ Lo siento, ocurrió un error al crear la propiedad.\n\nPor favor intenta de nuevo escribiendo *"quiero crear una propiedad"*.'
     );
   }
 }
@@ -566,7 +536,6 @@ export function esComandoListo(text: string): boolean {
 }
 
 export function esIntentCancelar(text: string): boolean {
-  // Broad match — catches natural phrases like "ya no deseo crear", "no quiero seguir", etc.
   return /no (quiero|deseo|me interesa)|cancelar|cancela|salir|olvida|olvidalo|olv[ií]dalo|dejalo|d[eé]jalo|para(r)?|abort|ya no|no (sigo|continúo|continuo)/i.test(text.trim());
 }
 
@@ -574,16 +543,11 @@ export function esIntentCrearPropiedad(text: string): boolean {
   return /crear\s+(una\s+)?propiedad|nueva\s+propiedad|agregar\s+(una\s+)?propiedad|subir\s+(una\s+)?propiedad|añadir\s+(una\s+)?propiedad/i.test(text);
 }
 
-// Detects when agent asks what data is still missing
 export function esConsultaQueFalta(text: string): boolean {
-  // '0' is a shortcut for "qué me falta" — shown as hint in the welcome message
   if (text.trim() === '0') return true;
   return /qu[eé]\s+(me\s+)?falta|qu[eé]\s+datos\s+faltan|qu[eé]\s+falta\s+por|qu[eé]\s+me\s+hace\s+falta|falta\s+algo|qu[eé]\s+necesitas/i.test(text.trim());
 }
 
-// Responds to "¿qué me falta?" by doing a quick LLM extraction from history.
-// Reading only the draft is not enough because data sent via audio/text isn't
-// persisted to the draft until LISTO is processed — so we must check the history too.
 export async function handleQueFalta(
   agentId: string,
   cleanNumber: string,
@@ -591,23 +555,25 @@ export async function handleQueFalta(
   draftCreatedAt: string
 ): Promise<string> {
   const photoCount = draft?.photos?.length || 0;
-
-  // Quick extraction from history to see what fields are already present
   const history = await loadDraftHistory(agentId, draftCreatedAt);
 
-  const quickPrompt = `Eres un extractor de datos para fichas de propiedades inmobiliarias.
-Analiza el historial y devuelve ÚNICAMENTE un JSON válido indicando qué campos ya fueron proporcionados.
-Responde con true si el campo fue mencionado, false si no.
-{
-  "title": boolean,
-  "description": boolean,
-  "price": boolean,
-  "currency": boolean,
-  "city": boolean,
-  "property_type": boolean,
-  "listing_type": boolean,
-  "maps_url": boolean
-}`;
+  const quickPrompt = 'Eres un extractor de datos para fichas de propiedades inmobiliarias.\n'
+    + 'Analiza el historial y devuelve ÚNICAMENTE un JSON válido indicando qué campos ya fueron proporcionados.\n'
+    + 'Responde con true si el campo fue mencionado, false si no.\n'
+    + '{\n'
+    + '  "title": boolean,\n'
+    + '  "description": boolean,\n'
+    + '  "price": boolean,\n'
+    + '  "currency": boolean,\n'
+    + '  "city": boolean,\n'
+    + '  "property_type": boolean,\n'
+    + '  "listing_type": boolean,\n'
+    + '  "maps_url": boolean\n'
+    + '}';
+
+  const historyMsgs = history.map(function(m) {
+    return { role: m.role as 'user' | 'assistant', content: m.content };
+  });
 
   let provided: Record<string, boolean> = {};
   try {
@@ -615,7 +581,7 @@ Responde con true si el campo fue mencionado, false si no.
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: quickPrompt },
-        ...history.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+        ...historyMsgs,
         { role: 'user', content: '¿Cuáles de estos campos ya fueron proporcionados en la conversación?' },
       ],
       temperature: 0,
@@ -623,7 +589,6 @@ Responde con true si el campo fue mencionado, false si no.
     const raw = completion.choices[0].message.content || '{}';
     provided = JSON.parse(raw.replace(/```json|```/g, '').trim());
   } catch {
-    // Fallback to draft state if extraction fails
     provided = {
       title: !!draft?.title,
       description: !!draft?.description,
@@ -645,10 +610,9 @@ Responde con true si el campo fue mencionado, false si no.
   if (!provided.property_type) faltantes.push('🏷️ Tipo de propiedad');
   if (!provided.listing_type)  faltantes.push('📋 Tipo de negocio (Venta o Alquiler)');
   if (!provided.maps_url)      faltantes.push('📍 Link de Google Maps');
-  if (photoCount < PHOTO_MIN)  faltantes.push(`🖼️ Fotos (tienes ${photoCount}, necesito al menos ${PHOTO_MIN})`);
+  if (photoCount < PHOTO_MIN)  faltantes.push('🖼️ Fotos (tienes ' + photoCount + ', necesito al menos ' + PHOTO_MIN + ')');
 
-  // Also check custom fields if property_type is known from history
-  // (draft may be empty but history has the info)
+  // Check custom fields if property_type is known in the draft
   if (draft?.property_type && draft?.listing_type) {
     const { data: cfCheck } = await supabaseAdmin
       .from('custom_fields')
@@ -660,11 +624,10 @@ Responde con true si el campo fue mencionado, false si no.
 
     if (cfCheck && cfCheck.length > 0) {
       const existingCf = draft.custom_fields_data || {};
-      const cfFaltantes = cfCheck.filter(function(cf) {
-        return !existingCf[cf.field_key] && existingCf[cf.field_key] !== 0;
-      });
-      cfFaltantes.forEach(function(cf) {
-        faltantes.push((cf.icon || '🏷️') + ' ' + cf.field_name + ' _(campo personalizado)_');
+      cfCheck.forEach(function(cf) {
+        if (!existingCf[cf.field_key] && existingCf[cf.field_key] !== 0) {
+          faltantes.push((cf.icon || '🏷️') + ' ' + cf.field_name + ' _(campo personalizado)_');
+        }
       });
     }
   }
@@ -673,6 +636,5 @@ Responde con true si el campo fue mencionado, false si no.
     return '✅ Ya tienes todo lo necesario. Escribe *LISTO* cuando quieras que revise la información.';
   }
 
-  const lista = faltantes.join('\n');
-  return '📋 Aún me faltan estos datos:\n\n' + lista + '\n\nEnvíalos cuando quieras y escribe *LISTO* al terminar.';
+  return '📋 Aún me faltan estos datos:\n\n' + faltantes.join('\n') + '\n\nEnvíalos cuando quieras y escribe *LISTO* al terminar.';
 }

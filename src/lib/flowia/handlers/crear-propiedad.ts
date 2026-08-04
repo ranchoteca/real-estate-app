@@ -110,7 +110,7 @@ Puedes enviarme la información en el orden que prefieras — *por escrito o por
 
 _Puedes enviar cada dato por separado o todo junto, en el orden que quieras._
 _Para las fotos, envíalas en grupos de máximo 5 a la vez para que se procesen correctamente._
-_Si en algún momento no sabes qué datos faltan, escríbeme *"¿qué me falta?"* y te lo digo._
+_Si en algún momento no sabes qué datos faltan, escríbeme *"¿qué me falta?"* o simplemente *"0"* y te lo digo._
 Cuando termines, escribe *LISTO* y yo verificaré todo antes de crear la propiedad.`;
 
   await sendQueued(agentId, cleanNumber, mensaje);
@@ -328,20 +328,33 @@ state_province y address son opcionales pero deseables.`;
   }
 
   if (customFieldsForExtraction.length > 0) {
-    const cfPrompt = `Eres un extractor de valores para campos personalizados de propiedades inmobiliarias.
-Analiza el historial y extrae los valores para estos campos específicos.
-Devuelve ÚNICAMENTE un JSON válido sin texto adicional ni backticks.
-Si un valor no se menciona en el historial, usa null.
+    // Build the fields list outside the template string to avoid Turbopack parse issues
+    // with arrow functions inside template literals
+    const cfFieldsList = JSON.stringify(
+      customFieldsForExtraction.map(function(cf) {
+        return { key: cf.field_key, name: cf.field_name, type: cf.field_type };
+      }),
+      null,
+      2
+    );
 
-Campos a extraer:
-${JSON.stringify(customFieldsForExtraction.map(cf => ({ key: cf.field_key, name: cf.field_name, type: cf.field_type })), null, 2)}`;
+    const cfPrompt = 'Eres un extractor de valores para campos personalizados de propiedades inmobiliarias.\n'
+      + 'Analiza el historial y extrae los valores para estos campos específicos.\n'
+      + 'Devuelve ÚNICAMENTE un JSON válido sin texto adicional ni backticks.\n'
+      + 'Si un valor no se menciona en el historial, usa null.\n\n'
+      + 'Campos a extraer:\n'
+      + cfFieldsList;
+
+    const cfHistory = history.map(function(msg) {
+      return { role: msg.role as 'user' | 'assistant', content: msg.content };
+    });
 
     try {
       const cfCompletion = await openai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
           { role: 'system', content: cfPrompt },
-          ...history.map(msg => ({ role: msg.role as 'user' | 'assistant', content: msg.content })),
+          ...cfHistory,
           { role: 'user', content: 'Extrae los valores de los campos personalizados del historial.' },
         ],
         temperature: 0,
@@ -349,7 +362,7 @@ ${JSON.stringify(customFieldsForExtraction.map(cf => ({ key: cf.field_key, name:
       const cfRaw = cfCompletion.choices[0].message.content || '{}';
       const cfValues = JSON.parse(cfRaw.replace(/```json|```/g, '').trim());
       // Merge into draftCustomFields — only overwrite if a new non-null value was found
-      Object.entries(cfValues).forEach(([key, val]) => {
+      Object.entries(cfValues).forEach(function([key, val]) {
         if (val !== null && val !== undefined) {
           draftCustomFields[key] = val as string | number;
         }
@@ -563,6 +576,8 @@ export function esIntentCrearPropiedad(text: string): boolean {
 
 // Detects when agent asks what data is still missing
 export function esConsultaQueFalta(text: string): boolean {
+  // '0' is a shortcut for "qué me falta" — shown as hint in the welcome message
+  if (text.trim() === '0') return true;
   return /qu[eé]\s+(me\s+)?falta|qu[eé]\s+datos\s+faltan|qu[eé]\s+falta\s+por|qu[eé]\s+me\s+hace\s+falta|falta\s+algo|qu[eé]\s+necesitas/i.test(text.trim());
 }
 
@@ -632,10 +647,32 @@ Responde con true si el campo fue mencionado, false si no.
   if (!provided.maps_url)      faltantes.push('📍 Link de Google Maps');
   if (photoCount < PHOTO_MIN)  faltantes.push(`🖼️ Fotos (tienes ${photoCount}, necesito al menos ${PHOTO_MIN})`);
 
+  // Also check custom fields if property_type is known from history
+  // (draft may be empty but history has the info)
+  if (draft?.property_type && draft?.listing_type) {
+    const { data: cfCheck } = await supabaseAdmin
+      .from('custom_fields')
+      .select('field_key, field_name, icon')
+      .eq('agent_id', agentId)
+      .eq('property_type', draft.property_type)
+      .eq('listing_type', draft.listing_type)
+      .order('display_order', { ascending: true });
+
+    if (cfCheck && cfCheck.length > 0) {
+      const existingCf = draft.custom_fields_data || {};
+      const cfFaltantes = cfCheck.filter(function(cf) {
+        return !existingCf[cf.field_key] && existingCf[cf.field_key] !== 0;
+      });
+      cfFaltantes.forEach(function(cf) {
+        faltantes.push((cf.icon || '🏷️') + ' ' + cf.field_name + ' _(campo personalizado)_');
+      });
+    }
+  }
+
   if (faltantes.length === 0) {
-    return `✅ Ya tienes todo lo necesario. Escribe *LISTO* cuando quieras que revise la información.`;
+    return '✅ Ya tienes todo lo necesario. Escribe *LISTO* cuando quieras que revise la información.';
   }
 
   const lista = faltantes.join('\n');
-  return `📋 Aún me faltan estos datos:\n\n${lista}\n\nEnvíalos cuando quieras y escribe *LISTO* al terminar.`;
+  return '📋 Aún me faltan estos datos:\n\n' + lista + '\n\nEnvíalos cuando quieras y escribe *LISTO* al terminar.';
 }

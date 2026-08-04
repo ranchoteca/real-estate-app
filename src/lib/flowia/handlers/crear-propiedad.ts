@@ -522,7 +522,7 @@ async function crearPropiedad(
       throw new Error(propertyError?.message || 'Unknown error inserting property');
     }
 
-    const editUrl = `${BASE_DOMAIN}/dashboard/properties/${property.slug}/edit`;
+    const editUrl = `${BASE_DOMAIN}/edit-property/${property.id}`;
     const shareUrl = `${BASE_DOMAIN}/p/${property.slug}`;
 
     await sendQueued(agentId,

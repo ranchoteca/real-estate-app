@@ -159,7 +159,6 @@ export async function POST(req: NextRequest) {
 
       // 4. SÍ confirmation after the summary — create the property
       const draft = await getDraft(agent.id);
-      console.log('[route] SI check: resolvedText=' + resolvedText + ' draft.title=' + (draft?.title || 'NULL') + ' esConfirmacionSi=' + esConfirmacionSi(resolvedText));
       if (draft?.title && esConfirmacionSi(resolvedText)) {
         await handleConfirmacion(agent.id, cleanNumber, primerNombre);
         return NextResponse.json({ success: true, status: 'property_creation_started' });

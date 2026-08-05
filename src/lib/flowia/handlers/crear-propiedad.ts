@@ -289,9 +289,26 @@ export async function handleListo(
     return;
   }
 
+  // Map technical field names to human-readable Spanish labels
+  const camposLabels: Record<string, string> = {
+    title: 'Título de la propiedad',
+    description: 'Descripción de la propiedad',
+    price: 'Precio',
+    currency_id: 'Divisa (colones o dólares)',
+    city: 'Ciudad',
+    address: 'Dirección',
+    state_province: 'Provincia',
+    property_type: 'Tipo de propiedad',
+    listing_type: 'Tipo de negocio (Venta o Alquiler)',
+    maps_url: 'Link de Google Maps de la ubicación',
+    language: 'Idioma',
+  };
+
   const camposFaltantes: string[] = extractedData.campos_faltantes || [];
   if (camposFaltantes.length > 0) {
-    const lista = camposFaltantes.map(function(c: string) { return '• ' + c; }).join('\n');
+    const lista = camposFaltantes.map(function(c: string) {
+      return '• ' + (camposLabels[c] || c);
+    }).join('\n');
     await sendQueued(agentId,
       cleanNumber,
       '⚠️ Faltan algunos datos para poder crear la propiedad:\n\n' + lista + '\n\nEnvíalos y escribe *LISTO* de nuevo cuando estés listo.\n_Si tienes dudas sobre qué falta, escríbeme *"¿Qué me falta?"* o *"0"*_'

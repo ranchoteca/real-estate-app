@@ -158,13 +158,10 @@ export async function POST(req: NextRequest) {
       }
 
       // 4. SÍ confirmation after the summary — create the property
-      // Check history for a recent summary message rather than draft fields,
-      // because draft.title may be empty if upsertDraft hasn't run yet at this point.
+      // Use draft.title as signal that LISTO ran successfully and data is ready.
+      // Checking history is unreliable when there are many messages (15-message limit).
       const draft = await getDraft(agent.id);
-      const recentHistory = await loadHistory(agent.id);
-      const ultimoBot = recentHistory.findLast((m: any) => m.role === 'assistant');
-      const hayResumenPendiente = ultimoBot?.content?.includes('¿Todo correcto? Responde *SÍ*');
-      if (hayResumenPendiente && esConfirmacionSi(resolvedText)) {
+      if (draft?.title && esConfirmacionSi(resolvedText)) {
         await handleConfirmacion(agent.id, cleanNumber, primerNombre);
         return NextResponse.json({ success: true, status: 'property_creation_started' });
       }

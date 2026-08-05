@@ -41,17 +41,20 @@ export async function getDraft(agentId: string): Promise<PropertyDraft | null> {
 }
 
 export async function upsertDraft(agentId: string, fields: Partial<PropertyDraft>) {
+  // Filter by mode_active=true to avoid updating stale inactive drafts
   const { data: existing } = await supabaseAdmin
     .from('agent_property_draft')
     .select('id')
     .eq('agent_id', agentId)
+    .eq('mode_active', true)
     .maybeSingle();
 
   if (existing) {
     await supabaseAdmin
       .from('agent_property_draft')
       .update({ ...fields, updated_at: new Date().toISOString() })
-      .eq('agent_id', agentId);
+      .eq('agent_id', agentId)
+      .eq('mode_active', true);
   } else {
     await supabaseAdmin
       .from('agent_property_draft')

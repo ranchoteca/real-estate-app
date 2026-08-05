@@ -184,6 +184,18 @@ export async function POST(req: NextRequest) {
       }
 
       // 7. Free-form text — acknowledge and save to history so LISTO extractor sees it
+      // Also reset summary_triggered if it was set by auto-LISTO at PHOTO_MAX.
+      // This allows the agent to send missing data (e.g. Google Maps link) after
+      // the auto-analysis fired, then write LISTO again to complete the flow.
+      const currentDraft = await getDraft(agent.id);
+      if (currentDraft?.summary_triggered) {
+        await supabaseAdmin
+          .from('agent_property_draft')
+          .update({ summary_triggered: false })
+          .eq('agent_id', agent.id);
+        console.log('[route] summary_triggered reset after agent sent new text');
+      }
+
       const ack = '📝 Recibido. Sigue enviando la información de la propiedad. Cuando termines, escribe *LISTO*.' + '\n' + '_Si no sabes qué falta, escríbeme *"¿Qué me falta?"* o simplemente *"0"*_';
       await saveMessage(agent.id, 'assistant', ack);
       await sendQueued(agent.id, cleanNumber, ack);

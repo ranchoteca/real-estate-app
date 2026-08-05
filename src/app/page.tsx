@@ -8,11 +8,29 @@ import Image from 'next/image';
 import MuxPlayer from '@mux/mux-player-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COPY — todas las strings de la landing en ES y EN
+// DESIGN TOKENS
+// ─────────────────────────────────────────────────────────────────────────────
+const T = {
+  navy:       '#1B2D5B',   // primario — navy profundo
+  navyMid:    '#243770',   // navy medio para gradientes
+  navyLight:  '#2E4A8A',   // navy claro
+  gold:       '#C9A84C',   // dorado/champagne — acento premium
+  goldLight:  '#E8C96A',   // dorado claro para hovers
+  goldPale:   '#F5EDD8',   // dorado muy pálido para fondos de acento
+  cream:      '#F8F6F2',   // fondo principal cálido
+  white:      '#FFFFFF',
+  charcoal:   '#1A1A2E',   // texto principal
+  muted:      '#6B7280',   // texto secundario
+  border:     '#E8E4DC',   // bordes suaves
+  success:    '#15803D',   // verde éxito
+  successBg:  '#F0FDF4',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COPY
 // ─────────────────────────────────────────────────────────────────────────────
 const COPY = {
   es: {
-    // Hero
     heroTitle: '¿Tu móvil está a punto de explotar con fotos y videos de propiedades?',
     heroSubtitle: 'Buscando info por horas para un cliente, propiedades regadas en chats, fotos sin orden... Ya no más.',
     heroBody: 'Con FlowEstateAI creas fichas profesionales hablando desde tu celular, publicas en Facebook en segundos y compartes tu portafolio con un link. Todo lo que necesitas, en un solo lugar.',
@@ -20,12 +38,8 @@ const COPY = {
     heroDemo: 'Ver demostración',
     heroInstall: '📱 Instalar App',
     heroSocial: 'Agentes en Costa Rica ya confían en nosotros',
-
-    // Video crear
     videoCrearTitle: 'Crea una propiedad en segundos',
     videoCrearDesc: 'Mira lo fácil que es publicar una propiedad con tu voz desde el celular.',
-
-    // App screenshots
     screenshotsTitle: 'La productividad en la palma de tu mano',
     screenshotsDesc: 'Trabaja desde cualquier lugar. FlowEstateAI está diseñada para que gestiones tus propiedades directamente desde tu celular, sin complicaciones.',
     screenshotBullets: [
@@ -35,12 +49,8 @@ const COPY = {
     ],
     screenshotBanner: 'Abre flowestateai.com en Chrome o Safari —',
     screenshotBannerHighlight: 'sin descargar nada',
-
-    // Banda móvil
     bandaTitle: 'Hecha para usarse en tu móvil',
     bandaDesc: 'No necesitas laptop ni computadora. Todo desde tu teléfono.',
-
-    // How it works
     howTitle: 'Cómo Funciona',
     howSubtitle: 'Tan fácil como enviar un mensaje de voz',
     howSteps: [
@@ -48,16 +58,10 @@ const COPY = {
       { step: '2', emoji: '🎤', title: 'Graba tu Voz', description: 'Describe la propiedad hablando 30-120 segundos. Como si le explicaras a un cliente.' },
       { step: '3', emoji: '✅', title: 'Listo para Compartir', description: 'Recibe la descripción profesional lista. Comparte PDF o link de tu portafolio.' },
     ],
-
-    // Video Facebook
     videoFbTitle: 'Publica en Facebook con un toque',
     videoFbDesc: 'Comparte tus propiedades directamente en tu página de Facebook desde la app, sin copiar ni pegar nada.',
-
-    // Testimonios
     testiTitle: 'Quien lo Usa lo Recomienda',
     testiSubtitle: 'Agentes inmobiliarios de Costa Rica ya usan FlowEstateAI',
-
-    // Features
     featTitle: 'Lo Que Obtienes',
     featSubtitle: 'Todo lo necesario para verte profesional',
     features: [
@@ -68,40 +72,20 @@ const COPY = {
       { emoji: '🗺️', title: 'Mapa de Google Integrado', desc: 'Muestra la ubicación exacta de tus propiedades con Google Maps cuando lo desees.' },
       { emoji: '🎬', title: 'Videos de Propiedades', desc: 'Incluye videos en tus propiedades para destacar su presentación y captar más la atención de tus clientes.' },
     ],
-
-    // Video TikTok
     videoTiktokTitle: 'Modo TikTok para tus propiedades',
     videoTiktokDesc: 'Navega entre los videos de tus propiedades al estilo TikTok. Una experiencia moderna que engancha a tus clientes.',
-
-    // Precios
     preciosTitle: 'Planes y Precios',
     preciosSubtitle: 'Empieza gratis. Crece cuando estés listo.',
     planFreeTitle: 'Free',
     planFreePrice: '₡0',
     planFreeSubtitle: 'Para empezar sin riesgo',
-    planFreeItems: [
-      'Hasta 5 propiedades',
-      'Generación de descripciones con IA',
-      'Portafolio web público',
-      'Tarjeta digital',
-      'Exportación a PDF',
-      'Soporte estándar',
-    ],
+    planFreeItems: ['Hasta 5 propiedades', 'Generación de descripciones con IA', 'Portafolio web público', 'Tarjeta digital', 'Exportación a PDF', 'Soporte estándar'],
     planFreeCta: 'Empezar Gratis',
     planProBadge: 'MÁS POPULAR',
     planProTitle: 'Pro',
     planProPrice: '₡14,803',
     planProSubtitle: 'por mes · ~$28 USD',
-    planProItems: [
-      'Hasta 150 propiedades',
-      'Todo lo del plan Free +',
-      'Tarjeta digital bilingüe (ES/EN)',
-      'Publicación automática en Facebook',
-      'Traducciones con IA (Inglés/Español)',
-      'Sin marca de agua de FlowEstateAI',
-      'Agrega tu logo en fotos',
-      'Agrega videos a tus propiedades para destacar su presentación',
-    ],
+    planProItems: ['Hasta 150 propiedades', 'Todo lo del plan Free +', 'Tarjeta digital bilingüe (ES/EN)', 'Publicación automática en Facebook', 'Traducciones con IA (Inglés/Español)', 'Sin marca de agua de FlowEstateAI', 'Agrega tu logo en fotos', 'Agrega videos a tus propiedades para destacar su presentación'],
     planProCta: '🚀 Contratar Pro',
     faqTitle: 'Preguntas Frecuentes',
     faqs: [
@@ -110,8 +94,6 @@ const COPY = {
       { q: '¿Puedo cancelar en cualquier momento?', a: 'Sí. Como los pagos son manuales mes a mes, simplemente dejas de enviar el SINPE y tu plan vuelve automáticamente al plan gratuito.' },
       { q: '¿Hay límite de fotos por propiedad?', a: 'Puedes subir hasta 15 fotos por propiedad en cualquier plan.' },
     ],
-
-    // Por qué
     whyTitle: '¿Por qué usar FlowEstateAI?',
     whySubtitle: 'Diseñado específicamente para agentes independientes',
     whyItems: [
@@ -122,27 +104,20 @@ const COPY = {
       { icon: '📘', title: 'Publica en Facebook en menos de un minuto', description: 'Ahora puedes publicar directamente desde FlowEstateAI en tu página de Facebook. Lo logras en menos de un minuto sin salir de la app.' },
       { icon: '📦', title: 'Todo ordenado, más productividad', description: 'Olvídate de propiedades perdidas por todo lado. Ahora mantienes todo ordenado y ganas productividad en tu día a día.' },
     ],
-
-    // CTA final
-    ctaTitle: '¿Listo Para Verte Más Profesional?',
+    ctaTitle: '¿Lista Para Verte Más Profesional?',
     ctaSubtitle: 'Comienza gratis hoy. Sin tarjeta de crédito.',
     ctaHint: '📱 Abre esta página desde tu celular para la mejor experiencia',
     ctaButton: '🚀 Probar Gratis Ahora',
     ctaFootnote: 'Empieza en menos de 2 minutos',
-
-    // Footer
     footerTagline: 'Herramientas digitales para agentes independientes',
     footerTerms: 'Términos y Condiciones',
     footerPrivacy: 'Política de Privacidad',
     footerContact: 'Contacto',
     footerCopyright: '© 2026 FlowEstateAI. Todos los derechos reservados.',
-
-    // WhatsApp
     whatsappText: 'Hablar por WhatsApp',
     whatsappUrl: 'https://wa.me/50683688684?text=Hola!%20Tengo%20una%20consulta%20sobre%20Flow%20Estate%20AI%20%F0%9F%8F%A0',
   },
   en: {
-    // Hero
     heroTitle: 'Is your phone bursting with property photos and videos?',
     heroSubtitle: 'Searching for info for hours, listings scattered across chats, photos with no order... Not anymore.',
     heroBody: 'With FlowEstateAI you create professional listings by talking into your phone, post to Facebook in seconds, and share your portfolio with a single link. Everything you need, in one place.',
@@ -150,12 +125,8 @@ const COPY = {
     heroDemo: 'Watch demo',
     heroInstall: '📱 Install App',
     heroSocial: 'Real estate agents in Costa Rica already trust us',
-
-    // Video crear
     videoCrearTitle: 'Create a listing in seconds',
     videoCrearDesc: 'See how easy it is to publish a property using just your voice from your phone.',
-
-    // App screenshots
     screenshotsTitle: 'Productivity in the palm of your hand',
     screenshotsDesc: 'Work from anywhere. FlowEstateAI is designed so you can manage your listings directly from your phone, hassle-free.',
     screenshotBullets: [
@@ -165,12 +136,8 @@ const COPY = {
     ],
     screenshotBanner: 'Open flowestateai.com in Chrome or Safari —',
     screenshotBannerHighlight: 'no download needed',
-
-    // Banda móvil
     bandaTitle: 'Built to use on your phone',
     bandaDesc: 'No laptop or computer needed. Everything from your phone.',
-
-    // How it works
     howTitle: 'How It Works',
     howSubtitle: 'As easy as sending a voice message',
     howSteps: [
@@ -178,16 +145,10 @@ const COPY = {
       { step: '2', emoji: '🎤', title: 'Record Your Voice', description: 'Describe the property for 30–120 seconds, just like you\'d explain it to a client.' },
       { step: '3', emoji: '✅', title: 'Ready to Share', description: 'Get a professional description instantly. Share as a PDF or your portfolio link.' },
     ],
-
-    // Video Facebook
     videoFbTitle: 'Publish to Facebook with one tap',
     videoFbDesc: 'Share your listings directly to your Facebook page from the app — no copy-pasting required.',
-
-    // Testimonios
     testiTitle: 'Those Who Use It Recommend It',
     testiSubtitle: 'Real estate agents in Costa Rica are already using FlowEstateAI',
-
-    // Features
     featTitle: 'What You Get',
     featSubtitle: 'Everything you need to look professional',
     features: [
@@ -198,40 +159,20 @@ const COPY = {
       { emoji: '🗺️', title: 'Integrated Google Maps', desc: 'Show the exact location of your properties with Google Maps whenever you want.' },
       { emoji: '🎬', title: 'Property Videos', desc: 'Add videos to your listings to stand out and capture more of your clients\' attention.' },
     ],
-
-    // Video TikTok
     videoTiktokTitle: 'TikTok-style mode for your listings',
     videoTiktokDesc: 'Browse your property videos TikTok-style. A modern experience that keeps clients engaged.',
-
-    // Precios
     preciosTitle: 'Plans & Pricing',
     preciosSubtitle: 'Start free. Grow when you\'re ready.',
     planFreeTitle: 'Free',
     planFreePrice: '$0',
     planFreeSubtitle: 'Start with no risk',
-    planFreeItems: [
-      'Up to 5 properties',
-      'AI-generated descriptions',
-      'Public web portfolio',
-      'Digital business card',
-      'PDF export',
-      'Standard support',
-    ],
+    planFreeItems: ['Up to 5 properties', 'AI-generated descriptions', 'Public web portfolio', 'Digital business card', 'PDF export', 'Standard support'],
     planFreeCta: 'Start for Free',
     planProBadge: 'MOST POPULAR',
     planProTitle: 'Pro',
     planProPrice: '$28',
     planProSubtitle: 'per month · ~₡14,803 CRC',
-    planProItems: [
-      'Up to 150 properties',
-      'Everything in Free +',
-      'Bilingual digital card (ES/EN)',
-      'Automatic Facebook publishing',
-      'AI translations (English/Spanish)',
-      'No FlowEstateAI watermark',
-      'Add your logo to photos',
-      'Add videos to your listings to stand out',
-    ],
+    planProItems: ['Up to 150 properties', 'Everything in Free +', 'Bilingual digital card (ES/EN)', 'Automatic Facebook publishing', 'AI translations (English/Spanish)', 'No FlowEstateAI watermark', 'Add your logo to photos', 'Add videos to your listings to stand out'],
     planProCta: '🚀 Get Pro',
     faqTitle: 'Frequently Asked Questions',
     faqs: [
@@ -240,8 +181,6 @@ const COPY = {
       { q: 'Can I cancel at any time?', a: 'Yes. Payments are manual month by month, so you simply stop sending payment and your plan automatically reverts to the free tier.' },
       { q: 'Is there a photo limit per property?', a: 'You can upload up to 15 photos per property on any plan.' },
     ],
-
-    // Por qué
     whyTitle: 'Why Use FlowEstateAI?',
     whySubtitle: 'Built specifically for independent real estate agents',
     whyItems: [
@@ -252,22 +191,16 @@ const COPY = {
       { icon: '📘', title: 'Post to Facebook in under a minute', description: 'Publish directly to your Facebook page from within FlowEstateAI. Done in under a minute without leaving the app.' },
       { icon: '📦', title: 'Everything organized, more productivity', description: 'No more listings scattered everywhere. Keep everything tidy and gain productivity every day.' },
     ],
-
-    // CTA final
     ctaTitle: 'Ready to Look More Professional?',
     ctaSubtitle: 'Start free today. No credit card required.',
     ctaHint: '📱 Open this page from your phone for the best experience',
     ctaButton: '🚀 Try It Free Now',
     ctaFootnote: 'Get started in under 2 minutes',
-
-    // Footer
     footerTagline: 'Digital tools for independent real estate agents',
     footerTerms: 'Terms & Conditions',
     footerPrivacy: 'Privacy Policy',
     footerContact: 'Contact',
     footerCopyright: '© 2026 FlowEstateAI. All rights reserved.',
-
-    // WhatsApp
     whatsappText: 'Chat on WhatsApp',
     whatsappUrl: 'https://wa.me/50683688684?text=Hi!%20I%20have%20a%20question%20about%20Flow%20Estate%20AI%20%F0%9F%8F%A0',
   },
@@ -275,41 +208,30 @@ const COPY = {
 
 type Lang = keyof typeof COPY;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// VIDEOS — playbackId de Mux por idioma. Si "en" es null, se usa el de "es"
-// y se muestra un badge avisando que el audio está en español.
-// Cuando grabes/subas la versión en inglés, solo pega el playbackId en "en".
-// ─────────────────────────────────────────────────────────────────────────────
 const VIDEOS: Record<'crear' | 'facebook' | 'tiktok', { es: string; en: string | null }> = {
-  crear: { es: '9i9RHXUIHHIqYqRLCykCIpQ727VBpE7lO9Kzxic02Pi8', en: null },
+  crear:    { es: '9i9RHXUIHHIqYqRLCykCIpQ727VBpE7lO9Kzxic02Pi8', en: null },
   facebook: { es: 'yCYWwv00Hiohs27xTuRSm6SfEmGM1vcdt8B7v4d9y00Oc', en: null },
-  tiktok: { es: '2GGgMmXJhWQoQp2XpOTPRw5uPnzN6Mwy8OjkhyP9mXY', en: null },
+  tiktok:   { es: '2GGgMmXJhWQoQp2XpOTPRw5uPnzN6Mwy8OjkhyP9mXY',  en: null },
 };
 
 function getPlaybackId(key: keyof typeof VIDEOS, lang: Lang) {
   return VIDEOS[key][lang] ?? VIDEOS[key].es;
 }
-
 function isFallbackToSpanish(key: keyof typeof VIDEOS, lang: Lang) {
   return lang === 'en' && !VIDEOS[key].en;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Banderas en SVG — los emojis 🇺🇸/🇪🇸 no renderizan en muchos sistemas
-// (Windows, algunos Android/Linux), así que usamos SVG propio: se ve igual
-// en cualquier navegador y OS.
-// ─────────────────────────────────────────────────────────────────────────────
 function USFlagIcon() {
   return (
     <svg width="20" height="14" viewBox="0 0 20 14" className="rounded-[2px] flex-shrink-0" aria-hidden="true">
-      <rect width="20" height="14" fill="#B22234" />
-      <rect y="1.08" width="20" height="1.08" fill="#FFFFFF" />
-      <rect y="3.23" width="20" height="1.08" fill="#FFFFFF" />
-      <rect y="5.38" width="20" height="1.08" fill="#FFFFFF" />
-      <rect y="7.54" width="20" height="1.08" fill="#FFFFFF" />
-      <rect y="9.69" width="20" height="1.08" fill="#FFFFFF" />
-      <rect y="11.85" width="20" height="1.08" fill="#FFFFFF" />
-      <rect width="8" height="7.54" fill="#3C3B6E" />
+      <rect width="20" height="14" fill="#B22234"/>
+      <rect y="1.08" width="20" height="1.08" fill="#FFFFFF"/>
+      <rect y="3.23" width="20" height="1.08" fill="#FFFFFF"/>
+      <rect y="5.38" width="20" height="1.08" fill="#FFFFFF"/>
+      <rect y="7.54" width="20" height="1.08" fill="#FFFFFF"/>
+      <rect y="9.69" width="20" height="1.08" fill="#FFFFFF"/>
+      <rect y="11.85" width="20" height="1.08" fill="#FFFFFF"/>
+      <rect width="8" height="7.54" fill="#3C3B6E"/>
     </svg>
   );
 }
@@ -317,22 +239,28 @@ function USFlagIcon() {
 function ESFlagIcon() {
   return (
     <svg width="20" height="14" viewBox="0 0 20 14" className="rounded-[2px] flex-shrink-0" aria-hidden="true">
-      <rect width="20" height="14" fill="#AA151B" />
-      <rect y="3.5" width="20" height="7" fill="#F1BF00" />
+      <rect width="20" height="14" fill="#AA151B"/>
+      <rect y="3.5" width="20" height="7" fill="#F1BF00"/>
     </svg>
   );
 }
 
-// Badge que avisa cuando el video mostrado sigue en español (no hay versión EN todavía)
 function SpanishAudioBadge() {
   return (
-    <p className="text-center text-xs font-semibold mt-3 opacity-60" style={{ color: '#0F172A' }}>
+    <p className="text-center text-xs font-semibold mt-3 opacity-50" style={{ color: T.charcoal }}>
       🔊 Narrated in Spanish
     </p>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// Separador dorado decorativo
+function GoldDivider() {
+  return (
+    <div className="flex items-center justify-center my-2">
+      <div style={{ width: '40px', height: '2px', backgroundColor: T.gold, borderRadius: '2px' }} />
+    </div>
+  );
+}
 
 export default function LandingPage() {
   const { data: session, status } = useSession();
@@ -379,50 +307,33 @@ export default function LandingPage() {
     const section = document.getElementById('video-crear-propiedad');
     if (section) {
       section.scrollIntoView({ behavior: 'smooth' });
-      setTimeout(() => {
-        if (videoCrearRef.current) {
-          videoCrearRef.current.play().catch(() => {});
-        }
-      }, 800);
+      setTimeout(() => { if (videoCrearRef.current) videoCrearRef.current.play().catch(() => {}); }, 800);
     }
   };
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5EAD3' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: T.cream }}>
         <div className="text-5xl animate-pulse">🏠</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F5EAD3' }}>
+    <div className="min-h-screen" style={{ backgroundColor: T.cream }}>
 
-      {/* Sticky Header */}
+      {/* ── HEADER ── */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'shadow-lg' : ''}`}
-        style={{ backgroundColor: '#0F172A' }}
+        style={{ backgroundColor: T.navy }}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
-            <Image
-              src="/logo_header.png"
-              alt="FlowEstateAI"
-              width={410}
-              height={184}
-              className="w-[91px] h-[40px] sm:w-[120px] sm:h-auto"
-              priority
-            />
-
-            {/* Language toggle */}
+            <Image src="/logo_header.png" alt="FlowEstateAI" width={410} height={184} className="w-[91px] h-[40px] sm:w-[120px] sm:h-auto" priority />
             <button
               onClick={() => setLang(lang === 'es' ? 'en' : 'es')}
               className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold transition-all active:scale-95"
-              style={{
-                backgroundColor: 'rgba(255,255,255,0.10)',
-                border: '1px solid rgba(255,255,255,0.18)',
-                color: '#FFFFFF',
-              }}
+              style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: `1px solid ${T.gold}`, color: T.gold }}
               aria-label="Switch language"
             >
               {lang === 'es' ? <USFlagIcon /> : <ESFlagIcon />}
@@ -432,24 +343,30 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* ── HERO ── */}
       <section
-        className="relative pt-32 pb-24 px-4 overflow-hidden"
-        style={{
-          background: 'linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 40%, #2563EB 70%, #3B82F6 100%)',
-        }}
+        className="relative pt-32 pb-28 px-4 overflow-hidden"
+        style={{ background: `linear-gradient(150deg, ${T.navy} 0%, ${T.navyMid} 50%, ${T.navyLight} 100%)` }}
       >
-        <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-10 pointer-events-none" style={{ background: 'radial-gradient(circle, #FFFFFF 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
-        <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full opacity-10 pointer-events-none" style={{ background: 'radial-gradient(circle, #FFFFFF 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
+        {/* Decorativo dorado — línea sutil en la parte inferior */}
+        <div className="absolute bottom-0 left-0 right-0 h-px" style={{ backgroundColor: T.gold, opacity: 0.3 }} />
+        {/* Círculos decorativos */}
+        <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-5 pointer-events-none" style={{ background: `radial-gradient(circle, ${T.gold} 0%, transparent 70%)`, transform: 'translate(30%, -30%)' }} />
+        <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full opacity-5 pointer-events-none" style={{ background: `radial-gradient(circle, ${T.gold} 0%, transparent 70%)`, transform: 'translate(-30%, 30%)' }} />
 
         <div className="relative max-w-4xl mx-auto text-center">
+          {/* Badge dorado sobre el título */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-6" style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: `1px solid rgba(201,168,76,0.4)`, color: T.gold }}>
+            ✦ Herramienta #1 para agentes independientes
+          </div>
+
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-6 tracking-tight text-white leading-tight">
             {c.heroTitle}
           </h1>
-          <p className="text-xl sm:text-2xl mb-6 max-w-3xl mx-auto leading-relaxed font-semibold" style={{ color: '#FFFFFF' }}>
+          <p className="text-xl sm:text-2xl mb-6 max-w-3xl mx-auto leading-relaxed font-semibold" style={{ color: T.goldLight }}>
             {c.heroSubtitle}
           </p>
-          <p className="text-base sm:text-lg mb-10 max-w-3xl mx-auto leading-relaxed" style={{ color: '#DBEAFE' }}>
+          <p className="text-base sm:text-lg mb-10 max-w-3xl mx-auto leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>
             {c.heroBody.split('FlowEstateAI').map((part, i) =>
               i === 0
                 ? <span key={i}>{part}<strong className="font-bold text-white">FlowEstateAI</strong></span>
@@ -458,88 +375,88 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
-            <Link href={`/login?lang=${lang}`} className="px-8 py-4 rounded-xl font-bold text-lg shadow-xl transition-all active:scale-95" style={{ backgroundColor: '#FFFFFF', color: '#1D4ED8' }}>
+            <Link
+              href={`/login?lang=${lang}`}
+              className="px-8 py-4 rounded-xl font-bold text-lg shadow-xl transition-all active:scale-95"
+              style={{ backgroundColor: T.gold, color: T.navy }}
+            >
               {c.heroCta}
             </Link>
-            <button onClick={handleVerDemo} className="px-8 py-4 rounded-xl font-semibold text-white border-2 transition-all text-lg" style={{ borderColor: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.1)' }}>
+            <button
+              onClick={handleVerDemo}
+              className="px-8 py-4 rounded-xl font-semibold text-white border-2 transition-all text-lg"
+              style={{ borderColor: 'rgba(255,255,255,0.3)', backgroundColor: 'rgba(255,255,255,0.08)' }}
+            >
               {c.heroDemo}
             </button>
             {showInstallButton && (
-              <button onClick={handleInstallClick} className="px-8 py-4 rounded-xl font-bold text-white shadow-xl text-lg active:scale-95 transition-transform animate-pulse" style={{ backgroundColor: '#10B981' }}>
+              <button onClick={handleInstallClick} className="px-8 py-4 rounded-xl font-bold text-white shadow-xl text-lg active:scale-95 transition-transform animate-pulse" style={{ backgroundColor: '#15803D' }}>
                 {c.heroInstall}
               </button>
             )}
           </div>
 
-          <p className="text-sm font-medium uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <p className="text-sm font-medium uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>
             {c.heroSocial}
           </p>
         </div>
       </section>
 
-      {/* Video — Crear propiedad */}
-      <section id="video-crear-propiedad" className="py-16 px-4">
+      {/* ── VIDEO CREAR ── */}
+      <section id="video-crear-propiedad" className="py-20 px-4" style={{ backgroundColor: T.white }}>
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>
+          <div className="text-center mb-10">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-3 uppercase tracking-tight" style={{ color: T.navy }}>
               {c.videoCrearTitle}
             </h2>
-            <p className="text-lg opacity-70 max-w-2xl mx-auto" style={{ color: '#0F172A' }}>
+            <GoldDivider />
+            <p className="text-lg mt-4 max-w-2xl mx-auto" style={{ color: T.muted }}>
               {c.videoCrearDesc}
             </p>
           </div>
-          <div className="rounded-2xl overflow-hidden shadow-2xl mx-auto" style={{ maxWidth: '360px' }}>
-            <MuxPlayer
-              ref={videoCrearRef}
-              playbackId={getPlaybackId('crear', lang)}
-              autoPlay={false}
-              muted={false}
-              style={{ width: '100%', aspectRatio: '9/16' }}
-            />
+          <div className="rounded-2xl overflow-hidden shadow-2xl mx-auto" style={{ maxWidth: '360px', border: `1px solid ${T.border}` }}>
+            <MuxPlayer ref={videoCrearRef} playbackId={getPlaybackId('crear', lang)} autoPlay={false} muted={false} style={{ width: '100%', aspectRatio: '9/16' }} />
           </div>
           {isFallbackToSpanish('crear', lang) && <SpanishAudioBadge />}
         </div>
       </section>
 
-      {/* App screenshots */}
-      <section className="py-16 px-4">
+      {/* ── APP SCREENSHOTS ── */}
+      <section className="py-20 px-4" style={{ backgroundColor: T.cream }}>
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-3 uppercase tracking-tight" style={{ color: T.navy }}>
               {c.screenshotsTitle}
             </h2>
-            <p className="text-lg opacity-70 max-w-2xl mx-auto" style={{ color: '#0F172A' }}>
+            <GoldDivider />
+            <p className="text-lg mt-4 max-w-2xl mx-auto" style={{ color: T.muted }}>
               {c.screenshotsDesc}
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <div className="rounded-2xl overflow-hidden shadow-xl">
-              <Image src="/app-dashboard.jpg" alt="Dashboard de FlowEstateAI" width={300} height={600} className="w-full h-auto object-cover" />
-            </div>
-            <div className="rounded-2xl overflow-hidden shadow-xl mt-6">
-              <Image src="/app-property.jpg" alt="Propiedad en FlowEstateAI" width={300} height={600} className="w-full h-auto object-cover" />
-            </div>
-            <div className="rounded-2xl overflow-hidden shadow-xl">
-              <Image src="/app-card.jpg" alt="Tarjeta digital FlowEstateAI" width={300} height={600} className="w-full h-auto object-cover" />
-            </div>
+          <div className="grid grid-cols-3 gap-4 mb-10">
+            {['/app-dashboard.jpg', '/app-property.jpg', '/app-card.jpg'].map((src, i) => (
+              <div key={i} className={`rounded-2xl overflow-hidden shadow-xl ${i === 1 ? 'mt-6' : ''}`} style={{ border: `1px solid ${T.border}` }}>
+                <Image src={src} alt={`FlowEstateAI screenshot ${i + 1}`} width={300} height={600} className="w-full h-auto object-cover" />
+              </div>
+            ))}
           </div>
 
-          <ul className="grid sm:grid-cols-3 gap-4 mb-8">
+          <ul className="grid sm:grid-cols-3 gap-4 mb-10">
             {c.screenshotBullets.map((item, i) => (
-              <li key={i} className="flex items-start gap-3 rounded-2xl p-4 shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
+              <li key={i} className="flex items-start gap-3 rounded-2xl p-5 shadow-md" style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}>
                 <span className="text-2xl flex-shrink-0">{item.emoji}</span>
-                <span className="text-sm font-semibold" style={{ color: '#0F172A' }}>{item.text}</span>
+                <span className="text-sm font-semibold" style={{ color: T.charcoal }}>{item.text}</span>
               </li>
             ))}
           </ul>
 
           <div className="text-center">
-            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl shadow-md" style={{ backgroundColor: '#0F172A' }}>
+            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl shadow-md" style={{ backgroundColor: T.navy }}>
               <span className="text-xl">🌐</span>
-              <p className="text-sm font-semibold" style={{ color: '#FFFFFF' }}>
+              <p className="text-sm font-semibold" style={{ color: T.white }}>
                 {c.screenshotBanner}{' '}
-                <span style={{ color: '#93C5FD' }}>flowestateai.com</span>{' '}
+                <span style={{ color: T.goldLight }}>flowestateai.com</span>{' '}
                 — <span style={{ color: '#86EFAC' }}>{c.screenshotBannerHighlight}</span>
               </p>
             </div>
@@ -547,68 +464,65 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Banda móvil */}
-      <section className="py-10 px-4 w-full" style={{ backgroundColor: '#0F172A' }}>
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 text-center sm:text-left">
+      {/* ── BANDA MÓVIL ── */}
+      <section className="py-12 px-4 w-full" style={{ backgroundColor: T.navy, borderTop: `1px solid rgba(201,168,76,0.2)`, borderBottom: `1px solid rgba(201,168,76,0.2)` }}>
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-5 text-center sm:text-left">
           <span className="text-4xl">📱</span>
           <div>
-            <h2 className="text-2xl font-bold text-white uppercase tracking-wide">{c.bandaTitle}</h2>
-            <p className="text-sm mt-1" style={{ color: '#94A3B8' }}>{c.bandaDesc}</p>
+            <h2 className="text-2xl font-bold uppercase tracking-wide" style={{ color: T.white }}>{c.bandaTitle}</h2>
+            <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.55)' }}>{c.bandaDesc}</p>
           </div>
         </div>
       </section>
 
-      {/* How It Works */}
-      <section id="how-it-works" className="py-16 px-4">
+      {/* ── HOW IT WORKS ── */}
+      <section id="how-it-works" className="py-20 px-4" style={{ backgroundColor: T.white }}>
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>{c.howTitle}</h2>
-            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>{c.howSubtitle}</p>
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-3 uppercase tracking-tight" style={{ color: T.navy }}>{c.howTitle}</h2>
+            <GoldDivider />
+            <p className="text-lg mt-4" style={{ color: T.muted }}>{c.howSubtitle}</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-8">
             {c.howSteps.map((item, index) => (
-              <div key={index} className="relative rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow" style={{ backgroundColor: '#FFFFFF' }}>
-                <div className="absolute -top-4 -left-4 w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-xl shadow-lg" style={{ backgroundColor: '#2563EB' }}>
+              <div key={index} className="relative rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow" style={{ backgroundColor: T.cream, border: `1px solid ${T.border}` }}>
+                {/* Número dorado */}
+                <div className="absolute -top-5 -left-5 w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-xl shadow-lg" style={{ backgroundColor: T.gold, color: T.navy }}>
                   {item.step}
                 </div>
-                <div className="text-5xl mb-4 text-center">{item.emoji}</div>
-                <h3 className="text-xl font-bold mb-2 text-center" style={{ color: '#0F172A' }}>{item.title}</h3>
-                <p className="text-center opacity-80" style={{ color: '#0F172A' }}>{item.description}</p>
+                <div className="text-5xl mb-5 text-center">{item.emoji}</div>
+                <h3 className="text-xl font-bold mb-3 text-center" style={{ color: T.navy }}>{item.title}</h3>
+                <p className="text-center" style={{ color: T.muted }}>{item.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Video — Facebook */}
-      <section className="py-16 px-4">
+      {/* ── VIDEO FACEBOOK ── */}
+      <section className="py-20 px-4" style={{ backgroundColor: T.cream }}>
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>
+          <div className="text-center mb-10">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-3 uppercase tracking-tight" style={{ color: T.navy }}>
               {c.videoFbTitle}
             </h2>
-            <p className="text-lg opacity-70 max-w-2xl mx-auto" style={{ color: '#0F172A' }}>
-              {c.videoFbDesc}
-            </p>
+            <GoldDivider />
+            <p className="text-lg mt-4 max-w-2xl mx-auto" style={{ color: T.muted }}>{c.videoFbDesc}</p>
           </div>
-          <div className="rounded-2xl overflow-hidden shadow-2xl mx-auto" style={{ maxWidth: '360px' }}>
-            <MuxPlayer
-              playbackId={getPlaybackId('facebook', lang)}
-              autoPlay={false}
-              muted={false}
-              style={{ width: '100%', aspectRatio: '9/16' }}
-            />
+          <div className="rounded-2xl overflow-hidden shadow-2xl mx-auto" style={{ maxWidth: '360px', border: `1px solid ${T.border}` }}>
+            <MuxPlayer playbackId={getPlaybackId('facebook', lang)} autoPlay={false} muted={false} style={{ width: '100%', aspectRatio: '9/16' }} />
           </div>
           {isFallbackToSpanish('facebook', lang) && <SpanishAudioBadge />}
         </div>
       </section>
 
-      {/* Testimonios */}
-      <section className="py-16 px-4">
+      {/* ── TESTIMONIOS ── */}
+      <section className="py-20 px-4" style={{ backgroundColor: T.navy }}>
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>{c.testiTitle}</h2>
-            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>{c.testiSubtitle}</p>
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-3 uppercase tracking-tight" style={{ color: T.white }}>{c.testiTitle}</h2>
+            <GoldDivider />
+            <p className="text-lg mt-4" style={{ color: 'rgba(255,255,255,0.55)' }}>{c.testiSubtitle}</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {[
@@ -616,16 +530,16 @@ export default function LandingPage() {
               { name: 'Eitel Vallejos', company: 'Pampa Bienes Raíces', photo: '/testimonial-eitel.jpg', quote: lang === 'es' ? 'Me parece una herramienta magnífica, muy práctica, ágil y técnica. Perfecta para el trabajo inmobiliario.' : 'I find it a magnificent tool, very practical, agile and technical. Perfect for real estate work.' },
               { name: 'Guadalupe Mancía', company: 'Guadalupe Real Estate', photo: '/testimonial-guadalupe.jpg', quote: lang === 'es' ? 'Me ha ayudado a facilitar el trabajo, mis publicaciones y ahorrar tiempo. Una gran herramienta, una gran ayuda.' : 'It has helped me streamline my work, my publications and save time. A great tool, a great help.' },
             ].map((t, i) => (
-              <div key={i} className="rounded-2xl p-6 shadow-lg flex flex-col gap-4" style={{ backgroundColor: '#FFFFFF' }}>
-                <div className="text-6xl font-serif leading-none" style={{ color: '#2563EB', opacity: 0.3 }}>"</div>
-                <p className="text-base leading-relaxed flex-1 italic opacity-90" style={{ color: '#0F172A' }}>{t.quote}</p>
-                <div className="flex items-center gap-3 pt-4 border-t" style={{ borderColor: '#E5E7EB' }}>
-                  <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 shadow-md">
+              <div key={i} className="rounded-2xl p-7 flex flex-col gap-4" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: `1px solid rgba(201,168,76,0.2)` }}>
+                <div className="text-5xl font-serif leading-none" style={{ color: T.gold, opacity: 0.5 }}>"</div>
+                <p className="text-base leading-relaxed flex-1 italic" style={{ color: 'rgba(255,255,255,0.85)' }}>{t.quote}</p>
+                <div className="flex items-center gap-3 pt-4" style={{ borderTop: `1px solid rgba(201,168,76,0.2)` }}>
+                  <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 shadow-md" style={{ border: `2px solid ${T.gold}` }}>
                     <Image src={t.photo} alt={t.name} width={56} height={56} className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <p className="font-bold text-base" style={{ color: '#0F172A' }}>{t.name}</p>
-                    <p className="text-sm opacity-60" style={{ color: '#0F172A' }}>{t.company}</p>
+                    <p className="font-bold text-base" style={{ color: T.white }}>{t.name}</p>
+                    <p className="text-sm" style={{ color: T.gold }}>{t.company}</p>
                   </div>
                 </div>
               </div>
@@ -634,103 +548,101 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-16 px-4">
+      {/* ── FEATURES ── */}
+      <section className="py-20 px-4" style={{ backgroundColor: T.white }}>
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>{c.featTitle}</h2>
-            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>{c.featSubtitle}</p>
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-3 uppercase tracking-tight" style={{ color: T.navy }}>{c.featTitle}</h2>
+            <GoldDivider />
+            <p className="text-lg mt-4" style={{ color: T.muted }}>{c.featSubtitle}</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {c.features.map((feature, index) => (
-              <div key={index} className="rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all" style={{ backgroundColor: '#FFFFFF' }}>
-                <div className="text-4xl mb-3">{feature.emoji}</div>
-                <h3 className="text-lg font-bold mb-2" style={{ color: '#0F172A' }}>{feature.title}</h3>
-                <p className="text-sm opacity-80" style={{ color: '#0F172A' }}>{feature.desc}</p>
+              <div key={index} className="rounded-2xl p-7 hover:shadow-xl transition-all group" style={{ backgroundColor: T.cream, border: `1px solid ${T.border}` }}>
+                <div className="text-4xl mb-4">{feature.emoji}</div>
+                <h3 className="text-lg font-bold mb-2" style={{ color: T.navy }}>{feature.title}</h3>
+                <p className="text-sm" style={{ color: T.muted }}>{feature.desc}</p>
+                {/* Línea dorada decorativa al hover */}
+                <div className="mt-4 h-0.5 w-0 group-hover:w-12 transition-all duration-300 rounded-full" style={{ backgroundColor: T.gold }} />
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Video — TikTok */}
-      <section className="py-16 px-4">
+      {/* ── VIDEO TIKTOK ── */}
+      <section className="py-20 px-4" style={{ backgroundColor: T.cream }}>
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>
+          <div className="text-center mb-10">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-3 uppercase tracking-tight" style={{ color: T.navy }}>
               {c.videoTiktokTitle}
             </h2>
-            <p className="text-lg opacity-70 max-w-2xl mx-auto" style={{ color: '#0F172A' }}>
-              {c.videoTiktokDesc}
-            </p>
+            <GoldDivider />
+            <p className="text-lg mt-4 max-w-2xl mx-auto" style={{ color: T.muted }}>{c.videoTiktokDesc}</p>
           </div>
-          <div className="rounded-2xl overflow-hidden shadow-2xl mx-auto" style={{ maxWidth: '360px' }}>
-            <MuxPlayer
-              playbackId={getPlaybackId('tiktok', lang)}
-              autoPlay={false}
-              muted={false}
-              style={{ width: '100%', aspectRatio: '9/16' }}
-            />
+          <div className="rounded-2xl overflow-hidden shadow-2xl mx-auto" style={{ maxWidth: '360px', border: `1px solid ${T.border}` }}>
+            <MuxPlayer playbackId={getPlaybackId('tiktok', lang)} autoPlay={false} muted={false} style={{ width: '100%', aspectRatio: '9/16' }} />
           </div>
           {isFallbackToSpanish('tiktok', lang) && <SpanishAudioBadge />}
         </div>
       </section>
 
-      {/* Planes y Precios */}
-      <section className="py-16 px-4">
+      {/* ── PLANES Y PRECIOS ── */}
+      <section className="py-20 px-4" style={{ backgroundColor: T.white }}>
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>{c.preciosTitle}</h2>
-            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>{c.preciosSubtitle}</p>
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-3 uppercase tracking-tight" style={{ color: T.navy }}>{c.preciosTitle}</h2>
+            <GoldDivider />
+            <p className="text-lg mt-4" style={{ color: T.muted }}>{c.preciosSubtitle}</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
             {/* Plan Free */}
-            <div className="rounded-2xl p-8 shadow-lg border-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }}>
-              <h3 className="text-xl font-bold mb-1" style={{ color: '#0F172A' }}>{c.planFreeTitle}</h3>
-              <p className="text-4xl font-bold mb-1" style={{ color: '#0F172A' }}>{c.planFreePrice}</p>
-              <p className="text-sm opacity-60 mb-6" style={{ color: '#0F172A' }}>{c.planFreeSubtitle}</p>
+            <div className="rounded-2xl p-8 shadow-lg" style={{ backgroundColor: T.cream, border: `1px solid ${T.border}` }}>
+              <h3 className="text-xl font-bold mb-1" style={{ color: T.navy }}>{c.planFreeTitle}</h3>
+              <p className="text-4xl font-bold mb-1" style={{ color: T.navy }}>{c.planFreePrice}</p>
+              <p className="text-sm mb-7" style={{ color: T.muted }}>{c.planFreeSubtitle}</p>
               <ul className="space-y-3 mb-8">
                 {c.planFreeItems.map((item, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm" style={{ color: '#0F172A' }}>
-                    <span className="text-green-500 font-bold">✓</span> {item}
+                  <li key={i} className="flex items-center gap-2 text-sm" style={{ color: T.charcoal }}>
+                    <span className="font-bold" style={{ color: T.success }}>✓</span> {item}
                   </li>
                 ))}
               </ul>
-              <Link href={`/login?lang=${lang}`} className="block w-full py-3 rounded-xl font-bold text-center border-2 active:scale-95 transition-transform" style={{ borderColor: '#2563EB', color: '#2563EB', backgroundColor: '#FFFFFF' }}>
+              <Link href={`/login?lang=${lang}`} className="block w-full py-3 rounded-xl font-bold text-center transition-all active:scale-95" style={{ border: `2px solid ${T.navy}`, color: T.navy, backgroundColor: 'transparent' }}>
                 {c.planFreeCta}
               </Link>
             </div>
 
-            {/* Plan Pro */}
-            <div className="rounded-2xl p-8 shadow-xl relative overflow-hidden border-2" style={{ backgroundColor: '#1D4ED8', borderColor: '#2563EB' }}>
-              <div className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: '#FFFFFF', color: '#1D4ED8' }}>
+            {/* Plan Pro — dorado */}
+            <div className="rounded-2xl p-8 shadow-2xl relative overflow-hidden" style={{ backgroundColor: T.navy, border: `2px solid ${T.gold}` }}>
+              <div className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: T.gold, color: T.navy }}>
                 {c.planProBadge}
               </div>
-              <h3 className="text-xl font-bold mb-1 text-white">{c.planProTitle}</h3>
-              <p className="text-4xl font-bold mb-1 text-white">{c.planProPrice}</p>
-              <p className="text-sm mb-6" style={{ color: '#BFDBFE' }}>{c.planProSubtitle}</p>
+              <h3 className="text-xl font-bold mb-1" style={{ color: T.white }}>{c.planProTitle}</h3>
+              <p className="text-4xl font-bold mb-1" style={{ color: T.gold }}>{c.planProPrice}</p>
+              <p className="text-sm mb-7" style={{ color: 'rgba(255,255,255,0.55)' }}>{c.planProSubtitle}</p>
               <ul className="space-y-3 mb-8">
                 {c.planProItems.map((item, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-white">
-                    <span style={{ color: '#86EFAC' }} className="font-bold">✓</span> {item}
+                  <li key={i} className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                    <span className="font-bold" style={{ color: T.gold }}>✓</span> {item}
                   </li>
                 ))}
               </ul>
-              <Link href={`/pro?lang=${lang}`} className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold active:scale-95 transition-transform" style={{ backgroundColor: '#FFFFFF', color: '#1D4ED8' }}>
+              <Link href={`/pro?lang=${lang}`} className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold active:scale-95 transition-transform" style={{ backgroundColor: T.gold, color: T.navy }}>
                 {c.planProCta}
               </Link>
             </div>
           </div>
 
           {/* FAQ */}
-          <div className="mt-10 rounded-2xl p-8 shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
-            <h3 className="text-xl font-bold mb-6 uppercase" style={{ color: '#0F172A' }}>{c.faqTitle}</h3>
-            <div className="space-y-5">
+          <div className="mt-12 rounded-2xl p-8 shadow-lg" style={{ backgroundColor: T.cream, border: `1px solid ${T.border}` }}>
+            <h3 className="text-xl font-bold mb-7 uppercase tracking-tight" style={{ color: T.navy }}>{c.faqTitle}</h3>
+            <div className="space-y-6">
               {c.faqs.map((faq, i) => (
-                <div key={i} className="border-b pb-4 last:border-0 last:pb-0" style={{ borderColor: '#E5E7EB' }}>
-                  <p className="font-bold mb-1" style={{ color: '#0F172A' }}>❓ {faq.q}</p>
-                  <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>{faq.a}</p>
+                <div key={i} className="pb-5 last:pb-0" style={{ borderBottom: i < c.faqs.length - 1 ? `1px solid ${T.border}` : 'none' }}>
+                  <p className="font-bold mb-2" style={{ color: T.navy }}>❓ {faq.q}</p>
+                  <p className="text-sm" style={{ color: T.muted }}>{faq.a}</p>
                 </div>
               ))}
             </div>
@@ -738,21 +650,22 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Por qué FlowEstateAI */}
-      <section className="py-16 px-4">
+      {/* ── POR QUÉ ── */}
+      <section className="py-20 px-4" style={{ backgroundColor: T.cream }}>
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase" style={{ color: '#0F172A' }}>{c.whyTitle}</h2>
-            <p className="text-lg opacity-70" style={{ color: '#0F172A' }}>{c.whySubtitle}</p>
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-3 uppercase tracking-tight" style={{ color: T.navy }}>{c.whyTitle}</h2>
+            <GoldDivider />
+            <p className="text-lg mt-4" style={{ color: T.muted }}>{c.whySubtitle}</p>
           </div>
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {c.whyItems.map((item, index) => (
-              <div key={index} className="rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all" style={{ backgroundColor: '#FFFFFF' }}>
+              <div key={index} className="rounded-2xl p-7 shadow-md hover:shadow-xl transition-all" style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}>
                 <div className="flex items-start gap-4">
                   <div className="text-4xl flex-shrink-0">{item.icon}</div>
                   <div>
-                    <h3 className="text-xl font-bold mb-2" style={{ color: '#0F172A' }}>{item.title}</h3>
-                    <p className="opacity-80" style={{ color: '#0F172A' }}>{item.description}</p>
+                    <h3 className="text-xl font-bold mb-2" style={{ color: T.navy }}>{item.title}</h3>
+                    <p style={{ color: T.muted }}>{item.description}</p>
                   </div>
                 </div>
               </div>
@@ -761,42 +674,45 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Final */}
-      <section className="py-20 px-4 w-full" style={{ backgroundColor: '#0F172A' }}>
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-white uppercase">{c.ctaTitle}</h2>
-          <p className="text-lg mb-2 text-white opacity-80">{c.ctaSubtitle}</p>
-          <p className="text-sm mb-8 opacity-50 text-white">{c.ctaHint}</p>
-          <Link href={`/login?lang=${lang}`} className="inline-block px-10 py-4 rounded-xl font-bold text-lg shadow-xl active:scale-95 transition-transform" style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}>
+      {/* ── CTA FINAL ── */}
+      <section className="py-24 px-4 w-full relative overflow-hidden" style={{ backgroundColor: T.navy }}>
+        <div className="absolute top-0 left-0 right-0 h-px" style={{ backgroundColor: T.gold, opacity: 0.3 }} />
+        <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-5 pointer-events-none" style={{ background: `radial-gradient(circle, ${T.gold} 0%, transparent 70%)`, transform: 'translate(30%, -30%)' }} />
+        <div className="max-w-4xl mx-auto text-center relative">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-6" style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: `1px solid rgba(201,168,76,0.4)`, color: T.gold }}>
+            ✦ {lang === 'es' ? 'Comienza hoy' : 'Start today'}
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4 uppercase tracking-tight" style={{ color: T.white }}>{c.ctaTitle}</h2>
+          <p className="text-lg mb-2 opacity-80" style={{ color: T.white }}>{c.ctaSubtitle}</p>
+          <p className="text-sm mb-10 opacity-40" style={{ color: T.white }}>{c.ctaHint}</p>
+          <Link
+            href={`/login?lang=${lang}`}
+            className="inline-block px-12 py-4 rounded-xl font-bold text-lg shadow-xl active:scale-95 transition-transform"
+            style={{ backgroundColor: T.gold, color: T.navy }}
+          >
             {c.ctaButton}
           </Link>
-          <p className="text-sm mt-4 text-white opacity-60">{c.ctaFootnote}</p>
+          <p className="text-sm mt-5 opacity-40" style={{ color: T.white }}>{c.ctaFootnote}</p>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-10 px-4" style={{ backgroundColor: '#0F172A', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+      {/* ── FOOTER ── */}
+      <footer className="py-10 px-4" style={{ backgroundColor: T.navy, borderTop: `1px solid rgba(201,168,76,0.15)` }}>
         <div className="max-w-6xl mx-auto">
-          <div className="flex justify-center mb-5">
-            <div className="px-5 py-3 rounded-xl" style={{ backgroundColor: 'rgb(15, 23, 42)' }}>
-              <Image src="/logo_header.png" alt="FlowEstateAI" width={410} height={184} className="w-[110px] h-auto" priority />
-            </div>
+          <div className="flex justify-center mb-6">
+            <Image src="/logo_header.png" alt="FlowEstateAI" width={410} height={184} className="w-[110px] h-auto" priority />
           </div>
-
-          <p className="text-center text-sm mb-5" style={{ color: '#94A3B8' }}>
+          <p className="text-center text-sm mb-5" style={{ color: 'rgba(255,255,255,0.4)' }}>
             {c.footerTagline}
           </p>
-
-          <div className="flex flex-wrap justify-center gap-6 text-sm mb-5" style={{ color: '#94A3B8' }}>
+          <div className="flex flex-wrap justify-center gap-6 text-sm mb-5" style={{ color: 'rgba(255,255,255,0.4)' }}>
             <Link href="/terms" className="hover:text-white transition-colors">{c.footerTerms}</Link>
             <Link href="/privacy" className="hover:text-white transition-colors">{c.footerPrivacy}</Link>
             <a href="mailto:support@flowestateai.com" className="hover:text-white transition-colors">{c.footerContact}</a>
           </div>
-
           <div className="border-t mb-5" style={{ borderColor: 'rgba(255,255,255,0.08)' }} />
-
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs" style={{ color: '#475569' }}>{c.footerCopyright}</p>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>{c.footerCopyright}</p>
             <a href="https://www.facebook.com/flowestateai/" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-opacity hover:opacity-80" style={{ backgroundColor: '#1877F2' }} aria-label="Facebook de FlowEstateAI">
               <svg className="w-5 h-5" fill="white" viewBox="0 0 24 24">
                 <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.874v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
@@ -806,7 +722,7 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* WhatsApp flotante */}
+      {/* ── WHATSAPP ── */}
       <a
         href={c.whatsappUrl}
         target="_blank"
@@ -817,7 +733,7 @@ export default function LandingPage() {
       >
         <svg className="w-5 h-5 flex-shrink-0" fill="white" viewBox="0 0 24 24">
           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-          </svg>
+        </svg>
         <span className="text-white font-semibold text-sm">{c.whatsappText}</span>
       </a>
 

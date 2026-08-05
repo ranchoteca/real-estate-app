@@ -11,6 +11,12 @@ interface BuscarArgs {
 
 const PROPERTIES_PER_PAGE = 5;
 
+// Currency ID lookup by natural language — matches what agents say
+const CURRENCY_ID_MAP: Record<string, string> = {
+  'CRC': 'ec8528a3-d504-47fa-97db-2c07716d8b47',
+  'USD': '839f44d5-bee2-4bc1-b5da-50364f14c681',
+};
+
 export async function handleBuscarPropiedades(
   agentId: string,
   args: BuscarArgs
@@ -31,6 +37,11 @@ export async function handleBuscarPropiedades(
 
   if (args.tipo_transaccion) {
     query = query.eq('listing_type', args.tipo_transaccion === 'alquiler' ? 'rent' : 'sale');
+  }
+
+  // Filter by currency when specified — prevents mixing colones/dollars in price comparisons
+  if (args.moneda_referencia && CURRENCY_ID_MAP[args.moneda_referencia]) {
+    query = query.eq('currency_id', CURRENCY_ID_MAP[args.moneda_referencia]);
   }
 
   if (args.precio_min !== undefined || args.precio_max !== undefined) {

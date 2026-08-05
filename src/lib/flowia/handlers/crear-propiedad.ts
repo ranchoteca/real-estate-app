@@ -42,39 +42,23 @@ export async function getDraft(agentId: string): Promise<PropertyDraft | null> {
 
 export async function upsertDraft(agentId: string, fields: Partial<PropertyDraft>) {
   // Filter by mode_active=true to avoid updating stale inactive drafts
-  const { data: existing, error: selectError } = await supabaseAdmin
+  const { data: existing } = await supabaseAdmin
     .from('agent_property_draft')
     .select('id')
     .eq('agent_id', agentId)
     .eq('mode_active', true)
     .maybeSingle();
 
-  if (selectError) {
-    console.error('[upsertDraft] select error:', selectError);
-  }
-
-  console.log('[upsertDraft] existing=' + (existing?.id || 'NULL') + ' fields.title=' + (fields.title || 'not in fields'));
-
   if (existing) {
-    const { error: updateError } = await supabaseAdmin
+    await supabaseAdmin
       .from('agent_property_draft')
       .update({ ...fields, updated_at: new Date().toISOString() })
       .eq('agent_id', agentId)
       .eq('mode_active', true);
-    if (updateError) {
-      console.error('[upsertDraft] update error:', updateError);
-    } else {
-      console.log('[upsertDraft] update OK for id=' + existing.id);
-    }
   } else {
-    const { error: insertError } = await supabaseAdmin
+    await supabaseAdmin
       .from('agent_property_draft')
       .insert({ agent_id: agentId, photos: [], mode_active: true, ...fields });
-    if (insertError) {
-      console.error('[upsertDraft] insert error:', insertError);
-    } else {
-      console.log('[upsertDraft] insert OK');
-    }
   }
 }
 
@@ -145,10 +129,7 @@ export async function handleMediaEnDraft(
         return null;
       }
 
-      // Early exit: if we already have PHOTO_MAX photos, discard this photo
-      // immediately without decrypting, uploading, or calling Wasender.
-      // This prevents excess photo webhooks from saturating Wasender when
-      // the agent sends more than PHOTO_MAX photos at once.
+      // Early exit: discard excess photos before any costly operations
       const currentPhotoCount = draftRaw?.photos?.length || 0;
       if (currentPhotoCount >= PHOTO_MAX) {
         console.log('[media] photo limit reached (' + currentPhotoCount + '), discarding webhook silently.');
@@ -207,6 +188,11 @@ export async function handleMediaEnDraft(
     }
   }
 
+  if (mediaInfo.type === 'video') {
+    // Videos not supported in creation flow — agent adds them from the app later
+    return '⚠️ No puedo procesar videos aquí. Solo acepto fotos (JPEG o PNG). Agrega los videos desde la aplicación después de crear la propiedad.';
+  }
+
   return null;
 }
 
@@ -233,9 +219,6 @@ export async function handleListo(
 
   const history = await loadDraftHistory(agentId, draftCreatedAt);
 
-  // Debug: log history size to verify loadDraftHistory is finding messages
-  console.log('[handleListo] history messages loaded: ' + history.length + ' draftCreatedAt: ' + draftCreatedAt);
-
   const draftActual = {
     title: draft.title || null,
     description: draft.description || null,
@@ -250,8 +233,6 @@ export async function handleListo(
     maps_url: draft.maps_url || null,
   };
 
-  // Fix: currency mapping now uses natural language (colones/dólares) since
-  // agents speak naturally and never say "CRC" or "USD"
   const extractionPrompt = 'Eres un extractor de datos para fichas de propiedades inmobiliarias en Costa Rica.\n'
     + 'Analiza el historial de conversación y extrae los campos de la propiedad.\n'
     + 'Devuelve ÚNICAMENTE un JSON válido sin texto adicional ni backticks.\n\n'
@@ -298,7 +279,6 @@ export async function handleListo(
     const raw = completion.choices[0].message.content || '{}';
     const clean = raw.replace(/```json|```/g, '').trim();
     extractedData = JSON.parse(clean);
-    console.log('[handleListo] extracted: title=' + extractedData.title + ' currency_id=' + extractedData.currency_id + ' missing=' + JSON.stringify(extractedData.campos_faltantes));
   } catch (error) {
     console.error('Error extracting property data:', error);
     await sendQueued(agentId,
@@ -534,13 +514,28 @@ async function crearPropiedad(
       throw new Error(propertyError?.message || 'Unknown error inserting property');
     }
 
+    // Save to agent_last_property_shown so normal mode can offer PDF immediately
+    await supabaseAdmin
+      .from('agent_last_property_shown')
+      .upsert({ agent_id: agentId, slug: property.slug }, { onConflict: 'agent_id' });
+
     const editUrl = BASE_DOMAIN + '/edit-property/' + property.id;
     const shareUrl = BASE_DOMAIN + '/p/' + property.slug;
 
-    await sendQueued(agentId,
-      cleanNumber,
-      '✅ ¡Tu propiedad fue creada exitosamente!\n\n*' + draft.title + '*\n\n✏️ *Editar y agregar videos:*\n' + editUrl + '\n\n🔗 *Link para compartir con clientes:*\n' + shareUrl
-    );
+    // Success message with menu so agent knows what to do next
+    const mensajeExito = '✅ ¡Tu propiedad fue creada exitosamente!\n\n'
+      + '*' + draft.title + '*\n\n'
+      + '✏️ *Editar y agregar videos:*\n' + editUrl + '\n\n'
+      + '🔗 *Link para compartir con clientes:*\n' + shareUrl + '\n\n'
+      + '---\n'
+      + '¿Qué deseas hacer ahora?\n\n'
+      + '🔍 *1.* Buscar propiedades\n'
+      + '📄 *2.* Enviar PDF de una propiedad\n'
+      + '🪪 *3.* Mi tarjeta digital\n'
+      + '⛰️ *4.* Altura de un lugar\n'
+      + '🏠 *5.* Crear otra propiedad';
+
+    await sendQueued(agentId, cleanNumber, mensajeExito);
   } catch (error: any) {
     console.error('Error creating property:', error);
     await failDraft(agentId, error.message);

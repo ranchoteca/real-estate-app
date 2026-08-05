@@ -111,6 +111,7 @@ export default function DashboardPage() {
     type: 'duplicating' | 'translating';
     message: string;
   }>({ open: false, type: 'duplicating', message: '' });
+  const [mounted, setMounted] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isAltitudeModalOpen, setIsAltitudeModalOpen] = useState(false);
   const [isCreateProposalOpen, setIsCreateProposalOpen] = useState(false);
@@ -137,6 +138,8 @@ export default function DashboardPage() {
       loadCurrencies();
     }
   }, [session]);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -814,7 +817,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── MODAL DE OPCIONES DE PROPIEDAD (sin cambios) ─────────────────── */}
-      {showMenu && (() => {
+      {mounted && showMenu && (() => {
         const property = properties.find(p => p.id === showMenu);
         if (!property) return null;
         return createPortal(

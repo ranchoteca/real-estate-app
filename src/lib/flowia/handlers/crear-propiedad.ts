@@ -42,23 +42,39 @@ export async function getDraft(agentId: string): Promise<PropertyDraft | null> {
 
 export async function upsertDraft(agentId: string, fields: Partial<PropertyDraft>) {
   // Filter by mode_active=true to avoid updating stale inactive drafts
-  const { data: existing } = await supabaseAdmin
+  const { data: existing, error: selectError } = await supabaseAdmin
     .from('agent_property_draft')
     .select('id')
     .eq('agent_id', agentId)
     .eq('mode_active', true)
     .maybeSingle();
 
+  if (selectError) {
+    console.error('[upsertDraft] select error:', selectError);
+  }
+
+  console.log('[upsertDraft] existing=' + (existing?.id || 'NULL') + ' fields.title=' + (fields.title || 'not in fields'));
+
   if (existing) {
-    await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from('agent_property_draft')
       .update({ ...fields, updated_at: new Date().toISOString() })
       .eq('agent_id', agentId)
       .eq('mode_active', true);
+    if (updateError) {
+      console.error('[upsertDraft] update error:', updateError);
+    } else {
+      console.log('[upsertDraft] update OK for id=' + existing.id);
+    }
   } else {
-    await supabaseAdmin
+    const { error: insertError } = await supabaseAdmin
       .from('agent_property_draft')
       .insert({ agent_id: agentId, photos: [], mode_active: true, ...fields });
+    if (insertError) {
+      console.error('[upsertDraft] insert error:', insertError);
+    } else {
+      console.log('[upsertDraft] insert OK');
+    }
   }
 }
 

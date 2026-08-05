@@ -158,9 +158,13 @@ export async function POST(req: NextRequest) {
       }
 
       // 4. SÍ confirmation after the summary — create the property
+      // Check history for a recent summary message rather than draft fields,
+      // because draft.title may be empty if upsertDraft hasn't run yet at this point.
       const draft = await getDraft(agent.id);
-      const esperandoConfirmacion = draft && draft.title && draft.description;
-      if (esperandoConfirmacion && esConfirmacionSi(resolvedText)) {
+      const recentHistory = await loadHistory(agent.id);
+      const ultimoBot = recentHistory.findLast((m: any) => m.role === 'assistant');
+      const hayResumenPendiente = ultimoBot?.content?.includes('¿Todo correcto? Responde *SÍ*');
+      if (hayResumenPendiente && esConfirmacionSi(resolvedText)) {
         await handleConfirmacion(agent.id, cleanNumber, primerNombre);
         return NextResponse.json({ success: true, status: 'property_creation_started' });
       }
@@ -175,13 +179,12 @@ export async function POST(req: NextRequest) {
       }
 
       // 6. Empty message (media webhook with no text body) — ignore silently
-      // to avoid unnecessary Wasender calls that cause 429 errors
       if (!messageText || messageText.trim() === '') {
         return NextResponse.json({ success: true, status: 'draft_empty_message_ignored' });
       }
 
       // 7. Free-form text — acknowledge and save to history so LISTO extractor sees it
-      const ack = `📝 Recibido. Sigue enviando la información de la propiedad. Cuando termines, escribe *LISTO*.\n_Si no sabes qué falta, escríbeme *"¿qué me falta?"*_`;
+      const ack = '📝 Recibido. Sigue enviando la información de la propiedad. Cuando termines, escribe *LISTO*.' + '\n' + '_Si no sabes qué falta, escríbeme *"¿Qué me falta?"* o simplemente *"0"*_';
       await saveMessage(agent.id, 'assistant', ack);
       await sendQueued(agent.id, cleanNumber, ack);
       return NextResponse.json({ success: true, status: 'draft_text_acknowledged' });

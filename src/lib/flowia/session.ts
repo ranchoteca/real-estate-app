@@ -3,7 +3,10 @@ import { AgentMode } from './constants';
 
 const HISTORY_WINDOW_HOURS = 3;
 const HISTORY_LIMIT = 15;
-const DUPLICATE_WINDOW_SECONDS = 30;
+// Reduced from 30s to 8s — Wasender retries arrive within 1-3s, so 30s was
+// blocking legitimate re-sends after a failed response. 8s still catches
+// true duplicates while allowing retries to go through.
+const DUPLICATE_WINDOW_SECONDS = 8;
 
 // ─── Normal conversation history ─────────────────────────────────────────────
 // Used in normal mode — last 15 messages within 3 hours is enough for

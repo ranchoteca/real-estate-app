@@ -9,8 +9,6 @@ import { BASE_DOMAIN, PHOTO_MIN, PHOTO_MAX } from '../constants';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export interface PropertyDraft {
   title?: string;
   description?: string;
@@ -31,8 +29,6 @@ export interface PropertyDraft {
   summary_triggered?: boolean;
   custom_fields_data?: Record<string, string | number>;
 }
-
-// ─── Draft CRUD ───────────────────────────────────────────────────────────────
 
 export async function getDraft(agentId: string): Promise<PropertyDraft | null> {
   const { data } = await supabaseAdmin
@@ -77,8 +73,6 @@ export async function failDraft(agentId: string, errorMessage: string) {
     .eq('agent_id', agentId);
 }
 
-// ─── Mode entry ───────────────────────────────────────────────────────────────
-
 export async function handleIniciarCreacion(
   agentId: string,
   cleanNumber: string,
@@ -91,28 +85,23 @@ export async function handleIniciarCreacion(
 
   await upsertDraft(agentId, { photos: [], pending_photos: 0 });
 
-  const mensaje = `¡Perfecto ${primerNombre}! 🏠 Vamos a crear una nueva propiedad.
-
-Puedes enviarme la información en el orden que prefieras — *por escrito o por audio* 🎤. Estos son los campos que necesito:
-
-📌 *Título* de la propiedad
-💰 *Precio* y *divisa* (USD o CRC)
-🏷️ *Tipo* (Casa, Apartamento, Finca, Local Comercial, etc.)
-📋 *Tipo de negocio* (Venta o Alquiler)
-🌍 *Provincia*, *ciudad* y *dirección*
-📍 *Link de Google Maps* de la ubicación
-📝 *Descripción* de la propiedad
-🖼️ *Fotos* (mínimo ${PHOTO_MIN}, máximo ${PHOTO_MAX} imágenes)
-
-_Puedes enviar cada dato por separado o todo junto, en el orden que quieras._
-_Para las fotos, envíalas en grupos de máximo 5 a la vez para que se procesen correctamente._
-_Si en algún momento no sabes qué datos faltan, escríbeme *"¿qué me falta?"* o simplemente *"0"* y te lo digo._
-Cuando termines, escribe *LISTO* y yo verificaré todo antes de crear la propiedad.`;
+  const mensaje = '¡Perfecto ' + primerNombre + '! 🏠 Vamos a crear una nueva propiedad.\n\n'
+    + 'Puedes enviarme la información en el orden que prefieras — *por escrito o por audio* 🎤. Estos son los campos que necesito:\n\n'
+    + '📌 *Título* de la propiedad\n'
+    + '💰 *Precio* y *divisa* (colones o dólares)\n'
+    + '🏷️ *Tipo* (Casa, Apartamento, Finca, Local Comercial, etc.)\n'
+    + '📋 *Tipo de negocio* (Venta o Alquiler)\n'
+    + '🌍 *Provincia*, *ciudad* y *dirección*\n'
+    + '📍 *Link de Google Maps* de la ubicación\n'
+    + '📝 *Descripción* de la propiedad\n'
+    + '🖼️ *Fotos* (mínimo ' + PHOTO_MIN + ', máximo ' + PHOTO_MAX + ' imágenes)\n\n'
+    + '_Puedes enviar cada dato por separado o todo junto, en el orden que quieras._\n'
+    + '_Para las fotos, envíalas en grupos de máximo 5 a la vez para que se procesen correctamente._\n'
+    + '_Si en algún momento no sabes qué datos faltan, escríbeme *"¿Qué me falta?"* o simplemente *"0"* y te lo digo._\n'
+    + 'Cuando termines, escribe *LISTO* y yo verificaré todo antes de crear la propiedad.';
 
   await sendQueued(agentId, cleanNumber, mensaje);
 }
-
-// ─── Media handling inside CREAR_PROPIEDAD mode ───────────────────────────────
 
 export async function handleMediaEnDraft(
   agentId: string,
@@ -133,12 +122,22 @@ export async function handleMediaEnDraft(
 
       const processedIds: string[] = draftRaw?.processed_media_ids || [];
       if (processedIds.includes(messageId)) {
-        console.log(`⏭️ Media ${messageId} already processed, skipping.`);
+        console.log('⏭️ Media ' + messageId + ' already processed, skipping.');
+        return null;
+      }
+
+      // Early exit: if we already have PHOTO_MAX photos, discard this photo
+      // immediately without decrypting, uploading, or calling Wasender.
+      // This prevents excess photo webhooks from saturating Wasender when
+      // the agent sends more than PHOTO_MAX photos at once.
+      const currentPhotoCount = draftRaw?.photos?.length || 0;
+      if (currentPhotoCount >= PHOTO_MAX) {
+        console.log('[media] photo limit reached (' + currentPhotoCount + '), discarding webhook silently.');
         return null;
       }
 
       const { publicUrl } = await decryptWasenderMedia(messageId, mediaInfo.messageObject);
-      const tempSlug = `draft-${agentId.substring(0, 8)}`;
+      const tempSlug = 'draft-' + agentId.substring(0, 8);
       const tempIndex = Date.now();
       const supabaseUrl = await uploadPhotoFromUrl(agentId, tempSlug, publicUrl, tempIndex);
 
@@ -160,7 +159,7 @@ export async function handleMediaEnDraft(
         trigger_summary: boolean;
       };
 
-      console.log(`[media] photo append: appended=${appended} count=${photo_count} trigger=${trigger_summary}`);
+      console.log('[media] photo append: appended=' + appended + ' count=' + photo_count + ' trigger=' + trigger_summary);
 
       if (trigger_summary) {
         return '__PHOTO_MAX_REACHED__';
@@ -182,7 +181,7 @@ export async function handleMediaEnDraft(
         .from('chat_messages')
         .insert({ agent_id: agentId, role: 'user', content: transcripcion });
 
-      return `🎙️ _Audio transcrito:_ ${transcripcion}`;
+      return '🎙️ _Audio transcrito:_ ' + transcripcion;
     } catch (error) {
       console.error('Error transcribing audio in draft:', error);
       return '❌ No pude transcribir ese audio. Intenta enviarlo de nuevo o escribe el mensaje.';
@@ -191,8 +190,6 @@ export async function handleMediaEnDraft(
 
   return null;
 }
-
-// ─── LISTO command handler ────────────────────────────────────────────────────
 
 export async function handleListo(
   agentId: string,
@@ -206,16 +203,19 @@ export async function handleListo(
   if (photoCount < PHOTO_MIN) {
     await sendQueued(agentId,
       cleanNumber,
-      `⚠️ Aún necesito al menos *${PHOTO_MIN} fotos* para crear la propiedad. Actualmente tienes *${photoCount}*. Envíalas y escribe LISTO de nuevo.`
+      '⚠️ Aún necesito al menos *' + PHOTO_MIN + ' fotos* para crear la propiedad. Actualmente tienes *' + photoCount + '*. Envíalas y escribe LISTO de nuevo.'
     );
     return;
   }
 
   await sendQueued(agentId, cleanNumber,
-    `⏳ Analizando la información que me enviaste... _(${photoCount} foto${photoCount !== 1 ? 's' : ''} recibida${photoCount !== 1 ? 's' : ''})_ — Espera un momento, ya casi 📋`
+    '⏳ Analizando la información que me enviaste... _(' + photoCount + ' foto' + (photoCount !== 1 ? 's' : '') + ' recibida' + (photoCount !== 1 ? 's' : '') + ')_ — Espera un momento, ya casi 📋'
   );
 
   const history = await loadDraftHistory(agentId, draftCreatedAt);
+
+  // Debug: log history size to verify loadDraftHistory is finding messages
+  console.log('[handleListo] history messages loaded: ' + history.length + ' draftCreatedAt: ' + draftCreatedAt);
 
   const draftActual = {
     title: draft.title || null,
@@ -231,7 +231,9 @@ export async function handleListo(
     maps_url: draft.maps_url || null,
   };
 
-  const extractionPrompt = 'Eres un extractor de datos para fichas de propiedades inmobiliarias.\n'
+  // Fix: currency mapping now uses natural language (colones/dólares) since
+  // agents speak naturally and never say "CRC" or "USD"
+  const extractionPrompt = 'Eres un extractor de datos para fichas de propiedades inmobiliarias en Costa Rica.\n'
     + 'Analiza el historial de conversación y extrae los campos de la propiedad.\n'
     + 'Devuelve ÚNICAMENTE un JSON válido sin texto adicional ni backticks.\n\n'
     + 'IMPORTANTE: Ya tienes estos datos confirmados de rondas anteriores. Úsalos como base y solo sobreescribe si el agente envió información más reciente o corregida:\n'
@@ -240,20 +242,19 @@ export async function handleListo(
     + '{\n'
     + '  "title": "string o null",\n'
     + '  "description": "string o null",\n'
-    + '  "price": "number o null",\n'
-    + '  "currency_id": "839f44d5-bee2-4bc1-b5da-50364f14c681 para USD o ec8528a3-d504-47fa-97db-2c07716d8b47 para CRC, o null",\n'
+    + '  "price": "number o null (extrae el número, ej: 78000000 si dice 78 millones)",\n'
+    + '  "currency_id": "REGLA: si menciona colones/CRC/₡ → ec8528a3-d504-47fa-97db-2c07716d8b47. Si menciona dólares/USD/$ → 839f44d5-bee2-4bc1-b5da-50364f14c681. null si no se menciona divisa.",\n'
     + '  "city": "string o null",\n'
     + '  "address": "string o null",\n'
     + '  "state_province": "string o null (provincia de Costa Rica)",\n'
     + '  "property_type": "house | apartment | land | commercial | other",\n'
-    + '  "listing_type": "sale | rent",\n'
+    + '  "listing_type": "sale si dice venta/vender | rent si dice alquiler/arrendar",\n'
     + '  "language": "es | en",\n'
     + '  "maps_url": "string o null (link de Google Maps compartido por el agente)",\n'
     + '  "campos_faltantes": ["lista de campos obligatorios que aún faltan"]\n'
     + '}\n\n'
     + 'Campos obligatorios: title, description, price, currency_id, city, property_type, listing_type, maps_url.\n'
-    + 'El idioma (language) se infiere automáticamente del texto de la descripción — NUNCA lo incluyas en campos_faltantes.\n'
-    + 'Si la descripción está en español, usa "es". Si está en inglés, usa "en".\n'
+    + 'El idioma (language) se infiere automáticamente del texto — NUNCA lo incluyas en campos_faltantes.\n'
     + 'state_province y address son opcionales pero deseables.';
 
   const historyMessages = history.map(function(m) {
@@ -278,6 +279,7 @@ export async function handleListo(
     const raw = completion.choices[0].message.content || '{}';
     const clean = raw.replace(/```json|```/g, '').trim();
     extractedData = JSON.parse(clean);
+    console.log('[handleListo] extracted: title=' + extractedData.title + ' currency_id=' + extractedData.currency_id + ' missing=' + JSON.stringify(extractedData.campos_faltantes));
   } catch (error) {
     console.error('Error extracting property data:', error);
     await sendQueued(agentId,
@@ -287,7 +289,6 @@ export async function handleListo(
     return;
   }
 
-  // If required fields are still missing, ask for them without closing the mode
   const camposFaltantes: string[] = extractedData.campos_faltantes || [];
   if (camposFaltantes.length > 0) {
     const lista = camposFaltantes.map(function(c: string) { return '• ' + c; }).join('\n');
@@ -298,13 +299,9 @@ export async function handleListo(
     return;
   }
 
-  // ── Custom fields: declare draftCustomFields BEFORE using it ──────────────
-  // This must come before the extraction pass to avoid "cannot access before init" errors.
+  // draftCustomFields MUST be declared before any code that writes to it
   const draftCustomFields: Record<string, string | number> = draft.custom_fields_data || {};
 
-  // ── Custom fields: extract values from history ────────────────────────────
-  // Run a second LLM pass to extract values for this agent's custom fields.
-  // Only runs if property_type and listing_type were successfully extracted.
   let customFieldsForExtraction: Array<{ field_key: string; field_name: string; field_type: string }> = [];
   if (extractedData.property_type && extractedData.listing_type) {
     const { data: cfForExtraction } = await supabaseAdmin
@@ -331,7 +328,7 @@ export async function handleListo(
       + 'Devuelve ÚNICAMENTE un JSON válido sin texto adicional ni backticks.\n'
       + 'Si un valor no se menciona en el historial, usa null.\n'
       + 'Si el agente corrigió un valor, usa el valor más reciente.\n'
-      + 'Los valores pueden venir en cualquier formato: "2 baños", "tiene dos baños", "baños: 2", etc.\n\n'
+      + 'Los valores pueden venir en cualquier formato natural: "2 baños", "tiene dos baños", "sí tiene sala", etc.\n\n'
       + 'Campos a extraer:\n'
       + cfFieldsList;
 
@@ -363,8 +360,6 @@ export async function handleListo(
     }
   }
 
-  // ── Custom fields check ───────────────────────────────────────────────────
-  // Query all custom fields for this property_type + listing_type combination.
   const { data: customFields } = await supabaseAdmin
     .from('custom_fields')
     .select('field_key, field_name, field_type, placeholder, icon')
@@ -383,7 +378,6 @@ export async function handleListo(
         return (cf.icon || '🏷️') + ' *' + cf.field_name + '*' + (cf.placeholder ? ' _(ej: ' + cf.placeholder + ')_' : '');
       }).join('\n');
 
-      // Reset summary_triggered so agent can write LISTO again after filling custom fields
       await upsertDraft(agentId, { summary_triggered: false } as any);
 
       await sendQueued(agentId,
@@ -394,7 +388,6 @@ export async function handleListo(
     }
   }
 
-  // ── Persist extracted fields ──────────────────────────────────────────────
   await upsertDraft(agentId, {
     title: extractedData.title,
     description: extractedData.description,
@@ -410,7 +403,6 @@ export async function handleListo(
     custom_fields_data: draftCustomFields,
   });
 
-  // ── Build confirmation summary ────────────────────────────────────────────
   const divisa = extractedData.currency_id === '839f44d5-bee2-4bc1-b5da-50364f14c681' ? 'USD' : 'CRC';
   const tipoMap: Record<string, string> = {
     house: 'Casa', apartment: 'Apartamento', land: 'Terreno/Finca',
@@ -445,8 +437,6 @@ export async function handleListo(
   await upsertDraft(agentId, { pending_photos: photoCount });
 }
 
-// ─── SÍ confirmation handler ──────────────────────────────────────────────────
-
 export async function handleConfirmacion(
   agentId: string,
   cleanNumber: string,
@@ -459,12 +449,10 @@ export async function handleConfirmacion(
     return;
   }
 
-  await sendQueued(agentId, cleanNumber, `⏳ Perfecto ${primerNombre}, creando tu propiedad... Dame un momento.`);
+  await sendQueued(agentId, cleanNumber, '⏳ Perfecto ' + primerNombre + ', creando tu propiedad... Dame un momento.');
   await clearDraft(agentId);
   await crearPropiedad(agentId, cleanNumber, draft);
 }
-
-// ─── Property creation (synchronous) ─────────────────────────────────────────
 
 async function crearPropiedad(
   agentId: string,
@@ -478,7 +466,7 @@ async function crearPropiedad(
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
-    const slug = `${baseSlug}-${Date.now().toString(36)}`;
+    const slug = baseSlug + '-' + Date.now().toString(36);
 
     const { data: property, error: propertyError } = await supabaseAdmin
       .from('properties')
@@ -510,8 +498,8 @@ async function crearPropiedad(
       throw new Error(propertyError?.message || 'Unknown error inserting property');
     }
 
-    const editUrl = `${BASE_DOMAIN}/edit-property/${property.id}`;
-    const shareUrl = `${BASE_DOMAIN}/p/${property.slug}`;
+    const editUrl = BASE_DOMAIN + '/edit-property/' + property.id;
+    const shareUrl = BASE_DOMAIN + '/p/' + property.slug;
 
     await sendQueued(agentId,
       cleanNumber,
@@ -526,8 +514,6 @@ async function crearPropiedad(
     );
   }
 }
-
-// ─── Intent / command detection helpers ──────────────────────────────────────
 
 export function esConfirmacionSi(text: string): boolean {
   return /^(s[ií]|sí|si|dale|correcto|exacto|ok|okay|va|confirmo|confirmar|así es|todo bien|todo correcto)\.?!?$/i.test(text.trim());
@@ -559,9 +545,10 @@ export async function handleQueFalta(
   const photoCount = draft?.photos?.length || 0;
   const history = await loadDraftHistory(agentId, draftCreatedAt);
 
-  const quickPrompt = 'Eres un extractor de datos para fichas de propiedades inmobiliarias.\n'
+  const quickPrompt = 'Eres un extractor de datos para fichas de propiedades inmobiliarias en Costa Rica.\n'
     + 'Analiza el historial y devuelve ÚNICAMENTE un JSON válido indicando qué campos ya fueron proporcionados.\n'
     + 'Responde con true si el campo fue mencionado, false si no.\n'
+    + 'NOTA: currency es true si el agente mencionó colones, dólares, o cualquier divisa.\n'
     + '{\n'
     + '  "title": boolean,\n'
     + '  "description": boolean,\n'
@@ -607,14 +594,13 @@ export async function handleQueFalta(
   if (!provided.title)         faltantes.push('📌 Título de la propiedad');
   if (!provided.description)   faltantes.push('📝 Descripción');
   if (!provided.price)         faltantes.push('💰 Precio');
-  if (!provided.currency)      faltantes.push('💱 Divisa (USD o CRC)');
+  if (!provided.currency)      faltantes.push('💱 Divisa (colones o dólares)');
   if (!provided.city)          faltantes.push('🌆 Ciudad');
   if (!provided.property_type) faltantes.push('🏷️ Tipo de propiedad');
   if (!provided.listing_type)  faltantes.push('📋 Tipo de negocio (Venta o Alquiler)');
   if (!provided.maps_url)      faltantes.push('📍 Link de Google Maps');
   if (photoCount < PHOTO_MIN)  faltantes.push('🖼️ Fotos (tienes ' + photoCount + ', necesito al menos ' + PHOTO_MIN + ')');
 
-  // Check custom fields if property_type is known in the draft
   if (draft?.property_type && draft?.listing_type) {
     const { data: cfCheck } = await supabaseAdmin
       .from('custom_fields')

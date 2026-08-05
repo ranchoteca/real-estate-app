@@ -1349,8 +1349,8 @@ export default function EditPropertyPage() {
       <SocialReelPublishModal
         isOpen={reelModalOpen}
         onClose={() => setReelModalOpen(false)}
-        propertyId={selectedPropertyId || ''}
-        videoUrls={properties.find(p => p.id === selectedPropertyId)?.video_urls || []}
+        propertyId={propertyId}
+        videoUrls={existingVideos}
         language={language}
       />
 

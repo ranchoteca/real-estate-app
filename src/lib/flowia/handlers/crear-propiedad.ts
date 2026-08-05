@@ -293,7 +293,7 @@ export async function handleListo(
     const lista = camposFaltantes.map(function(c: string) { return '• ' + c; }).join('\n');
     await sendQueued(agentId,
       cleanNumber,
-      '⚠️ Faltan algunos datos para poder crear la propiedad:\n\n' + lista + '\n\nEnvíalos y escribe *LISTO* de nuevo cuando estés listo.\n_Si tienes dudas sobre qué falta, escríbeme *"¿qué me falta?"*_'
+      '⚠️ Faltan algunos datos para poder crear la propiedad:\n\n' + lista + '\n\nEnvíalos y escribe *LISTO* de nuevo cuando estés listo.\n_Si tienes dudas sobre qué falta, escríbeme *"¿Qué me falta?"* o *"0"*_'
     );
     return;
   }
@@ -327,9 +327,11 @@ export async function handleListo(
     );
 
     const cfPrompt = 'Eres un extractor de valores para campos personalizados de propiedades inmobiliarias.\n'
-      + 'Analiza el historial y extrae los valores para estos campos específicos.\n'
+      + 'Analiza TODO el historial de conversación, incluyendo audios transcritos y texto libre.\n'
       + 'Devuelve ÚNICAMENTE un JSON válido sin texto adicional ni backticks.\n'
-      + 'Si un valor no se menciona en el historial, usa null.\n\n'
+      + 'Si un valor no se menciona en el historial, usa null.\n'
+      + 'Si el agente corrigió un valor, usa el valor más reciente.\n'
+      + 'Los valores pueden venir en cualquier formato: "2 baños", "tiene dos baños", "baños: 2", etc.\n\n'
       + 'Campos a extraer:\n'
       + cfFieldsList;
 

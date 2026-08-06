@@ -25,6 +25,7 @@ import {
   esIntentCancelar,
   esIntentCrearPropiedad,
   esConsultaQueFalta,
+  AgentWatermarkConfig,
 } from '@/lib/flowia/handlers/crear-propiedad';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
     const searchNumberWithPlus = cleanNumber.startsWith('+') ? cleanNumber : `+${cleanNumber}`;
     const { data: agent, error } = await supabaseAdmin
       .from('agents')
-      .select('id, email, full_name, username, is_flowia_active')
+      .select('id, email, full_name, username, is_flowia_active, watermark_logo, watermark_position, watermark_size, watermark_image, watermark_opacity, watermark_scale, use_corner_logo, use_watermark')
       .or(`whatsapp_number.eq.${searchNumberWithPlus},whatsapp_number.eq.${cleanNumber}`)
       .single();
 
@@ -77,6 +78,18 @@ export async function POST(req: NextRequest) {
     const linkTarjeta = agent.username
       ? `${BASE_DOMAIN}/agent/${agent.username}/card?lang=es`
       : BASE_DOMAIN;
+
+    // Load watermark config — used when processing photos in CREAR_PROPIEDAD mode
+    const watermarkConfig: AgentWatermarkConfig = {
+      watermark_logo: agent.watermark_logo,
+      watermark_position: agent.watermark_position,
+      watermark_size: agent.watermark_size,
+      watermark_image: agent.watermark_image,
+      watermark_opacity: agent.watermark_opacity,
+      watermark_scale: agent.watermark_scale,
+      use_corner_logo: agent.use_corner_logo,
+      use_watermark: agent.use_watermark,
+    };
 
     // ── Session: load history and send welcome if new session ─────────────────
     const history = await loadHistory(agent.id);
@@ -125,7 +138,7 @@ export async function POST(req: NextRequest) {
       // 2. Incoming media (photo or audio)
       const mediaInfo = extractMediaInfo(rawMessage);
       if (mediaInfo) {
-        const respuesta = await handleMediaEnDraft(agent.id, cleanNumber, messageId, rawMessage);
+        const respuesta = await handleMediaEnDraft(agent.id, cleanNumber, messageId, rawMessage, watermarkConfig);
 
         if (respuesta === '__PHOTO_MAX_REACHED__') {
           // Only one webhook fires this sentinel — the one that pushed count to PHOTO_MAX.

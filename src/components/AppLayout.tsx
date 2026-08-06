@@ -199,7 +199,7 @@ export default function AppLayout({
         </div>
 
         {/* Nav — FIX 1: overflow-y-auto solo aquí, con min-h-0 para que funcione en flex */}
-        <nav className="flex-1 min-h-0 overflow-y-auto py-3 px-2 space-y-0.5">
+        <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-3 px-2 space-y-0.5">
           {/* Crear propiedad */}
           <div className="mb-3">
             <CreateButton collapsed={sidebarCollapsed} />

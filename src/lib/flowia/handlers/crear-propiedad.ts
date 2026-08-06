@@ -9,6 +9,17 @@ import { BASE_DOMAIN, PHOTO_MIN, PHOTO_MAX } from '../constants';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+export interface AgentWatermarkConfig {
+  watermark_logo?: string | null;
+  watermark_position?: string | null;
+  watermark_size?: string | null;
+  watermark_image?: string | null;
+  watermark_opacity?: number | null;
+  watermark_scale?: number | null;
+  use_corner_logo?: boolean | null;
+  use_watermark?: boolean | null;
+}
+
 export interface PropertyDraft {
   title?: string;
   description?: string;
@@ -110,7 +121,8 @@ export async function handleMediaEnDraft(
   agentId: string,
   cleanNumber: string,
   messageId: string,
-  message: Record<string, any>
+  message: Record<string, any>,
+  watermarkConfig?: AgentWatermarkConfig
 ): Promise<string | null> {
   const mediaInfo = extractMediaInfo(message);
   if (!mediaInfo) return null;
@@ -139,7 +151,7 @@ export async function handleMediaEnDraft(
       const { publicUrl } = await decryptWasenderMedia(messageId, mediaInfo.messageObject);
       const tempSlug = 'draft-' + agentId.substring(0, 8);
       const tempIndex = Date.now();
-      const supabaseUrl = await uploadPhotoFromUrl(agentId, tempSlug, publicUrl, tempIndex);
+      const supabaseUrl = await uploadPhotoFromUrl(agentId, tempSlug, publicUrl, tempIndex, watermarkConfig);
 
       const { data: rpcResult, error: appendError } = await supabaseAdmin.rpc('draft_append_photo', {
         p_agent_id: agentId,

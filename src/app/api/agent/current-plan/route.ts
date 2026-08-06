@@ -30,7 +30,6 @@ export async function GET(req: NextRequest) {
 
       // ── CASO 1: Licencia ya expiró ──────────────────────────────────────
       if (expiresAt < now) {
-        // Degradar a free y enviar correo (solo si no se ha enviado aún para este ciclo)
         const alreadySentExpired = agent.expired_email_sent_at
           ? new Date(agent.expired_email_sent_at) > new Date(agent.expires_at)
           : false;
@@ -44,7 +43,6 @@ export async function GET(req: NextRequest) {
           .eq('id', agent.id);
 
         if (!alreadySentExpired) {
-          // No esperamos el resultado — no queremos bloquear la respuesta al agente
           sendLicenseExpiredEmail({
             to: agent.email,
             agentName: agent.full_name || 'Agente',
@@ -57,6 +55,7 @@ export async function GET(req: NextRequest) {
           plan: 'free',
           role: agent.role || 'agent',
           expires_at: null,
+          full_name: agent.full_name || null,   // ← AGREGADO
           created_at: agent.created_at || null,
           portfolio_template: agent.portfolio_template || 'minimalist',
         });
@@ -64,7 +63,6 @@ export async function GET(req: NextRequest) {
 
       // ── CASO 2: Faltan 5 días o menos para expirar ──────────────────────
       if (daysUntilExpiration <= 5) {
-        // Solo enviar si no se ha enviado aviso para este ciclo de licencia
         const alreadySentWarning = agent.warning_email_sent_at
           ? new Date(agent.warning_email_sent_at) > new Date(agent.plan_started_at ?? 0)
           : false;
@@ -86,11 +84,14 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // ── RETORNO NORMAL — ahora incluye full_name ─────────────────────────
     return NextResponse.json({
       plan: agent.plan || 'free',
       role: agent.role || 'agent',
       expires_at: agent.expires_at || null,
+      full_name: agent.full_name || null,        // ← AGREGADO
       created_at: agent.created_at || null,
+      portfolio_template: agent.portfolio_template || 'minimalist',
     });
 
   } catch (error: any) {

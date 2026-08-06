@@ -318,8 +318,8 @@ export default function DashboardPage() {
           <div className="hidden md:block mb-4">
             <h2 className="text-lg font-bold" style={{ color: T.navy }}>
               {language === 'en'
-                ? `Welcome back, ${fullName}`
-                : `Bienvenida, ${fullName}`}
+                ? `Welcome, ${fullName}`
+                : `Bienvenido(a), ${fullName}`}
             </h2>
           </div>
 

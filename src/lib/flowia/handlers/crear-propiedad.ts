@@ -259,7 +259,7 @@ export async function handleListo(
     + '  "city": "string o null",\n'
     + '  "address": "string o null",\n'
     + '  "state_province": "string o null (provincia de Costa Rica)",\n'
-    + '  "property_type": "house | apartment | land | commercial | other",\n'
+    + '  "property_type": "house | condo | apartment | land | finca | quinta | commercial | hotel | other",\n'
     + '  "listing_type": "sale si dice venta/vender | rent si dice alquiler/arrendar",\n'
     + '  "language": "es | en",\n'
     + '  "maps_url": "string o null (link de Google Maps compartido por el agente)",\n'
@@ -267,7 +267,10 @@ export async function handleListo(
     + '}\n\n'
     + 'Campos obligatorios: title, description, price, currency_id, city, property_type, listing_type, maps_url.\n'
     + 'El idioma (language) se infiere automáticamente del texto — NUNCA lo incluyas en campos_faltantes.\n'
-    + 'state_province y address son opcionales pero deseables.';
+    + 'state_province y address son opcionales pero deseables.\n\n'
+    + 'CORRECCIONES DESPUÉS DEL RESUMEN: Si el agente envió mensajes después de ver el resumen (texto que sigue a "¿Todo correcto?"), esos mensajes tienen PRIORIDAD ABSOLUTA sobre el draft anterior. Sobreescribe cualquier campo que el agente haya corregido.\n'
+    + 'Tipos de propiedad disponibles (usa el valor exacto): house=Casa, condo=Condominio, apartment=Apartamento, land=Terreno/Lote, finca=Finca, quinta=Quinta, commercial=Comercial/Negocio/Local, hotel=Hotel, other=Otros. Si el agente no especifica un tipo reconocible, usa other.\n'
+    + 'Tipos de negocio: sale si dice venta/vender/compra. rent si dice alquiler/arrendar/rentar/alquilar.'
 
   const historyMessages = history.map(function(m) {
     return { role: m.role as 'user' | 'assistant', content: m.content };
@@ -433,8 +436,15 @@ export async function handleListo(
 
   const divisa = extractedData.currency_id === '839f44d5-bee2-4bc1-b5da-50364f14c681' ? 'USD' : 'CRC';
   const tipoMap: Record<string, string> = {
-    house: 'Casa', apartment: 'Apartamento', land: 'Terreno/Finca',
-    commercial: 'Local Comercial', other: 'Otro',
+    house: 'Casa',
+    condo: 'Condominio',
+    apartment: 'Apartamento',
+    land: 'Terreno',
+    finca: 'Finca',
+    quinta: 'Quinta',
+    commercial: 'Comercial',
+    hotel: 'Hotel',
+    other: 'Otros',
   };
   const negocioMap: Record<string, string> = { sale: 'Venta', rent: 'Alquiler' };
 

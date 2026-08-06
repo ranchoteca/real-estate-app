@@ -1,26 +1,39 @@
 'use client';
 
-import Image from 'next/image';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { ReactNode } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useI18nStore } from '@/lib/i18n-store';
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const T = {
+  navy:      '#1B2D5B',
+  navyMid:   '#243770',
+  navyDark:  '#141F3F',
+  gold:      '#C9A84C',
+  goldLight: '#E8C96A',
+  goldPale:  '#F5EDD8',
+  cream:     '#F8F6F2',
+  white:     '#FFFFFF',
+  charcoal:  '#1A1A2E',
+  muted:     '#6B7280',
+  border:    '#E8E4DC',
+  sidebar:   '#111827',   // casi negro para sidebar — contraste máximo
+  sidebarHover: 'rgba(201,168,76,0.10)',
+  sidebarActive: 'rgba(201,168,76,0.18)',
+};
 
 interface AppLayoutProps {
-  children: ReactNode;
+  children: React.ReactNode;
   title?: string;
   showBack?: boolean;
   showTabs?: boolean;
   currentPropertyCount?: number;
   onCreateLimitReached?: () => void;
 }
-
-const NAV_ITEMS = [
-  { path: '/dashboard', labelKey: 'inicio', icon: '🏘️' },
-  { path: '/analytics', labelKey: 'analiticas', icon: '📊' },
-  { path: '/settings', labelKey: 'ajustes', icon: '⚙️' },
-  { path: '/profile', labelKey: 'perfil', icon: '👤' },
-] as const;
 
 export default function AppLayout({
   children,
@@ -34,301 +47,514 @@ export default function AppLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useTranslation();
+  const { language } = useI18nStore();
 
-  const isActive = (path: string) => pathname === path;
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [planInfo, setPlanInfo] = useState<{ plan: string; role: string; maxProperties: number } | null>(null);
 
-  const handleCreateClick = () => {
-    const isFreeAndAtLimit =
-      session?.user?.plan === 'free' &&
-      (currentPropertyCount !== undefined
-        ? currentPropertyCount >= 5
-        : (session?.user?.totalProperties || 0) >= 5);
+  useEffect(() => {
+    const loadPlan = async () => {
+      try {
+        const res = await fetch('/api/agent/current-plan');
+        if (res.ok) setPlanInfo(await res.json());
+      } catch {}
+    };
+    if (session) loadPlan();
+  }, [session]);
 
-    if (isFreeAndAtLimit) {
-      onCreateLimitReached?.();
-    } else {
-      router.push('/create-property');
+  const isProActivo = planInfo?.role === 'admin' || planInfo?.plan === 'pro';
+  const propertyLimit = isProActivo ? 150 : 5;
+  const isAtLimit = currentPropertyCount !== undefined && currentPropertyCount >= propertyLimit;
+
+  const handleCreateProperty = () => {
+    if (isAtLimit && onCreateLimitReached) {
+      onCreateLimitReached();
+      return;
     }
+    router.push('/create-property');
   };
 
+  // ── Nav items ─────────────────────────────────────────────────────────────
+  const navItems = [
+    {
+      href: '/dashboard',
+      label: language === 'en' ? 'Properties' : 'Propiedades',
+      icon: (active: boolean) => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke={active ? T.gold : 'rgba(255,255,255,0.5)'}
+          strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      ),
+    },
+    {
+      href: '/analytics',
+      label: language === 'en' ? 'Analytics' : 'Analíticas',
+      icon: (active: boolean) => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke={active ? T.gold : 'rgba(255,255,255,0.5)'}
+          strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+      ),
+    },
+    {
+      href: '/profile',
+      label: language === 'en' ? 'Profile' : 'Perfil',
+      icon: (active: boolean) => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke={active ? T.gold : 'rgba(255,255,255,0.5)'}
+          strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      ),
+    },
+    {
+      href: '/settings',
+      label: language === 'en' ? 'Settings' : 'Ajustes',
+      icon: (active: boolean) => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke={active ? T.gold : 'rgba(255,255,255,0.5)'}
+          strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+      ),
+    },
+  ];
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
+
+  // ── Botón crear propiedad ─────────────────────────────────────────────────
+  const CreateButton = ({ collapsed }: { collapsed: boolean }) => (
+    <button
+      onClick={handleCreateProperty}
+      className="flex items-center gap-3 w-full px-4 py-3 rounded-xl font-bold text-sm transition-all active:scale-95"
+      style={{
+        background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`,
+        color: T.navy,
+        boxShadow: '0 2px 8px rgba(201,168,76,0.35)',
+        justifyContent: collapsed ? 'center' : 'flex-start',
+      }}
+      title={collapsed ? (language === 'en' ? 'Create Property' : 'Crear Propiedad') : undefined}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.navy} strokeWidth="2.5" strokeLinecap="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      {!collapsed && (
+        <span>{language === 'en' ? 'New Property' : 'Nueva Propiedad'}</span>
+      )}
+    </button>
+  );
+
+  // ── Plan badge ────────────────────────────────────────────────────────────
+  const PlanBadge = ({ collapsed }: { collapsed: boolean }) => (
+    <div
+      className="flex items-center gap-2 px-3 py-2 rounded-lg"
+      style={{
+        backgroundColor: isProActivo ? 'rgba(201,168,76,0.12)' : 'rgba(255,255,255,0.06)',
+        border: `1px solid ${isProActivo ? 'rgba(201,168,76,0.3)' : 'rgba(255,255,255,0.1)'}`,
+        justifyContent: collapsed ? 'center' : 'flex-start',
+      }}
+      title={collapsed ? (isProActivo ? 'Pro' : 'Free') : undefined}
+    >
+      <span style={{ color: isProActivo ? T.gold : 'rgba(255,255,255,0.4)', fontSize: '11px' }}>
+        {isProActivo ? '✦' : '○'}
+      </span>
+      {!collapsed && (
+        <span className="text-xs font-semibold" style={{ color: isProActivo ? T.gold : 'rgba(255,255,255,0.4)' }}>
+          {isProActivo ? 'Plan Pro' : 'Plan Free'}
+        </span>
+      )}
+    </div>
+  );
+
   return (
-    <div className="app-shell" style={{ backgroundColor: '#F5EAD3' }}>
-      {/* ════════════════════════════════════════════════════════════════
-          MOBILE SHELL (< 768px)
-         ════════════════════════════════════════════════════════════════ */}
-      <div className="shell-mobile flex flex-col h-screen">
-        <header className="flex-shrink-0 shadow-lg relative z-50" style={{ backgroundColor: '#0F172A' }}>
-          <div className="safe-top">
-            <div className="flex items-center justify-between h-14 px-4">
-              <div className="flex items-center gap-3 min-w-0">
-                {showBack ? (
-                  <button onClick={() => router.back()} className="text-white p-2 -ml-2 active:opacity-70 transition-opacity">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                ) : (
-                  <span className="text-2xl">🏠</span>
-                )}
-                {title && <h1 className="text-lg font-bold text-white truncate">{title}</h1>}
-              </div>
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: T.cream }}>
 
-              <div className="flex items-center gap-3">
-                {session && (
-                  <>
-                    <div className="px-3 py-1.5 rounded-full text-sm font-semibold text-white" style={{ backgroundColor: '#2563EB' }}>
-                      {session.user.plan === 'pro' ? t('mobileLayout.pro') : t('mobileLayout.free')}
-                    </div>
-                    {session.user.plan === 'free' && (
-                      <button onClick={() => router.push('/pricing')} className="text-white text-sm font-semibold hover:opacity-80 transition-opacity">
-                        {t('mobileLayout.upgrade')}
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
+      {/* ══════════════════════════════════════════════════════════════════════
+          SIDEBAR DESKTOP (≥1200px)
+      ══════════════════════════════════════════════════════════════════════ */}
+      <aside
+        className="hidden lg:flex flex-col transition-all duration-300 flex-shrink-0"
+        style={{
+          width: sidebarCollapsed ? '68px' : '220px',
+          backgroundColor: T.sidebar,
+          borderRight: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        {/* Logo */}
+        <div
+          className="flex items-center px-4 flex-shrink-0"
+          style={{
+            height: '57px',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            justifyContent: sidebarCollapsed ? 'center' : 'space-between',
+          }}
+        >
+          {!sidebarCollapsed && (
+            <Image src="/logo_header.png" alt="FlowEstateAI" width={320} height={144} className="h-7 w-auto" priority />
+          )}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="flex items-center justify-center rounded-lg transition-colors"
+            style={{ width: '28px', height: '28px', color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = T.gold; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.35)'; }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              {sidebarCollapsed
+                ? <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>
+                : <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>
+              }
+            </svg>
+          </button>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
+
+          {/* Crear propiedad */}
+          <div className={`mb-4 ${sidebarCollapsed ? 'px-0' : 'px-1'}`}>
+            <CreateButton collapsed={sidebarCollapsed} />
           </div>
-        </header>
 
-        <main className="flex-1 overflow-y-auto overscroll-contain">
-          <div className="pb-28">{children}</div>
-        </main>
-
-        {showTabs && session && (
-          <nav className="fixed bottom-0 left-0 right-0 border-t safe-bottom shadow-2xl z-50" style={{ backgroundColor: '#FFFFFF', borderTopColor: '#E5E7EB' }}>
-            <div className="flex justify-around items-center h-16">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all active:scale-95 ${isActive('/dashboard') ? 'opacity-100' : 'opacity-50'}`}
-              >
-                <svg className="w-6 h-6" fill={isActive('/dashboard') ? '#2563EB' : '#0F172A'} viewBox="0 0 24 24">
-                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-                </svg>
-                <span className="text-xs font-semibold" style={{ color: isActive('/dashboard') ? '#2563EB' : '#0F172A' }}>
-                  {t('mobileLayout.inicio')}
-                </span>
-              </button>
-
-              <button
-                onClick={() => router.push('/analytics')}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all active:scale-95 ${pathname === '/analytics' ? '' : 'opacity-50'}`}
-              >
-                <svg className="w-6 h-6" fill={pathname === '/analytics' ? '#2563EB' : '#0F172A'} viewBox="0 0 24 24">
-                  <path d="M3 13h2v8H3v-8zm4-6h2v14H7V7zm4-4h2v18h-2V3zm4 9h2v9h-2v-9zm4-3h2v12h-2V9z" />
-                </svg>
-                <span className="text-xs font-semibold" style={{ color: pathname === '/analytics' ? '#2563EB' : '#0F172A' }}>
-                  {t('mobileLayout.analiticas')}
-                </span>
-              </button>
-
-              <button onClick={handleCreateClick} className="flex-1 flex flex-col items-center justify-center transition-all active:scale-95">
-                <div className="w-14 h-14 rounded-full shadow-2xl flex items-center justify-center" style={{ backgroundColor: '#2563EB' }}>
-                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                  </svg>
-                </div>
-              </button>
-
-              <button
-                onClick={() => router.push('/settings')}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all active:scale-95 ${isActive('/settings') ? 'opacity-100' : 'opacity-50'}`}
-              >
-                <svg className="w-6 h-6" fill={isActive('/settings') ? '#2563EB' : '#0F172A'} viewBox="0 0 24 24">
-                  <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
-                </svg>
-                <span className="text-xs font-semibold" style={{ color: isActive('/settings') ? '#2563EB' : '#0F172A' }}>
-                  {t('mobileLayout.ajustes')}
-                </span>
-              </button>
-
-              <button
-                onClick={() => router.push('/profile')}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all active:scale-95 ${isActive('/profile') ? 'opacity-100' : 'opacity-50'}`}
-              >
-                <svg className="w-6 h-6" fill={isActive('/profile') ? '#2563EB' : '#0F172A'} viewBox="0 0 24 24">
-                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                </svg>
-                <span className="text-xs font-semibold" style={{ color: isActive('/profile') ? '#2563EB' : '#0F172A' }}>
-                  {t('mobileLayout.perfil')}
-                </span>
-              </button>
-            </div>
-          </nav>
-        )}
-      </div>
-
-      {/* ════════════════════════════════════════════════════════════════
-          TABLET + DESKTOP SHELL (≥ 768px) — sidebar fijo
-         ════════════════════════════════════════════════════════════════ */}
-      <div className="shell-desktop" style={{ display: 'none' }}>
-        {/* Wrapper: altura fija 100vh, sin scroll en este nivel */}
-        <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-
-          {/* Sidebar: sticky, no se mueve con el scroll del contenido */}
-          <aside className="sidebar" style={{
-            flexShrink: 0,
-            backgroundColor: '#0F172A',
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '20px 0',
-            position: 'sticky',
-            top: 0,
-            height: '100vh',
-            overflowY: 'auto',
-          }}>
-            <div className="sidebar-brand" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '0 20px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '16px' }}>
-              {/* Tablet colapsado: solo icono de casita */}
-              <span className="sidebar-brand-icon" style={{ fontSize: '22px', flexShrink: 0 }}>🏠</span>
-              {/* Desktop full: logo imagen */}
-              <Image
-                src="/logo_header.png"
-                alt="FlowEstateAI"
-                width={410}
-                height={184}
-                className="sidebar-brand-logo"
-                style={{ width: '120px', height: 'auto' }}
-                priority
-              />
-            </div>
-
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '0 12px' }}>
-              {NAV_ITEMS.map((item) => (
-                <button
-                  key={item.path}
-                  onClick={() => router.push(item.path)}
-                  className="sidebar-nav-item"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    background: isActive(item.path) ? 'rgba(37,99,235,0.18)' : 'transparent',
-                    color: isActive(item.path) ? '#ffffff' : 'rgba(255,255,255,0.55)',
-                    fontWeight: 600,
-                    fontSize: '13.5px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    width: '100%',
-                    textAlign: 'left',
-                  }}
-                >
-                  <span style={{ fontSize: '16px', flexShrink: 0 }}>{item.icon}</span>
-                  <span className="sidebar-nav-text" style={{ whiteSpace: 'nowrap' }}>{t(`mobileLayout.${item.labelKey}`)}</span>
-                </button>
-              ))}
-            </nav>
-
-            <div className="sidebar-create-box" style={{ marginTop: 'auto', padding: '0 20px' }}>
-              <button
-                onClick={handleCreateClick}
+          {/* Items de menú */}
+          {navItems.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group relative"
                 style={{
-                  width: '100%',
-                  background: 'rgba(37,99,235,0.15)',
-                  border: '1px solid rgba(37,99,235,0.3)',
-                  borderRadius: '10px',
-                  padding: '12px',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  color: 'white',
+                  backgroundColor: active ? T.sidebarActive : 'transparent',
+                  borderLeft: active ? `3px solid ${T.gold}` : '3px solid transparent',
+                  justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                  textDecoration: 'none',
                 }}
+                onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = T.sidebarHover; }}
+                onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+                title={sidebarCollapsed ? item.label : undefined}
               >
-                <p className="sidebar-create-title" style={{ margin: '0 0 4px', fontSize: '12px', fontWeight: 600 }}>➕ {t('mobileLayout.crearPropiedad')}</p>
-                <p className="sidebar-create-hint" style={{ margin: 0, fontSize: '10.5px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>
-                  {t('mobileLayout.crearPropiedadHintVoz')}
-                </p>
-              </button>
-            </div>
-          </aside>
-
-          {/* Área de contenido: flex column, header fijo arriba, main con scroll */}
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <header style={{
-              backgroundColor: 'white',
-              borderBottom: '1px solid #E5E7EB',
-              padding: '14px 28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexShrink: 0,
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
-            }}>
-              <h1 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#0F172A' }}>{title || ''}</h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {session && (
-                  <>
-                    <span style={{ background: '#2563EB', color: 'white', fontSize: '11.5px', fontWeight: 700, padding: '5px 12px', borderRadius: '100px' }}>
-                      {session.user.plan === 'pro' ? t('mobileLayout.pro') : t('mobileLayout.free')}
-                    </span>
-                    {session.user.plan === 'free' && (
-                      <button onClick={() => router.push('/pricing')} style={{ background: 'none', border: 'none', color: '#2563EB', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
-                        {t('mobileLayout.upgrade')}
-                      </button>
-                    )}
-                  </>
+                <span className="flex-shrink-0">{item.icon(active)}</span>
+                {!sidebarCollapsed && (
+                  <span
+                    className="text-sm font-medium transition-colors"
+                    style={{ color: active ? T.gold : 'rgba(255,255,255,0.65)' }}
+                  >
+                    {item.label}
+                  </span>
                 )}
-              </div>
-            </header>
+                {/* Tooltip cuando colapsado */}
+                {sidebarCollapsed && (
+                  <div
+                    className="absolute left-full ml-3 px-2.5 py-1 rounded-lg text-xs font-semibold pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap"
+                    style={{ backgroundColor: T.navyMid, color: T.white, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
+                  >
+                    {item.label}
+                  </div>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
 
-            {/* Main: único elemento con scroll */}
-            <main style={{ flex: 1, overflowY: 'auto' }}>{children}</main>
+        {/* Footer sidebar */}
+        <div className="px-2 pb-4 pt-2 flex flex-col gap-2 flex-shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <PlanBadge collapsed={sidebarCollapsed} />
+
+          {/* Avatar + nombre */}
+          {!sidebarCollapsed && session?.user && (
+            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                style={{ backgroundColor: T.gold, color: T.navy }}
+              >
+                {session.user.name?.charAt(0).toUpperCase() || '?'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                  {session.user.name}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Logout */}
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors w-full"
+            style={{
+              color: 'rgba(255,255,255,0.3)',
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(220,38,38,0.1)';
+              (e.currentTarget as HTMLElement).style.color = '#FCA5A5';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+              (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.3)';
+            }}
+            title={sidebarCollapsed ? (language === 'en' ? 'Log out' : 'Cerrar sesión') : undefined}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            {!sidebarCollapsed && (
+              <span className="text-xs font-medium">
+                {language === 'en' ? 'Log out' : 'Cerrar sesión'}
+              </span>
+            )}
+          </button>
+        </div>
+      </aside>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SIDEBAR TABLET (768px–1199px) — iconos + tooltip
+      ══════════════════════════════════════════════════════════════════════ */}
+      <aside
+        className="hidden md:flex lg:hidden flex-col flex-shrink-0"
+        style={{
+          width: '60px',
+          backgroundColor: T.sidebar,
+          borderRight: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        {/* Logo compacto */}
+        <div
+          className="flex items-center justify-center flex-shrink-0"
+          style={{ height: '57px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm"
+            style={{ backgroundColor: T.gold, color: T.navy }}
+          >
+            F
           </div>
         </div>
+
+        {/* Nav tablet */}
+        <nav className="flex-1 py-4 flex flex-col items-center gap-1">
+
+          {/* Botón crear — icono solo */}
+          <button
+            onClick={handleCreateProperty}
+            className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-all active:scale-90 group relative"
+            style={{
+              background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`,
+              boxShadow: '0 2px 8px rgba(201,168,76,0.35)',
+            }}
+            title={language === 'en' ? 'New Property' : 'Nueva Propiedad'}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.navy} strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <div className="absolute left-full ml-3 px-2.5 py-1 rounded-lg text-xs font-semibold pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap" style={{ backgroundColor: T.navyMid, color: T.white, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+              {language === 'en' ? 'New Property' : 'Nueva Propiedad'}
+            </div>
+          </button>
+
+          {navItems.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="relative w-10 h-10 rounded-xl flex items-center justify-center transition-all group"
+                style={{
+                  backgroundColor: active ? T.sidebarActive : 'transparent',
+                  borderLeft: active ? `2px solid ${T.gold}` : '2px solid transparent',
+                  textDecoration: 'none',
+                }}
+                onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = T.sidebarHover; }}
+                onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+                title={item.label}
+              >
+                {item.icon(active)}
+                <div className="absolute left-full ml-3 px-2.5 py-1 rounded-lg text-xs font-semibold pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap" style={{ backgroundColor: T.navyMid, color: T.white, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+                  {item.label}
+                </div>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Footer tablet */}
+        <div className="flex flex-col items-center gap-2 py-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          {/* Plan badge */}
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{
+              backgroundColor: isProActivo ? 'rgba(201,168,76,0.15)' : 'rgba(255,255,255,0.06)',
+              border: `1px solid ${isProActivo ? 'rgba(201,168,76,0.3)' : 'rgba(255,255,255,0.1)'}`,
+            }}
+            title={isProActivo ? 'Pro' : 'Free'}
+          >
+            <span style={{ color: isProActivo ? T.gold : 'rgba(255,255,255,0.3)', fontSize: '12px' }}>
+              {isProActivo ? '✦' : '○'}
+            </span>
+          </div>
+
+          {/* Avatar */}
+          {session?.user && (
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+              style={{ backgroundColor: T.navyMid, color: T.gold, border: `1px solid rgba(201,168,76,0.3)` }}
+              title={session.user.name || ''}
+            >
+              {session.user.name?.charAt(0).toUpperCase() || '?'}
+            </div>
+          )}
+
+          {/* Logout */}
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors group relative"
+            style={{ color: 'rgba(255,255,255,0.25)' }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(220,38,38,0.1)';
+              (e.currentTarget as HTMLElement).style.color = '#FCA5A5';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+              (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.25)';
+            }}
+            title={language === 'en' ? 'Log out' : 'Cerrar sesión'}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
+        </div>
+      </aside>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          ÁREA DE CONTENIDO
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+
+        {/* Header mobile/tablet */}
+        <header
+          className="flex-shrink-0 flex items-center justify-between px-4 md:px-5"
+          style={{
+            height: '57px',
+            backgroundColor: T.sidebar,
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
+          {/* Izquierda */}
+          <div className="flex items-center gap-3">
+            {showBack ? (
+              <button
+                onClick={() => router.back()}
+                className="flex items-center justify-center rounded-lg transition-colors"
+                style={{ width: '32px', height: '32px', color: 'rgba(255,255,255,0.5)' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = T.gold; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)'; }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 5l-7 7 7 7"/>
+                </svg>
+              </button>
+            ) : (
+              <div className="md:hidden">
+                <Image src="/logo_header.png" alt="FlowEstateAI" width={320} height={144} className="h-7 w-auto" priority />
+              </div>
+            )}
+            {title && (
+              <h1 className="text-sm font-semibold truncate" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                {title}
+              </h1>
+            )}
+          </div>
+
+          {/* Derecha — crear propiedad */}
+          <button
+            onClick={handleCreateProperty}
+            className="flex items-center justify-center rounded-xl active:scale-90 transition-all"
+            style={{
+              width: '34px',
+              height: '34px',
+              background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`,
+              boxShadow: '0 2px 6px rgba(201,168,76,0.35)',
+            }}
+            title={language === 'en' ? 'New Property' : 'Nueva Propiedad'}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.navy} strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        </header>
+
+        {/* Contenido */}
+        <main className="flex-1 overflow-y-auto" style={{ backgroundColor: T.cream }}>
+          {children}
+        </main>
       </div>
 
+      {/* ══════════════════════════════════════════════════════════════════════
+          BOTTOM NAV MOBILE — navy con iconos dorados
+      ══════════════════════════════════════════════════════════════════════ */}
+      {showTabs && (
+        <nav
+          className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center"
+          style={{
+            backgroundColor: T.navy,
+            borderTop: `1px solid rgba(201,168,76,0.2)`,
+            height: '60px',
+            paddingBottom: 'env(safe-area-inset-bottom)',
+          }}
+        >
+          {navItems.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full transition-all"
+                style={{ textDecoration: 'none' }}
+              >
+                {/* Indicador activo superior */}
+                <div
+                  className="transition-all duration-200"
+                  style={{
+                    height: '2px',
+                    width: active ? '24px' : '0px',
+                    backgroundColor: T.gold,
+                    borderRadius: '0 0 2px 2px',
+                    position: 'absolute',
+                    top: '0',
+                  }}
+                />
+                {item.icon(active)}
+                <span
+                  className="text-[9px] font-semibold uppercase tracking-wider"
+                  style={{ color: active ? T.gold : 'rgba(255,255,255,0.35)' }}
+                >
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </nav>
+      )}
+
       <style jsx global>{`
-        .safe-top { padding-top: env(safe-area-inset-top); }
-        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-        .overscroll-contain { overscroll-behavior: contain; }
-        body { overscroll-behavior-y: none; }
-        .overflow-y-auto::-webkit-scrollbar { display: none; }
-        .overflow-y-auto { -ms-overflow-style: none; scrollbar-width: none; }
-
-        .shell-desktop { display: none; }
-
-        @media (min-width: 768px) {
-          .shell-mobile { display: none !important; }
-          .shell-desktop { display: block !important; }
-
-          .sidebar { width: 72px; }
-          .sidebar-brand-text,
-          .sidebar-nav-text,
-          .sidebar-create-title,
-          .sidebar-create-hint { display: none; }
-          .sidebar-brand { justify-content: center; padding: 0 0 24px; }
-          .sidebar-nav-item { justify-content: center; padding: 10px 0; }
-          .sidebar-create-box button { padding: 10px 0; }
-
-          /* Tablet: mostrar solo el icono, ocultar logo */
-          .sidebar-brand-logo { display: none; }
-          .sidebar-brand-icon { display: inline; }
-        }
-
-        @media (min-width: 1200px) {
-          .sidebar { width: 220px; }
-          .sidebar-brand-text,
-          .sidebar-nav-text,
-          .sidebar-create-title,
-          .sidebar-create-hint { display: block; }
-          .sidebar-brand { justify-content: flex-start; padding: 0 20px 24px; }
-          .sidebar-nav-item { justify-content: flex-start; padding: 10px 12px; }
-          .sidebar-create-box button { padding: 12px; }
-
-          /* Desktop: mostrar logo, ocultar icono */
-          .sidebar-brand-logo { display: block; }
-          .sidebar-brand-icon { display: none; }
-        }
-
-        /* Dashboard property cards — photo responsive */
         .photo-container {
           width: 130px;
           min-height: 130px;
           flex-shrink: 0;
         }
-
         @media (min-width: 768px) {
           .photo-container {
             width: 100%;

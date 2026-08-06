@@ -8,11 +8,9 @@ import Image from 'next/image';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useI18nStore } from '@/lib/i18n-store';
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
 const T = {
   navy:         '#1B2D5B',
   navyMid:      '#243770',
-  navyDark:     '#141F3F',
   gold:         '#C9A84C',
   goldLight:    '#E8C96A',
   goldPale:     '#F5EDD8',
@@ -34,6 +32,9 @@ interface AppLayoutProps {
   currentPropertyCount?: number;
   onCreateLimitReached?: () => void;
 }
+
+// Páginas del menú principal — en estas NO se muestra el título en el header mobile
+const MAIN_NAV_PATHS = ['/dashboard', '/analytics', '/profile', '/settings'];
 
 export default function AppLayout({
   children,
@@ -66,9 +67,12 @@ export default function AppLayout({
   const propertyLimit = isProActivo ? 150 : 5;
   const isAtLimit = currentPropertyCount !== undefined && currentPropertyCount >= propertyLimit;
 
-  // Nombre completo del agente (no el nombre de Gmail)
   const fullName = planInfo?.full_name || session?.user?.name || '';
   const initials = fullName ? fullName.charAt(0).toUpperCase() : '?';
+
+  // En páginas principales del nav, no mostramos el título en el header mobile
+  const isMainNavPage = MAIN_NAV_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
+  const showTitleInHeader = !isMainNavPage;
 
   const handleCreateProperty = () => {
     if (isAtLimit && onCreateLimitReached) {
@@ -78,7 +82,7 @@ export default function AppLayout({
     router.push('/create-property');
   };
 
-  // ── Nav items ─────────────────────────────────────────────────────────────
+  // ── Nav items (sin el crear, ese va aparte en mobile) ────────────────────
   const navItems = [
     {
       href: '/dashboard',
@@ -133,7 +137,6 @@ export default function AppLayout({
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
-  // ── Botón crear propiedad ─────────────────────────────────────────────────
   const CreateButton = ({ collapsed }: { collapsed: boolean }) => (
     <button
       onClick={handleCreateProperty}
@@ -149,9 +152,7 @@ export default function AppLayout({
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.navy} strokeWidth="2.5" strokeLinecap="round">
         <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
-      {!collapsed && (
-        <span>{language === 'en' ? 'New Property' : 'Nueva Propiedad'}</span>
-      )}
+      {!collapsed && <span>{language === 'en' ? 'New Property' : 'Nueva Propiedad'}</span>}
     </button>
   );
 
@@ -167,7 +168,6 @@ export default function AppLayout({
           width: sidebarCollapsed ? '64px' : '220px',
           backgroundColor: T.sidebar,
           borderRight: '1px solid rgba(255,255,255,0.06)',
-          // FIX 1: no overflow en el aside — el scroll lo maneja solo el nav
         }}
       >
         {/* Logo */}
@@ -198,13 +198,11 @@ export default function AppLayout({
           </button>
         </div>
 
-        {/* Nav — FIX 1: overflow-y-auto solo aquí, con min-h-0 para que funcione en flex */}
+        {/* Nav */}
         <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-3 px-2 space-y-0.5">
-          {/* Crear propiedad */}
           <div className="mb-3">
             <CreateButton collapsed={sidebarCollapsed} />
           </div>
-
           {navItems.map((item) => {
             const active = isActive(item.href);
             return (
@@ -241,12 +239,8 @@ export default function AppLayout({
           })}
         </nav>
 
-        {/* Footer sidebar — FIX 1 + FIX 2: siempre visible, nunca scrollable */}
-        <div
-          className="px-2 pb-4 pt-3 flex flex-col gap-2 flex-shrink-0"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          {/* Plan badge */}
+        {/* Footer sidebar */}
+        <div className="px-2 pb-4 pt-3 flex flex-col gap-2 flex-shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <div
             className="flex items-center gap-2 px-3 py-2 rounded-lg"
             style={{
@@ -266,13 +260,9 @@ export default function AppLayout({
             )}
           </div>
 
-          {/* FIX 2: Avatar + nombre completo — la inicial aparece SIEMPRE (colapsado o no) */}
           <div
             className="flex items-center gap-2.5 px-2 py-2 rounded-xl"
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.04)',
-              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-            }}
+            style={{ backgroundColor: 'rgba(255,255,255,0.04)', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
           >
             <div
               className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
@@ -281,7 +271,6 @@ export default function AppLayout({
             >
               {initials}
             </div>
-            {/* Nombre completo solo cuando está expandido */}
             {!sidebarCollapsed && (
               <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>
                 {fullName}
@@ -289,14 +278,10 @@ export default function AppLayout({
             )}
           </div>
 
-          {/* Logout */}
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
             className="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors w-full"
-            style={{
-              color: 'rgba(255,255,255,0.3)',
-              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-            }}
+            style={{ color: 'rgba(255,255,255,0.3)', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(220,38,38,0.1)';
               (e.currentTarget as HTMLElement).style.color = '#FCA5A5';
@@ -313,9 +298,7 @@ export default function AppLayout({
               <line x1="21" y1="12" x2="9" y2="12"/>
             </svg>
             {!sidebarCollapsed && (
-              <span className="text-xs font-medium">
-                {language === 'en' ? 'Log out' : 'Cerrar sesión'}
-              </span>
+              <span className="text-xs font-medium">{language === 'en' ? 'Log out' : 'Cerrar sesión'}</span>
             )}
           </button>
         </div>
@@ -326,25 +309,16 @@ export default function AppLayout({
       ══════════════════════════════════════════════════════════════════════ */}
       <aside
         className="hidden md:flex lg:hidden flex-col flex-shrink-0"
-        style={{
-          width: '60px',
-          backgroundColor: T.sidebar,
-          borderRight: '1px solid rgba(255,255,255,0.06)',
-        }}
+        style={{ width: '60px', backgroundColor: T.sidebar, borderRight: '1px solid rgba(255,255,255,0.06)' }}
       >
-        {/* Logo compacto */}
         <div
           className="flex items-center justify-center flex-shrink-0"
           style={{ height: '57px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
         >
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm" style={{ backgroundColor: T.gold, color: T.navy }}>
-            F
-          </div>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm" style={{ backgroundColor: T.gold, color: T.navy }}>F</div>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 min-h-0 overflow-y-auto py-3 flex flex-col items-center gap-1">
-          {/* Crear */}
+        <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-3 flex flex-col items-center gap-1">
           <button
             onClick={handleCreateProperty}
             className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-all active:scale-90 group relative"
@@ -358,7 +332,6 @@ export default function AppLayout({
               {language === 'en' ? 'New Property' : 'Nueva Propiedad'}
             </div>
           </button>
-
           {navItems.map((item) => {
             const active = isActive(item.href);
             return (
@@ -366,11 +339,7 @@ export default function AppLayout({
                 key={item.href}
                 href={item.href}
                 className="relative w-10 h-10 rounded-xl flex items-center justify-center transition-all group"
-                style={{
-                  backgroundColor: active ? T.sidebarActive : 'transparent',
-                  borderLeft: active ? `2px solid ${T.gold}` : '2px solid transparent',
-                  textDecoration: 'none',
-                }}
+                style={{ backgroundColor: active ? T.sidebarActive : 'transparent', borderLeft: active ? `2px solid ${T.gold}` : '2px solid transparent', textDecoration: 'none' }}
                 onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = T.sidebarHover; }}
                 onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
                 title={item.label}
@@ -384,23 +353,14 @@ export default function AppLayout({
           })}
         </nav>
 
-        {/* Footer tablet */}
         <div className="flex flex-col items-center gap-2 py-3 flex-shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          {/* Plan */}
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{
-              backgroundColor: isProActivo ? 'rgba(201,168,76,0.15)' : 'rgba(255,255,255,0.06)',
-              border: `1px solid ${isProActivo ? 'rgba(201,168,76,0.3)' : 'rgba(255,255,255,0.1)'}`,
-            }}
+            style={{ backgroundColor: isProActivo ? 'rgba(201,168,76,0.15)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isProActivo ? 'rgba(201,168,76,0.3)' : 'rgba(255,255,255,0.1)'}` }}
             title={isProActivo ? 'Plan Pro' : 'Plan Free'}
           >
-            <span style={{ color: isProActivo ? T.gold : 'rgba(255,255,255,0.3)', fontSize: '12px' }}>
-              {isProActivo ? '✦' : '○'}
-            </span>
+            <span style={{ color: isProActivo ? T.gold : 'rgba(255,255,255,0.3)', fontSize: '12px' }}>{isProActivo ? '✦' : '○'}</span>
           </div>
-
-          {/* Avatar — FIX 2: inicial siempre visible */}
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
             style={{ backgroundColor: T.gold, color: T.navy }}
@@ -408,20 +368,12 @@ export default function AppLayout({
           >
             {initials}
           </div>
-
-          {/* Logout */}
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
             className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
             style={{ color: 'rgba(255,255,255,0.25)' }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(220,38,38,0.1)';
-              (e.currentTarget as HTMLElement).style.color = '#FCA5A5';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
-              (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.25)';
-            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(220,38,38,0.1)'; (e.currentTarget as HTMLElement).style.color = '#FCA5A5'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.25)'; }}
             title={language === 'en' ? 'Log out' : 'Cerrar sesión'}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -438,14 +390,10 @@ export default function AppLayout({
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* Header — FIX 4: sin botón crear en el header */}
+        {/* Header — en mobile solo logo (sin título en páginas principales) */}
         <header
           className="flex-shrink-0 flex items-center px-4 md:px-5 gap-3"
-          style={{
-            height: '57px',
-            backgroundColor: T.sidebar,
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-          }}
+          style={{ height: '57px', backgroundColor: T.sidebar, borderBottom: '1px solid rgba(255,255,255,0.06)' }}
         >
           {showBack ? (
             <button
@@ -460,13 +408,19 @@ export default function AppLayout({
               </svg>
             </button>
           ) : (
-            // Logo solo en mobile (en desktop/tablet está en el sidebar)
             <div className="md:hidden flex-shrink-0">
               <Image src="/logo_header.png" alt="FlowEstateAI" width={320} height={144} className="h-7 w-auto" priority />
             </div>
           )}
-          {title && (
-            <h1 className="text-sm font-semibold truncate flex-1" style={{ color: 'rgba(255,255,255,0.85)' }}>
+          {/* Título: en mobile solo se muestra si NO es página principal */}
+          {title && showTitleInHeader && (
+            <h1 className="text-sm font-semibold truncate flex-1 md:flex-none" style={{ color: 'rgba(255,255,255,0.85)' }}>
+              {title}
+            </h1>
+          )}
+          {/* En tablet/desktop siempre mostramos el título */}
+          {title && !showTitleInHeader && (
+            <h1 className="hidden md:block text-sm font-semibold truncate" style={{ color: 'rgba(255,255,255,0.85)' }}>
               {title}
             </h1>
           )}
@@ -479,7 +433,7 @@ export default function AppLayout({
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          BOTTOM NAV MOBILE — navy con iconos dorados (sin cambios)
+          BOTTOM NAV MOBILE — 5 botones con CREAR en el centro
       ══════════════════════════════════════════════════════════════════════ */}
       {showTabs && (
         <nav
@@ -487,37 +441,118 @@ export default function AppLayout({
           style={{
             backgroundColor: T.navy,
             borderTop: `1px solid rgba(201,168,76,0.2)`,
-            height: '60px',
+            height: '64px',
             paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >
-          {navItems.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full relative transition-all"
-                style={{ textDecoration: 'none' }}
+          {/* Propiedades */}
+          <Link
+            href="/dashboard"
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full relative"
+            style={{ textDecoration: 'none' }}
+          >
+            {isActive('/dashboard') && (
+              <div className="absolute top-0 rounded-b-sm" style={{ height: '2px', width: '24px', backgroundColor: T.gold }} />
+            )}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke={isActive('/dashboard') ? T.gold : 'rgba(255,255,255,0.5)'}
+              strokeWidth={isActive('/dashboard') ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: isActive('/dashboard') ? T.gold : 'rgba(255,255,255,0.35)' }}>
+              {language === 'en' ? 'Properties' : 'Propiedades'}
+            </span>
+          </Link>
+
+          {/* Analíticas */}
+          <Link
+            href="/analytics"
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full relative"
+            style={{ textDecoration: 'none' }}
+          >
+            {isActive('/analytics') && (
+              <div className="absolute top-0 rounded-b-sm" style={{ height: '2px', width: '24px', backgroundColor: T.gold }} />
+            )}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke={isActive('/analytics') ? T.gold : 'rgba(255,255,255,0.5)'}
+              strokeWidth={isActive('/analytics') ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/>
+              <line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: isActive('/analytics') ? T.gold : 'rgba(255,255,255,0.35)' }}>
+              {language === 'en' ? 'Analytics' : 'Analíticas'}
+            </span>
+          </Link>
+
+          {/* CREAR — botón central destacado */}
+          <div className="flex-1 flex items-center justify-center relative" style={{ marginTop: '-18px' }}>
+            <button
+              onClick={handleCreateProperty}
+              className="flex flex-col items-center justify-center gap-1 active:scale-90 transition-transform"
+              style={{ outline: 'none', border: 'none', background: 'none', cursor: 'pointer' }}
+            >
+              <div
+                className="flex items-center justify-center rounded-full shadow-xl"
+                style={{
+                  width: '52px',
+                  height: '52px',
+                  background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`,
+                  boxShadow: `0 4px 16px rgba(201,168,76,0.5)`,
+                  border: `3px solid ${T.navy}`,
+                }}
               >
-                <div
-                  className="absolute top-0 transition-all duration-200 rounded-b-sm"
-                  style={{
-                    height: '2px',
-                    width: active ? '24px' : '0px',
-                    backgroundColor: T.gold,
-                  }}
-                />
-                {item.icon(active)}
-                <span
-                  className="text-[9px] font-semibold uppercase tracking-wider"
-                  style={{ color: active ? T.gold : 'rgba(255,255,255,0.35)' }}
-                >
-                  {item.label}
-                </span>
-              </Link>
-            );
-          })}
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={T.navy} strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+              </div>
+              <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: T.gold }}>
+                {language === 'en' ? 'Create' : 'Crear'}
+              </span>
+            </button>
+          </div>
+
+          {/* Perfil */}
+          <Link
+            href="/profile"
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full relative"
+            style={{ textDecoration: 'none' }}
+          >
+            {isActive('/profile') && (
+              <div className="absolute top-0 rounded-b-sm" style={{ height: '2px', width: '24px', backgroundColor: T.gold }} />
+            )}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke={isActive('/profile') ? T.gold : 'rgba(255,255,255,0.5)'}
+              strokeWidth={isActive('/profile') ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: isActive('/profile') ? T.gold : 'rgba(255,255,255,0.35)' }}>
+              {language === 'en' ? 'Profile' : 'Perfil'}
+            </span>
+          </Link>
+
+          {/* Ajustes */}
+          <Link
+            href="/settings"
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full relative"
+            style={{ textDecoration: 'none' }}
+          >
+            {isActive('/settings') && (
+              <div className="absolute top-0 rounded-b-sm" style={{ height: '2px', width: '24px', backgroundColor: T.gold }} />
+            )}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke={isActive('/settings') ? T.gold : 'rgba(255,255,255,0.5)'}
+              strokeWidth={isActive('/settings') ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+            </svg>
+            <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: isActive('/settings') ? T.gold : 'rgba(255,255,255,0.35)' }}>
+              {language === 'en' ? 'Settings' : 'Ajustes'}
+            </span>
+          </Link>
         </nav>
       )}
 

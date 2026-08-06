@@ -126,9 +126,15 @@ export default function DashboardPage() {
     if (typeof window === 'undefined') return false;
     return localStorage.getItem('proposal_hint_dismissed') === 'true';
   });
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
 
   useEffect(() => { if (status === 'unauthenticated') router.push('/login'); }, [status, router]);
-  useEffect(() => { if (session?.user?.id) { loadProperties(); loadPlanInfo(); loadCurrencies(); } }, [session]);
+  useEffect(() => {
+    if (session?.user?.id) {
+      loadProperties(); loadPlanInfo(); loadCurrencies();
+      if (session.user.username) loadProfilePhoto(session.user.username);
+    }
+  }, [session]);
   useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (session?.user?.id) {
@@ -151,6 +157,12 @@ export default function DashboardPage() {
   const loadPlanInfo = async () => {
     try { const response = await fetch('/api/agent/current-plan'); const data = await response.json(); setPlanInfo(data); }
     catch (error) { console.error('Error loading plan:', error); }
+  };
+  const loadProfilePhoto = async (username: string) => {
+    try {
+      const res = await fetch(`/api/agent-card/get?username=${username}`);
+      if (res.ok) { const data = await res.json(); if (data?.card?.profile_photo) setProfilePhoto(data.card.profile_photo); }
+    } catch {}
   };
   const loadCurrencies = async () => {
     try { const response = await fetch('/api/currencies/list'); if (response.ok) { const data = await response.json(); setCurrencies(data.currencies || []); } }
@@ -382,9 +394,75 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {/* Stats mobile — sin cambios (solo visible en mobile) */}
-          <div className="md:hidden">
-            <div className="flex items-center gap-3 mb-3">
+          {/* ── BIENVENIDA MOBILE ── */}
+          <div className="md:hidden mb-4">
+
+            {/* Título estilizado */}
+            <div className="flex items-center gap-2 mb-4">
+              <div style={{ width: '3px', height: '22px', backgroundColor: T.gold, borderRadius: '2px', flexShrink: 0 }} />
+              <h1 className="text-xl font-bold tracking-tight" style={{ color: T.navy }}>
+                {language === 'en' ? 'My Properties' : 'Mis Propiedades'}
+              </h1>
+            </div>
+
+            {/* Foto + nombre + fecha */}
+            <div
+              className="flex items-center gap-4 p-4 rounded-2xl mb-3"
+              style={{ backgroundColor: T.white, border: `1px solid ${T.border}`, boxShadow: '0 2px 8px rgba(27,45,91,0.06)' }}
+            >
+              {/* Avatar circular — foto si existe, inicial si no */}
+              <div
+                className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center font-bold text-xl"
+                style={{
+                  backgroundColor: T.gold,
+                  color: T.navy,
+                  border: `2px solid ${T.gold}`,
+                  boxShadow: '0 2px 8px rgba(201,168,76,0.3)',
+                }}
+              >
+                {profilePhoto ? (
+                  <Image
+                    src={profilePhoto}
+                    alt={fullName}
+                    width={56}
+                    height={56}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span>{fullName ? fullName.charAt(0).toUpperCase() : '?'}</span>
+                )}
+              </div>
+
+              {/* Nombre y fecha */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium mb-0.5" style={{ color: T.muted }}>
+                  {language === 'en' ? 'Welcome,' : 'Bienvenido(a),'}
+                </p>
+                <p className="text-base font-bold truncate" style={{ color: T.navy }}>
+                  {fullName}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: T.muted }}>
+                  {new Date().toLocaleDateString(
+                    language === 'en' ? 'en-US' : 'es-CR',
+                    { day: 'numeric', month: 'long', year: 'numeric' }
+                  )}
+                </p>
+              </div>
+
+              {/* Badge plan */}
+              {isProActivo && (
+                <div
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg flex-shrink-0"
+                  style={{ backgroundColor: T.goldPale, border: `1px solid rgba(201,168,76,0.35)` }}
+                >
+                  <span style={{ color: T.gold, fontSize: '10px' }}>✦</span>
+                  <span className="text-[10px] font-bold" style={{ color: T.navy }}>Pro</span>
+                </div>
+              )}
+            </div>
+
+            {/* Stats compactos */}
+            <div className="flex items-center gap-3">
               <div className="flex-1 rounded-xl p-3" style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}>
                 <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: T.muted }}>
                   {language === 'en' ? 'Total' : 'Total'}
@@ -413,15 +491,6 @@ export default function DashboardPage() {
                 {language === 'en' ? 'Proposals' : 'Propuestas'}
               </button>
             </div>
-
-            {isProActivo && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-2" style={{ backgroundColor: T.goldPale, border: `1px solid rgba(201,168,76,0.35)` }}>
-                <span style={{ color: T.gold, fontSize: '11px' }}>✦</span>
-                <p className="text-xs font-semibold" style={{ color: T.navy }}>
-                  {language === 'en' ? 'Your current plan is Pro' : 'Tu plan actual es Pro'}
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Panel de filtros */}

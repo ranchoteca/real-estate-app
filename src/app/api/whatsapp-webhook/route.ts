@@ -182,13 +182,15 @@ export async function POST(req: NextRequest) {
       }
 
       // 4. SÍ confirmation after the summary — create the property
-      // Only trigger if the last bot message was explicitly the confirmation summary.
-      // This prevents "Ok" after an audio transcription from accidentally creating the property.
+      // Conditions to create:
+      //   - draft.title exists (LISTO ran successfully at least once)
+      //   - correction_mode is false (agent is not in the middle of a correction)
+      //   - resolvedText is a confirmation ("Sí", "Si", "dale", etc.)
+      // We avoid checking history for the summary message because after multiple
+      // correction rounds the summary can fall outside the 15-message window.
       const draft = await getDraft(agent.id);
-      const recentHistory = await loadHistory(agent.id);
-      const lastBotMsg = recentHistory.findLast((m: any) => m.role === 'assistant');
-      const lastMsgWasSummary = lastBotMsg?.content?.includes('¿Todo correcto? Responde *SÍ*');
-      if (draft?.title && lastMsgWasSummary && esConfirmacionSi(resolvedText)) {
+      const isInCorrectionMode = draft?.correction_mode === true;
+      if (draft?.title && !isInCorrectionMode && esConfirmacionSi(resolvedText)) {
         await handleConfirmacion(agent.id, cleanNumber, primerNombre);
         return NextResponse.json({ success: true, status: 'property_creation_started' });
       }

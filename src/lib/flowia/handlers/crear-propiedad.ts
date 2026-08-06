@@ -39,6 +39,7 @@ export interface PropertyDraft {
   processed_media_ids?: string[];
   summary_triggered?: boolean;
   custom_fields_data?: Record<string, string | number>;
+  correction_mode?: boolean; // true when agent is correcting fields post-summary
 }
 
 export async function getDraft(agentId: string): Promise<PropertyDraft | null> {
@@ -231,19 +232,29 @@ export async function handleListo(
 
   const history = await loadDraftHistory(agentId, draftCreatedAt);
 
+  // In correction_mode, clear the fields most likely being corrected so the
+  // extractor reads them fresh from history instead of anchoring on stale draft values.
+  // This allows post-summary corrections of title, property_type, listing_type, etc.
+  const isCorrection = draft.correction_mode === true;
+
   const draftActual = {
-    title: draft.title || null,
+    title: isCorrection ? null : (draft.title || null),
     description: draft.description || null,
     price: draft.price || null,
     currency_id: draft.currency_id || null,
-    city: draft.city || null,
-    address: draft.address || null,
-    state_province: draft.state_province || null,
-    property_type: draft.property_type || null,
-    listing_type: draft.listing_type || null,
+    city: isCorrection ? null : (draft.city || null),
+    address: isCorrection ? null : (draft.address || null),
+    state_province: isCorrection ? null : (draft.state_province || null),
+    property_type: isCorrection ? null : (draft.property_type || null),
+    listing_type: isCorrection ? null : (draft.listing_type || null),
     language: draft.language || null,
     maps_url: draft.maps_url || null,
   };
+
+  // Reset correction_mode after reading it so subsequent LISTO calls behave normally
+  if (isCorrection) {
+    await upsertDraft(agentId, { correction_mode: false } as any);
+  }
 
   const extractionPrompt = 'Eres un extractor de datos para fichas de propiedades inmobiliarias en Costa Rica.\n'
     + 'Analiza el historial de conversación y extrae los campos de la propiedad.\n'
@@ -301,6 +312,23 @@ export async function handleListo(
       '❌ Tuve un problema analizando la información. Por favor intenta de nuevo o escribe los datos más claramente.'
     );
     return;
+  }
+
+  // If property_type ended up as 'other' but agent mentioned a specific type,
+  // it means the type wasn't recognized — add it to campos_faltantes with the full list
+  const tiposDisponibles = 'Casa, Condominio, Apartamento, Terreno, Finca, Quinta, Comercial, Hotel, Otros';
+  if (extractedData.property_type === 'other') {
+    // Check if the agent actually said "other/otros" explicitly or if it was a fallback
+    const historyText = history.map(function(m) { return m.content; }).join(' ').toLowerCase();
+    const dijExplicitamenteOtro = /\bother\b|\botros\b|\botro\b/.test(historyText);
+    if (!dijExplicitamenteOtro) {
+      // Not explicitly "other" — agent mentioned something we didn't recognize
+      extractedData.campos_faltantes = extractedData.campos_faltantes || [];
+      extractedData.campos_faltantes.push(
+        'Tipo de propiedad no reconocido. Tipos disponibles: ' + tiposDisponibles
+      );
+      extractedData.property_type = null; // force re-ask
+    }
   }
 
   // Map technical field names to human-readable Spanish labels

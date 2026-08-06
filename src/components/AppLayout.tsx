@@ -10,20 +10,20 @@ import { useI18nStore } from '@/lib/i18n-store';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const T = {
-  navy:      '#1B2D5B',
-  navyMid:   '#243770',
-  navyDark:  '#141F3F',
-  gold:      '#C9A84C',
-  goldLight: '#E8C96A',
-  goldPale:  '#F5EDD8',
-  cream:     '#F8F6F2',
-  white:     '#FFFFFF',
-  charcoal:  '#1A1A2E',
-  muted:     '#6B7280',
-  border:    '#E8E4DC',
-  sidebar:   '#111827',   // casi negro para sidebar — contraste máximo
+  navy:         '#1B2D5B',
+  navyMid:      '#243770',
+  navyDark:     '#141F3F',
+  gold:         '#C9A84C',
+  goldLight:    '#E8C96A',
+  goldPale:     '#F5EDD8',
+  cream:        '#F8F6F2',
+  white:        '#FFFFFF',
+  charcoal:     '#1A1A2E',
+  muted:        '#6B7280',
+  border:       '#E8E4DC',
+  sidebar:      '#111827',
   sidebarHover: 'rgba(201,168,76,0.10)',
-  sidebarActive: 'rgba(201,168,76,0.18)',
+  sidebarActive:'rgba(201,168,76,0.18)',
 };
 
 interface AppLayoutProps {
@@ -50,7 +50,7 @@ export default function AppLayout({
   const { language } = useI18nStore();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [planInfo, setPlanInfo] = useState<{ plan: string; role: string; maxProperties: number } | null>(null);
+  const [planInfo, setPlanInfo] = useState<{ plan: string; role: string; maxProperties: number; full_name?: string } | null>(null);
 
   useEffect(() => {
     const loadPlan = async () => {
@@ -65,6 +65,10 @@ export default function AppLayout({
   const isProActivo = planInfo?.role === 'admin' || planInfo?.plan === 'pro';
   const propertyLimit = isProActivo ? 150 : 5;
   const isAtLimit = currentPropertyCount !== undefined && currentPropertyCount >= propertyLimit;
+
+  // Nombre completo del agente (no el nombre de Gmail)
+  const fullName = planInfo?.full_name || session?.user?.name || '';
+  const initials = fullName ? fullName.charAt(0).toUpperCase() : '?';
 
   const handleCreateProperty = () => {
     if (isAtLimit && onCreateLimitReached) {
@@ -133,44 +137,22 @@ export default function AppLayout({
   const CreateButton = ({ collapsed }: { collapsed: boolean }) => (
     <button
       onClick={handleCreateProperty}
-      className="flex items-center gap-3 w-full px-4 py-3 rounded-xl font-bold text-sm transition-all active:scale-95"
+      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95"
       style={{
         background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`,
         color: T.navy,
         boxShadow: '0 2px 8px rgba(201,168,76,0.35)',
         justifyContent: collapsed ? 'center' : 'flex-start',
       }}
-      title={collapsed ? (language === 'en' ? 'Create Property' : 'Crear Propiedad') : undefined}
+      title={collapsed ? (language === 'en' ? 'New Property' : 'Nueva Propiedad') : undefined}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.navy} strokeWidth="2.5" strokeLinecap="round">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.navy} strokeWidth="2.5" strokeLinecap="round">
         <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
       {!collapsed && (
         <span>{language === 'en' ? 'New Property' : 'Nueva Propiedad'}</span>
       )}
     </button>
-  );
-
-  // ── Plan badge ────────────────────────────────────────────────────────────
-  const PlanBadge = ({ collapsed }: { collapsed: boolean }) => (
-    <div
-      className="flex items-center gap-2 px-3 py-2 rounded-lg"
-      style={{
-        backgroundColor: isProActivo ? 'rgba(201,168,76,0.12)' : 'rgba(255,255,255,0.06)',
-        border: `1px solid ${isProActivo ? 'rgba(201,168,76,0.3)' : 'rgba(255,255,255,0.1)'}`,
-        justifyContent: collapsed ? 'center' : 'flex-start',
-      }}
-      title={collapsed ? (isProActivo ? 'Pro' : 'Free') : undefined}
-    >
-      <span style={{ color: isProActivo ? T.gold : 'rgba(255,255,255,0.4)', fontSize: '11px' }}>
-        {isProActivo ? '✦' : '○'}
-      </span>
-      {!collapsed && (
-        <span className="text-xs font-semibold" style={{ color: isProActivo ? T.gold : 'rgba(255,255,255,0.4)' }}>
-          {isProActivo ? 'Plan Pro' : 'Plan Free'}
-        </span>
-      )}
-    </div>
   );
 
   return (
@@ -182,14 +164,15 @@ export default function AppLayout({
       <aside
         className="hidden lg:flex flex-col transition-all duration-300 flex-shrink-0"
         style={{
-          width: sidebarCollapsed ? '68px' : '220px',
+          width: sidebarCollapsed ? '64px' : '220px',
           backgroundColor: T.sidebar,
           borderRight: '1px solid rgba(255,255,255,0.06)',
+          // FIX 1: no overflow en el aside — el scroll lo maneja solo el nav
         }}
       >
         {/* Logo */}
         <div
-          className="flex items-center px-4 flex-shrink-0"
+          className="flex items-center px-3 flex-shrink-0"
           style={{
             height: '57px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -201,8 +184,8 @@ export default function AppLayout({
           )}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="flex items-center justify-center rounded-lg transition-colors"
-            style={{ width: '28px', height: '28px', color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}
+            className="flex items-center justify-center rounded-lg transition-colors flex-shrink-0"
+            style={{ width: '28px', height: '28px', color: 'rgba(255,255,255,0.35)' }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = T.gold; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.35)'; }}
           >
@@ -215,15 +198,13 @@ export default function AppLayout({
           </button>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
-
+        {/* Nav — FIX 1: overflow-y-auto solo aquí, con min-h-0 para que funcione en flex */}
+        <nav className="flex-1 min-h-0 overflow-y-auto py-3 px-2 space-y-0.5">
           {/* Crear propiedad */}
-          <div className={`mb-4 ${sidebarCollapsed ? 'px-0' : 'px-1'}`}>
+          <div className="mb-3">
             <CreateButton collapsed={sidebarCollapsed} />
           </div>
 
-          {/* Items de menú */}
           {navItems.map((item) => {
             const active = isActive(item.href);
             return (
@@ -243,14 +224,10 @@ export default function AppLayout({
               >
                 <span className="flex-shrink-0">{item.icon(active)}</span>
                 {!sidebarCollapsed && (
-                  <span
-                    className="text-sm font-medium transition-colors"
-                    style={{ color: active ? T.gold : 'rgba(255,255,255,0.65)' }}
-                  >
+                  <span className="text-sm font-medium transition-colors" style={{ color: active ? T.gold : 'rgba(255,255,255,0.65)' }}>
                     {item.label}
                   </span>
                 )}
-                {/* Tooltip cuando colapsado */}
                 {sidebarCollapsed && (
                   <div
                     className="absolute left-full ml-3 px-2.5 py-1 rounded-lg text-xs font-semibold pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap"
@@ -264,26 +241,53 @@ export default function AppLayout({
           })}
         </nav>
 
-        {/* Footer sidebar */}
-        <div className="px-2 pb-4 pt-2 flex flex-col gap-2 flex-shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <PlanBadge collapsed={sidebarCollapsed} />
+        {/* Footer sidebar — FIX 1 + FIX 2: siempre visible, nunca scrollable */}
+        <div
+          className="px-2 pb-4 pt-3 flex flex-col gap-2 flex-shrink-0"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          {/* Plan badge */}
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-lg"
+            style={{
+              backgroundColor: isProActivo ? 'rgba(201,168,76,0.12)' : 'rgba(255,255,255,0.06)',
+              border: `1px solid ${isProActivo ? 'rgba(201,168,76,0.3)' : 'rgba(255,255,255,0.1)'}`,
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+            }}
+            title={sidebarCollapsed ? (isProActivo ? 'Pro' : 'Free') : undefined}
+          >
+            <span style={{ color: isProActivo ? T.gold : 'rgba(255,255,255,0.4)', fontSize: '11px', flexShrink: 0 }}>
+              {isProActivo ? '✦' : '○'}
+            </span>
+            {!sidebarCollapsed && (
+              <span className="text-xs font-semibold" style={{ color: isProActivo ? T.gold : 'rgba(255,255,255,0.4)' }}>
+                {isProActivo ? 'Plan Pro' : 'Plan Free'}
+              </span>
+            )}
+          </div>
 
-          {/* Avatar + nombre */}
-          {!sidebarCollapsed && session?.user && (
-            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                style={{ backgroundColor: T.gold, color: T.navy }}
-              >
-                {session.user.name?.charAt(0).toUpperCase() || '?'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.85)' }}>
-                  {session.user.name}
-                </p>
-              </div>
+          {/* FIX 2: Avatar + nombre completo — la inicial aparece SIEMPRE (colapsado o no) */}
+          <div
+            className="flex items-center gap-2.5 px-2 py-2 rounded-xl"
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.04)',
+              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+            }}
+          >
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+              style={{ backgroundColor: T.gold, color: T.navy }}
+              title={sidebarCollapsed ? fullName : undefined}
+            >
+              {initials}
             </div>
-          )}
+            {/* Nombre completo solo cuando está expandido */}
+            {!sidebarCollapsed && (
+              <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                {fullName}
+              </p>
+            )}
+          </div>
 
           {/* Logout */}
           <button
@@ -318,7 +322,7 @@ export default function AppLayout({
       </aside>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          SIDEBAR TABLET (768px–1199px) — iconos + tooltip
+          SIDEBAR TABLET (768px–1199px)
       ══════════════════════════════════════════════════════════════════════ */}
       <aside
         className="hidden md:flex lg:hidden flex-col flex-shrink-0"
@@ -333,25 +337,18 @@ export default function AppLayout({
           className="flex items-center justify-center flex-shrink-0"
           style={{ height: '57px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
         >
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm"
-            style={{ backgroundColor: T.gold, color: T.navy }}
-          >
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm" style={{ backgroundColor: T.gold, color: T.navy }}>
             F
           </div>
         </div>
 
-        {/* Nav tablet */}
-        <nav className="flex-1 py-4 flex flex-col items-center gap-1">
-
-          {/* Botón crear — icono solo */}
+        {/* Nav */}
+        <nav className="flex-1 min-h-0 overflow-y-auto py-3 flex flex-col items-center gap-1">
+          {/* Crear */}
           <button
             onClick={handleCreateProperty}
             className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-all active:scale-90 group relative"
-            style={{
-              background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`,
-              boxShadow: '0 2px 8px rgba(201,168,76,0.35)',
-            }}
+            style={{ background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`, boxShadow: '0 2px 8px rgba(201,168,76,0.35)' }}
             title={language === 'en' ? 'New Property' : 'Nueva Propiedad'}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.navy} strokeWidth="2.5" strokeLinecap="round">
@@ -388,36 +385,34 @@ export default function AppLayout({
         </nav>
 
         {/* Footer tablet */}
-        <div className="flex flex-col items-center gap-2 py-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          {/* Plan badge */}
+        <div className="flex flex-col items-center gap-2 py-3 flex-shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          {/* Plan */}
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center"
             style={{
               backgroundColor: isProActivo ? 'rgba(201,168,76,0.15)' : 'rgba(255,255,255,0.06)',
               border: `1px solid ${isProActivo ? 'rgba(201,168,76,0.3)' : 'rgba(255,255,255,0.1)'}`,
             }}
-            title={isProActivo ? 'Pro' : 'Free'}
+            title={isProActivo ? 'Plan Pro' : 'Plan Free'}
           >
             <span style={{ color: isProActivo ? T.gold : 'rgba(255,255,255,0.3)', fontSize: '12px' }}>
               {isProActivo ? '✦' : '○'}
             </span>
           </div>
 
-          {/* Avatar */}
-          {session?.user && (
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-              style={{ backgroundColor: T.navyMid, color: T.gold, border: `1px solid rgba(201,168,76,0.3)` }}
-              title={session.user.name || ''}
-            >
-              {session.user.name?.charAt(0).toUpperCase() || '?'}
-            </div>
-          )}
+          {/* Avatar — FIX 2: inicial siempre visible */}
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+            style={{ backgroundColor: T.gold, color: T.navy }}
+            title={fullName}
+          >
+            {initials}
+          </div>
 
           {/* Logout */}
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors group relative"
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
             style={{ color: 'rgba(255,255,255,0.25)' }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(220,38,38,0.1)';
@@ -443,57 +438,38 @@ export default function AppLayout({
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* Header mobile/tablet */}
+        {/* Header — FIX 4: sin botón crear en el header */}
         <header
-          className="flex-shrink-0 flex items-center justify-between px-4 md:px-5"
+          className="flex-shrink-0 flex items-center px-4 md:px-5 gap-3"
           style={{
             height: '57px',
             backgroundColor: T.sidebar,
             borderBottom: '1px solid rgba(255,255,255,0.06)',
           }}
         >
-          {/* Izquierda */}
-          <div className="flex items-center gap-3">
-            {showBack ? (
-              <button
-                onClick={() => router.back()}
-                className="flex items-center justify-center rounded-lg transition-colors"
-                style={{ width: '32px', height: '32px', color: 'rgba(255,255,255,0.5)' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = T.gold; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)'; }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 12H5M12 5l-7 7 7 7"/>
-                </svg>
-              </button>
-            ) : (
-              <div className="md:hidden">
-                <Image src="/logo_header.png" alt="FlowEstateAI" width={320} height={144} className="h-7 w-auto" priority />
-              </div>
-            )}
-            {title && (
-              <h1 className="text-sm font-semibold truncate" style={{ color: 'rgba(255,255,255,0.85)' }}>
-                {title}
-              </h1>
-            )}
-          </div>
-
-          {/* Derecha — crear propiedad */}
-          <button
-            onClick={handleCreateProperty}
-            className="flex items-center justify-center rounded-xl active:scale-90 transition-all"
-            style={{
-              width: '34px',
-              height: '34px',
-              background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`,
-              boxShadow: '0 2px 6px rgba(201,168,76,0.35)',
-            }}
-            title={language === 'en' ? 'New Property' : 'Nueva Propiedad'}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={T.navy} strokeWidth="2.5" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-          </button>
+          {showBack ? (
+            <button
+              onClick={() => router.back()}
+              className="flex items-center justify-center rounded-lg transition-colors flex-shrink-0"
+              style={{ width: '32px', height: '32px', color: 'rgba(255,255,255,0.5)' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = T.gold; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)'; }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 5l-7 7 7 7"/>
+              </svg>
+            </button>
+          ) : (
+            // Logo solo en mobile (en desktop/tablet está en el sidebar)
+            <div className="md:hidden flex-shrink-0">
+              <Image src="/logo_header.png" alt="FlowEstateAI" width={320} height={144} className="h-7 w-auto" priority />
+            </div>
+          )}
+          {title && (
+            <h1 className="text-sm font-semibold truncate flex-1" style={{ color: 'rgba(255,255,255,0.85)' }}>
+              {title}
+            </h1>
+          )}
         </header>
 
         {/* Contenido */}
@@ -503,7 +479,7 @@ export default function AppLayout({
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          BOTTOM NAV MOBILE — navy con iconos dorados
+          BOTTOM NAV MOBILE — navy con iconos dorados (sin cambios)
       ══════════════════════════════════════════════════════════════════════ */}
       {showTabs && (
         <nav
@@ -521,19 +497,15 @@ export default function AppLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full transition-all"
+                className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full relative transition-all"
                 style={{ textDecoration: 'none' }}
               >
-                {/* Indicador activo superior */}
                 <div
-                  className="transition-all duration-200"
+                  className="absolute top-0 transition-all duration-200 rounded-b-sm"
                   style={{
                     height: '2px',
                     width: active ? '24px' : '0px',
                     backgroundColor: T.gold,
-                    borderRadius: '0 0 2px 2px',
-                    position: 'absolute',
-                    top: '0',
                   }}
                 />
                 {item.icon(active)}

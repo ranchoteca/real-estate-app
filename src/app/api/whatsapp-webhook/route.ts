@@ -142,7 +142,10 @@ export async function POST(req: NextRequest) {
 
         if (respuesta === '__PHOTO_MAX_REACHED__') {
           // Only one webhook fires this sentinel — the one that pushed count to PHOTO_MAX.
-          // Auto-proceed to summary without requiring another LISTO from the agent.
+          // Wait 3s before reading the draft so all parallel photo webhooks finish writing.
+          // Without this delay, handleListo sees 0 photos because the other appends
+          // haven't completed yet when this webhook runs.
+          await new Promise(resolve => setTimeout(resolve, 3000));
           await handleListo(agent.id, cleanNumber, primerNombre, draftCreatedAt!);
           return NextResponse.json({ success: true, status: 'photo_max_auto_listo' });
         }

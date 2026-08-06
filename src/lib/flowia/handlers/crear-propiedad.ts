@@ -316,22 +316,28 @@ export async function handleListo(
 
   // If property_type ended up as 'other' but agent mentioned a specific type,
   // it means the type wasn't recognized — add it to campos_faltantes with the full list
-  const tiposDisponibles = 'Casa, Condominio, Apartamento, Terreno, Finca, Quinta, Comercial, Hotel, Otros';
   if (extractedData.property_type === 'other') {
-    // Check if the agent actually said "other/otros" explicitly or if it was a fallback
     const historyText = history.map(function(m) { return m.content; }).join(' ').toLowerCase();
     const dijExplicitamenteOtro = /\bother\b|\botros\b|\botro\b/.test(historyText);
     if (!dijExplicitamenteOtro) {
-      // Not explicitly "other" — agent mentioned something we didn't recognize
       extractedData.campos_faltantes = extractedData.campos_faltantes || [];
       extractedData.campos_faltantes.push(
-        'Tipo de propiedad no reconocido. Tipos disponibles: ' + tiposDisponibles
+        'Tipo de propiedad no reconocido. Indica uno de estos:\n'
+        + '   🏠 Casa\n'
+        + '   🏢 Condominio\n'
+        + '   🏙️ Apartamento\n'
+        + '   🌿 Terreno\n'
+        + '   🌳 Finca\n'
+        + '   🏡 Quinta\n'
+        + '   🏬 Comercial\n'
+        + '   🏨 Hotel\n'
+        + '   📦 Otros'
       );
-      extractedData.property_type = null; // force re-ask
+      extractedData.property_type = null;
     }
   }
 
-  // Map technical field names to human-readable Spanish labels
+    // Map technical field names to human-readable Spanish labels
   const camposLabels: Record<string, string> = {
     title: 'Título de la propiedad',
     description: 'Descripción de la propiedad',

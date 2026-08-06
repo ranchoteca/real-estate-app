@@ -151,11 +151,19 @@ export async function POST(req: NextRequest) {
         }
 
         if (respuesta) {
-          // Audio transcriptions are already saved as 'user' inside handleMediaEnDraft.
-          // Skip assistant save for audio to prevent double-counting in history.
           const isAudioTranscription = respuesta.startsWith('🎙️');
           if (!isAudioTranscription) {
             await saveMessage(agent.id, 'assistant', respuesta);
+          } else {
+            // Audio received post-summary — activate correction_mode so LISTO
+            // re-extracts all fields from history instead of anchoring on draft
+            const draftForAudio = await getDraft(agent.id);
+            if (draftForAudio?.title) {
+              await supabaseAdmin
+                .from('agent_property_draft')
+                .update({ correction_mode: true, summary_triggered: false })
+                .eq('agent_id', agent.id);
+            }
           }
           await sendQueued(agent.id, cleanNumber, respuesta);
         }
@@ -174,8 +182,13 @@ export async function POST(req: NextRequest) {
       }
 
       // 4. SÍ confirmation after the summary — create the property
+      // Only trigger if the last bot message was explicitly the confirmation summary.
+      // This prevents "Ok" after an audio transcription from accidentally creating the property.
       const draft = await getDraft(agent.id);
-      if (draft?.title && esConfirmacionSi(resolvedText)) {
+      const recentHistory = await loadHistory(agent.id);
+      const lastBotMsg = recentHistory.findLast((m: any) => m.role === 'assistant');
+      const lastMsgWasSummary = lastBotMsg?.content?.includes('¿Todo correcto? Responde *SÍ*');
+      if (draft?.title && lastMsgWasSummary && esConfirmacionSi(resolvedText)) {
         await handleConfirmacion(agent.id, cleanNumber, primerNombre);
         return NextResponse.json({ success: true, status: 'property_creation_started' });
       }

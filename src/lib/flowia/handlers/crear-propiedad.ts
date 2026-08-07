@@ -251,11 +251,6 @@ export async function handleListo(
     maps_url: draft.maps_url || null,
   };
 
-  // Reset correction_mode after reading it so subsequent LISTO calls behave normally
-  if (isCorrection) {
-    await upsertDraft(agentId, { correction_mode: false } as any);
-  }
-
   const extractionPrompt = 'Eres un extractor de datos para fichas de propiedades inmobiliarias en Costa Rica.\n'
     + 'Analiza el historial de conversación y extrae los campos de la propiedad.\n'
     + 'Devuelve ÚNICAMENTE un JSON válido sin texto adicional ni backticks.\n\n'
@@ -453,6 +448,8 @@ export async function handleListo(
     }
   }
 
+  // Single atomic upsert — saves all extracted fields AND resets correction_mode
+  // in one operation to prevent race conditions between multiple upsertDraft calls
   await upsertDraft(agentId, {
     title: extractedData.title,
     description: extractedData.description,
@@ -466,7 +463,8 @@ export async function handleListo(
     language: extractedData.language || 'es',
     maps_url: extractedData.maps_url,
     custom_fields_data: draftCustomFields,
-  });
+    correction_mode: false,
+  } as any);
 
   const divisa = extractedData.currency_id === '839f44d5-bee2-4bc1-b5da-50364f14c681' ? 'USD' : 'CRC';
   const tipoMap: Record<string, string> = {

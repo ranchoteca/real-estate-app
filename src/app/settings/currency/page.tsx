@@ -6,6 +6,21 @@ import { useEffect, useState } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { useTranslation } from '@/hooks/useTranslation';
 
+const T = {
+  navy:       '#1B2D5B',
+  gold:       '#C9A84C',
+  goldLight:  '#E8C96A',
+  goldPale:   '#F5EDD8',
+  cream:      '#F8F6F2',
+  white:      '#FFFFFF',
+  charcoal:   '#1A1A2E',
+  muted:      '#6B7280',
+  border:     '#E8E4DC',
+  green:      '#15803D',
+  greenBg:    '#F0FDF4',
+  greenBorder:'#BBF7D0',
+};
+
 interface Currency {
   id: string;
   code: string;
@@ -50,7 +65,6 @@ export default function CurrencySettingsPage() {
         setAgentDefaultCurrency(currentCurrency);
         setSelectedCurrency(currentCurrency);
       }
-
     } catch (error) {
       console.error('Error al cargar configuración:', error);
       alert(t('currency.errorLoading'));
@@ -64,32 +78,25 @@ export default function CurrencySettingsPage() {
       alert(t('currency.mustSelect'));
       return;
     }
-
     if (selectedCurrency === agentDefaultCurrency) {
       alert(t('currency.alreadyDefault'));
       return;
     }
-
     setSaving(true);
-
     try {
       const response = await fetch('/api/agent/update-currency', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ currency_id: selectedCurrency }),
       });
-
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || t('common.error'));
       }
-
       const data = await response.json();
       setAgentDefaultCurrency(selectedCurrency);
-
       alert(`✅ ${data.message}`);
       router.back();
-
     } catch (error: any) {
       alert(`❌ ${t('common.error')}: ${error.message}`);
     } finally {
@@ -100,12 +107,10 @@ export default function CurrencySettingsPage() {
   if (loading) {
     return (
       <AppLayout title={t('currency.title')} showBack={true} showTabs={true}>
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-full" style={{ backgroundColor: T.cream }}>
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">💰</div>
-            <div className="text-lg" style={{ color: '#0F172A' }}>
-              {t('currency.loading')}
-            </div>
+            <div className="text-base font-medium" style={{ color: T.muted }}>{t('currency.loading')}</div>
           </div>
         </div>
       </AppLayout>
@@ -116,116 +121,141 @@ export default function CurrencySettingsPage() {
 
   return (
     <AppLayout title={t('currency.title')} showBack={true} showTabs={true}>
-      {/*
-        mobile:   1 columna, igual que antes
-        tablet+:  contenido centrado con max-w-xl
-      */}
-      <div className="px-4 py-6 md:px-8 md:py-8 md:max-w-xl md:mx-auto space-y-6">
+      <div
+        className="px-4 py-6 pb-24 md:px-8 md:py-8 md:pb-10 md:max-w-xl md:mx-auto space-y-5"
+        style={{ backgroundColor: T.cream }}
+      >
+
+        {/* Título estilizado — mobile */}
+        <div className="flex items-center gap-2 md:hidden">
+          <div style={{ width: '3px', height: '22px', backgroundColor: T.gold, borderRadius: '2px', flexShrink: 0 }} />
+          <h1 className="text-xl font-bold tracking-tight" style={{ color: T.navy }}>
+            {t('currency.title')}
+          </h1>
+        </div>
 
         {/* Info Banner */}
         <div
-          className="rounded-2xl p-4 border-2"
-          style={{ backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }}
+          className="rounded-2xl p-4 flex items-start gap-3"
+          style={{ backgroundColor: T.goldPale, border: `1px solid rgba(201,168,76,0.35)` }}
         >
-          <div className="flex items-start gap-3">
-            <span className="text-3xl">💡</span>
-            <div className="flex-1">
-              <h3 className="font-bold mb-1" style={{ color: '#1E40AF' }}>
-                {t('currency.infoTitle')}
-              </h3>
-              <p className="text-sm" style={{ color: '#1E40AF' }}>
-                {t('currency.infoDescription')}
-              </p>
-            </div>
+          <span className="text-2xl flex-shrink-0">💡</span>
+          <div>
+            <h3 className="text-sm font-bold mb-0.5" style={{ color: T.navy }}>
+              {t('currency.infoTitle')}
+            </h3>
+            <p className="text-xs leading-relaxed" style={{ color: T.navy, opacity: 0.75 }}>
+              {t('currency.infoDescription')}
+            </p>
           </div>
         </div>
 
-        {/* Current Selection Preview */}
+        {/* Preview de moneda seleccionada */}
         {selectedCurrencyData && (
-          <div className="rounded-2xl p-5 shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
-            <div className="text-center">
-              <div className="text-5xl mb-3">{selectedCurrencyData.symbol}</div>
-              <h2 className="text-2xl font-bold mb-1" style={{ color: '#0F172A' }}>
-                {selectedCurrencyData.code}
-              </h2>
-              <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                {selectedCurrencyData.name}
-              </p>
-              {selectedCurrency === agentDefaultCurrency && (
-                <div className="mt-3">
-                  <span
-                    className="inline-block px-3 py-1 rounded-full text-xs font-bold"
-                    style={{ backgroundColor: '#10B981', color: '#FFFFFF' }}
-                  >
-                    ✓ {t('currency.currentCurrency')}
-                  </span>
-                </div>
-              )}
+          <div
+            className="rounded-2xl p-5 shadow-sm text-center"
+            style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}
+          >
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl font-bold mx-auto mb-3"
+              style={{
+                background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`,
+                color: T.navy,
+                boxShadow: '0 2px 12px rgba(201,168,76,0.3)',
+              }}
+            >
+              {selectedCurrencyData.symbol}
             </div>
+            <h2 className="text-2xl font-bold mb-0.5" style={{ color: T.navy }}>
+              {selectedCurrencyData.code}
+            </h2>
+            <p className="text-sm" style={{ color: T.muted }}>{selectedCurrencyData.name}</p>
+            {selectedCurrency === agentDefaultCurrency && (
+              <div className="mt-3">
+                <span
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
+                  style={{ backgroundColor: T.greenBg, color: T.green, border: `1px solid ${T.greenBorder}` }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: T.green }} />
+                  {t('currency.currentCurrency')}
+                </span>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Currency Options */}
+        {/* Opciones de moneda */}
         <div className="space-y-3">
-          <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>
+          <p className="text-xs font-bold uppercase tracking-wider px-1" style={{ color: T.muted }}>
             {t('currency.selectCurrency')}
-          </h3>
+          </p>
 
           {currencies.map((currency) => (
             <button
               key={currency.id}
               onClick={() => setSelectedCurrency(currency.id)}
-              className="w-full rounded-2xl p-4 shadow-lg active:scale-98 transition-transform border-2 text-left"
+              className="w-full rounded-2xl p-4 shadow-sm active:scale-[0.98] transition-all text-left"
               style={{
-                backgroundColor: '#FFFFFF',
-                borderColor: selectedCurrency === currency.id ? '#2563EB' : '#E5E7EB',
+                backgroundColor: T.white,
+                border: `${selectedCurrency === currency.id ? '2px' : '1px'} solid ${selectedCurrency === currency.id ? T.navy : T.border}`,
+                boxShadow: selectedCurrency === currency.id
+                  ? `0 0 0 3px rgba(27,45,91,0.08), 0 2px 8px rgba(27,45,91,0.08)`
+                  : '0 1px 4px rgba(27,45,91,0.05)',
               }}
             >
               <div className="flex items-center gap-4">
+                {/* Símbolo en contenedor */}
                 <div
-                  className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl shadow-sm flex-shrink-0"
-                  style={{ backgroundColor: selectedCurrency === currency.id ? '#DBEAFE' : '#F3F4F6' }}
+                  className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold flex-shrink-0"
+                  style={{
+                    backgroundColor: selectedCurrency === currency.id ? T.goldPale : T.cream,
+                    border: `1px solid ${selectedCurrency === currency.id ? 'rgba(201,168,76,0.35)' : T.border}`,
+                    color: T.navy,
+                  }}
                 >
                   {currency.symbol}
                 </div>
 
+                {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>
+                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                    <h3 className="text-base font-bold" style={{ color: T.navy }}>
                       {currency.code}
                     </h3>
                     {currency.is_default && (
                       <span
-                        className="text-xs px-2 py-0.5 rounded-full font-bold"
-                        style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}
+                        className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+                        style={{ backgroundColor: T.goldPale, color: T.navy, border: `1px solid rgba(201,168,76,0.35)` }}
                       >
                         {t('currency.system')}
                       </span>
                     )}
                     {currency.id === agentDefaultCurrency && (
                       <span
-                        className="text-xs px-2 py-0.5 rounded-full font-bold"
-                        style={{ backgroundColor: '#D1FAE5', color: '#065F46' }}
+                        className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+                        style={{ backgroundColor: T.greenBg, color: T.green, border: `1px solid ${T.greenBorder}` }}
                       >
                         {t('currency.yourDefault')}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                    {currency.name}
-                  </p>
+                  <p className="text-sm" style={{ color: T.muted }}>{currency.name}</p>
                 </div>
 
-                {selectedCurrency === currency.id && (
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: '#2563EB' }}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="#FFFFFF" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                {/* Check */}
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
+                  style={{
+                    backgroundColor: selectedCurrency === currency.id ? T.navy : 'transparent',
+                    border: `2px solid ${selectedCurrency === currency.id ? T.navy : T.border}`,
+                  }}
+                >
+                  {selectedCurrency === currency.id && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 13l4 4L19 7"/>
                     </svg>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </button>
           ))}
@@ -233,29 +263,40 @@ export default function CurrencySettingsPage() {
 
         {/* Info adicional */}
         <div
-          className="rounded-xl p-4 text-sm"
-          style={{ backgroundColor: '#F0FDFA', color: '#134E4A' }}
+          className="rounded-xl p-4"
+          style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}
         >
-          <p className="font-semibold mb-1">📊 {t('currency.important')}:</p>
-          <ul className="space-y-1 text-xs opacity-90">
-            <li>• {t('currency.note1')}</li>
-            <li>• {t('currency.note2')}</li>
-            <li>• {t('currency.note3')}</li>
-            <li>• {t('currency.note4')}</li>
+          <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: T.muted }}>
+            📊 {t('currency.important')}
+          </p>
+          <ul className="space-y-1.5">
+            {[
+              t('currency.note1'),
+              t('currency.note2'),
+              t('currency.note3'),
+              t('currency.note4'),
+            ].map((note, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs" style={{ color: T.muted }}>
+                <span className="flex-shrink-0 mt-0.5" style={{ color: T.gold }}>•</span>
+                {note}
+              </li>
+            ))}
           </ul>
         </div>
 
-        {/* Save Button */}
-        <div className="border-t pt-4" style={{ borderColor: '#E5E7EB' }}>
-          <button
-            onClick={handleSave}
-            disabled={saving || selectedCurrency === agentDefaultCurrency}
-            className="w-full py-4 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: '#2563EB' }}
-          >
-            {saving ? `⏳ ${t('currency.saving')}` : `💾 ${t('currency.saveButton')}`}
-          </button>
-        </div>
+        {/* Botón guardar */}
+        <button
+          onClick={handleSave}
+          disabled={saving || selectedCurrency === agentDefaultCurrency}
+          className="w-full py-4 rounded-xl font-bold text-sm shadow-sm active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{
+            background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`,
+            color: T.navy,
+            boxShadow: '0 2px 8px rgba(201,168,76,0.3)',
+          }}
+        >
+          {saving ? `⏳ ${t('currency.saving')}` : `💾 ${t('currency.saveButton')}`}
+        </button>
 
       </div>
     </AppLayout>

@@ -24,6 +24,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const { t } = useTranslation();
   const { language, setLanguage } = useI18nStore();
+  const [fullName, setFullName] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
@@ -35,6 +36,16 @@ export default function SettingsPage() {
         .then(res => res.json())
         .then(data => { if (data.language && data.language !== language) setLanguage(data.language); })
         .catch(err => console.error('Error loading language:', err));
+    }
+  }, [session]);
+
+  // Carga el nombre completo del agente (no el de Gmail)
+  useEffect(() => {
+    if (session?.user?.email) {
+      fetch('/api/agent/current-plan')
+        .then(res => res.json())
+        .then(data => { if (data.full_name) setFullName(data.full_name); })
+        .catch(() => {});
     }
   }, [session]);
 
@@ -52,6 +63,10 @@ export default function SettingsPage() {
   }
 
   if (!session) return null;
+
+  // Nombre a mostrar: full_name del agente, o fallback al nombre de sesión
+  const displayName = fullName || session.user.name || '';
+  const displayInitial = displayName ? displayName.charAt(0).toUpperCase() : '?';
 
   const settingsOptions = [
     {
@@ -200,12 +215,13 @@ export default function SettingsPage() {
           </h1>
         </div>
 
-        {/* Header card — avatar + nombre + plan */}
+        {/* Header card — nombre completo del agente */}
         <div
           className="rounded-2xl p-4 mb-4 shadow-sm"
           style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}
         >
           <div className="flex items-center gap-4">
+            {/* Inicial del nombre completo */}
             <div
               className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold flex-shrink-0"
               style={{
@@ -214,11 +230,12 @@ export default function SettingsPage() {
                 boxShadow: '0 2px 8px rgba(201,168,76,0.3)',
               }}
             >
-              {session.user.name?.charAt(0).toUpperCase() || '?'}
+              {displayInitial}
             </div>
             <div className="flex-1 min-w-0">
+              {/* Nombre completo del agente */}
               <h2 className="text-base font-bold truncate" style={{ color: T.navy }}>
-                {session.user.name || 'Usuario'}
+                {displayName}
               </h2>
               <p className="text-xs truncate mb-1.5" style={{ color: T.muted }}>
                 {session.user.email}
@@ -240,10 +257,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Opciones:
-            mobile + tablet: 1 columna
-            desktop:         2 columnas
-        */}
+        {/* Opciones */}
         <div className="space-y-2 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3">
           {settingsOptions.map((option, index) => {
             const locked = !!(option.proOnly && !isProUser);
@@ -262,15 +276,12 @@ export default function SettingsPage() {
                 disabled={!!option.disabled && !option.proOnly}
               >
                 <div className="flex items-center gap-3">
-                  {/* Ícono con color propio */}
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
                     style={{ backgroundColor: locked ? T.cream : option.colorBg }}
                   >
                     {option.icon}
                   </div>
-
-                  {/* Texto */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-sm font-bold" style={{ color: T.navy }}>
@@ -294,14 +305,7 @@ export default function SettingsPage() {
                       {option.description}
                     </p>
                   </div>
-
-                  {/* Chevron */}
-                  <svg
-                    className="w-4 h-4 flex-shrink-0 opacity-30"
-                    fill="none"
-                    stroke={T.navy}
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="w-4 h-4 flex-shrink-0 opacity-30" fill="none" stroke={T.navy} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>

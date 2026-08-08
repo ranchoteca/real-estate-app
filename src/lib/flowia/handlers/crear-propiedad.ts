@@ -237,6 +237,8 @@ export async function handleListo(
   // This allows post-summary corrections of title, property_type, listing_type, etc.
   const isCorrection = draft.correction_mode === true;
 
+  console.log('[handleListo] draft.maps_url=' + (draft.maps_url || 'NULL') + ' isCorrection=' + isCorrection);
+
   const draftActual = {
     title: isCorrection ? null : (draft.title || null),
     description: draft.description || null,

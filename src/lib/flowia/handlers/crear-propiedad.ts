@@ -448,8 +448,11 @@ export async function handleListo(
     }
   }
 
-  // Single atomic upsert — saves all extracted fields AND resets correction_mode
-  // in one operation to prevent race conditions between multiple upsertDraft calls
+  // Single atomic upsert — saves all extracted fields AND resets correction_mode.
+  // For maps_url: preserve the draft value if extractor didn't find a new one,
+  // since the link may have been sent early in the session before correction mode.
+  const finalMapsUrl = extractedData.maps_url || draft.maps_url || null;
+
   await upsertDraft(agentId, {
     title: extractedData.title,
     description: extractedData.description,
@@ -461,7 +464,7 @@ export async function handleListo(
     property_type: extractedData.property_type,
     listing_type: extractedData.listing_type,
     language: extractedData.language || 'es',
-    maps_url: extractedData.maps_url,
+    maps_url: finalMapsUrl,
     custom_fields_data: draftCustomFields,
     correction_mode: false,
   } as any);

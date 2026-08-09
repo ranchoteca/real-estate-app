@@ -6,6 +6,7 @@ import { decryptWasenderMedia, extractMediaInfo } from '../media/decrypt';
 import { uploadPhotoFromUrl } from '../media/upload-photo';
 import { transcribeAudioFromUrl } from '../media/transcribe-audio';
 import { BASE_DOMAIN, PHOTO_MIN, PHOTO_MAX } from '../constants';
+import { extractCoordinatesFromMapsUrl, geocodeByCity } from '../media/extract-coordinates';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -543,6 +544,32 @@ async function crearPropiedad(
       .replace(/^-+|-+$/g, '');
     const slug = baseSlug + '-' + Date.now().toString(36);
 
+    // Extract coordinates from Google Maps link or fallback to geocoding by city
+    let latitude: string | null = draft.latitude ? String(draft.latitude) : null;
+    let longitude: string | null = draft.longitude ? String(draft.longitude) : null;
+
+    if (!latitude || !longitude) {
+      if (draft.maps_url) {
+        // Try to extract exact coordinates from the Maps link the agent shared
+        const coords = await extractCoordinatesFromMapsUrl(draft.maps_url);
+        if (coords) {
+          latitude = coords.lat;
+          longitude = coords.lng;
+          console.log('[crearPropiedad] coords from maps link: ' + latitude + ',' + longitude);
+        }
+      }
+
+      // Fallback: geocode by city if no coordinates extracted
+      if (!latitude || !longitude) {
+        const coords = await geocodeByCity(draft.city || '', draft.state_province);
+        if (coords) {
+          latitude = coords.lat;
+          longitude = coords.lng;
+          console.log('[crearPropiedad] coords from geocoding: ' + latitude + ',' + longitude);
+        }
+      }
+    }
+
     const { data: property, error: propertyError } = await supabaseAdmin
       .from('properties')
       .insert({
@@ -557,13 +584,13 @@ async function crearPropiedad(
         property_type: draft.property_type || 'house',
         listing_type: draft.listing_type || 'sale',
         language: draft.language || 'es',
-        latitude: draft.latitude || null,
-        longitude: draft.longitude || null,
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
         plus_code: null,
         photos: draft.photos,
         status: 'active',
         slug,
-        show_map: !!draft.maps_url,
+        show_map: !!(latitude && longitude),
         custom_fields_data: draft.custom_fields_data || {},
       })
       .select('id, slug')

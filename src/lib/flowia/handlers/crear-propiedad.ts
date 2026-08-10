@@ -641,7 +641,8 @@ export function esComandoListo(text: string): boolean {
 }
 
 export function esIntentCancelar(text: string): boolean {
-  return /no (quiero|deseo|me interesa)|cancelar|cancela|salir|olvida|olvidalo|olv[ií]dalo|dejalo|d[eé]jalo|para(r)?|abort|ya no|no (sigo|continúo|continuo)/i.test(text.trim());
+  // 'para' must be a standalone word at start of message, not inside phrases like 'garaje para dos'
+  return /no (quiero|deseo|me interesa)|cancelar|cancela|salir|olvida|olvidalo|olv[ií]dalo|dejalo|d[eé]jalo|^para(r)?$|abort|ya no|no (sigo|continúo|continuo)/i.test(text.trim());
 }
 
 export function esIntentCrearPropiedad(text: string): boolean {

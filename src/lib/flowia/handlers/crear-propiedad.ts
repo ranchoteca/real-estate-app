@@ -596,6 +596,75 @@ async function crearPropiedad(
       throw new Error(propertyError?.message || 'Unknown error inserting property');
     }
 
+    // ── Move photos from draft-* folder to {slug}/ folder ──────────────────────
+    // Photos uploaded during WhatsApp creation live in draft-{id}/ temporarily.
+    // Moving them to {slug}/ keeps Storage organized and allows the app to delete
+    // them correctly when the agent deletes the property.
+    const movedPhotoUrls: string[] = [];
+    const storageBase = process.env.NEXT_PUBLIC_SUPABASE_URL + '/storage/v1/object/public/property-photos/';
+
+    for (let i = 0; i < draft.photos.length; i++) {
+      const originalUrl = draft.photos[i];
+      try {
+        // Extract the path after the bucket name
+        const originalPath = originalUrl.replace(storageBase, '');
+        const fileName = originalPath.split('/').pop() || 'foto-' + i + '.jpg';
+        const newPath = agentId + '/' + property.slug + '/' + fileName;
+
+        // Download from draft folder
+        const pathInBucket = originalPath;
+        const { data: fileData, error: downloadError } = await supabaseAdmin.storage
+          .from('property-photos')
+          .download(pathInBucket);
+
+        if (downloadError || !fileData) {
+          console.error('[move-photos] Download failed for ' + pathInBucket + ':', downloadError);
+          // Skip this photo — don't include broken or draft URLs in the final array
+          continue;
+        }
+
+        // Upload to {slug}/ folder
+        const fileBuffer = Buffer.from(await fileData.arrayBuffer());
+        const { error: uploadError } = await supabaseAdmin.storage
+          .from('property-photos')
+          .upload(newPath, fileBuffer, {
+            contentType: 'image/jpeg',
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('[move-photos] Upload failed for ' + newPath + ':', uploadError);
+          // Skip this photo — don't include broken or draft URLs in the final array
+          continue;
+        }
+
+        // Get new public URL
+        const { data: newUrlData } = supabaseAdmin.storage
+          .from('property-photos')
+          .getPublicUrl(newPath);
+
+        movedPhotoUrls.push(newUrlData.publicUrl);
+
+        // Delete original from draft folder
+        await supabaseAdmin.storage
+          .from('property-photos')
+          .remove([pathInBucket]);
+
+      } catch (err) {
+        console.error('[move-photos] Unexpected error for photo ' + i + ':', err);
+        // Skip this photo on unexpected error
+      }
+    }
+
+    // Update photos[] in the property with the new URLs
+    if (movedPhotoUrls.some((url, i) => url !== draft.photos[i])) {
+      await supabaseAdmin
+        .from('properties')
+        .update({ photos: movedPhotoUrls })
+        .eq('id', property.id);
+    }
+
     // Save to agent_last_property_shown so normal mode can offer PDF immediately
     await supabaseAdmin
       .from('agent_last_property_shown')

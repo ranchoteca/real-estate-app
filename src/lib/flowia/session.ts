@@ -60,6 +60,11 @@ export async function isDuplicateMessage(
 ): Promise<boolean> {
   if (!messageText || messageText.trim() === '') return false;
 
+  // Never deduplicate short confirmation words — agent may legitimately send
+  // "Si" twice in quick succession (once after audio, once after summary)
+  const confirmations = /^(s[ií]|si|sí|dale|ok|okay|va|listo)\.?!?$/i;
+  if (confirmations.test(messageText.trim())) return false;
+
   const windowStart = new Date(
     Date.now() - DUPLICATE_WINDOW_SECONDS * 1000
   ).toISOString();

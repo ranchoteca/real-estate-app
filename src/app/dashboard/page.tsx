@@ -272,7 +272,7 @@ export default function DashboardPage() {
     return `${symbol}${new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(price)}`;
   };
 
-  const isProActivo = planInfo?.role === 'admin' || (planInfo?.plan === 'pro' && !!planInfo?.expires_at && new Date(planInfo.expires_at) > new Date());
+  const isProActivo = planInfo?.plan === 'pro' && !!planInfo?.expires_at && new Date(planInfo.expires_at) > new Date();
   const isFree = planInfo?.plan === 'free';
   const filteredProperties = getFilteredProperties();
   const hasProperties = properties.length > 0;

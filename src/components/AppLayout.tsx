@@ -63,7 +63,7 @@ export default function AppLayout({
     if (session) loadPlan();
   }, [session]);
 
-  const isProActivo = planInfo?.role === 'admin' || (planInfo?.plan === 'pro' && !!planInfo?.expires_at && new Date(planInfo.expires_at) > new Date());
+  const isProActivo = planInfo?.plan === 'pro' && !!planInfo?.expires_at && new Date(planInfo.expires_at) > new Date();
   const propertyLimit = isProActivo ? 150 : 5;
   const isAtLimit = currentPropertyCount !== undefined && currentPropertyCount >= propertyLimit;
 

@@ -156,9 +156,13 @@ export async function POST(req: NextRequest) {
             await saveMessage(agent.id, 'assistant', respuesta);
           } else {
             // Audio received post-summary — activate correction_mode so LISTO
-            // re-extracts all fields from history instead of anchoring on draft
+            // re-extracts all fields from history instead of anchoring on draft.
+            // Only activate if last bot message was the summary confirmation.
             const draftForAudio = await getDraft(agent.id);
-            if (draftForAudio?.title) {
+            const recentMsgsAudio = await loadHistory(agent.id);
+            const lastBotAudio = recentMsgsAudio.findLast((m: any) => m.role === 'assistant');
+            const audioAfterSummary = lastBotAudio?.content?.includes('¿Todo correcto? Responde *SÍ*');
+            if (draftForAudio?.title && audioAfterSummary) {
               await supabaseAdmin
                 .from('agent_property_draft')
                 .update({ correction_mode: true, summary_triggered: false })
@@ -182,15 +186,18 @@ export async function POST(req: NextRequest) {
       }
 
       // 4. SÍ confirmation after the summary — create the property
-      // Conditions to create:
-      //   - draft.title exists (LISTO ran successfully at least once)
-      //   - correction_mode is false (agent is not in the middle of a correction)
-      //   - resolvedText is a confirmation ("Sí", "Si", "dale", etc.)
-      // We avoid checking history for the summary message because after multiple
-      // correction rounds the summary can fall outside the 15-message window.
+      // Trigger if draft has a title (LISTO ran at least once) and agent confirms.
+      // Reset correction_mode before checking so stale values don't block creation.
       const draft = await getDraft(agent.id);
-      const isInCorrectionMode = draft?.correction_mode === true;
-      if (draft?.title && !isInCorrectionMode && esConfirmacionSi(resolvedText)) {
+      if (draft?.title && esConfirmacionSi(resolvedText)) {
+        // If correction_mode is still true, reset it and create anyway
+        // The summary was already shown with correct data
+        if (draft.correction_mode) {
+          await supabaseAdmin
+            .from('agent_property_draft')
+            .update({ correction_mode: false })
+            .eq('agent_id', agent.id);
+        }
         await handleConfirmacion(agent.id, cleanNumber, primerNombre);
         return NextResponse.json({ success: true, status: 'property_creation_started' });
       }
@@ -219,10 +226,13 @@ export async function POST(req: NextRequest) {
         updates.summary_triggered = false;
       }
 
-      // If draft already has a title, agent is sending corrections post-summary.
-      // Set correction_mode=true so handleListo re-extracts all fields from history
-      // instead of anchoring on the previous draft values.
-      if (currentDraft?.title) {
+      // Only activate correction_mode if the last bot message was the summary.
+      // Audios/text sent BEFORE the summary (e.g. filling custom fields) should NOT
+      // activate correction_mode — only messages sent AFTER seeing the summary should.
+      const recentMsgs = await loadHistory(agent.id);
+      const lastBot = recentMsgs.findLast((m: any) => m.role === 'assistant');
+      const lastWasSummary = lastBot?.content?.includes('¿Todo correcto? Responde *SÍ*');
+      if (currentDraft?.title && lastWasSummary) {
         updates.correction_mode = true;
       }
 

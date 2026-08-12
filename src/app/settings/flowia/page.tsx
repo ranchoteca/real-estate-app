@@ -5,6 +5,22 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/AppLayout';
 
+const T = {
+  navy:      '#1B2D5B',
+  gold:      '#C9A84C',
+  goldLight: '#E8C96A',
+  goldPale:  '#F5EDD8',
+  cream:     '#F8F6F2',
+  white:     '#FFFFFF',
+  charcoal:  '#1A1A2E',
+  muted:     '#6B7280',
+  border:    '#E8E4DC',
+  green:     '#15803D',
+  greenBg:   '#F0FDF4',
+  greenBorder:'#BBF7D0',
+  red:       '#DC2626',
+};
+
 export default function FlowIASettingsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -12,7 +28,7 @@ export default function FlowIASettingsPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [isActive, setIsActive] = useState(false);
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -64,7 +80,7 @@ export default function FlowIASettingsPage() {
       const response = await fetch('/api/agent/flowia', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           whatsapp_number: trimmedPhone,
           is_flowia_active: isActive
         }),
@@ -87,10 +103,10 @@ export default function FlowIASettingsPage() {
   if (loading) {
     return (
       <AppLayout title="FlowIA Asistente" showBack={true} showTabs={true}>
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-full" style={{ backgroundColor: T.cream }}>
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-bounce">🤖</div>
-            <div className="text-lg" style={{ color: '#0F172A' }}>
+            <div className="text-base font-medium" style={{ color: T.muted }}>
               Cargando asistente...
             </div>
           </div>
@@ -101,20 +117,34 @@ export default function FlowIASettingsPage() {
 
   return (
     <AppLayout title="FlowIA Asistente" showBack={true} showTabs={true}>
-      <div className="px-4 py-6 md:px-6 md:max-w-5xl md:mx-auto md:grid md:grid-cols-2 md:gap-6 md:items-start lg:grid-cols-[1fr_420px] space-y-6 md:space-y-0">
-        
-        {/* Info Banner: en mobile va primero (igual que antes); en tablet/desktop pasa a columna derecha sticky */}
-        <div 
-          className="rounded-2xl p-4 border-2 md:order-2 md:sticky md:top-4"
-          style={{ backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }}
+      <div
+        className="px-4 py-6 pb-24 md:px-6 md:pb-10 md:max-w-5xl md:mx-auto md:grid md:grid-cols-2 md:gap-6 md:items-start lg:grid-cols-[1fr_420px] space-y-4 md:space-y-0"
+        style={{ backgroundColor: T.cream }}
+      >
+
+        {/* Título estilizado — mobile */}
+        <div className="flex items-center gap-2 md:hidden">
+          <div style={{ width: '3px', height: '22px', backgroundColor: T.gold, borderRadius: '2px', flexShrink: 0 }} />
+          <h1 className="text-xl font-bold tracking-tight" style={{ color: T.navy }}>FlowIA Asistente</h1>
+        </div>
+
+        {/* Info Banner — derecha en desktop, arriba en mobile */}
+        <div
+          className="rounded-2xl p-5 shadow-sm md:order-2 md:sticky md:top-4"
+          style={{ backgroundColor: T.goldPale, border: `1px solid rgba(201,168,76,0.35)` }}
         >
           <div className="flex items-start gap-3">
-            <span className="text-3xl">💡</span>
+            <div
+              className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+              style={{ backgroundColor: 'rgba(201,168,76,0.2)', border: `1px solid rgba(201,168,76,0.35)` }}
+            >
+              🤖
+            </div>
             <div className="flex-1">
-              <h3 className="font-bold mb-1" style={{ color: '#1E40AF' }}>
+              <h3 className="font-bold mb-1.5" style={{ color: T.navy }}>
                 Tu Asistente Virtual
               </h3>
-              <p className="text-sm" style={{ color: '#1E40AF' }}>
+              <p className="text-sm leading-relaxed" style={{ color: T.navy, opacity: 0.75 }}>
                 Ingresa tu número de WhatsApp para autorizarte en el sistema. Una vez activo, guárdanos en tus contactos y comienza a pedirle información a FlowIA.
               </p>
             </div>
@@ -122,12 +152,17 @@ export default function FlowIASettingsPage() {
         </div>
 
         {/* Columna principal: formulario + guardar */}
-        <div className="space-y-6 md:order-1">
+        <div className="space-y-4 md:order-1">
 
-        {/* Formulario */}
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="font-bold text-lg block" style={{ color: '#0F172A' }}>
+          {/* Número de WhatsApp */}
+          <div
+            className="rounded-2xl p-5 shadow-sm"
+            style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}
+          >
+            <label
+              className="block text-xs font-bold uppercase tracking-wider mb-1.5"
+              style={{ color: T.muted }}
+            >
               Tu número de WhatsApp
             </label>
             <input
@@ -138,56 +173,76 @@ export default function FlowIASettingsPage() {
                 if (phoneError) setPhoneError('');
               }}
               placeholder="+50688888888"
-              className="w-full rounded-xl p-4 border-2 shadow-sm focus:outline-none text-gray-900 font-semibold text-lg"
-              style={{ borderColor: phoneError ? '#DC2626' : '#E5E7EB', backgroundColor: '#FFFFFF' }}
+              className="w-full rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none"
+              style={{
+                border: `1.5px solid ${phoneError ? T.red : T.border}`,
+                backgroundColor: T.cream,
+                color: T.charcoal,
+              }}
             />
-            <p className="text-xs opacity-70">Incluye el código de país (ej. +506)</p>
+            <p className="text-xs mt-1.5" style={{ color: T.muted }}>
+              Incluye el código de país (ej. +506)
+            </p>
             {phoneError && (
-              <p className="text-xs font-semibold" style={{ color: '#DC2626' }}>
+              <p className="text-xs font-semibold mt-1.5" style={{ color: T.red }}>
                 ⚠️ {phoneError}
               </p>
             )}
           </div>
 
-          <div 
-            className="rounded-2xl p-4 shadow-lg border-2 flex items-center justify-between mt-4"
-            style={{ 
-              backgroundColor: '#FFFFFF',
-              borderColor: isActive ? '#10B981' : '#E5E7EB'
+          {/* Estado de FlowIA — toggle */}
+          <div
+            className="rounded-2xl p-5 shadow-sm flex items-center justify-between"
+            style={{
+              backgroundColor: T.white,
+              border: `1.5px solid ${isActive ? T.greenBorder : T.border}`,
             }}
           >
             <div>
-              <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>
+              <h3 className="font-bold text-sm mb-0.5" style={{ color: T.navy }}>
                 Estado de FlowIA
               </h3>
-              <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
+              <p className="text-xs" style={{ color: T.muted }}>
                 {isActive ? 'El bot responderá a tus mensajes' : 'El bot ignorará tus mensajes'}
               </p>
             </div>
-            
-            {/* Toggle Switch Simple */}
+
+            {/* Toggle Switch */}
             <button
               onClick={() => setIsActive(!isActive)}
-              className={`w-14 h-8 rounded-full flex items-center p-1 transition-colors ${isActive ? 'bg-green-500' : 'bg-gray-300'}`}
+              className="relative flex-shrink-0 transition-colors duration-200"
+              style={{
+                width: '48px', height: '26px', borderRadius: '100px',
+                backgroundColor: isActive ? T.navy : T.border,
+                border: 'none', cursor: 'pointer', padding: 0,
+              }}
             >
-              <div 
-                className={`bg-white w-6 h-6 rounded-full shadow-md transform transition-transform ${isActive ? 'translate-x-6' : 'translate-x-0'}`} 
+              <span
+                className="absolute transition-transform duration-200"
+                style={{
+                  top: '4px', left: '4px', width: '18px', height: '18px',
+                  borderRadius: '50%', backgroundColor: isActive ? T.gold : T.white,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  transform: isActive ? 'translateX(22px)' : 'translateX(0px)',
+                  display: 'block',
+                }}
               />
             </button>
           </div>
-        </div>
 
-        {/* Save Button */}
-        <div className="bottom-0 left-0 right-0 p-4 border-t space-y-2 mt-8" style={{ borderColor: '#E5E7EB' }}>
+          {/* Botón guardar */}
           <button
             onClick={handleSave}
             disabled={saving || !phoneNumber}
-            className="w-full py-4 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: '#2563EB' }}
+            className="w-full py-4 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            style={{
+              background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`,
+              color: T.navy,
+              boxShadow: '0 2px 8px rgba(201,168,76,0.3)',
+            }}
           >
             {saving ? '⏳ Guardando...' : '💾 Guardar Configuración'}
           </button>
-        </div>
 
         </div>
 

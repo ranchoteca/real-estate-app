@@ -6,16 +6,30 @@ import { useEffect, useState } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { useI18nStore } from '@/lib/i18n-store';
 
-type PlatformData = {
-  connected: boolean;
-  username: string | null;
-  connectedAt: string | null;
+const T = {
+  navy:       '#1B2D5B',
+  navyMid:    '#243770',
+  gold:       '#C9A84C',
+  goldLight:  '#E8C96A',
+  goldPale:   '#F5EDD8',
+  cream:      '#F8F6F2',
+  white:      '#FFFFFF',
+  charcoal:   '#1A1A2E',
+  muted:      '#6B7280',
+  border:     '#E8E4DC',
+  green:      '#15803D',
+  greenBg:    '#F0FDF4',
+  greenBorder:'#BBF7D0',
+  red:        '#DC2626',
 };
 
-type SocialData = {
-  facebook: PlatformData;
-  tiktok: PlatformData;
-};
+interface FacebookConfig {
+  page_id: string;
+  page_name: string;
+  access_token: string;
+  token_expires_at: string | null;
+  is_connected: boolean;
+}
 
 export default function SocialSettingsContent() {
   const { data: session, status } = useSession();
@@ -24,213 +38,116 @@ export default function SocialSettingsContent() {
   const { language } = useI18nStore();
 
   const [loading, setLoading] = useState(true);
-  const [socialData, setSocialData] = useState<SocialData>({
-    facebook: { connected: false, username: null, connectedAt: null },
-    tiktok: { connected: false, username: null, connectedAt: null },
-  });
+  const [facebookConfig, setFacebookConfig] = useState<FacebookConfig | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const [connectingFb, setConnectingFb] = useState(false);
-  const [connectingTk, setConnectingTk] = useState(false);
-  const [disconnectingFb, setDisconnectingFb] = useState(false);
-  const [disconnectingTk, setDisconnectingTk] = useState(false);
+  const copy = {
+    title:           language === 'en' ? 'Social Networks' : 'Redes Sociales',
+    subtitle:        language === 'en' ? 'Connect your accounts to publish directly from FlowEstateAI' : 'Conecta tus cuentas para publicar directamente desde FlowEstateAI',
+    fbTitle:         language === 'en' ? 'Facebook' : 'Facebook',
+    fbDesc:          language === 'en' ? 'Publish your properties directly to your Facebook page' : 'Publica tus propiedades directamente en tu página de Facebook',
+    fbConnected:     language === 'en' ? 'Connected' : 'Conectado',
+    fbNotConnected:  language === 'en' ? 'Not connected' : 'No conectado',
+    fbConnect:       language === 'en' ? 'Connect with Facebook' : 'Conectar con Facebook',
+    fbDisconnect:    language === 'en' ? 'Disconnect' : 'Desconectar',
+    fbConnecting:    language === 'en' ? 'Connecting...' : 'Conectando...',
+    fbDisconnecting: language === 'en' ? 'Disconnecting...' : 'Desconectando...',
+    fbPage:          language === 'en' ? 'Page' : 'Página',
+    fbExpires:       language === 'en' ? 'Token expires' : 'Token vence',
+    fbTip:           language === 'en'
+      ? 'You need a Facebook page (not a personal profile) to connect. Publish your listings with one tap from the dashboard.'
+      : 'Necesitas una página de Facebook (no un perfil personal) para conectar. Publica tus propiedades con un toque desde el dashboard.',
+    proRequired:     language === 'en' ? 'This feature requires a Pro plan.' : 'Esta función requiere el plan Pro.',
+    proUpgrade:      language === 'en' ? 'Upgrade to Pro' : 'Actualizar a Pro',
+    confirmDisconnect: language === 'en'
+      ? 'Are you sure you want to disconnect your Facebook account?'
+      : '¿Estás seguro de que deseas desconectar tu cuenta de Facebook?',
+  };
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
+    else if (status === 'authenticated') loadConfig();
   }, [status, router]);
 
   useEffect(() => {
-    if (session) loadSocialData();
-  }, [session]);
-
-  useEffect(() => {
-    const success = searchParams.get('success');
-    const error = searchParams.get('error');
-    const platform = searchParams.get('platform');
-
-    if (success === 'true' && platform) {
-      window.history.replaceState(null, '', '/settings/social');
-      loadSocialData();
-      const platformName = platform === 'tiktok' ? 'TikTok' : 'Facebook';
-      alert(`✅ ${platformName} ${language === 'en' ? 'connected successfully!' : 'conectado con éxito!'}`);
-
-    } else if (error && platform) {
-      window.history.replaceState(null, '', '/settings/social');
-      const platformName = platform === 'tiktok' ? 'TikTok' : 'Facebook';
-      const errorMessages: Record<string, string> = {
-        denied: language === 'en'
-          ? `You denied access to ${platformName}.`
-          : `Denegaste el acceso a ${platformName}.`,
-        server: language === 'en'
-          ? `Server error connecting ${platformName}. Try again.`
-          : `Error de servidor al conectar ${platformName}. Intenta de nuevo.`,
-        invalid: language === 'en'
-          ? 'Invalid authentication.'
-          : 'Autenticación inválida.',
-      };
-      alert(`❌ ${errorMessages[error] || (language === 'en' ? 'Unknown error' : 'Error desconocido')}`);
+    const successParam = searchParams.get('success');
+    const errorParam = searchParams.get('error');
+    if (successParam === 'facebook_connected') {
+      setSuccess(language === 'en' ? '✅ Facebook connected successfully!' : '✅ ¡Facebook conectado exitosamente!');
+      setTimeout(() => setSuccess(null), 5000);
+    }
+    if (errorParam) {
+      setError(language === 'en' ? `❌ Error connecting Facebook: ${errorParam}` : `❌ Error al conectar Facebook: ${errorParam}`);
+      setTimeout(() => setError(null), 5000);
     }
   }, [searchParams, language]);
 
-  const loadSocialData = async () => {
+  const loadConfig = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/agent/profile');
+      const response = await fetch('/api/facebook/config');
       if (response.ok) {
         const data = await response.json();
-        const agent = data.agent;
-        setSocialData({
-          facebook: {
-            connected: !!agent.facebook_account_id,
-            username: agent.facebook_username,
-            connectedAt: agent.facebook_connected_at,
-          },
-          tiktok: {
-            connected: !!agent.tiktok_account_id,
-            username: agent.tiktok_username,
-            connectedAt: agent.tiktok_connected_at,
-          },
-        });
+        setFacebookConfig(data.config);
       }
-    } catch (err) {
-      console.error('Error loading social data:', err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error('Error loading social config:', err); }
+    finally { setLoading(false); }
   };
 
-  const handleConnect = async (platform: 'facebook' | 'tiktok') => {
-    const setConnecting = platform === 'facebook' ? setConnectingFb : setConnectingTk;
-    const authEndpoint = platform === 'facebook' ? '/api/facebook/auth' : '/api/tiktok/auth';
-    const platformName = platform === 'tiktok' ? 'TikTok' : 'Facebook';
-    const platformEmoji = platform === 'tiktok' ? '🎵' : '📘';
-
+  const handleConnectFacebook = async () => {
+    setConnecting(true);
     try {
-      setConnecting(true);
-
-      const width = 600;
-      const height = 700;
-      const left = window.screen.width / 2 - width / 2;
-      const top = window.screen.height / 2 - height / 2;
-
-      const popup = window.open(
-        'about:blank',
-        `${platform}-auth`,
-        `width=${width},height=${height},left=${left},top=${top},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
-      );
-
-      if (!popup) {
-        alert(language === 'en'
-          ? 'Allow popups to connect your account.'
-          : 'Permite las ventanas emergentes para conectar tu cuenta.');
-        setConnecting(false);
-        return;
-      }
-
-      popup.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-            <title>${language === 'en' ? `Connecting ${platformName}` : `Conectando ${platformName}`}</title>
-            <style>
-              * { margin: 0; padding: 0; box-sizing: border-box; }
-              html, body { width: 100%; height: 100%; overflow: hidden; }
-              body {
-                display: flex; align-items: center; justify-content: center;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-              }
-              .container { text-align: center; padding: 20px; }
-              .spinner {
-                width: 50px; height: 50px; margin: 0 auto 1rem;
-                border: 4px solid rgba(255,255,255,0.3);
-                border-top-color: white; border-radius: 50%;
-                animation: spin 1s linear infinite;
-              }
-              @keyframes spin { to { transform: rotate(360deg); } }
-              h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div style="font-size: 4rem; margin-bottom: 1rem;">${platformEmoji}</div>
-              <div class="spinner"></div>
-              <h2>${language === 'en' ? `Connecting ${platformName}` : `Conectando ${platformName}`}</h2>
-              <p>${language === 'en' ? 'Please wait...' : 'Por favor espera...'}</p>
-            </div>
-          </body>
-        </html>
-      `);
-
-      const response = await fetch(authEndpoint);
+      const response = await fetch('/api/facebook/auth-url');
+      if (!response.ok) throw new Error('Error al obtener URL de autenticación');
       const data = await response.json();
-
-      if (!response.ok || !data.authUrl) {
-        popup.close();
-        throw new Error(language === 'en'
-          ? 'Error generating auth URL'
-          : 'Error al generar URL de autenticación');
-      }
-
-      popup.location.href = data.authUrl;
-
-      const checkPopup = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(checkPopup);
-          setConnecting(false);
-          setTimeout(() => loadSocialData(), 1000);
-        }
-      }, 500);
-
-    } catch (error: any) {
-      console.error(`Error connecting ${platform}:`, error);
-      alert(`❌ ${error.message}`);
+      window.location.href = data.url;
+    } catch (err: any) {
+      setError(err.message);
       setConnecting(false);
     }
   };
 
-  const handleDisconnect = async (platform: 'facebook' | 'tiktok') => {
-    const platformName = platform === 'tiktok' ? 'TikTok' : 'Facebook';
-    const confirmMsg = language === 'en'
-      ? `Disconnect ${platformName}? You won't be able to post until you reconnect.`
-      : `¿Desconectar ${platformName}? No podrás publicar hasta que vuelvas a conectar.`;
-
-    if (!confirm(confirmMsg)) return;
-
-    const setDisconnecting = platform === 'facebook' ? setDisconnectingFb : setDisconnectingTk;
-    const endpoint = platform === 'facebook' ? '/api/facebook/disconnect' : '/api/tiktok/disconnect';
-
+  const handleDisconnectFacebook = async () => {
+    if (!confirm(copy.confirmDisconnect)) return;
     setDisconnecting(true);
     try {
-      const response = await fetch(endpoint, { method: 'POST' });
-      if (!response.ok) throw new Error(language === 'en' ? 'Error disconnecting' : 'Error al desconectar');
-      alert(`✅ ${platformName} ${language === 'en' ? 'disconnected.' : 'desconectado.'}`);
-      loadSocialData();
+      const response = await fetch('/api/facebook/disconnect', { method: 'POST' });
+      if (!response.ok) throw new Error('Error al desconectar');
+      setFacebookConfig(null);
+      setSuccess(language === 'en' ? '✅ Facebook disconnected' : '✅ Facebook desconectado');
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
-      alert(`❌ ${err.message}`);
-    } finally {
-      setDisconnecting(false);
-    }
+      setError(err.message);
+    } finally { setDisconnecting(false); }
   };
 
-  const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString(language === 'en' ? 'en-US' : 'es-ES', {
-      day: 'numeric', month: 'long', year: 'numeric',
-    });
+  const isProActivo = session?.user?.plan === 'pro' || session?.user?.role === 'admin';
 
-  if (status === 'loading' || loading) {
+  const formatExpiryDate = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    return new Date(dateStr).toLocaleDateString(
+      language === 'en' ? 'en-US' : 'es-CR',
+      { day: 'numeric', month: 'long', year: 'numeric' }
+    );
+  };
+
+  const isTokenExpiringSoon = (dateStr: string | null) => {
+    if (!dateStr) return false;
+    const expiry = new Date(dateStr);
+    const daysLeft = (expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+    return daysLeft < 7;
+  };
+
+  if (loading) {
     return (
-      <AppLayout
-        title={language === 'en' ? 'Social Networks' : 'Redes Sociales'}
-        showBack={true}
-        showTabs={true}
-      >
-        <div className="flex items-center justify-center h-full">
+      <AppLayout title={copy.title} showBack={true} showTabs={true}>
+        <div className="flex items-center justify-center h-full" style={{ backgroundColor: T.cream }}>
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">📱</div>
-            <div className="text-lg" style={{ color: '#0F172A' }}>
+            <div className="text-base font-medium" style={{ color: T.muted }}>
               {language === 'en' ? 'Loading...' : 'Cargando...'}
             </div>
           </div>
@@ -239,295 +156,215 @@ export default function SocialSettingsContent() {
     );
   }
 
-  if (!session) return null;
+  return (
+    <AppLayout title={copy.title} showBack={true} showTabs={true}>
+      <div
+        className="px-4 py-6 pb-24 md:px-8 md:py-8 md:pb-10 md:max-w-xl md:mx-auto space-y-5"
+        style={{ backgroundColor: T.cream }}
+      >
 
-  const renderPlatformCard = (platform: 'facebook' | 'tiktok') => {
-    const isFacebook = platform === 'facebook';
-    const data = socialData[platform];
-    const connecting = isFacebook ? connectingFb : connectingTk;
-    const disconnecting = isFacebook ? disconnectingFb : disconnectingTk;
-
-    const config = isFacebook
-      ? {
-          name: 'Facebook',
-          emoji: '📘',
-          color: '#1877F2',
-          icon: (
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-            </svg>
-          ),
-          connectLabel: language === 'en' ? 'Connect Facebook Page' : 'Conectar página de Facebook',
-          requirements: language === 'en'
-            ? ['Facebook Business or personal account', 'Admin access to a Facebook Page', 'Authorize the requested permissions']
-            : ['Cuenta de Facebook Business o personal', 'Acceso de administrador a una página de Facebook', 'Autorizar los permisos solicitados'],
-          howTo: language === 'en'
-            ? [
-                'Go to the Dashboard and tap the three dots on the property card',
-                'Choose whether to publish a "Facebook Post" or a "Post video to Social Networks"',
-                'Your content will publish automatically',
-              ]
-            : [
-                'Ve al Dashboard y toca los tres puntitos en la esquina de la ficha de la propiedad',
-                'Elige si deseas "Publicar post de Facebook" o "Publicar video en redes sociales"',
-                'Tu contenido se publicará automáticamente',
-              ],
-        }
-      : {
-          name: 'TikTok',
-          emoji: '🎵',
-          color: '#010101',
-          icon: (
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.19 8.19 0 004.79 1.52V6.75a4.85 4.85 0 01-1.02-.06z" />
-            </svg>
-          ),
-          connectLabel: language === 'en' ? 'Connect TikTok Account' : 'Conectar cuenta de TikTok',
-          requirements: language === 'en'
-            ? ['Active TikTok account', 'Allow video upload permissions', 'Public or private account accepted']
-            : ['Cuenta de TikTok activa', 'Permitir permisos de subida de videos', 'Se acepta cuenta pública o privada'],
-          howTo: language === 'en'
-            ? [
-                'Go to the Dashboard and tap the three dots on the property card',
-                'Choose the "Post video to Social Networks" option',
-                'Your video will publish automatically',
-              ]
-            : [
-                'Ve al Dashboard y toca los tres puntitos en la esquina de la ficha de la propiedad',
-                'Elige la opción "Publicar video en redes sociales"',
-                'Tu video se publicará automáticamente',
-              ],
-        };
-
-    return (
-      <div className="rounded-2xl p-5 shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0"
-            style={{ backgroundColor: config.color }}
-          >
-            {config.icon}
-          </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-lg leading-tight" style={{ color: '#0F172A' }}>
-              {config.name}
-            </h3>
-            <p className="text-xs" style={{ color: '#6B7280' }}>
-              {data.connected
-                ? (language === 'en' ? 'Account connected' : 'Cuenta conectada')
-                : (language === 'en' ? 'Not connected' : 'Sin conectar')}
-            </p>
-          </div>
-          <div
-            className="w-3 h-3 rounded-full flex-shrink-0"
-            style={{ backgroundColor: data.connected ? '#10B981' : '#D1D5DB' }}
-          />
+        {/* Título estilizado — mobile */}
+        <div className="flex items-center gap-2 md:hidden">
+          <div style={{ width: '3px', height: '22px', backgroundColor: T.gold, borderRadius: '2px', flexShrink: 0 }} />
+          <h1 className="text-xl font-bold tracking-tight" style={{ color: T.navy }}>{copy.title}</h1>
         </div>
 
-        {data.connected ? (
-          <div className="space-y-3">
-            <div
-              className="p-3 rounded-xl border-2"
-              style={{ backgroundColor: '#D1FAE5', borderColor: '#10B981' }}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-xl">✅</span>
-                <div>
-                  <p className="font-bold text-sm" style={{ color: '#065F46' }}>
-                    {data.username}
-                  </p>
-                  {data.connectedAt && (
-                    <p className="text-xs opacity-70" style={{ color: '#065F46' }}>
-                      {language === 'en' ? 'Connected on' : 'Conectado el'} {formatDate(data.connectedAt)}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
+        {/* Descripción */}
+        <div
+          className="rounded-2xl p-4 flex items-start gap-3"
+          style={{ backgroundColor: T.goldPale, border: `1px solid rgba(201,168,76,0.35)` }}
+        >
+          <span className="text-lg flex-shrink-0">💡</span>
+          <p className="text-xs leading-relaxed" style={{ color: T.navy, opacity: 0.8 }}>
+            {copy.subtitle}
+          </p>
+        </div>
 
-            <div className="p-3 rounded-xl" style={{ backgroundColor: '#F8FAFC', color: '#475569' }}>
-              <p className="font-semibold mb-1 text-xs">
-                📌 {language === 'en' ? 'How to publish:' : 'Cómo publicar:'}
-              </p>
-              <ul className="space-y-0.5 text-xs ml-3 list-disc">
-                {config.howTo.map((step, i) => <li key={i}>{step}</li>)}
-              </ul>
-            </div>
-
-            <button
-              onClick={() => handleDisconnect(platform)}
-              disabled={disconnecting}
-              className="w-full py-2.5 rounded-xl font-bold border-2 active:scale-95 transition-transform disabled:opacity-50 text-sm"
-              style={{ borderColor: '#DC2626', color: '#DC2626', backgroundColor: '#FFFFFF' }}
-            >
-              {disconnecting
-                ? (language === 'en' ? 'Disconnecting...' : 'Desconectando...')
-                : `🔌 ${language === 'en' ? 'Disconnect' : 'Desconectar'}`}
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="p-3 rounded-xl" style={{ backgroundColor: '#FEF3C7' }}>
-              <p className="font-semibold text-xs mb-1.5" style={{ color: '#92400E' }}>
-                📋 {language === 'en' ? 'Requirements:' : 'Requisitos:'}
-              </p>
-              <ul className="space-y-0.5 text-xs ml-3 list-disc" style={{ color: '#92400E' }}>
-                {config.requirements.map((req, i) => <li key={i}>{req}</li>)}
-              </ul>
-            </div>
-
-            <button
-              onClick={() => handleConnect(platform)}
-              disabled={connecting}
-              className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
-              style={{ backgroundColor: config.color }}
-            >
-              {config.icon}
-              {connecting
-                ? (language === 'en' ? 'Connecting...' : 'Conectando...')
-                : config.connectLabel}
-            </button>
+        {/* Alertas */}
+        {error && (
+          <div
+            className="rounded-xl p-4 text-sm font-medium"
+            style={{ backgroundColor: '#FEF2F2', color: T.red, border: '1px solid #FECACA' }}
+          >
+            {error}
           </div>
         )}
-      </div>
-    );
-  };
-
-  const connectedCount = [socialData.facebook.connected, socialData.tiktok.connected].filter(Boolean).length;
-
-  return (
-    <AppLayout
-      title={language === 'en' ? 'Social Networks' : 'Redes Sociales'}
-      showBack={true}
-      showTabs={true}
-    >
-      <div className="px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-12 md:max-w-5xl md:mx-auto md:grid md:grid-cols-2 md:gap-6 md:items-start lg:grid-cols-[1fr_420px] space-y-4 md:space-y-0">
-
-        {/* ── Columna izquierda ── */}
-        <div className="space-y-4">
-
-          {/* Summary banner */}
+        {success && (
           <div
-            className="rounded-2xl p-4 shadow-lg"
-            style={{
-              backgroundColor: connectedCount > 0 ? '#F0FDF4' : '#FEF3C7',
-              borderLeft: `4px solid ${connectedCount > 0 ? '#10B981' : '#F59E0B'}`,
-            }}
+            className="rounded-xl p-4 text-sm font-medium"
+            style={{ backgroundColor: T.greenBg, color: T.green, border: `1px solid ${T.greenBorder}` }}
           >
-            <p className="text-sm font-semibold" style={{ color: connectedCount > 0 ? '#065F46' : '#92400E' }}>
-              {connectedCount === 0
-                ? (language === 'en'
-                    ? '⚠️ No social networks connected. Connect at least one to start publishing.'
-                    : '⚠️ Sin redes sociales conectadas. Conecta al menos una para empezar a publicar.')
-                : connectedCount === 1
-                ? (language === 'en'
-                    ? '✅ 1 network connected. Connect more to reach a wider audience.'
-                    : '✅ 1 red conectada. Conecta más para llegar a más personas.')
-                : (language === 'en'
-                    ? `🚀 ${connectedCount} networks connected. You're ready to publish everywhere!`
-                    : `🚀 ${connectedCount} redes conectadas. ¡Listo para publicar en todas partes!`)}
-            </p>
+            {success}
           </div>
+        )}
 
-          {renderPlatformCard('facebook')}
-          {renderPlatformCard('tiktok')}
-
-          {/* Instagram — próximamente */}
+        {/* ── FACEBOOK ── */}
+        <div
+          className="rounded-2xl overflow-hidden shadow-sm"
+          style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}
+        >
+          {/* Header de la sección */}
           <div
-            className="rounded-2xl p-5 shadow-lg opacity-60"
-            style={{ backgroundColor: '#FFFFFF', border: '2px dashed #D1D5DB' }}
+            className="flex items-center justify-between px-5 py-4"
+            style={{ borderBottom: `1px solid ${T.border}` }}
           >
             <div className="flex items-center gap-3">
+              {/* Logo Facebook */}
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)' }}
+                style={{ backgroundColor: '#1877F2' }}
               >
-                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                <svg width="18" height="18" fill="white" viewBox="0 0 24 24">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                 </svg>
               </div>
               <div>
-                <p className="font-bold" style={{ color: '#0F172A' }}>Instagram</p>
-                <p className="text-xs" style={{ color: '#6B7280' }}>
-                  {language === 'en' ? 'Coming soon' : 'Próximamente'}
-                </p>
+                <h3 className="font-bold text-sm" style={{ color: T.navy }}>{copy.fbTitle}</h3>
+                <p className="text-xs" style={{ color: T.muted }}>{copy.fbDesc}</p>
               </div>
-              <span
-                className="ml-auto text-xs font-bold px-2.5 py-1 rounded-full"
-                style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}
-              >
-                {language === 'en' ? 'Soon' : 'Pronto'}
-              </span>
             </div>
+
+            {/* Badge estado */}
+            <span
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold flex-shrink-0"
+              style={{
+                backgroundColor: facebookConfig?.is_connected ? T.greenBg : T.cream,
+                color: facebookConfig?.is_connected ? T.green : T.muted,
+                border: `1px solid ${facebookConfig?.is_connected ? T.greenBorder : T.border}`,
+              }}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: facebookConfig?.is_connected ? T.green : T.muted }}
+              />
+              {facebookConfig?.is_connected ? copy.fbConnected : copy.fbNotConnected}
+            </span>
           </div>
 
+          {/* Contenido */}
+          <div className="px-5 py-4 space-y-4">
+
+            {/* Info de la página conectada */}
+            {facebookConfig?.is_connected && (
+              <div className="space-y-2">
+                <div
+                  className="flex items-center gap-3 p-3 rounded-xl"
+                  style={{ backgroundColor: T.greenBg, border: `1px solid ${T.greenBorder}` }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: '#1877F2' }}
+                  >
+                    <span className="text-white text-xs font-bold">f</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold truncate" style={{ color: T.navy }}>
+                      {copy.fbPage}: {facebookConfig.page_name || facebookConfig.page_id}
+                    </p>
+                    {facebookConfig.token_expires_at && (
+                      <p
+                        className="text-[10px] mt-0.5"
+                        style={{
+                          color: isTokenExpiringSoon(facebookConfig.token_expires_at) ? T.red : T.muted,
+                        }}
+                      >
+                        {copy.fbExpires}: {formatExpiryDate(facebookConfig.token_expires_at)}
+                        {isTokenExpiringSoon(facebookConfig.token_expires_at) && ' ⚠️'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tip */}
+            {!facebookConfig?.is_connected && (
+              <p className="text-xs leading-relaxed" style={{ color: T.muted }}>
+                {copy.fbTip}
+              </p>
+            )}
+
+            {/* Botones */}
+            {!isProActivo ? (
+              <div
+                className="rounded-xl p-4 flex items-start gap-3"
+                style={{ backgroundColor: T.goldPale, border: `1px solid rgba(201,168,76,0.35)` }}
+              >
+                <span className="text-lg flex-shrink-0">🔒</span>
+                <div className="flex-1">
+                  <p className="text-sm font-bold mb-1" style={{ color: T.navy }}>{copy.proRequired}</p>
+                  <a
+                    href="/pro"
+                    className="inline-block px-4 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform"
+                    style={{
+                      background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`,
+                      color: T.navy,
+                    }}
+                  >
+                    🚀 {copy.proUpgrade}
+                  </a>
+                </div>
+              </div>
+            ) : facebookConfig?.is_connected ? (
+              <div className="flex gap-3">
+                <button
+                  onClick={handleConnectFacebook}
+                  disabled={connecting}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-50"
+                  style={{ border: `1.5px solid ${T.navy}`, color: T.navy, backgroundColor: T.white }}
+                >
+                  {connecting ? copy.fbConnecting : `🔄 ${language === 'en' ? 'Reconnect' : 'Reconectar'}`}
+                </button>
+                <button
+                  onClick={handleDisconnectFacebook}
+                  disabled={disconnecting}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm text-white active:scale-95 transition-transform disabled:opacity-50"
+                  style={{ backgroundColor: T.red }}
+                >
+                  {disconnecting ? copy.fbDisconnecting : `🔌 ${copy.fbDisconnect}`}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleConnectFacebook}
+                disabled={connecting}
+                className="w-full py-3.5 rounded-xl font-bold text-sm text-white active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ backgroundColor: '#1877F2', boxShadow: '0 2px 8px rgba(24,119,242,0.3)' }}
+              >
+                {connecting ? (
+                  <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>{copy.fbConnecting}</>
+                ) : (
+                  <><svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>{copy.fbConnect}</>
+                )}
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* ── Columna derecha: FAQ (sticky en desktop) ── */}
-        <div className="space-y-4 md:sticky md:top-4">
-          <div className="rounded-2xl p-5 shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
-            <h3 className="font-bold text-lg mb-3" style={{ color: '#0F172A' }}>
-              ❓ {language === 'en' ? 'Frequently Asked Questions' : 'Preguntas frecuentes'}
-            </h3>
-
-            <div className="space-y-4 text-sm">
-              <div>
-                <p className="font-semibold mb-1" style={{ color: '#0F172A' }}>
-                  {language === 'en'
-                    ? 'Can I connect multiple accounts per platform?'
-                    : '¿Puedo conectar varias cuentas por plataforma?'}
-                </p>
-                <p className="text-xs" style={{ color: '#6B7280' }}>
-                  {language === 'en'
-                    ? 'Currently one account per platform. Disconnect the current one to connect a different account.'
-                    : 'Por ahora una cuenta por plataforma. Desconecta la actual para conectar una diferente.'}
-                </p>
-              </div>
-
-              <div>
-                <p className="font-semibold mb-1" style={{ color: '#0F172A' }}>
-                  {language === 'en' ? 'Is my account data secure?' : '¿Mis datos de cuenta están seguros?'}
-                </p>
-                <p className="text-xs" style={{ color: '#6B7280' }}>
-                  {language === 'en'
-                    ? 'We use Post For Me as a secure intermediary. We never store your social network passwords.'
-                    : 'Usamos Post For Me como intermediario seguro. Nunca almacenamos tus contraseñas de redes sociales.'}
-                </p>
-              </div>
-
-              <div>
-                <p className="font-semibold mb-1" style={{ color: '#0F172A' }}>
-                  {language === 'en' ? 'What happens if I disconnect?' : '¿Qué pasa si desconecto?'}
-                </p>
-                <p className="text-xs" style={{ color: '#6B7280' }}>
-                  {language === 'en'
-                    ? 'Your existing posts stay published. You just lose the ability to publish new content until you reconnect.'
-                    : 'Tus publicaciones existentes se mantienen. Solo pierdes la capacidad de publicar contenido nuevo hasta que vuelvas a conectar.'}
-                </p>
-              </div>
-
-              <div>
-                <p className="font-semibold mb-1" style={{ color: '#0F172A' }}>
-                  {language === 'en' ? 'What type of content can I publish?' : '¿Qué tipo de contenido puedo publicar?'}
-                </p>
-                <p className="text-xs" style={{ color: '#6B7280' }}>
-                  {language === 'en'
-                    ? 'Facebook: image posts and Reels. TikTok: short videos. All directly from a property.'
-                    : 'Facebook: posts con imágenes y Reels. TikTok: videos cortos. Todo directamente desde una propiedad.'}
-                </p>
-              </div>
+        {/* Placeholder otras redes — futuro */}
+        <div
+          className="rounded-2xl p-5 shadow-sm"
+          style={{ backgroundColor: T.white, border: `1px solid ${T.border}`, opacity: 0.5 }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+              style={{ backgroundColor: T.cream, border: `1px solid ${T.border}` }}
+            >
+              📷
             </div>
-          </div>
-
-          <div
-            className="rounded-2xl p-4 text-center"
-            style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
-          >
-            <p className="text-xs" style={{ color: '#94A3B8' }}>
-              {language === 'en' ? 'Publishing powered by' : 'Publicación impulsada por'}
-            </p>
-            <p className="font-bold text-sm mt-0.5" style={{ color: '#475569' }}>Post For Me</p>
+            <div>
+              <h3 className="font-bold text-sm" style={{ color: T.navy }}>Instagram</h3>
+              <p className="text-xs" style={{ color: T.muted }}>
+                {language === 'en' ? 'Coming soon' : 'Próximamente'}
+              </p>
+            </div>
+            <span
+              className="ml-auto text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0"
+              style={{ backgroundColor: T.goldPale, color: T.navy, border: `1px solid rgba(201,168,76,0.35)` }}
+            >
+              {language === 'en' ? 'Soon' : 'Pronto'}
+            </span>
           </div>
         </div>
 

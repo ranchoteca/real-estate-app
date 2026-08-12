@@ -87,8 +87,8 @@
         "title": "Campos Personalizados",
         "description": "Configura campos para cada tipo de propiedad"
       },
-      "facebook": {
-        "title": "Facebook",
+      "social": {
+        "title": "Redes Sociales",
         "description": "Publica automáticamente tus propiedades",
         "publishing": "Publicando en Facebook",
         "publishError": "Error al publicar",

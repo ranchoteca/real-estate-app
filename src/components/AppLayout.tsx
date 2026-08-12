@@ -51,7 +51,7 @@ export default function AppLayout({
   const { language } = useI18nStore();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [planInfo, setPlanInfo] = useState<{ plan: string; role: string; maxProperties: number; full_name?: string } | null>(null);
+  const [planInfo, setPlanInfo] = useState<{ plan: string; role: string; maxProperties: number; full_name?: string; expires_at?: string | null } | null>(null);
 
   useEffect(() => {
     const loadPlan = async () => {
@@ -63,7 +63,7 @@ export default function AppLayout({
     if (session) loadPlan();
   }, [session]);
 
-  const isProActivo = planInfo?.role === 'admin' || planInfo?.plan === 'pro';
+  const isProActivo = planInfo?.role === 'admin' || (planInfo?.plan === 'pro' && !!planInfo?.expires_at && new Date(planInfo.expires_at) > new Date());
   const propertyLimit = isProActivo ? 150 : 5;
   const isAtLimit = currentPropertyCount !== undefined && currentPropertyCount >= propertyLimit;
 

@@ -215,48 +215,6 @@ export default function SettingsPage() {
           </h1>
         </div>
 
-        {/* Header card — nombre completo del agente */}
-        <div
-          className="rounded-2xl p-4 mb-4 shadow-sm"
-          style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}
-        >
-          <div className="flex items-center gap-4">
-            {/* Inicial del nombre completo */}
-            <div
-              className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold flex-shrink-0"
-              style={{
-                background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`,
-                color: T.navy,
-                boxShadow: '0 2px 8px rgba(201,168,76,0.3)',
-              }}
-            >
-              {displayInitial}
-            </div>
-            <div className="flex-1 min-w-0">
-              {/* Nombre completo del agente */}
-              <h2 className="text-base font-bold truncate" style={{ color: T.navy }}>
-                {displayName}
-              </h2>
-              <p className="text-xs truncate mb-1.5" style={{ color: T.muted }}>
-                {session.user.email}
-              </p>
-              <span
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold"
-                style={{
-                  backgroundColor: session.user.plan === 'pro' ? T.goldPale : T.cream,
-                  color: session.user.plan === 'pro' ? T.navy : T.muted,
-                  border: `1px solid ${session.user.plan === 'pro' ? 'rgba(201,168,76,0.4)' : T.border}`,
-                }}
-              >
-                {session.user.plan === 'pro' && <span style={{ color: T.gold }}>✦</span>}
-                {session.user.plan === 'pro'
-                  ? t('settings.userInfo.planPro')
-                  : t('settings.userInfo.planFree')}
-              </span>
-            </div>
-          </div>
-        </div>
-
         {/* Opciones */}
         <div className="space-y-2 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3">
           {settingsOptions.map((option, index) => {

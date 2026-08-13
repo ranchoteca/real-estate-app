@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
       if (esConfirmacionSi(resolvedText)) {
         const lastBotContent = await getLastBotMessage(agent.id);
         if (lastBotContent?.includes('¿Todo correcto? Responde *SÍ*')) {
-          await handleConfirmacion(agent.id, cleanNumber, primerNombre);
+          await handleConfirmacion(agent.id, cleanNumber, primerNombre, lastBotContent);
           return NextResponse.json({ success: true, status: 'property_confirmed' });
         }
       }

@@ -512,10 +512,72 @@ export async function handleListo(
   await upsertDraft(agentId, { pending_photos: photoCount });
 }
 
+// Parses the confirmed summary message to reconstruct a PropertyDraft with all
+// text fields. Used by handleConfirmacion() as a fallback when the draft in
+// Supabase has null fields due to a race condition between handleListo() and
+// the Sí confirmation arriving before the upsert completes.
+// The summary has a fixed format so regex extraction is reliable here.
+function parsearResumen(resumenText: string, draftFotos: string[], draftCustomFields: Record<string, string | number>): Partial<PropertyDraft> {
+  const get = (emoji: string): string | null => {
+    const regex = new RegExp(emoji + '\\s*\\*?[^:]+:\\*?\\s*(.+)', 'u');
+    const match = resumenText.match(regex);
+    return match ? match[1].trim() : null;
+  };
+
+  const titulo = get('📌');
+  const tipoLabel = get('🏷️');
+  const negocioLabel = get('📋');
+  const precioRaw = get('💰');
+  const provincia = get('📍\\s*\\*?Provincia');
+  const ciudad = get('🌆');
+  const direccion = get('🏠\\s*\\*?Dirección');
+  const mapsUrl = get('📍\\s*\\*?Google Maps');
+  const idiomaLabel = get('🌐');
+
+  // Reverse map tipo label → property_type key
+  const tipoReverso: Record<string, string> = {
+    'Casa': 'house', 'Condominio': 'condo', 'Apartamento': 'apartment',
+    'Terreno': 'land', 'Finca': 'finca', 'Quinta': 'quinta',
+    'Comercial': 'commercial', 'Hotel': 'hotel', 'Otros': 'other',
+  };
+  const negocioReverso: Record<string, string> = { 'Venta': 'sale', 'Alquiler': 'rent' };
+
+  // Price: strip dots/spaces used as thousand separators, extract number
+  let price: number | null = null;
+  let currency_id: string | null = null;
+  if (precioRaw) {
+    const numStr = precioRaw.replace(/[\s.]/g, '').replace(',', '.');
+    const numMatch = numStr.match(/[\d]+(?:\.\d+)?/);
+    if (numMatch) price = parseFloat(numMatch[0]);
+    if (/USD/i.test(precioRaw)) {
+      currency_id = '839f44d5-bee2-4bc1-b5da-50364f14c681';
+    } else if (/CRC|₡|colones/i.test(precioRaw)) {
+      currency_id = 'ec8528a3-d504-47fa-97db-2c07716d8b47';
+    }
+  }
+
+  return {
+    title: titulo || undefined,
+    property_type: tipoLabel ? (tipoReverso[tipoLabel] || 'other') : undefined,
+    listing_type: negocioLabel ? (negocioReverso[negocioLabel] || 'sale') : undefined,
+    price: price || undefined,
+    currency_id: currency_id || undefined,
+    state_province: provincia || undefined,
+    city: ciudad || undefined,
+    address: (direccion && direccion !== 'No indicada') ? direccion : undefined,
+    maps_url: (mapsUrl && mapsUrl !== 'No indicado') ? mapsUrl : undefined,
+    language: idiomaLabel === 'Inglés' ? 'en' : 'es',
+    photos: draftFotos,
+    pending_photos: draftFotos.length,
+    custom_fields_data: draftCustomFields,
+  };
+}
+
 export async function handleConfirmacion(
   agentId: string,
   cleanNumber: string,
-  primerNombre: string
+  primerNombre: string,
+  lastBotContent: string
 ) {
   const draft = await getDraft(agentId);
 
@@ -524,26 +586,39 @@ export async function handleConfirmacion(
     return;
   }
 
-  // ── Defensive guard: ensure critical fields are present before attempting insert ──
-  // If correction_mode caused the LLM to null out a field and re-extraction failed,
-  // this prevents a Supabase not-null constraint error and gives the agent a clear path forward.
+  // ── If critical fields are missing in the draft (race condition: Sí arrived before
+  // upsertDraft from handleListo() completed), reconstruct them directly from the
+  // summary text that is already in lastBotContent. The summary is the source of
+  // truth — if it rendered correctly, all the data is there.
+  let draftParaCrear: PropertyDraft = draft;
+
   if (!draft.title || !draft.property_type || !draft.listing_type || !draft.price || !draft.city) {
-    console.error('[handleConfirmacion] Draft missing critical fields:', {
-      title: draft.title,
-      property_type: draft.property_type,
-      listing_type: draft.listing_type,
-      price: draft.price,
-      city: draft.city,
+    console.log('[handleConfirmacion] Draft fields null — reconstructing from summary text.');
+    const fromResumen = parsearResumen(lastBotContent, draft.photos || [], draft.custom_fields_data || {});
+    draftParaCrear = { ...draft, ...fromResumen };
+
+    // Persist the recovered fields so the draft is consistent going forward
+    await upsertDraft(agentId, fromResumen);
+  }
+
+  // Final check: if we still can't get the critical fields, abort gracefully
+  if (!draftParaCrear.title || !draftParaCrear.property_type || !draftParaCrear.listing_type || !draftParaCrear.price || !draftParaCrear.city) {
+    console.error('[handleConfirmacion] Could not recover critical fields from summary:', {
+      title: draftParaCrear.title,
+      property_type: draftParaCrear.property_type,
+      listing_type: draftParaCrear.listing_type,
+      price: draftParaCrear.price,
+      city: draftParaCrear.city,
     });
     await sendQueued(agentId, cleanNumber,
-      '⚠️ Parece que algunos datos de la propiedad no quedaron guardados correctamente.\n\nEscribe *LISTO* para que vuelva a analizar toda la información antes de crearla.'
+      '⚠️ No pude recuperar los datos de la propiedad. Escribe *LISTO* para que vuelva a analizar la información.'
     );
     return;
   }
 
   await sendQueued(agentId, cleanNumber, '⏳ Perfecto ' + primerNombre + ', creando tu propiedad... Dame un momento.');
   await clearDraft(agentId);
-  await crearPropiedad(agentId, cleanNumber, draft);
+  await crearPropiedad(agentId, cleanNumber, draftParaCrear);
 }
 
 async function crearPropiedad(

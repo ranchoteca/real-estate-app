@@ -524,6 +524,23 @@ export async function handleConfirmacion(
     return;
   }
 
+  // ── Defensive guard: ensure critical fields are present before attempting insert ──
+  // If correction_mode caused the LLM to null out a field and re-extraction failed,
+  // this prevents a Supabase not-null constraint error and gives the agent a clear path forward.
+  if (!draft.title || !draft.property_type || !draft.listing_type || !draft.price || !draft.city) {
+    console.error('[handleConfirmacion] Draft missing critical fields:', {
+      title: draft.title,
+      property_type: draft.property_type,
+      listing_type: draft.listing_type,
+      price: draft.price,
+      city: draft.city,
+    });
+    await sendQueued(agentId, cleanNumber,
+      '⚠️ Parece que algunos datos de la propiedad no quedaron guardados correctamente.\n\nEscribe *LISTO* para que vuelva a analizar toda la información antes de crearla.'
+    );
+    return;
+  }
+
   await sendQueued(agentId, cleanNumber, '⏳ Perfecto ' + primerNombre + ', creando tu propiedad... Dame un momento.');
   await clearDraft(agentId);
   await crearPropiedad(agentId, cleanNumber, draft);

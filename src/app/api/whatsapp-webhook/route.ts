@@ -39,6 +39,22 @@ const MENU_SHORTCUTS: Record<string, string> = {
   '5': 'quiero crear una propiedad',
 };
 
+// Returns the content of the most recent assistant message for this agent,
+// queried directly from the DB with no window or limit constraints.
+// Used to check whether the last bot message was the property summary,
+// so we never miss the confirmation due to history window truncation.
+async function getLastBotMessage(agentId: string): Promise<string | null> {
+  const { data } = await supabaseAdmin
+    .from('chat_messages')
+    .select('content')
+    .eq('agent_id', agentId)
+    .eq('role', 'assistant')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.content || null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -127,15 +143,12 @@ export async function POST(req: NextRequest) {
     // ══════════════════════════════════════════════════════════════════════════
     if (agentMode === 'CREAR_PROPIEDAD') {
 
-      // 1. SÍ confirmation — if the last bot message was the summary and the
-      // agent replies with any confirmation word, create the property immediately.
-      // This is the simplest and most robust check: no history window limits,
-      // no flags, no draft.title checks. The last bot message IS always the most
-      // recent record in the DB, so this can never be tricked by historial depth.
+      // 1. SÍ confirmation — check the last bot message directly from DB (no history
+      // window limits). If it was the summary and the agent says Sí → create property.
+      // This is the first check so nothing else can intercept the confirmation.
       if (esConfirmacionSi(resolvedText)) {
-        const historyForSi = await loadHistory(agent.id);
-        const lastBotMsg = historyForSi.findLast((m: any) => m.role === 'assistant');
-        if (lastBotMsg?.content?.includes('¿Todo correcto? Responde *SÍ*')) {
+        const lastBotContent = await getLastBotMessage(agent.id);
+        if (lastBotContent?.includes('¿Todo correcto? Responde *SÍ*')) {
           await handleConfirmacion(agent.id, cleanNumber, primerNombre);
           return NextResponse.json({ success: true, status: 'property_confirmed' });
         }
@@ -172,11 +185,10 @@ export async function POST(req: NextRequest) {
           } else {
             // Audio received post-summary — activate correction_mode so LISTO
             // re-extracts all fields from history instead of anchoring on draft.
-            // Only activate if last bot message was the summary confirmation.
+            // Query DB directly for last bot message — avoids history window truncation.
             const draftForAudio = await getDraft(agent.id);
-            const recentMsgsAudio = await loadHistory(agent.id);
-            const lastBotAudio = recentMsgsAudio.findLast((m: any) => m.role === 'assistant');
-            const audioAfterSummary = lastBotAudio?.content?.includes('¿Todo correcto? Responde *SÍ*');
+            const lastBotForAudio = await getLastBotMessage(agent.id);
+            const audioAfterSummary = lastBotForAudio?.includes('¿Todo correcto? Responde *SÍ*');
             if (draftForAudio?.title && audioAfterSummary) {
               await supabaseAdmin
                 .from('agent_property_draft')
@@ -225,11 +237,10 @@ export async function POST(req: NextRequest) {
       }
 
       // Only activate correction_mode if the last bot message was the summary.
-      // Audios/text sent BEFORE the summary (e.g. filling custom fields) should NOT
-      // activate correction_mode — only messages sent AFTER seeing the summary should.
-      const recentMsgs = await loadHistory(agent.id);
-      const lastBot = recentMsgs.findLast((m: any) => m.role === 'assistant');
-      const lastWasSummary = lastBot?.content?.includes('¿Todo correcto? Responde *SÍ*');
+      // Query DB directly — avoids history window truncation from 14+ photo webhooks
+      // flooding the 15-message loadHistory window and hiding the summary message.
+      const lastBotForCorrection = await getLastBotMessage(agent.id);
+      const lastWasSummary = lastBotForCorrection?.includes('¿Todo correcto? Responde *SÍ*');
       if (currentDraft?.title && lastWasSummary) {
         updates.correction_mode = true;
       }

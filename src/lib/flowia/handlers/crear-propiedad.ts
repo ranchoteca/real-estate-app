@@ -63,15 +63,17 @@ export async function upsertDraft(agentId: string, fields: Partial<PropertyDraft
     .maybeSingle();
 
   if (existing) {
-    await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from('agent_property_draft')
       .update({ ...fields, updated_at: new Date().toISOString() })
       .eq('agent_id', agentId)
       .eq('mode_active', true);
+    if (updateError) console.error('[upsertDraft] update error:', JSON.stringify(updateError));
   } else {
-    await supabaseAdmin
+    const { error: insertError } = await supabaseAdmin
       .from('agent_property_draft')
       .insert({ agent_id: agentId, photos: [], mode_active: true, ...fields });
+    if (insertError) console.error('[upsertDraft] insert error:', JSON.stringify(insertError));
   }
 }
 

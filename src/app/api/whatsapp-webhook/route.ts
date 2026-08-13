@@ -185,19 +185,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, status: 'listo_processed' });
       }
 
-      // 4. SÍ confirmation after the summary — create the property
-      // Trigger if draft has a title (LISTO ran at least once) and agent confirms.
-      // Reset correction_mode before checking so stale values don't block creation.
-      const draft = await getDraft(agent.id);
-      if (draft?.title && esConfirmacionSi(resolvedText)) {
-        // If correction_mode is still true, reset it and create anyway
-        // The summary was already shown with correct data
-        if (draft.correction_mode) {
-          await supabaseAdmin
-            .from('agent_property_draft')
-            .update({ correction_mode: false })
-            .eq('agent_id', agent.id);
-        }
+      // 4. SÍ confirmation — only trigger if the last bot message was the summary.
+      // Simple two-condition check: last message was the confirmation summary AND
+      // agent replied with a confirmation word. No flags, no draft.title check needed.
+      const recentHistory = await loadHistory(agent.id);
+      const lastBotMessage = recentHistory.findLast((m: any) => m.role === 'assistant');
+      const lastMessageWasSummary = lastBotMessage?.content?.includes('¿Todo correcto? Responde *SÍ*');
+      if (lastMessageWasSummary && esConfirmacionSi(resolvedText)) {
         await handleConfirmacion(agent.id, cleanNumber, primerNombre);
         return NextResponse.json({ success: true, status: 'property_creation_started' });
       }

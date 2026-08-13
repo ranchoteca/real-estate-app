@@ -108,29 +108,6 @@ export async function POST(req: NextRequest) {
     // Resolve numeric menu shortcut early so we can check intent before deduplication
     const resolvedText = MENU_SHORTCUTS[messageText.trim()] || messageText;
 
-    // ── Early SI check — must happen BEFORE deduplication ─────────────────────
-    // If the agent says Sí and there is a pending summary in recent bot messages,
-    // create the property immediately. Nothing should block this.
-    // We search recent bot messages (not just the last one) because audio
-    // transcriptions may appear between the summary and the agent's Sí.
-    if (esConfirmacionSi(resolvedText)) {
-      const { mode: earlyMode } = await getAgentMode(agent.id);
-      if (earlyMode === 'CREAR_PROPIEDAD') {
-        const earlyHistory = await loadHistory(agent.id);
-        const recentBotMessages = earlyHistory
-          .filter((m: any) => m.role === 'assistant')
-          .slice(-5); // check last 5 bot messages
-        const hasPendingSummary = recentBotMessages.some(
-          (m: any) => m.content?.includes('¿Todo correcto? Responde *SÍ*')
-        );
-        if (hasPendingSummary) {
-          await saveMessage(agent.id, 'user', resolvedText);
-          await handleConfirmacion(agent.id, cleanNumber, primerNombre);
-          return NextResponse.json({ success: true, status: 'property_creation_started' });
-        }
-      }
-    }
-
     // ── Deduplication ──────────────────────────────────────────────────────────
     // Media webhooks arrive with empty messageBody — never deduplicate them here;
     // they are deduplicated by messageId inside handleMediaEnDraft instead.
@@ -150,7 +127,21 @@ export async function POST(req: NextRequest) {
     // ══════════════════════════════════════════════════════════════════════════
     if (agentMode === 'CREAR_PROPIEDAD') {
 
-      // 1. Cancellation — agent wants to exit at any point
+      // 1. SÍ confirmation — if the last bot message was the summary and the
+      // agent replies with any confirmation word, create the property immediately.
+      // This is the simplest and most robust check: no history window limits,
+      // no flags, no draft.title checks. The last bot message IS always the most
+      // recent record in the DB, so this can never be tricked by historial depth.
+      if (esConfirmacionSi(resolvedText)) {
+        const historyForSi = await loadHistory(agent.id);
+        const lastBotMsg = historyForSi.findLast((m: any) => m.role === 'assistant');
+        if (lastBotMsg?.content?.includes('¿Todo correcto? Responde *SÍ*')) {
+          await handleConfirmacion(agent.id, cleanNumber, primerNombre);
+          return NextResponse.json({ success: true, status: 'property_confirmed' });
+        }
+      }
+
+      // 2. Cancellation — agent wants to exit at any point
       if (esIntentCancelar(resolvedText)) {
         await clearDraft(agent.id);
         const respuesta = `Entendido ${primerNombre}, cancelé la creación de la propiedad. ¿En qué más te puedo ayudar?`;
@@ -159,7 +150,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, status: 'creation_cancelled' });
       }
 
-      // 2. Incoming media (photo or audio)
+      // 3. Incoming media (photo or audio)
       const mediaInfo = extractMediaInfo(rawMessage);
       if (mediaInfo) {
         const respuesta = await handleMediaEnDraft(agent.id, cleanNumber, messageId, rawMessage, watermarkConfig);
@@ -198,7 +189,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, status: 'media_processed_in_draft' });
       }
 
-      // 3. LISTO command — block if summary already auto-triggered to prevent duplicates
+      // 4. LISTO command — block if summary already auto-triggered to prevent duplicates
       if (esComandoListo(resolvedText)) {
         const draftCheck = await getDraft(agent.id);
         if (draftCheck?.summary_triggered) {
@@ -207,17 +198,6 @@ export async function POST(req: NextRequest) {
         }
         await handleListo(agent.id, cleanNumber, primerNombre, draftCreatedAt!);
         return NextResponse.json({ success: true, status: 'listo_processed' });
-      }
-
-      // 4. SÍ confirmation — only trigger if the last bot message was the summary.
-      // Simple two-condition check: last message was the confirmation summary AND
-      // agent replied with a confirmation word. No flags, no draft.title check needed.
-      const recentHistory = await loadHistory(agent.id);
-      const lastBotMessage = recentHistory.findLast((m: any) => m.role === 'assistant');
-      const lastMessageWasSummary = lastBotMessage?.content?.includes('¿Todo correcto? Responde *SÍ*');
-      if (lastMessageWasSummary && esConfirmacionSi(resolvedText)) {
-        await handleConfirmacion(agent.id, cleanNumber, primerNombre);
-        return NextResponse.json({ success: true, status: 'property_creation_started' });
       }
 
       // 5. "¿Qué me falta?" — respond with pending fields without triggering LISTO

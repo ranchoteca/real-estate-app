@@ -105,6 +105,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, status: 'new_session_welcomed' });
     }
 
+    // Resolve numeric menu shortcut early so we can check intent before deduplication
+    const resolvedText = MENU_SHORTCUTS[messageText.trim()] || messageText;
+
+    // ── Early SI check — must happen BEFORE deduplication ─────────────────────
+    // If the last bot message was the confirmation summary AND agent says Sí,
+    // create the property immediately. Nothing should block this — not dedup,
+    // not correction_mode, not any other mechanism.
+    if (esConfirmacionSi(resolvedText)) {
+      const { mode: earlyMode } = await getAgentMode(agent.id);
+      if (earlyMode === 'CREAR_PROPIEDAD') {
+        const earlyHistory = await loadHistory(agent.id);
+        const lastBotMsg = earlyHistory.findLast((m: any) => m.role === 'assistant');
+        const lastWasSummary = lastBotMsg?.content?.includes('¿Todo correcto? Responde *SÍ*');
+        if (lastWasSummary) {
+          await saveMessage(agent.id, 'user', resolvedText);
+          await handleConfirmacion(agent.id, cleanNumber, primerNombre);
+          return NextResponse.json({ success: true, status: 'property_creation_started' });
+        }
+      }
+    }
+
     // ── Deduplication ──────────────────────────────────────────────────────────
     // Media webhooks arrive with empty messageBody — never deduplicate them here;
     // they are deduplicated by messageId inside handleMediaEnDraft instead.
@@ -113,8 +134,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, status: 'ignored_webhook_retry' });
     }
 
-    // Resolve numeric menu shortcut before saving so history stores the intent
-    const resolvedText = MENU_SHORTCUTS[messageText.trim()] || messageText;
     await saveMessage(agent.id, 'user', resolvedText);
 
     // ── Detect active agent mode ───────────────────────────────────────────────

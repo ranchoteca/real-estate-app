@@ -28,10 +28,7 @@ export async function loadHistory(agentId: string) {
 // We subtract 60s from draftCreatedAt as a buffer to handle any clock skew
 // or timezone offset between Supabase and the webhook server.
 export async function loadDraftHistory(agentId: string, draftCreatedAt: string) {
-  // Subtract 60 seconds to ensure we don't miss messages saved just before
-  // or at the same instant the draft was created
   const safeStart = new Date(new Date(draftCreatedAt).getTime() - 60 * 1000).toISOString();
-
 
   const { data } = await supabaseAdmin
     .from('chat_messages')
@@ -39,7 +36,6 @@ export async function loadDraftHistory(agentId: string, draftCreatedAt: string) 
     .eq('agent_id', agentId)
     .gte('created_at', safeStart)
     .order('created_at', { ascending: true });
-
 
   return data || [];
 }
@@ -60,10 +56,21 @@ export async function isDuplicateMessage(
 ): Promise<boolean> {
   if (!messageText || messageText.trim() === '') return false;
 
-  // Never deduplicate short confirmation words — agent may legitimately send
-  // "Si" twice in quick succession (once after audio, once after summary)
-  const confirmations = /^(s[ií]|si|sí|dale|ok|okay|va|listo)\.?!?$/i;
-  if (confirmations.test(messageText.trim())) return false;
+  // Never deduplicate short confirmation/command words in CREAR_PROPIEDAD mode.
+  // The agent may legitimately send "Si" or "Listo" multiple times in quick
+  // succession (e.g. once after custom field audio, once after the summary).
+  // Filtering these causes the SÍ confirmation to be swallowed and the property
+  // never gets created.
+  const isShortCommand = /^(s[ií]|listo|0)\.?!?$/i.test(messageText.trim());
+  if (isShortCommand) {
+    // Only skip dedup if there is an active draft — in normal mode, dedup is fine
+    const { data: activeDraft } = await supabaseAdmin
+      .from('agent_property_draft')
+      .select('id')
+      .eq('mode_active', true)
+      .maybeSingle();
+    if (activeDraft) return false;
+  }
 
   const windowStart = new Date(
     Date.now() - DUPLICATE_WINDOW_SECONDS * 1000

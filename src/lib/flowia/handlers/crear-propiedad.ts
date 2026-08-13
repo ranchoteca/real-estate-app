@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { supabaseAdmin } from '@/lib/supabase';
-import { loadDraftHistory } from '../session';
+import { loadDraftHistory, saveMessage } from '../session';
 import { sendQueued } from '@/lib/api/wasender';
 import { decryptWasenderMedia, extractMediaInfo } from '../media/decrypt';
 import { uploadPhotoFromUrl } from '../media/upload-photo';
@@ -508,6 +508,7 @@ export async function handleListo(
     + '¿Todo correcto? Responde *SÍ* para crear la propiedad, o corrígeme lo que esté mal.';
 
   await sendQueued(agentId, cleanNumber, resumen);
+  await saveMessage(agentId, 'assistant', resumen);
   await upsertDraft(agentId, { pending_photos: photoCount });
 }
 

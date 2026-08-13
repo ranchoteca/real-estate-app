@@ -109,16 +109,21 @@ export async function POST(req: NextRequest) {
     const resolvedText = MENU_SHORTCUTS[messageText.trim()] || messageText;
 
     // ── Early SI check — must happen BEFORE deduplication ─────────────────────
-    // If the last bot message was the confirmation summary AND agent says Sí,
-    // create the property immediately. Nothing should block this — not dedup,
-    // not correction_mode, not any other mechanism.
+    // If the agent says Sí and there is a pending summary in recent bot messages,
+    // create the property immediately. Nothing should block this.
+    // We search recent bot messages (not just the last one) because audio
+    // transcriptions may appear between the summary and the agent's Sí.
     if (esConfirmacionSi(resolvedText)) {
       const { mode: earlyMode } = await getAgentMode(agent.id);
       if (earlyMode === 'CREAR_PROPIEDAD') {
         const earlyHistory = await loadHistory(agent.id);
-        const lastBotMsg = earlyHistory.findLast((m: any) => m.role === 'assistant');
-        const lastWasSummary = lastBotMsg?.content?.includes('¿Todo correcto? Responde *SÍ*');
-        if (lastWasSummary) {
+        const recentBotMessages = earlyHistory
+          .filter((m: any) => m.role === 'assistant')
+          .slice(-5); // check last 5 bot messages
+        const hasPendingSummary = recentBotMessages.some(
+          (m: any) => m.content?.includes('¿Todo correcto? Responde *SÍ*')
+        );
+        if (hasPendingSummary) {
           await saveMessage(agent.id, 'user', resolvedText);
           await handleConfirmacion(agent.id, cleanNumber, primerNombre);
           return NextResponse.json({ success: true, status: 'property_creation_started' });

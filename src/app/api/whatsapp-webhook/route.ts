@@ -112,6 +112,10 @@ export async function POST(req: NextRequest) {
     const isNewSession = history.length === 0;
 
     if (isNewSession) {
+      // Clear any stale draft from a previous abandoned session so the agent
+      // is not silently dropped back into CREAR_PROPIEDAD mode after a greeting.
+      await clearDraft(agent.id);
+
       const mensajeBienvenida = buildWelcomeMessage(primerNombre);
       await sendQueued(agent.id, cleanNumber, mensajeBienvenida);
       await saveMessage(agent.id, 'assistant', mensajeBienvenida);

@@ -14,6 +14,7 @@ import { handleEnviarPdf } from '@/lib/flowia/handlers/enviar-pdf';
 import { handleCalcularAltura } from '@/lib/flowia/handlers/calcular-altura';
 import {
   handleIniciarCreacion,
+  handleLanguageSelection,
   handleMediaEnDraft,
   handleListo,
   handleConfirmacion,
@@ -22,9 +23,11 @@ import {
   clearDraft,
   esConfirmacionSi,
   esComandoListo,
+  esSeleccionIdioma,
   esIntentCancelar,
   esIntentCrearPropiedad,
   esConsultaQueFalta,
+  FlowLanguage,
   AgentWatermarkConfig,
 } from '@/lib/flowia/handlers/crear-propiedad';
 
@@ -41,8 +44,6 @@ const MENU_SHORTCUTS: Record<string, string> = {
 
 // Returns the content of the most recent assistant message for this agent,
 // queried directly from the DB with no window or limit constraints.
-// Used to check whether the last bot message was the property summary,
-// so we never miss the confirmation due to history window truncation.
 async function getLastBotMessage(agentId: string): Promise<string | null> {
   const { data } = await supabaseAdmin
     .from('chat_messages')
@@ -59,7 +60,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Only handle incoming message events — ignore status updates, etc.
     if (body.event !== 'messages.received') {
       return NextResponse.json({ success: true, status: 'ignored_not_message_event' });
     }
@@ -90,12 +90,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, status: 'ignored_unauthorized_or_inactive' });
     }
 
-    const primerNombre = agent.full_name ? agent.full_name.trim().split(' ')[0] : 'Agente';
+    const primerNombre = agent.full_name ? agent.full_name.trim().split(' ')[0] : 'Agent';
     const linkTarjeta = agent.username
       ? `${BASE_DOMAIN}/agent/${agent.username}/card?lang=es`
       : BASE_DOMAIN;
 
-    // Load watermark config — used when processing photos in CREAR_PROPIEDAD mode
     const watermarkConfig: AgentWatermarkConfig = {
       watermark_logo: agent.watermark_logo,
       watermark_position: agent.watermark_position,
@@ -119,18 +118,15 @@ export async function POST(req: NextRequest) {
       const mensajeBienvenida = buildWelcomeMessage(primerNombre);
       await sendQueued(agent.id, cleanNumber, mensajeBienvenida);
       await saveMessage(agent.id, 'assistant', mensajeBienvenida);
-      // Save incoming message and return — welcome IS the response for first message.
-      // Also prevents double-welcome bug from Wasender webhook retries.
       await saveMessage(agent.id, 'user', messageText);
       return NextResponse.json({ success: true, status: 'new_session_welcomed' });
     }
 
-    // Resolve numeric menu shortcut early so we can check intent before deduplication
-    const resolvedText = MENU_SHORTCUTS[messageText.trim()] || messageText;
+    // Resolve numeric menu shortcut — but NOT 1/2 since those are language selections
+    const isMenuShortcut = MENU_SHORTCUTS[messageText.trim()] !== undefined;
+    const resolvedText = isMenuShortcut ? MENU_SHORTCUTS[messageText.trim()] : messageText;
 
     // ── Deduplication ──────────────────────────────────────────────────────────
-    // Media webhooks arrive with empty messageBody — never deduplicate them here;
-    // they are deduplicated by messageId inside handleMediaEnDraft instead.
     if (await isDuplicateMessage(agent.id, messageText)) {
       console.log('⏳ Duplicate webhook detected. Ignoring.');
       return NextResponse.json({ success: true, status: 'ignored_webhook_retry' });
@@ -143,120 +139,91 @@ export async function POST(req: NextRequest) {
 
     // ══════════════════════════════════════════════════════════════════════════
     // MODE: CREAR_PROPIEDAD
-    // All messages routed here until flow completes or agent cancels.
     // ══════════════════════════════════════════════════════════════════════════
     if (agentMode === 'CREAR_PROPIEDAD') {
 
-      // 1. SÍ confirmation — check the last bot message directly from DB (no history
-      // window limits). If it was the summary and the agent says Sí → create property.
-      // This is the first check so nothing else can intercept the confirmation.
+      // Read draft to get flow_language — default to 'es' if not set yet
+      const draft = await getDraft(agent.id);
+      const lang: FlowLanguage = draft?.flow_language || 'es';
+      const awaitingLanguage = !draft?.flow_language;
+
+      // ── Language selection (1 or 2) — only valid right after flow initiation
+      if (awaitingLanguage && esSeleccionIdioma(resolvedText)) {
+        await handleLanguageSelection(agent.id, cleanNumber, primerNombre, resolvedText);
+        return NextResponse.json({ success: true, status: 'language_selected' });
+      }
+
+      // ── If still awaiting language and agent sent something else, re-ask
+      if (awaitingLanguage) {
+        const langQuestion = '🌐 ¿En qué idioma vas a crear esta propiedad? / What language will you use for this property?\n\n🇨🇷 *1.* Español\n🇺🇸 *2.* English';
+        await sendQueued(agent.id, cleanNumber, langQuestion);
+        return NextResponse.json({ success: true, status: 'language_reasked' });
+      }
+
+      // 1. Confirmation (Sí / Yes) — check last bot message directly from DB
       if (esConfirmacionSi(resolvedText)) {
         const lastBotContent = await getLastBotMessage(agent.id);
-        if (lastBotContent?.includes('¿Todo correcto? Responde *SÍ*')) {
-          await handleConfirmacion(agent.id, cleanNumber, primerNombre, lastBotContent);
+        const confirmMarkerEs = '¿Todo correcto? Responde *SÍ*';
+        const confirmMarkerEn = 'Is everything correct? Reply *YES*';
+        if (lastBotContent?.includes(confirmMarkerEs) || lastBotContent?.includes(confirmMarkerEn)) {
+          await handleConfirmacion(agent.id, cleanNumber, primerNombre, lastBotContent, lang);
           return NextResponse.json({ success: true, status: 'property_confirmed' });
         }
       }
 
-      // 2. Cancellation — agent wants to exit at any point
+      // 2. Cancellation
       if (esIntentCancelar(resolvedText)) {
         await clearDraft(agent.id);
-        const respuesta = `Entendido ${primerNombre}, cancelé la creación de la propiedad. ¿En qué más te puedo ayudar?`;
-        await saveMessage(agent.id, 'assistant', respuesta);
-        await sendQueued(agent.id, cleanNumber, respuesta);
+        const cancelMsg = lang === 'en'
+          ? `Understood ${primerNombre}, I cancelled the property creation. How else can I help you?`
+          : `Entendido ${primerNombre}, cancelé la creación de la propiedad. ¿En qué más te puedo ayudar?`;
+        await saveMessage(agent.id, 'assistant', cancelMsg);
+        await sendQueued(agent.id, cleanNumber, cancelMsg);
         return NextResponse.json({ success: true, status: 'creation_cancelled' });
       }
 
       // 3. Incoming media (photo or audio)
       const mediaInfo = extractMediaInfo(rawMessage);
       if (mediaInfo) {
-        const respuesta = await handleMediaEnDraft(agent.id, cleanNumber, messageId, rawMessage, watermarkConfig);
+        const respuesta = await handleMediaEnDraft(agent.id, cleanNumber, messageId, rawMessage, lang, watermarkConfig);
 
         if (respuesta === '__PHOTO_MAX_REACHED__') {
-          // Only one webhook fires this sentinel — the one that pushed count to PHOTO_MAX.
-          // Wait 3s before reading the draft so all parallel photo webhooks finish writing.
-          // Without this delay, handleListo sees 0 photos because the other appends
-          // haven't completed yet when this webhook runs.
           await new Promise(resolve => setTimeout(resolve, 3000));
-          await handleListo(agent.id, cleanNumber, primerNombre, draftCreatedAt!);
+          await handleListo(agent.id, cleanNumber, primerNombre, draftCreatedAt!, lang);
           return NextResponse.json({ success: true, status: 'photo_max_auto_listo' });
         }
 
         if (respuesta) {
-          const isAudioTranscription = respuesta.startsWith('🎙️');
-          if (!isAudioTranscription) {
-            await saveMessage(agent.id, 'assistant', respuesta);
-          } else {
-            // Audio received post-summary — activate correction_mode so LISTO
-            // re-extracts all fields from history instead of anchoring on draft.
-            // Query DB directly for last bot message — avoids history window truncation.
-            const draftForAudio = await getDraft(agent.id);
-            const lastBotForAudio = await getLastBotMessage(agent.id);
-            const audioAfterSummary = lastBotForAudio?.includes('¿Todo correcto? Responde *SÍ*');
-            if (draftForAudio?.title && audioAfterSummary) {
-              await supabaseAdmin
-                .from('agent_property_draft')
-                .update({ correction_mode: true, summary_triggered: false })
-                .eq('agent_id', agent.id);
-            }
-          }
+          await saveMessage(agent.id, 'assistant', respuesta);
           await sendQueued(agent.id, cleanNumber, respuesta);
         }
         return NextResponse.json({ success: true, status: 'media_processed_in_draft' });
       }
 
-      // 4. LISTO command — block if summary already auto-triggered to prevent duplicates
-      if (esComandoListo(resolvedText)) {
-        const draftCheck = await getDraft(agent.id);
-        if (draftCheck?.summary_triggered) {
-          // Summary already fired automatically via PHOTO_MAX — ignore this manual LISTO
-          return NextResponse.json({ success: true, status: 'listo_ignored_already_triggered' });
-        }
-        await handleListo(agent.id, cleanNumber, primerNombre, draftCreatedAt!);
+      // 4. LISTO / READY command
+      if (esComandoListo(resolvedText, lang)) {
+        await handleListo(agent.id, cleanNumber, primerNombre, draftCreatedAt!, lang);
         return NextResponse.json({ success: true, status: 'listo_processed' });
       }
 
-      // 5. "¿Qué me falta?" — respond with pending fields without triggering LISTO
+      // 5. "What's missing?"
       if (esConsultaQueFalta(resolvedText)) {
         const draftActual = await getDraft(agent.id);
-        const respuesta = await handleQueFalta(agent.id, cleanNumber, draftActual, draftCreatedAt!);
+        const respuesta = await handleQueFalta(agent.id, cleanNumber, draftActual, draftCreatedAt!, lang);
         await saveMessage(agent.id, 'assistant', respuesta);
         await sendQueued(agent.id, cleanNumber, respuesta);
         return NextResponse.json({ success: true, status: 'que_falta_responded' });
       }
 
-      // 6. Empty message (media webhook with no text body) — ignore silently
+      // 6. Empty message — ignore silently
       if (!messageText || messageText.trim() === '') {
         return NextResponse.json({ success: true, status: 'draft_empty_message_ignored' });
       }
 
-      // 7. Free-form text — acknowledge and save to history so LISTO extractor sees it
-      const currentDraft = await getDraft(agent.id);
-
-      const updates: Record<string, any> = {};
-
-      // Reset summary_triggered so agent can write LISTO again after auto-analysis
-      if (currentDraft?.summary_triggered) {
-        updates.summary_triggered = false;
-      }
-
-      // Only activate correction_mode if the last bot message was the summary.
-      // Query DB directly — avoids history window truncation from 14+ photo webhooks
-      // flooding the 15-message loadHistory window and hiding the summary message.
-      const lastBotForCorrection = await getLastBotMessage(agent.id);
-      const lastWasSummary = lastBotForCorrection?.includes('¿Todo correcto? Responde *SÍ*');
-      if (currentDraft?.title && lastWasSummary) {
-        updates.correction_mode = true;
-      }
-
-      if (Object.keys(updates).length > 0) {
-        await supabaseAdmin
-          .from('agent_property_draft')
-          .update(updates)
-          .eq('agent_id', agent.id);
-      }
-
-      const ack = '📝 Recibido. Sigue enviando la información de la propiedad. Cuando termines, escribe *LISTO*.' + '\n' + '_Si no sabes qué falta, escríbeme *"¿Qué me falta?"* o simplemente *"0"*_';
+      // 7. Free-form text — acknowledge
+      const ack = lang === 'en'
+        ? '📝 Got it. Keep sending the property information. When you\'re done, type *READY*.\n_If you\'re not sure what\'s missing, type *"What\'s missing?"* or simply *"0"*_'
+        : '📝 Recibido. Sigue enviando la información de la propiedad. Cuando termines, escribe *LISTO*.\n_Si no sabes qué falta, escríbeme *"¿Qué me falta?"* o simplemente *"0"*_';
       await saveMessage(agent.id, 'assistant', ack);
       await sendQueued(agent.id, cleanNumber, ack);
       return NextResponse.json({ success: true, status: 'draft_text_acknowledged' });
@@ -266,19 +233,19 @@ export async function POST(req: NextRequest) {
     // MODE: NORMAL — shortcuts and OpenAI flow
     // ══════════════════════════════════════════════════════════════════════════
 
-    // Property creation intent (also triggered by menu shortcut '5')
     if (esIntentCrearPropiedad(resolvedText)) {
-      await handleIniciarCreacion(agent.id, cleanNumber, primerNombre);
+      await handleIniciarCreacion(agent.id, cleanNumber);
       return NextResponse.json({ success: true, status: 'crear_propiedad_initiated' });
     }
 
-    // PDF shortcut: if bot offered a PDF and agent confirms, send without OpenAI
+    // PDF shortcut
     const ultimoMensajeAsistente = history.length > 0 ? history[history.length - 1] : null;
     const ofrecioPdf = ultimoMensajeAsistente?.role === 'assistant'
-      && ultimoMensajeAsistente.content?.includes('¿Te gustaría que te envíe un PDF');
+      && (ultimoMensajeAsistente.content?.includes('¿Te gustaría que te envíe un PDF')
+        || ultimoMensajeAsistente.content?.includes('Would you like me to send you a PDF'));
     const yaEnvioPdf = ultimoMensajeAsistente?.role === 'assistant'
-      && /pdf.*(enviado|generado)/i.test(ultimoMensajeAsistente.content || '');
-    const esConfirmacionCorta = /^(s[ií]|s[ií] por favor|s[ií] me gustar[ií]a|dale|claro|ok|okay|va|porfa|porfavor)\.?!?$/i.test(resolvedText.trim());
+      && /pdf.*(enviado|generado|sent|generated)/i.test(ultimoMensajeAsistente.content || '');
+    const esConfirmacionCorta = /^(s[ií]|s[ií] por favor|dale|claro|ok|okay|va|porfa|yes|sure|please|go ahead)\.?!?$/i.test(resolvedText.trim());
 
     if (yaEnvioPdf && esConfirmacionCorta && !ofrecioPdf) {
       const respuesta = 'Perfecto, dime en qué más puedo ayudarte.';
@@ -309,7 +276,7 @@ export async function POST(req: NextRequest) {
     // ── Main OpenAI flow ───────────────────────────────────────────────────────
     const systemPrompt = getSystemPrompt(primerNombre, isNewSession, linkTarjeta);
     const messages: any[] = [
-      { role: 'system', content: systemPrompt },
+      { role: 'system', content: systemPrompt + '\n\nIMPORTANT: Always respond in the same language the agent is writing in. If they write in English, respond in English. If they write in Spanish, respond in Spanish.' },
       ...history,
       { role: 'user', content: resolvedText },
     ];
@@ -333,7 +300,6 @@ export async function POST(req: NextRequest) {
       if (functionName === 'buscar_propiedades') {
         const { toolResult, slugParaPdf } = await handleBuscarPropiedades(agent.id, args);
 
-        // Track last shown property so PDF shortcut knows which slug to use
         if (slugParaPdf) {
           await supabaseAdmin
             .from('agent_last_property_shown')
@@ -361,12 +327,11 @@ export async function POST(req: NextRequest) {
       }
 
     } else {
-      textoFinalParaEnviar = responseMessage.content || `Hola ${primerNombre}, ¿en qué puedo ayudarte hoy?`;
+      textoFinalParaEnviar = responseMessage.content || `Hello ${primerNombre}, how can I help you today?`;
     }
 
-    // Append source footer when property listings are shown
     const mencionaPropiedad = textoFinalParaEnviar.includes('🔗');
-    const yaTieneFuente = textoFinalParaEnviar.includes('Fuente:');
+    const yaTieneFuente = textoFinalParaEnviar.includes('Fuente:') || textoFinalParaEnviar.includes('Source:');
     const textoConFuente = mencionaPropiedad && !yaTieneFuente
       ? `${textoFinalParaEnviar}\n\n*Fuente: Plataforma inmobiliaria de FlowEstateAI*`
       : textoFinalParaEnviar;

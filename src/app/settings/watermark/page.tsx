@@ -96,18 +96,18 @@ export default function WatermarkSettingsPage() {
   const handleUploadWatermark = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.type !== 'image/png') { alert('Solo se permiten imágenes PNG con fondo transparente'); return; }
+    if (file.type !== 'image/png') { alert(t('watermark.onlyPng')); return; }
     if (file.size > 2 * 1024 * 1024) { alert(t('watermark.imageTooLarge')); return; }
     setUploadingWatermark(true);
     try {
       const formData = new FormData();
       formData.append('watermark', file);
       const response = await fetch('/api/watermark/upload-transparent', { method: 'POST', body: formData });
-      if (!response.ok) { const data = await response.json(); throw new Error(data.error || 'Error al subir marca de agua'); }
+      if (!response.ok) { const data = await response.json(); throw new Error(data.error || t('watermark.errorUploadWatermark')); }
       const data = await response.json();
       setWatermarkUrl(data.watermarkUrl);
       await loadSettings();
-      alert('Marca de agua subida correctamente');
+      alert(t('watermark.watermarkUploaded'));
     } catch (err: any) { alert(err.message); }
     finally { setUploadingWatermark(false); if (watermarkInputRef.current) watermarkInputRef.current.value = ''; }
   };
@@ -123,13 +123,13 @@ export default function WatermarkSettingsPage() {
   };
 
   const handleDeleteWatermark = async () => {
-    if (!confirm('¿Eliminar marca de agua?')) return;
+    if (!confirm(t('watermark.confirmDeleteWatermark'))) return;
     try {
       const response = await fetch('/api/watermark/delete-transparent', { method: 'DELETE' });
-      if (!response.ok) throw new Error('Error al eliminar marca de agua');
+      if (!response.ok) throw new Error(t('watermark.errorDeleteWatermark'));
       setWatermarkUrl(null);
       setUseWatermark(false);
-      alert('Marca de agua eliminada');
+      alert(t('watermark.watermarkDeleted'));
     } catch (err: any) { alert(err.message); }
   };
 
@@ -250,7 +250,7 @@ export default function WatermarkSettingsPage() {
           >
             <span className="text-lg flex-shrink-0">💡</span>
             <p className="text-xs leading-relaxed" style={{ color: T.navy, opacity: 0.8 }}>
-              Puedes usar <strong>logo en esquina</strong> y <strong>marca de agua centrada</strong> al mismo tiempo en las fotos de tus propiedades.
+              {t('watermark.tipBoth')}
             </p>
           </div>
 
@@ -268,11 +268,11 @@ export default function WatermarkSettingsPage() {
                 >
                   🏷️
                 </div>
-                <h3 className="font-bold text-sm" style={{ color: T.navy }}>Logo en Esquina</h3>
+                <h3 className="font-bold text-sm" style={{ color: T.navy }}>{t('watermark.cornerLogoTitle')}</h3>
               </div>
               {/* Toggle */}
               <label className="flex items-center gap-2 cursor-pointer">
-                <span className="text-xs font-semibold" style={{ color: T.muted }}>Usar en fotos</span>
+                <span className="text-xs font-semibold" style={{ color: T.muted }}>{t('watermark.useInPhotos')}</span>
                 <button
                   onClick={() => setUseCornerLogo(!useCornerLogo)}
                   className="relative flex-shrink-0 transition-colors duration-200"
@@ -297,7 +297,7 @@ export default function WatermarkSettingsPage() {
             </div>
 
             <p className="text-xs mb-4" style={{ color: T.muted }}>
-              Este logo se usará en las esquinas de las fotos y en los PDFs generados
+              {t('watermark.cornerLogoDesc')}
             </p>
 
             {logoUrl ? (
@@ -398,7 +398,7 @@ export default function WatermarkSettingsPage() {
                       boxShadow: '0 2px 8px rgba(201,168,76,0.3)',
                     }}
                   >
-                    {uploadingLogo ? t('watermark.uploading') : '📤 Subir Logo (PNG/JPG)'}
+                    {uploadingLogo ? t('watermark.uploading') : `📤 ${t('watermark.uploadLogo')}`}
                   </span>
                 </label>
               </div>
@@ -419,11 +419,11 @@ export default function WatermarkSettingsPage() {
                 >
                   💧
                 </div>
-                <h3 className="font-bold text-sm" style={{ color: T.navy }}>Marca de Agua Centrada</h3>
+                <h3 className="font-bold text-sm" style={{ color: T.navy }}>{t('watermark.centeredWatermarkTitle')}</h3>
               </div>
               {/* Toggle */}
               <label className="flex items-center gap-2 cursor-pointer">
-                <span className="text-xs font-semibold" style={{ color: T.muted }}>Usar en fotos</span>
+                <span className="text-xs font-semibold" style={{ color: T.muted }}>{t('watermark.useInPhotos')}</span>
                 <button
                   onClick={() => setUseWatermark(!useWatermark)}
                   className="relative flex-shrink-0 transition-colors duration-200"
@@ -448,7 +448,7 @@ export default function WatermarkSettingsPage() {
             </div>
 
             <p className="text-xs mb-4" style={{ color: T.muted }}>
-              Logo grande y semitransparente en el centro de las fotos (solo para propiedades)
+              {t('watermark.centeredWatermarkDesc')}
             </p>
 
             {/* Aviso remove.bg */}
@@ -457,10 +457,10 @@ export default function WatermarkSettingsPage() {
               style={{ backgroundColor: '#FFFBEB', border: '1.5px solid #FDE68A' }}
             >
               <p className="text-xs font-bold mb-1" style={{ color: '#B45309' }}>
-                ⚠️ Paso 1: Preparar tu logo
+                ⚠️ {t('watermark.removeBgStep')}
               </p>
               <p className="text-xs mb-2" style={{ color: '#B45309' }}>
-                Usa <strong>remove.bg</strong> para eliminar el fondo antes de subir
+                {t('watermark.removeBgDescPre')}<strong>remove.bg</strong>{t('watermark.removeBgDescPost')}
               </p>
               <a
                 href="https://www.remove.bg/es"
@@ -469,7 +469,7 @@ export default function WatermarkSettingsPage() {
                 className="block w-full py-2 px-3 rounded-lg font-bold text-center text-white text-xs active:scale-95 transition-transform"
                 style={{ backgroundColor: '#F59E0B' }}
               >
-                🔗 Ir a remove.bg
+                🔗 {t('watermark.removeBgButton')}
               </a>
             </div>
 
@@ -494,7 +494,7 @@ export default function WatermarkSettingsPage() {
                       className="block w-full py-2.5 rounded-xl font-bold text-sm text-center active:scale-95 transition-transform"
                       style={{ border: `1.5px solid ${T.navy}`, color: T.navy, backgroundColor: T.white }}
                     >
-                      {uploadingWatermark ? 'Subiendo...' : '🔄 Cambiar'}
+                      {uploadingWatermark ? t('watermark.uploading') : `🔄 ${t('watermark.change')}`}
                     </span>
                   </label>
                   <button
@@ -511,7 +511,7 @@ export default function WatermarkSettingsPage() {
                   <div className="pt-4 space-y-4" style={{ borderTop: `1px solid ${T.border}` }}>
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: T.muted }}>🔍 Tamaño</p>
+                        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: T.muted }}>🔍 {t('watermark.sizeLabel')}</p>
                         <span className="text-xs font-bold" style={{ color: T.navy }}>{scale}%</span>
                       </div>
                       <input
@@ -523,7 +523,7 @@ export default function WatermarkSettingsPage() {
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: T.muted }}>💎 Opacidad</p>
+                        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: T.muted }}>💎 {t('watermark.opacityLabel')}</p>
                         <span className="text-xs font-bold" style={{ color: T.navy }}>{opacity}%</span>
                       </div>
                       <input
@@ -543,7 +543,7 @@ export default function WatermarkSettingsPage() {
                   style={{ borderColor: T.border, backgroundColor: T.cream }}
                 >
                   <div className="text-4xl mb-2">💧</div>
-                  <p className="text-sm font-semibold" style={{ color: T.muted }}>No hay marca de agua</p>
+                  <p className="text-sm font-semibold" style={{ color: T.muted }}>{t('watermark.noWatermark')}</p>
                 </div>
                 <label className="block cursor-pointer">
                   <input ref={watermarkInputRef} type="file" accept="image/png" onChange={handleUploadWatermark} disabled={uploadingWatermark} className="hidden" />
@@ -554,7 +554,7 @@ export default function WatermarkSettingsPage() {
                       color: T.white,
                     }}
                   >
-                    {uploadingWatermark ? 'Subiendo...' : '📤 Subir PNG Transparente'}
+                    {uploadingWatermark ? t('watermark.uploading') : `📤 ${t('watermark.uploadPng')}`}
                   </span>
                 </label>
               </div>
@@ -576,7 +576,7 @@ export default function WatermarkSettingsPage() {
             </p>
             <PhotoPreview />
             <p className="text-xs mt-2 text-center" style={{ color: T.muted }}>
-              Vista previa aproximada de cómo se verá en las fotos
+              {t('watermark.previewHint')}
             </p>
           </div>
 
@@ -586,12 +586,12 @@ export default function WatermarkSettingsPage() {
             style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}
           >
             <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: T.muted }}>
-              Estado actual
+              {t('watermark.currentStatus')}
             </p>
             <div className="space-y-2">
               {[
-                { label: 'Logo en esquina', active: useCornerLogo && !!logoUrl, missing: !logoUrl },
-                { label: 'Marca de agua', active: useWatermark && !!watermarkUrl, missing: !watermarkUrl },
+                { label: t('watermark.cornerLogo'), active: useCornerLogo && !!logoUrl, missing: !logoUrl },
+                { label: t('watermark.watermarkLabel'), active: useWatermark && !!watermarkUrl, missing: !watermarkUrl },
               ].map((item, i) => (
                 <div key={i} className="flex items-center justify-between">
                   <span className="text-sm" style={{ color: T.charcoal }}>{item.label}</span>
@@ -603,7 +603,7 @@ export default function WatermarkSettingsPage() {
                       border: `1px solid ${item.active ? T.greenBorder : item.missing ? T.border : '#FECACA'}`,
                     }}
                   >
-                    {item.active ? '● Activo' : item.missing ? '○ Sin imagen' : '○ Inactivo'}
+                    {item.active ? `● ${t('watermark.active')}` : item.missing ? `○ ${t('watermark.noImage')}` : `○ ${t('watermark.inactive')}`}
                   </span>
                 </div>
               ))}

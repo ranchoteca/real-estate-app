@@ -494,7 +494,10 @@ export async function handleListo(
   lang: FlowLanguage
 ) {
   const draft = await getDraft(agentId);
-  const msg = MESSAGES[lang];
+  // Always use the persisted flow_language as source of truth.
+  // The lang param from route.ts may be stale if the draft was just created.
+  const resolvedLang: FlowLanguage = draft?.flow_language || lang;
+  const msg = MESSAGES[resolvedLang];
 
   const photoCount = draft?.photos?.length || 0;
   if (photoCount < PHOTO_MIN) {
@@ -518,7 +521,7 @@ export async function handleListo(
       messages: [
         { role: 'system', content: msg.extractionPrompt },
         ...historyMessages,
-        { role: 'user', content: lang === 'en' ? 'Extract the property data from the conversation.' : 'Extrae los datos de la propiedad del historial.' },
+        { role: 'user', content: resolvedLang === 'en' ? 'Extract the property data from the conversation.' : 'Extrae los datos de la propiedad del historial.' },
       ],
       temperature: 0,
     });
@@ -574,7 +577,7 @@ export async function handleListo(
       null, 2
     );
 
-    const cfSystemPrompt = lang === 'en'
+    const cfSystemPrompt = resolvedLang === 'en'
       ? 'You are a data extractor for custom property fields. Analyze the conversation and return ONLY valid JSON without backticks. Use null for missing values.\n\nFields to extract:\n' + cfFieldsList
       : 'Eres un extractor de valores para campos personalizados. Analiza la conversación y devuelve ÚNICAMENTE un JSON válido sin backticks. Usa null para valores no mencionados.\n\nCampos a extraer:\n' + cfFieldsList;
 
@@ -584,7 +587,7 @@ export async function handleListo(
         messages: [
           { role: 'system', content: cfSystemPrompt },
           ...historyMessages,
-          { role: 'user', content: lang === 'en' ? 'Extract the custom field values from the conversation.' : 'Extrae los valores de los campos personalizados del historial.' },
+          { role: 'user', content: resolvedLang === 'en' ? 'Extract the custom field values from the conversation.' : 'Extrae los valores de los campos personalizados del historial.' },
         ],
         temperature: 0,
       });
@@ -714,8 +717,8 @@ function parseSummaryText(
     }
   });
 
-  const propertyLang = (langRaw === sf.langEn) ? 'en' : 'es';
-
+  // Language is always the flow_language chosen by the agent at the start,
+  // never inferred from the summary text or the conversation.
   return {
     title: titleRaw || 'Property',
     price,
@@ -725,7 +728,7 @@ function parseSummaryText(
     state_province: (provinceRaw && provinceRaw !== noValue) ? provinceRaw : undefined,
     property_type: typeRaw ? (typeReverse[typeRaw] || 'other') : 'other',
     listing_type: listingRaw ? (listingReverse[listingRaw] || 'sale') : 'sale',
-    language: propertyLang,
+    language: lang,
     maps_url: (mapsRaw && mapsRaw !== noMap) ? mapsRaw : undefined,
     photos: draftPhotos,
     custom_fields_data: customFieldValues,
@@ -783,7 +786,10 @@ export async function handleConfirmacion(
   lang: FlowLanguage
 ) {
   const draft = await getDraft(agentId);
-  const msg = MESSAGES[lang];
+  // Always use the persisted flow_language as source of truth.
+  // The lang param from route.ts may be stale if the draft was just created.
+  const resolvedLang: FlowLanguage = draft?.flow_language || lang;
+  const msg = MESSAGES[resolvedLang];
 
   if (!draft) {
     await sendQueued(agentId, cleanNumber, msg.errorCreating);
@@ -819,7 +825,7 @@ export async function handleConfirmacion(
   }
 
   // Parse all property data from the confirmed summary — single source of truth
-  const propertyData = parseSummaryText(lastBotContent, lang, draft.photos || [], customFieldDefs);
+  const propertyData = parseSummaryText(lastBotContent, resolvedLang, draft.photos || [], customFieldDefs);
 
   if (!propertyData.title || !propertyData.price || !propertyData.city) {
     console.error('[handleConfirmacion] Could not parse critical fields from summary:', {
@@ -832,11 +838,11 @@ export async function handleConfirmacion(
   }
 
   // Generate AI description — always, since it's never in the summary
-  propertyData.description = await generateDescription(propertyData, lang);
+  propertyData.description = await generateDescription(propertyData, resolvedLang);
 
   await sendQueued(agentId, cleanNumber, msg.creating(primerNombre));
   await clearDraft(agentId);
-  await createProperty(agentId, cleanNumber, propertyData, lang);
+  await createProperty(agentId, cleanNumber, propertyData, resolvedLang);
 }
 
 // ── Property creation ─────────────────────────────────────────────────────────
@@ -983,7 +989,7 @@ export function esIntentCrearPropiedad(text: string): boolean {
 
 export function esConsultaQueFalta(text: string): boolean {
   if (text.trim() === '0') return true;
-  return /qu[eé]\s+(me\s+)?falta|qu[eé]\s+datos\s+faltan|qu[eé]\s+falta\s+por|qu[eé]\s+me\s+hace\s+falta|falta\s+algo|qu[eé]\s+necesitas|what('?s|\s+is)\s+missing|what\s+do\s+you\s+need|missing\s+fields?/i.test(text.trim());
+  return /qu[eé]\s+(me\s+)?falta|qu[eé]\s+datos\s+faltan|qu[eé]\s+falta\s+por|qu[eé]\s+me\s+hace\s+falta|falta\s+algo|qu[eé]\s+necesitas|what('?s|\s+is)\s+(else\s+)?missing|what\s+(else\s+)?do\s+you\s+need|missing\s+fields?/i.test(text.trim());
 }
 
 // ── "What's missing?" handler ─────────────────────────────────────────────────

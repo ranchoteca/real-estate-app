@@ -357,7 +357,7 @@ export default function LandingPage() {
         <div className="relative max-w-4xl mx-auto text-center">
           {/* Badge dorado sobre el título */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-6" style={{ backgroundColor: 'rgba(201,168,76,0.15)', border: `1px solid rgba(201,168,76,0.4)`, color: T.gold }}>
-            ✦ Herramienta #1 para agentes independientes
+            ✦ {lang === 'es' ? 'Herramienta #1 para agentes independientes' : 'The #1 tool for independent agents'}
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-6 tracking-tight text-white leading-tight">

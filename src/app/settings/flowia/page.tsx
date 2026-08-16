@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import AppLayout from '@/components/AppLayout';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const T = {
   navy:      '#1B2D5B',
@@ -24,6 +25,7 @@ const T = {
 export default function FlowIASettingsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneError, setPhoneError] = useState('');
@@ -57,7 +59,7 @@ export default function FlowIASettingsPage() {
       }
     } catch (error) {
       console.error('Error al cargar configuración FlowIA:', error);
-      alert('Error al cargar la configuración');
+      alert(t('flowia.errorLoading'));
     } finally {
       setLoading(false);
     }
@@ -70,7 +72,7 @@ export default function FlowIASettingsPage() {
     const trimmedPhone = phoneNumber.trim();
 
     if (!isValidWhatsAppFormat(trimmedPhone)) {
-      setPhoneError('Formato inválido. Debe ser código de país + número pegado, sin espacios (ej. +50688888888)');
+      setPhoneError(t('flowia.invalidPhone'));
       return;
     }
 
@@ -88,10 +90,10 @@ export default function FlowIASettingsPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Error al guardar');
+        throw new Error(data.error || t('flowia.errorSave'));
       }
 
-      alert('✅ Configuración de FlowIA guardada correctamente');
+      alert(t('flowia.savedSuccess'));
       router.back();
     } catch (error: any) {
       alert(`❌ Error: ${error.message}`);
@@ -102,12 +104,12 @@ export default function FlowIASettingsPage() {
 
   if (loading) {
     return (
-      <AppLayout title="FlowIA Asistente" showBack={true} showTabs={true}>
+      <AppLayout title={t('flowia.title')} showBack={true} showTabs={true}>
         <div className="flex items-center justify-center h-full" style={{ backgroundColor: T.cream }}>
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-bounce">🤖</div>
             <div className="text-base font-medium" style={{ color: T.muted }}>
-              Cargando asistente...
+              {t('flowia.loading')}
             </div>
           </div>
         </div>
@@ -116,7 +118,7 @@ export default function FlowIASettingsPage() {
   }
 
   return (
-    <AppLayout title="FlowIA Asistente" showBack={true} showTabs={true}>
+    <AppLayout title={t('flowia.title')} showBack={true} showTabs={true}>
       <div
         className="px-4 py-6 pb-24 md:px-6 md:pb-10 md:max-w-5xl md:mx-auto md:grid md:grid-cols-2 md:gap-6 md:items-start lg:grid-cols-[1fr_420px] space-y-4 md:space-y-0"
         style={{ backgroundColor: T.cream }}
@@ -125,7 +127,7 @@ export default function FlowIASettingsPage() {
         {/* Título estilizado — mobile */}
         <div className="flex items-center gap-2 md:hidden">
           <div style={{ width: '3px', height: '22px', backgroundColor: T.gold, borderRadius: '2px', flexShrink: 0 }} />
-          <h1 className="text-xl font-bold tracking-tight" style={{ color: T.navy }}>FlowIA Asistente</h1>
+          <h1 className="text-xl font-bold tracking-tight" style={{ color: T.navy }}>{t('flowia.title')}</h1>
         </div>
 
         {/* Info Banner — derecha en desktop, arriba en mobile */}
@@ -142,10 +144,10 @@ export default function FlowIASettingsPage() {
             </div>
             <div className="flex-1">
               <h3 className="font-bold mb-1.5" style={{ color: T.navy }}>
-                Tu Asistente Virtual
+                {t('flowia.bannerTitle')}
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: T.navy, opacity: 0.75 }}>
-                Ingresa tu número de WhatsApp para autorizarte en el sistema. Una vez activo, guárdanos en tus contactos y comienza a pedirle información a FlowIA.
+                {t('flowia.bannerDesc')}
               </p>
             </div>
           </div>
@@ -163,7 +165,7 @@ export default function FlowIASettingsPage() {
               className="block text-xs font-bold uppercase tracking-wider mb-1.5"
               style={{ color: T.muted }}
             >
-              Tu número de WhatsApp
+              {t('flowia.phoneLabel')}
             </label>
             <input
               type="tel"
@@ -181,7 +183,7 @@ export default function FlowIASettingsPage() {
               }}
             />
             <p className="text-xs mt-1.5" style={{ color: T.muted }}>
-              Incluye el código de país (ej. +506)
+              {t('flowia.phoneHint')}
             </p>
             {phoneError && (
               <p className="text-xs font-semibold mt-1.5" style={{ color: T.red }}>
@@ -200,10 +202,10 @@ export default function FlowIASettingsPage() {
           >
             <div>
               <h3 className="font-bold text-sm mb-0.5" style={{ color: T.navy }}>
-                Estado de FlowIA
+                {t('flowia.statusTitle')}
               </h3>
               <p className="text-xs" style={{ color: T.muted }}>
-                {isActive ? 'El bot responderá a tus mensajes' : 'El bot ignorará tus mensajes'}
+                {isActive ? t('flowia.statusActive') : t('flowia.statusInactive')}
               </p>
             </div>
 
@@ -241,7 +243,7 @@ export default function FlowIASettingsPage() {
               boxShadow: '0 2px 8px rgba(201,168,76,0.3)',
             }}
           >
-            {saving ? '⏳ Guardando...' : '💾 Guardar Configuración'}
+            {saving ? `⏳ ${t('flowia.saving')}` : `💾 ${t('flowia.saveButton')}`}
           </button>
 
         </div>

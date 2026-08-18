@@ -245,7 +245,23 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, status: 'draft_empty_message_ignored' });
       }
 
-      // 7. Free-form text — acknowledge in the flow language
+      // 7. Free-form text — warn if wrong language, otherwise acknowledge
+      const wrongLangWarning = lang === 'en'
+        ? '⚠️ Please send your information in *English* as you selected for this listing.'
+        : '⚠️ Por favor envía la información en *español* como seleccionaste para esta propiedad.';
+
+      const esWords = resolvedText.match(/\b(el|la|los|las|un|una|es|son|tiene|de|en|y|o|que|con|para|por|se|su|mi|tu|si|no|del|al|esto|esta|como|más|hay|fue|ser|muy|ya)\b/gi)?.length || 0;
+      const enWords = resolvedText.match(/\b(the|is|are|was|were|have|has|it|in|on|at|for|to|of|and|or|but|this|that|with|from|by|an|a|will|would|can|could|i|you|we|they|he|she)\b/gi)?.length || 0;
+
+      const detectedLang = enWords > esWords ? 'en' : esWords > enWords ? 'es' : null;
+      const isWrongLang = detectedLang !== null && detectedLang !== lang;
+
+      if (isWrongLang) {
+        await saveMessage(agent.id, 'assistant', wrongLangWarning);
+        await sendQueued(agent.id, cleanNumber, wrongLangWarning);
+        return NextResponse.json({ success: true, status: 'draft_wrong_language_warned' });
+      }
+
       const ack = lang === 'en'
         ? '📝 Got it. Keep sending the property information. When you\'re done, type *READY*.\n_If you\'re not sure what\'s missing, type *"What\'s missing?"* or simply *"0"*_'
         : '📝 Recibido. Sigue enviando la información de la propiedad. Cuando termines, escribe *LISTO*.\n_Si no sabes qué falta, escríbeme *"¿Qué me falta?"* o simplemente *"0"*_';

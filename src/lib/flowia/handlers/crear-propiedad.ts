@@ -464,7 +464,7 @@ export async function handleMediaEnDraft(
   if (mediaInfo.type === 'audio') {
     try {
       const { publicUrl } = await decryptWasenderMedia(messageId, mediaInfo.messageObject);
-      const transcripcion = await transcribeAudioFromUrl(publicUrl);
+      const transcripcion = await transcribeAudioFromUrl(publicUrl, lang);
 
       await supabaseAdmin
         .from('chat_messages')

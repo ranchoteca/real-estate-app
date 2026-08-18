@@ -1,5 +1,8 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { AgentMode } from './constants';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const HISTORY_WINDOW_HOURS = 3;
 const HISTORY_LIMIT = 15;
@@ -57,13 +60,8 @@ export async function isDuplicateMessage(
   if (!messageText || messageText.trim() === '') return false;
 
   // Never deduplicate short confirmation/command words in CREAR_PROPIEDAD mode.
-  // The agent may legitimately send "Si" or "Listo" multiple times in quick
-  // succession (e.g. once after custom field audio, once after the summary).
-  // Filtering these causes the SÍ confirmation to be swallowed and the property
-  // never gets created.
   const isShortCommand = /^(s[ií]|listo|0)\.?!?$/i.test(messageText.trim());
   if (isShortCommand) {
-    // Only skip dedup if there is an active draft — in normal mode, dedup is fine
     const { data: activeDraft } = await supabaseAdmin
       .from('agent_property_draft')
       .select('id')
@@ -101,7 +99,58 @@ export async function getAgentMode(agentId: string): Promise<{ mode: AgentMode; 
     : { mode: null };
 }
 
-export function buildWelcomeMessage(primerNombre: string): string {
+// Detects the language of the first message using a lightweight GPT call.
+// Returns 'en' for English, 'es' for everything else.
+// Falls back to 'es' on any error to keep the flow moving.
+async function detectLanguage(text: string): Promise<'es' | 'en'> {
+  if (!text || text.trim().length < 2) return 'es';
+
+  // Fast path: common single-word English greetings and commands
+  const quickEnglish = /^(hi|hello|hey|help|yes|no|ok|okay|menu|ready|good|thanks|thank you|please)\.?!?$/i.test(text.trim());
+  if (quickEnglish) return 'en';
+
+  // Fast path: common single-word Spanish greetings
+  const quickSpanish = /^(hola|buenas|buen[oa]s|si|sí|no|ok|gracias|ayuda|menú|menu|listo)\.?!?$/i.test(text.trim());
+  if (quickSpanish) return 'es';
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'Detect the language of the following message. Reply with exactly one word: "en" for English or "es" for Spanish or any other language.',
+        },
+        { role: 'user', content: text },
+      ],
+      temperature: 0,
+      max_tokens: 5,
+    });
+    const result = completion.choices[0].message.content?.trim().toLowerCase();
+    return result === 'en' ? 'en' : 'es';
+  } catch {
+    return 'es';
+  }
+}
+
+// Builds the welcome message in the detected language of the agent's first message.
+export async function buildWelcomeMessage(primerNombre: string, firstMessage: string): Promise<string> {
+  const lang = await detectLanguage(firstMessage);
+
+  if (lang === 'en') {
+    return `Hello ${primerNombre}! 👋 I'm *Flow*, your real estate assistant.
+
+Here's what I can do for you today:
+
+🔍 *1.* Search your property inventory
+📄 *2.* Send a property PDF
+🪪 *3.* Share your digital card
+⛰️ *4.* Get the elevation of a location
+🏠 *5.* Create a new property
+
+Type the number of the option or tell me directly how I can help you. 😊`;
+  }
+
   return `¡Hola ${primerNombre}! 👋 Soy *Flow*, tu asistente inmobiliario.
 
 Esto es lo que puedo hacer por ti hoy:

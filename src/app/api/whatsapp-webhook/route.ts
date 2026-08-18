@@ -56,6 +56,28 @@ async function getLastBotMessage(agentId: string): Promise<string | null> {
   return data?.content || null;
 }
 
+// Detects the language of the current conversation from recent history.
+// Looks at the last user message that has actual text content.
+// Used for hardcoded messages in normal mode where GPT isn't involved.
+function detectLangFromHistory(history: Array<{ role: string; content: string }>): 'es' | 'en' {
+  // Find the most recent user message with text
+  const recentUserMessages = history
+    .filter(m => m.role === 'user' && m.content && m.content.trim().length > 1)
+    .slice(-3);
+
+  if (recentUserMessages.length === 0) return 'es';
+
+  // Count English indicators across recent messages
+  const combined = recentUserMessages.map(m => m.content).join(' ');
+  const englishWords = combined.match(/\b(the|is|are|was|were|have|has|can|will|would|should|could|please|thank|hello|hi|hey|yes|no|ok|okay|good|great|help|need|want|send|show|find|give|get|my|your|i|you|we|they|it|and|or|but|for|with|from|to|of|in|on|at|by|about)\b/gi);
+  const spanishWords = combined.match(/\b(el|la|los|las|un|una|es|son|esta|están|tiene|tienen|puede|puedo|favor|gracias|hola|buenos|buenas|si|sí|no|por|para|con|que|de|en|a|mi|tu|su|yo|tú|él|nosotros|ellos|y|o|pero|como|cuando|donde|quiero|necesito|busco|dame|ayuda)\b/gi);
+
+  const enCount = englishWords?.length || 0;
+  const esCount = spanishWords?.length || 0;
+
+  return enCount > esCount ? 'en' : 'es';
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -115,7 +137,8 @@ export async function POST(req: NextRequest) {
       // is not silently dropped back into CREAR_PROPIEDAD mode after a greeting.
       await clearDraft(agent.id);
 
-      const mensajeBienvenida = buildWelcomeMessage(primerNombre);
+      // Detect language from the first message and build welcome accordingly
+      const mensajeBienvenida = await buildWelcomeMessage(primerNombre, messageText);
       await sendQueued(agent.id, cleanNumber, mensajeBienvenida);
       await saveMessage(agent.id, 'assistant', mensajeBienvenida);
       await saveMessage(agent.id, 'user', messageText);
@@ -220,7 +243,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, status: 'draft_empty_message_ignored' });
       }
 
-      // 7. Free-form text — acknowledge
+      // 7. Free-form text — acknowledge in the flow language
       const ack = lang === 'en'
         ? '📝 Got it. Keep sending the property information. When you\'re done, type *READY*.\n_If you\'re not sure what\'s missing, type *"What\'s missing?"* or simply *"0"*_'
         : '📝 Recibido. Sigue enviando la información de la propiedad. Cuando termines, escribe *LISTO*.\n_Si no sabes qué falta, escríbeme *"¿Qué me falta?"* o simplemente *"0"*_';
@@ -238,6 +261,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, status: 'crear_propiedad_initiated' });
     }
 
+    // Detect conversation language for hardcoded messages in normal mode
+    const normalLang = detectLangFromHistory([...history, { role: 'user', content: resolvedText }]);
+
     // PDF shortcut
     const ultimoMensajeAsistente = history.length > 0 ? history[history.length - 1] : null;
     const ofrecioPdf = ultimoMensajeAsistente?.role === 'assistant'
@@ -248,7 +274,9 @@ export async function POST(req: NextRequest) {
     const esConfirmacionCorta = /^(s[ií]|s[ií] por favor|dale|claro|ok|okay|va|porfa|yes|sure|please|go ahead)\.?!?$/i.test(resolvedText.trim());
 
     if (yaEnvioPdf && esConfirmacionCorta && !ofrecioPdf) {
-      const respuesta = 'Perfecto, dime en qué más puedo ayudarte.';
+      const respuesta = normalLang === 'en'
+        ? 'Perfect, let me know if there\'s anything else I can help you with.'
+        : 'Perfecto, dime en qué más puedo ayudarte.';
       await saveMessage(agent.id, 'assistant', respuesta);
       await sendQueued(agent.id, cleanNumber, respuesta);
       return NextResponse.json({ success: true, status: 'closed_pdf_followup' });
@@ -262,11 +290,19 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
 
       if (ultimaMostrada?.slug) {
-        await sendQueued(agent.id, cleanNumber, '⏳ *Generando el PDF de la propiedad...* Dame un momento por favor.');
+        const generatingMsg = normalLang === 'en'
+          ? '⏳ *Generating the property PDF...* Give me a moment please.'
+          : '⏳ *Generando el PDF de la propiedad...* Dame un momento por favor.';
+        await sendQueued(agent.id, cleanNumber, generatingMsg);
         await delay(1200);
         const pdfUrl = `${BASE_DOMAIN}/api/pdf-generator?slug=${ultimaMostrada.slug}&agent_id=${agent.id}&t=${Date.now()}`;
-        await sendQueued(agent.id, cleanNumber, '📄 Aquí tienes el documento detallado de la propiedad.', pdfUrl, `Ficha-${ultimaMostrada.slug}.pdf`);
-        const respuestaFinal = 'PDF enviado correctamente. 📄 Si necesitas algo más, aquí estoy para ayudarte.';
+        const pdfSentMsg = normalLang === 'en'
+          ? '📄 Here is the detailed property document.'
+          : '📄 Aquí tienes el documento detallado de la propiedad.';
+        await sendQueued(agent.id, cleanNumber, pdfSentMsg, pdfUrl, `Ficha-${ultimaMostrada.slug}.pdf`);
+        const respuestaFinal = normalLang === 'en'
+          ? 'PDF sent successfully. 📄 If you need anything else, I\'m here to help.'
+          : 'PDF enviado correctamente. 📄 Si necesitas algo más, aquí estoy para ayudarte.';
         await saveMessage(agent.id, 'assistant', respuestaFinal);
         await sendQueued(agent.id, cleanNumber, respuestaFinal);
         return NextResponse.json({ success: true, status: 'pdf_sent_via_shortcut' });

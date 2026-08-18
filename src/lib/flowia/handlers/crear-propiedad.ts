@@ -372,7 +372,7 @@ export async function handleIniciarCreacion(
     .eq('agent_id', agentId);
 
   // Create draft with no language yet — awaiting selection
-  await upsertDraft(agentId, { photos: [], pending_photos: 0, flow_language: undefined });
+  await upsertDraft(agentId, { photos: [], pending_photos: 0, flow_language: null } as any);
 
   await sendQueued(agentId, cleanNumber, MESSAGES.es.languageQuestion);
 }

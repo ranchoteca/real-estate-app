@@ -4,9 +4,9 @@ import { toFile } from 'openai';
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Descarga el audio desde la URL temporal de Wasender y lo transcribe con Whisper.
-// Devuelve el texto transcrito.
-
-export async function transcribeAudioFromUrl(audioUrl: string): Promise<string> {
+// El parámetro lang se pasa directamente a Whisper para forzar el idioma correcto
+// y evitar que detecte automáticamente un idioma incorrecto.
+export async function transcribeAudioFromUrl(audioUrl: string, lang: 'es' | 'en' = 'es'): Promise<string> {
   // 1. Descargar el audio
   const response = await fetch(audioUrl);
   if (!response.ok) {
@@ -22,11 +22,11 @@ export async function transcribeAudioFromUrl(audioUrl: string): Promise<string> 
     type: contentType,
   });
 
-  // 3. Transcribir con Whisper
+  // 3. Transcribir con Whisper usando el idioma del flujo
   const transcription = await openai.audio.transcriptions.create({
     file: audioFile,
     model: 'whisper-1',
-    language: 'es',
+    language: lang,
     response_format: 'text',
   });
 

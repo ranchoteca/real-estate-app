@@ -145,20 +145,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, status: 'new_session_welcomed' });
     }
 
-    // Resolve numeric menu shortcut — but NOT 1/2 since those are language selections
-    const isMenuShortcut = MENU_SHORTCUTS[messageText.trim()] !== undefined;
-    const resolvedText = isMenuShortcut ? MENU_SHORTCUTS[messageText.trim()] : messageText;
-
     // ── Deduplication ──────────────────────────────────────────────────────────
     if (await isDuplicateMessage(agent.id, messageText)) {
       console.log('⏳ Duplicate webhook detected. Ignoring.');
       return NextResponse.json({ success: true, status: 'ignored_webhook_retry' });
     }
 
-    await saveMessage(agent.id, 'user', resolvedText);
-
     // ── Detect active agent mode ───────────────────────────────────────────────
     const { mode: agentMode, draftCreatedAt } = await getAgentMode(agent.id);
+
+    // Resolve numeric menu shortcut — skip when in CREAR_PROPIEDAD mode so that
+    // digits like 1 and 2 are not converted to menu intents during language
+    // selection or other draft flow steps.
+    const isMenuShortcut = agentMode !== 'CREAR_PROPIEDAD' && MENU_SHORTCUTS[messageText.trim()] !== undefined;
+    const resolvedText = isMenuShortcut ? MENU_SHORTCUTS[messageText.trim()] : messageText;
+
+    await saveMessage(agent.id, 'user', resolvedText);
 
     // ══════════════════════════════════════════════════════════════════════════
     // MODE: CREAR_PROPIEDAD

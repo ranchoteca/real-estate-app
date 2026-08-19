@@ -556,12 +556,12 @@ export async function handleListo(
 
   // ── Extract custom field values ───────────────────────────────────────────
   const customFieldValues: Record<string, string | number> = {};
-  let customFieldDefs: Array<{ field_key: string; field_name: string; field_type: string; icon?: string; placeholder?: string }> = [];
+  let customFieldDefs: Array<{ field_key: string; field_name: string; field_name_en?: string; field_type: string; icon?: string; placeholder?: string }> = [];
 
   if (extractedData.property_type && extractedData.listing_type) {
     const { data: cfDefs } = await supabaseAdmin
       .from('custom_fields')
-      .select('field_key, field_name, field_type, icon, placeholder')
+      .select('field_key, field_name, field_name_en, field_type, icon, placeholder')
       .eq('agent_id', agentId)
       .eq('property_type', extractedData.property_type)
       .eq('listing_type', extractedData.listing_type)
@@ -610,7 +610,8 @@ export async function handleListo(
 
     if (missingCustomFields.length > 0) {
       const lista = missingCustomFields.map(function(cf) {
-        return (cf.icon || '🏷️') + ' *' + cf.field_name + '*' + (cf.placeholder ? ' _(ej: ' + cf.placeholder + ')_' : '');
+        const displayName = (resolvedLang === 'en' && cf.field_name_en) ? cf.field_name_en : cf.field_name;
+        return (cf.icon || '🏷️') + ' *' + displayName + '*' + (cf.placeholder ? ' _(ej: ' + cf.placeholder + ')_' : '');
       }).join('\n');
       await sendQueued(agentId, cleanNumber, msg.missingCustomFields(lista));
       return;
@@ -627,7 +628,8 @@ export async function handleListo(
   if (customFieldDefs.length > 0) {
     const lineas = customFieldDefs.map(function(cf) {
       const valor = customFieldValues[cf.field_key];
-      return (cf.icon || '🏷️') + ' *' + cf.field_name + ':* ' + (valor !== undefined && valor !== null ? valor : sf.noValue);
+      const displayName = (resolvedLang === 'en' && cf.field_name_en) ? cf.field_name_en : cf.field_name;
+      return (cf.icon || '🏷️') + ' *' + displayName + ':* ' + (valor !== undefined && valor !== null ? valor : sf.noValue);
     }).join('\n');
     customFieldsResumen = '\n' + lineas;
   }

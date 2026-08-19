@@ -572,7 +572,8 @@ export async function handleListo(
   if (customFieldDefs.length > 0) {
     const cfFieldsList = JSON.stringify(
       customFieldDefs.map(function(cf) {
-        return { key: cf.field_key, name: cf.field_name, type: cf.field_type };
+        const cfDisplayName = (resolvedLang === 'en' && cf.field_name_en) ? cf.field_name_en : cf.field_name;
+        return { key: cf.field_key, name: cfDisplayName, type: cf.field_type };
       }),
       null, 2
     );
@@ -611,7 +612,12 @@ export async function handleListo(
     if (missingCustomFields.length > 0) {
       const lista = missingCustomFields.map(function(cf) {
         const displayName = (resolvedLang === 'en' && cf.field_name_en) ? cf.field_name_en : cf.field_name;
-        return (cf.icon || '🏷️') + ' *' + displayName + '*' + (cf.placeholder ? ' _(ej: ' + cf.placeholder + ')_' : '');
+        const placeholder = cf.placeholder
+          ? (resolvedLang === 'en'
+            ? ' _(e.g: ' + cf.placeholder.replace(/^Ej:\s*/i, '').replace(/Sí\/No/gi, 'Yes/No') + ')_'
+            : ' _(ej: ' + cf.placeholder + ')_')
+          : '';
+        return (cf.icon || '🏷️') + ' *' + displayName + '*' + placeholder;
       }).join('\n');
       await sendQueued(agentId, cleanNumber, msg.missingCustomFields(lista));
       return;

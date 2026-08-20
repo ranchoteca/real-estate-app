@@ -693,7 +693,7 @@ function parseSummaryText(
   summaryText: string,
   lang: FlowLanguage,
   draftPhotos: string[],
-  customFieldDefs: Array<{ field_key: string; field_name: string; icon?: string }>
+  customFieldDefs: Array<{ field_key: string; field_name: string; field_name_en?: string; icon?: string }>
 ): PropertyData {
   const getField = (label: string): string | null => {
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -745,7 +745,8 @@ function parseSummaryText(
 
   const customFieldValues: Record<string, string | number> = {};
   customFieldDefs.forEach(function(cf) {
-    const val = getField(cf.field_name + ':');
+    const searchName = (lang === 'en' && cf.field_name_en) ? cf.field_name_en : cf.field_name;
+    const val = getField(searchName + ':');
     if (val && val !== noValue) {
       customFieldValues[cf.field_key] = val;
     }
@@ -850,7 +851,7 @@ export async function handleConfirmacion(
   if (propertyType && listingType) {
     const { data: cfDefs } = await supabaseAdmin
       .from('custom_fields')
-      .select('field_key, field_name, icon')
+      .select('field_key, field_name, field_name_en, icon')
       .eq('agent_id', agentId)
       .eq('property_type', propertyType)
       .eq('listing_type', listingType)

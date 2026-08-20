@@ -852,7 +852,9 @@ export default function EditPropertyPage() {
                     </div>
                   ))}
                   <div className="px-3 py-2 rounded-xl text-xs" style={{ backgroundColor: T.goldPale, color: T.navy, border: `1px solid rgba(201,168,76,0.35)` }}>
-                    💡 Los campos se guardan automáticamente al actualizar la propiedad.
+                    💡 {language === 'en'
+                        ? 'Fields are saved automatically when you update the property. If you change the property type, data is kept and you can see it again when you return to this configuration.'
+                        : 'Los campos se guardan automáticamente al actualizar la propiedad. Si cambias el tipo de propiedad, los datos se mantienen y puedes volver a verlos cuando regreses a esta configuración.'}
                   </div>
                 </div>
               ) : (
@@ -923,6 +925,7 @@ export default function EditPropertyPage() {
       <style jsx global>{`
         .edit-property-outer {
           padding: 16px;
+          padding-bottom: 100px;
           background-color: #F8F6F2;
           min-height: 100%;
         }

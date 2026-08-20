@@ -16,6 +16,23 @@ import { WatermarkConfig } from '@/lib/watermark';
 import GoogleMapEditor from '@/components/property/GoogleMapEditor';
 import { SUPPORTED_COUNTRIES, CountryCode } from '@/lib/google-maps-config';
 
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const T = {
+  navy:      '#1B2D5B',
+  gold:      '#C9A84C',
+  goldLight: '#E8C96A',
+  goldPale:  '#F5EDD8',
+  cream:     '#F8F6F2',
+  white:     '#FFFFFF',
+  charcoal:  '#1A1A2E',
+  muted:     '#6B7280',
+  border:    '#E8E4DC',
+  green:     '#15803D',
+  greenBg:   '#F0FDF4',
+  red:       '#DC2626',
+  redBg:     '#FEF2F2',
+};
+
 interface Currency {
   id: string;
   code: string;
@@ -51,13 +68,44 @@ interface CustomField {
   id: string;
   property_type: string;
   listing_type: string;
-  field_key: string;   
+  field_key: string;
   field_name: string;
   field_name_en: string | null;
   field_type: 'text' | 'number';
   placeholder: string;
   icon: string;
 }
+
+// ─── Subcomponentes de UI ─────────────────────────────────────────────────────
+const SectionCard = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`rounded-2xl p-5 shadow-sm ${className}`} style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}>
+    {children}
+  </div>
+);
+
+const FieldLabel = ({ label }: { label: string }) => (
+  <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: T.muted }}>
+    {label}
+  </label>
+);
+
+const StyledInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
+  <input
+    {...props}
+    className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors"
+    style={{ border: `1.5px solid ${T.border}`, backgroundColor: T.cream, color: T.charcoal }}
+  />
+);
+
+const StyledSelect = ({ children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }) => (
+  <select
+    {...props}
+    className="w-full px-4 py-3 rounded-xl text-sm font-medium focus:outline-none appearance-none"
+    style={{ border: `1.5px solid ${T.border}`, backgroundColor: T.cream, color: T.charcoal }}
+  >
+    {children}
+  </select>
+);
 
 export default function EditPropertyPage() {
   const { data: session, status } = useSession();
@@ -72,8 +120,7 @@ export default function EditPropertyPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Estados para editar fotos
+
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [newPhotos, setNewPhotos] = useState<File[]>([]);
   const [newPhotosPreviews, setNewPhotosPreviews] = useState<string[]>([]);
@@ -86,23 +133,17 @@ export default function EditPropertyPage() {
   const [existingMuxAssetIds, setExistingMuxAssetIds] = useState<string[]>([]);
   const [muxAssetIdsToDelete, setMuxAssetIdsToDelete] = useState<string[]>([]);
 
-  // Estados para campos personalizados
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customFieldsValues, setCustomFieldsValues] = useState<Record<string, string>>({});
   const [loadingCustomFields, setLoadingCustomFields] = useState(false);
   const [watermarkConfig, setWatermarkConfig] = useState<WatermarkConfig | null>(null);
 
-  // Divisas
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
 
-  // Compresión
   const [compressing, setCompressing] = useState(false);
-
-  // Reels
   const [reelModalOpen, setReelModalOpen] = useState(false);
 
-  // Estados del modal de guardado
   const [savingModalOpen, setSavingModalOpen] = useState(false);
   const [savingSteps, setSavingSteps] = useState<{
     id: number;
@@ -110,30 +151,21 @@ export default function EditPropertyPage() {
     status: 'pending' | 'active' | 'completed' | 'error';
   }[]>([]);
 
-  // País de la ubicación
-  const [selectedCountry, setSelectedCountry] = useState<CountryCode>('CR'); // Default Costa Rica
+  const [selectedCountry, setSelectedCountry] = useState<CountryCode>('CR');
 
-  // Función para obtener nombre de campo según idioma
   const getCustomFieldName = (field: CustomField): string => {
-    if (property?.language === 'en' && field.field_name_en) {
-      return field.field_name_en;
-    }
+    if (property?.language === 'en' && field.field_name_en) return field.field_name_en;
     return field.field_name;
   };
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    }
+    if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
 
   useEffect(() => {
-    if (propertyId) {
-      loadProperty();
-    }
+    if (propertyId) loadProperty();
   }, [propertyId]);
 
-  // Cargar campos personalizados cuando cambia property_type o listing_type
   useEffect(() => {
     if (property?.property_type && property?.listing_type) {
       loadCustomFields(property.property_type, property.listing_type);
@@ -141,10 +173,7 @@ export default function EditPropertyPage() {
   }, [property?.property_type, property?.listing_type]);
 
   useEffect(() => {
-    if (session) {
-      loadCurrencies();
-      loadWatermarkConfig();
-    }
+    if (session) { loadCurrencies(); loadWatermarkConfig(); }
   }, [session]);
 
   const loadWatermarkConfig = async () => {
@@ -153,124 +182,72 @@ export default function EditPropertyPage() {
       if (response.ok) {
         const data = await response.json();
         setWatermarkConfig({
-          // Logo en esquina
           useCornerLogo: data.agent.use_corner_logo ?? true,
           cornerLogoUrl: data.agent.watermark_logo || null,
           position: data.agent.watermark_position || 'bottom-right',
           size: data.agent.watermark_size || 'medium',
-          
-          // Watermark centrado
           useWatermark: data.agent.use_watermark ?? false,
           watermarkUrl: data.agent.watermark_image || null,
           opacity: data.agent.watermark_opacity || 30,
           scale: data.agent.watermark_scale || 50,
         });
       }
-    } catch (err) {
-      console.error('Error loading watermark config:', err);
-    }
+    } catch (err) { console.error('Error loading watermark config:', err); }
   };
 
   const loadCurrencies = async () => {
     try {
       const response = await fetch('/api/currencies/list');
-      if (response.ok) {
-        const data = await response.json();
-        setCurrencies(data.currencies || []);
-      }
-    } catch (err) {
-      console.error('Error al cargar divisas:', err);
-    }
+      if (response.ok) { const data = await response.json(); setCurrencies(data.currencies || []); }
+    } catch (err) { console.error('Error al cargar divisas:', err); }
   };
 
   const loadProperty = async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/property/get/${propertyId}`);
-      
-      if (!response.ok) {
-        throw new Error('No se pudo cargar la propiedad');
-      }
-      
+      if (!response.ok) throw new Error('No se pudo cargar la propiedad');
       const data = await response.json();
       setProperty(data.property);
       setPropertySlug(data.property.slug);
       setExistingPhotos(data.property.photos || []);
       const urls = data.property.video_urls || [];
       setExistingVideos(urls);
-
       setExistingMuxAssetIds(data.property.mux_asset_ids || []);
-
       if (urls.length > 0) {
         const durations = await Promise.all(urls.map(getVideoDuration));
         const total = durations.reduce((sum, d) => sum + d, 0);
         setExistingVideosDuration(total);
       }
-      setSelectedCurrency(data.property.currency_id); 
-      
-      // Cargar valores de campos personalizados
+      setSelectedCurrency(data.property.currency_id);
       setCustomFieldsValues(data.property.custom_fields_data || {});
     } catch (err: any) {
       console.error('Error loading property:', err);
       setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  // Función para cargar campos personalizados
   const loadCustomFields = async (propertyType: string, listingType: string) => {
     try {
       setLoadingCustomFields(true);
-      const response = await fetch(
-        `/api/custom-fields/list?property_type=${propertyType}&listing_type=${listingType}`
-      );
-      
-      if (!response.ok) {
-        console.error('Error al cargar campos personalizados');
-        setCustomFields([]);
-        return;
-      }
-      
+      const response = await fetch(`/api/custom-fields/list?property_type=${propertyType}&listing_type=${listingType}`);
+      if (!response.ok) { setCustomFields([]); return; }
       const data = await response.json();
       setCustomFields(data.fields || []);
-      console.log(`📋 Campos cargados para ${propertyType} > ${listingType}:`, data.fields?.length || 0);
-    } catch (err) {
-      console.error('Error loading custom fields:', err);
-      setCustomFields([]);
-    } finally {
-      setLoadingCustomFields(false);
-    }
+    } catch (err) { setCustomFields([]); }
+    finally { setLoadingCustomFields(false); }
   };
 
-  // Función para actualizar valor de campo personalizado
   const handleCustomFieldChange = (fieldKey: string, value: string) => {
-    setCustomFieldsValues(prev => ({
-      ...prev,
-      [fieldKey]: value
-    }));
+    setCustomFieldsValues(prev => ({ ...prev, [fieldKey]: value }));
   };
 
-  // Función para obtener valor de campo personalizado
-  const getCustomFieldValue = (fieldKey: string): string => {
-    return customFieldsValues[fieldKey] || '';
-  };
+  const getCustomFieldValue = (fieldKey: string): string => customFieldsValues[fieldKey] || '';
 
   const compressImage = async (file: File): Promise<File> => {
-    const options = {
-      maxSizeMB: 0.5,
-      maxWidthOrHeight: 1920,
-      useWebWorker: true,
-      fileType: 'image/jpeg',
-    };
-
-    try {
-      const compressedFile = await imageCompression(file, options);
-      return compressedFile;
-    } catch (error) {
-      console.error('Error comprimiendo imagen:', error);
-      return file;
-    }
+    const options = { maxSizeMB: 0.5, maxWidthOrHeight: 1920, useWebWorker: true, fileType: 'image/jpeg' };
+    try { return await imageCompression(file, options); }
+    catch (error) { console.error('Error comprimiendo imagen:', error); return file; }
   };
 
   const getVideoDuration = (url: string): Promise<number> => {
@@ -286,81 +263,38 @@ export default function EditPropertyPage() {
   const handleAddPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const totalPhotos = existingPhotos.length + newPhotos.length + files.length - photosToDelete.length;
-    
-    if (totalPhotos > 15) {
-      alert('Máximo 15 fotos por propiedad');
-      return;
-    }
-
+    if (totalPhotos > 15) { alert('Máximo 15 fotos por propiedad'); return; }
     setCompressing(true);
-
     try {
       const processedFiles: File[] = [];
-
       for (const file of files) {
         const compressed = await compressImage(file);
         let finalFile = compressed;
-        
         try {
-          // 1. Aplicar logo en esquina (si está habilitado)
           if (watermarkConfig?.useCornerLogo && watermarkConfig?.cornerLogoUrl) {
             const { applyCornerLogo } = await import('@/lib/watermark');
-            finalFile = await applyCornerLogo(finalFile, {
-              logoUrl: watermarkConfig.cornerLogoUrl,
-              position: watermarkConfig.position,
-              size: watermarkConfig.size,
-            });
-            console.log('✅ Logo en esquina aplicado a', file.name);
+            finalFile = await applyCornerLogo(finalFile, { logoUrl: watermarkConfig.cornerLogoUrl, position: watermarkConfig.position, size: watermarkConfig.size });
           }
-
-          // 2. Aplicar watermark centrado (si está habilitado)
           if (watermarkConfig?.useWatermark && watermarkConfig?.watermarkUrl) {
             const { applyCenterWatermark } = await import('@/lib/watermark');
-            finalFile = await applyCenterWatermark(finalFile, {
-              logoUrl: watermarkConfig.watermarkUrl,
-              opacity: watermarkConfig.opacity,
-              scale: watermarkConfig.scale,
-            });
-            console.log('✅ Watermark centrado aplicado a', file.name);
+            finalFile = await applyCenterWatermark(finalFile, { logoUrl: watermarkConfig.watermarkUrl, opacity: watermarkConfig.opacity, scale: watermarkConfig.scale });
           }
-
-          // 3. Si no hay ni logo ni watermark, aplicar texto por defecto
           if (!watermarkConfig?.useCornerLogo && !watermarkConfig?.useWatermark) {
             const { applyDefaultText } = await import('@/lib/watermark');
             finalFile = await applyDefaultText(finalFile);
-            console.log('✅ Texto por defecto aplicado a', file.name);
           }
-        } catch (err) {
-          console.error('Error aplicando marcas:', err);
-          // Si falla, usar imagen comprimida sin marcas
-          finalFile = compressed;
-        }
-        
+        } catch (err) { console.error('Error aplicando marcas:', err); finalFile = compressed; }
         processedFiles.push(finalFile);
       }
-
-      // Crear previews después de que todas estén comprimidas
-      const previews = processedFiles.map(file => {
-        try {
-          return URL.createObjectURL(file);
-        } catch (err) {
-          console.error('Error creando preview:', err);
-          return '';
-        }
-      }).filter(url => url !== '');
-      
+      const previews = processedFiles.map(file => { try { return URL.createObjectURL(file); } catch { return ''; } }).filter(u => u !== '');
       setNewPhotos([...newPhotos, ...processedFiles]);
       setNewPhotosPreviews([...newPhotosPreviews, ...previews]);
     } catch (error) {
       console.error('Error procesando imágenes:', error);
       alert('Error al procesar las imágenes. Intenta subirlas de nuevo.');
     } finally {
-      // Desactivar estado de compresión
       setCompressing(false);
-      // Reset input
-      if (e.target) {
-        e.target.value = '';
-      }
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -376,52 +310,31 @@ export default function EditPropertyPage() {
   };
 
   const handleDeleteExistingVideo = async (index: number) => {
-    // NUEVO: guardar el assetId correspondiente para borrarlo en Mux al guardar
     const assetIdToDelete = existingMuxAssetIds[index];
-    if (assetIdToDelete) {
-      setMuxAssetIdsToDelete(prev => [...prev, assetIdToDelete]);
-    }
-
+    if (assetIdToDelete) setMuxAssetIdsToDelete(prev => [...prev, assetIdToDelete]);
     const updatedVideos = existingVideos.filter((_, i) => i !== index);
     setExistingVideos(updatedVideos);
-
-    // NUEVO: mantener mux_asset_ids sincronizado con video_urls
     const updatedAssetIds = existingMuxAssetIds.filter((_, i) => i !== index);
     setExistingMuxAssetIds(updatedAssetIds);
-
-    // Recalcular duración
     const durations = await Promise.all(updatedVideos.map(getVideoDuration));
-    const total = durations.reduce((sum, d) => sum + d, 0);
-    setExistingVideosDuration(total);
+    setExistingVideosDuration(durations.reduce((sum, d) => sum + d, 0));
   };
 
-  const handleNewVideosChange = (files: File[]) => {
-    setNewVideos(files);
-  };
+  const handleNewVideosChange = (files: File[]) => setNewVideos(files);
 
   const initSavingSteps = (hasNewVideos: boolean) => {
-    const steps = [
-      { id: 1, label: language === 'en' ? 'Saving changes...' : 'Guardando cambios...', status: 'pending' as const },
-    ];
-
-    if (newPhotos.length > 0) {
-      steps.push({ id: 2, label: language === 'en' ? 'Uploading new photos...' : 'Subiendo fotos nuevas...', status: 'pending' as const });
-    }
-
+    const steps = [{ id: 1, label: language === 'en' ? 'Saving changes...' : 'Guardando cambios...', status: 'pending' as const }];
+    if (newPhotos.length > 0) steps.push({ id: 2, label: language === 'en' ? 'Uploading new photos...' : 'Subiendo fotos nuevas...', status: 'pending' as const });
     if (hasNewVideos) {
       steps.push({ id: steps.length + 1, label: language === 'en' ? 'Uploading videos...' : 'Subiendo videos...', status: 'pending' as const });
       steps.push({ id: steps.length + 1, label: language === 'en' ? 'Processing videos...' : 'Procesando videos...', status: 'pending' as const });
     }
-
     steps.push({ id: steps.length + 1, label: language === 'en' ? 'Finishing up...' : 'Finalizando...', status: 'pending' as const });
-
     return steps;
   };
 
   const updateSavingStep = (stepId: number, status: 'pending' | 'active' | 'completed' | 'error', newLabel?: string) => {
-    setSavingSteps(prev => prev.map(step =>
-      step.id === stepId ? { ...step, status, label: newLabel || step.label } : step
-    ));
+    setSavingSteps(prev => prev.map(step => step.id === stepId ? { ...step, status, label: newLabel || step.label } : step));
   };
 
   const phone = session?.user?.phone || '';
@@ -430,60 +343,29 @@ export default function EditPropertyPage() {
   const handleInsertPhonesInDescription = () => {
     const phones = [phone, phone2].filter(Boolean);
     if (phones.length === 0) {
-      alert(
-        language === 'en'
-          ? '⚠️ No phone numbers configured. Go to your profile and add them first.'
-          : '⚠️ No tienes teléfonos configurados. Ve a tu perfil y agrégalos primero.'
-      );
+      alert(language === 'en' ? '⚠️ No phone numbers configured. Go to your profile and add them first.' : '⚠️ No tienes teléfonos configurados. Ve a tu perfil y agrégalos primero.');
       return;
     }
-
     const phoneLines = phones.map(p => `📱 ${p}`).join('\n');
-    const block =
-      language === 'en'
-        ? `\n\n**📞 Call us:**\n${phoneLines}\n\n`
-        : `\n\n**📞 Puedes contactarnos a los teléfonos:**\n${phoneLines}\n\n`;
-
-    setProperty(prev => {
-      if (!prev) return prev;
-      return { ...prev, description: (prev.description || '') + block };
-    });
-
-    alert(
-      language === 'en'
-        ? '✅ Phone numbers inserted.'
-        : '✅ Teléfonos insertados.'
-    );
+    const block = language === 'en' ? `\n\n**📞 Call us:**\n${phoneLines}\n\n` : `\n\n**📞 Puedes contactarnos a los teléfonos:**\n${phoneLines}\n\n`;
+    setProperty(prev => { if (!prev) return prev; return { ...prev, description: (prev.description || '') + block }; });
+    alert(language === 'en' ? '✅ Phone numbers inserted.' : '✅ Teléfonos insertados.');
   };
 
   const handleSave = async () => {
     if (!property) return;
-
     const totalPhotos = existingPhotos.length + newPhotos.length;
-    if (totalPhotos < 2) {
-      setError('Mínimo 2 fotos requeridas');
-      return;
-    }
-
+    if (totalPhotos < 2) { setError('Mínimo 2 fotos requeridas'); return; }
     if (property.show_map) {
-      if (!property.latitude || !property.longitude) {
-        setError('Debes configurar la ubicación en el mapa');
-        return;
-      }
-      if (!property.plus_code) {
-        setError('El Plus Code no se generó correctamente');
-        return;
-      }
+      if (!property.latitude || !property.longitude) { setError('Debes configurar la ubicación en el mapa'); return; }
+      if (!property.plus_code) { setError('El Plus Code no se generó correctamente'); return; }
     }
-
     const hasNewVideos = newVideos.length > 0;
     const steps = initSavingSteps(hasNewVideos);
     setSavingSteps(steps);
     setSavingModalOpen(true);
     setSaving(true);
     setError(null);
-
-    // Calcular IDs dinámicos según los pasos generados
     const stepIds = {
       save: 1,
       photos: newPhotos.length > 0 ? 2 : null,
@@ -491,224 +373,136 @@ export default function EditPropertyPage() {
       processing: hasNewVideos ? (newPhotos.length > 0 ? 4 : 3) : null,
       finish: steps[steps.length - 1].id,
     };
-
     try {
-      // Paso 1: Subir fotos nuevas si hay
       updateSavingStep(stepIds.save, 'active');
       let uploadedUrls: string[] = [];
-
       if (newPhotos.length > 0) {
         updateSavingStep(stepIds.save, 'completed', language === 'en' ? '✓ Changes saved' : '✓ Cambios guardados');
         updateSavingStep(stepIds.photos!, 'active');
-
         for (const file of newPhotos) {
           const formData = new FormData();
           formData.append('photos', file);
           formData.append('propertySlug', propertySlug);
-
-          const uploadResponse = await fetch('/api/property/upload-photos', {
-            method: 'POST',
-            body: formData,
-          });
-
+          const uploadResponse = await fetch('/api/property/upload-photos', { method: 'POST', body: formData });
           if (!uploadResponse.ok) throw new Error('Error al subir fotos');
-
           const uploadData = await uploadResponse.json();
           uploadedUrls.push(...uploadData.urls);
         }
-
         updateSavingStep(stepIds.photos!, 'completed', language === 'en' ? `✓ Photos uploaded (${uploadedUrls.length})` : `✓ Fotos subidas (${uploadedUrls.length})`);
       } else {
         updateSavingStep(stepIds.save, 'completed', language === 'en' ? '✓ Changes saved' : '✓ Cambios guardados');
       }
-
       const allPhotos = [...existingPhotos, ...uploadedUrls];
-
-      // Paso videos: si hay videos nuevos
       let finalVideoUrls = [...existingVideos];
       let finalMuxAssetIds = [...existingMuxAssetIds];
-
       if (hasNewVideos) {
         try {
           const uploadIds: string[] = [];
           const playbackIds: string[] = [];
-
           for (let i = 0; i < newVideos.length; i++) {
-            updateSavingStep(stepIds.videos!, 'active', language === 'en'
-              ? `Uploading video ${i + 1} of ${newVideos.length}...`
-              : `Subiendo video ${i + 1} de ${newVideos.length}...`
-            );
-
-            const uploadId = await uploadVideoToMux(newVideos[i], (progress) => {
-              console.log(`Video ${i + 1} progress:`, progress);
-            });
-
+            updateSavingStep(stepIds.videos!, 'active', language === 'en' ? `Uploading video ${i + 1} of ${newVideos.length}...` : `Subiendo video ${i + 1} de ${newVideos.length}...`);
+            const uploadId = await uploadVideoToMux(newVideos[i], (progress) => { console.log(`Video ${i + 1} progress:`, progress); });
             uploadIds.push(uploadId);
           }
-
           updateSavingStep(stepIds.videos!, 'completed', language === 'en' ? `✓ Videos uploaded (${newVideos.length})` : `✓ Videos subidos (${newVideos.length})`);
           updateSavingStep(stepIds.processing!, 'active');
-
           for (let i = 0; i < uploadIds.length; i++) {
-            updateSavingStep(stepIds.processing!, 'active', language === 'en'
-              ? `Processing video ${i + 1} of ${uploadIds.length}...`
-              : `Procesando video ${i + 1} de ${uploadIds.length}...`
-            );
+            updateSavingStep(stepIds.processing!, 'active', language === 'en' ? `Processing video ${i + 1} of ${uploadIds.length}...` : `Procesando video ${i + 1} de ${uploadIds.length}...`);
             const { playbackId, assetId } = await waitForPlaybackId(uploadIds[i]);
             playbackIds.push(playbackId);
             finalMuxAssetIds.push(assetId);
           }
-
-          finalVideoUrls = [
-            ...existingVideos,
-            ...playbackIds.map(id => `https://stream.mux.com/${id}/capped-1080p.mp4`),
-          ];
-
+          finalVideoUrls = [...existingVideos, ...playbackIds.map(id => `https://stream.mux.com/${id}/capped-1080p.mp4`)];
           updateSavingStep(stepIds.processing!, 'completed', language === 'en' ? '✓ Videos processed' : '✓ Videos procesados');
-
         } catch (videoError: any) {
           updateSavingStep(stepIds.videos!, 'error');
           updateSavingStep(stepIds.processing!, 'error');
-          console.error('Error procesando videos:', videoError);
           const errorMsg = videoError?.message || 'Error desconocido';
-          alert(language === 'en'
-            ? `⚠️ Video processing failed: ${errorMsg}. Property will be saved without new videos.`
-            : `⚠️ Error procesando videos: ${errorMsg}. La propiedad se guardará sin los videos nuevos.`
-          );
+          alert(language === 'en' ? `⚠️ Video processing failed: ${errorMsg}. Property will be saved without new videos.` : `⚠️ Error procesando videos: ${errorMsg}. La propiedad se guardará sin los videos nuevos.`);
         }
       }
-
-      // Último paso: Actualizar propiedad
       updateSavingStep(stepIds.finish, 'active');
-
       const response = await fetch(`/api/property/update/${propertyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...property,
-          photos: allPhotos,
-          photosToDelete,
-          custom_fields_data: customFieldsValues,
-          video_urls: finalVideoUrls,
-          mux_asset_ids: finalMuxAssetIds,
-          mux_asset_ids_to_delete: muxAssetIdsToDelete,
-        }),
+        body: JSON.stringify({ ...property, photos: allPhotos, photosToDelete, custom_fields_data: customFieldsValues, video_urls: finalVideoUrls, mux_asset_ids: finalMuxAssetIds, mux_asset_ids_to_delete: muxAssetIdsToDelete }),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Error al guardar');
-      }
-
+      if (!response.ok) { const data = await response.json(); throw new Error(data.error || 'Error al guardar'); }
       updateSavingStep(stepIds.finish, 'completed', language === 'en' ? '✓ All done!' : '✓ ¡Todo listo!');
       await new Promise(resolve => setTimeout(resolve, 1000));
-
       setSavingModalOpen(false);
       router.push('/dashboard');
-
     } catch (err: any) {
       setError(err.message);
       setSavingModalOpen(false);
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   if (status === 'loading' || loading) {
     return (
       <AppLayout title="Cargando..." showBack={true} showTabs={true}>
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-full" style={{ backgroundColor: T.cream }}>
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">✏️</div>
-            <div className="text-lg" style={{ color: '#0F172A' }}>{t('common.editProperty.loading')}</div>
+            <div className="text-base font-medium" style={{ color: T.muted }}>{t('common.editProperty.loading')}</div>
           </div>
         </div>
       </AppLayout>
     );
   }
 
-  if (!session || !property) {
-    return null;
-  }
+  if (!session || !property) return null;
 
   const totalPhotos = existingPhotos.length + newPhotos.length;
 
   return (
     <AppLayout title={t('common.editProperty.title')} showBack={true} showTabs={true}>
-      {/* ── Wrapper externo con padding ── */}
       <div className="edit-property-outer">
 
-        {/* Error Message */}
+        {/* Error */}
         {error && (
-          <div 
-            className="rounded-2xl p-4 border-2 mb-4"
-            style={{ 
-              backgroundColor: '#FEE2E2',
-              borderColor: '#DC2626',
-              color: '#DC2626'
-            }}
-          >
+          <div className="rounded-2xl p-4 mb-4 text-sm font-medium" style={{ backgroundColor: T.redBg, border: `1.5px solid ${T.red}`, color: T.red }}>
             {error}
           </div>
         )}
 
-        {/* ── Grid: columna única en móvil, dos columnas en tablet/desktop ── */}
         <div className="edit-property-grid">
 
           {/* ── COLUMNA IZQUIERDA: Fotos + Videos ── */}
           <div className="edit-col-left space-y-4">
 
-            {/* Photos Editor */}
-            <div 
-              className="rounded-2xl p-4 shadow-lg"
-              style={{ backgroundColor: '#FFFFFF' }}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold" style={{ color: '#0F172A' }}>
-                  {t('common.editProperty.photos')} ({totalPhotos}/15)
+            {/* Fotos */}
+            <SectionCard>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-sm" style={{ color: T.navy }}>
+                  📸 {t('common.editProperty.photos')} ({totalPhotos}/15)
                 </h3>
                 <label className="cursor-pointer">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleAddPhotos}
-                    className="hidden"
-                    disabled={totalPhotos >= 15 || compressing} // Deshabilitar cuando está comprimiendo
-                  />
-                  <span 
-                    className="px-4 py-2 rounded-xl font-semibold text-white shadow-lg active:scale-95 transition-transform inline-block"
-                    style={{ backgroundColor: (totalPhotos >= 15 || compressing) ? '#9CA3AF' : '#2563EB' }}
+                  <input type="file" multiple accept="image/*" onChange={handleAddPhotos} className="hidden" disabled={totalPhotos >= 15 || compressing} />
+                  <span
+                    className="px-3 py-2 rounded-xl font-bold text-sm text-white active:scale-95 transition-transform inline-block"
+                    style={{ backgroundColor: (totalPhotos >= 15 || compressing) ? T.muted : T.navy }}
                   >
-                    {/* Mostrar estado de compresión */}
                     {compressing ? `⏳ ${t('common.editProperty.compressing')}` : `➕ ${t('common.editProperty.addPhotos')}`}
                   </span>
                 </label>
               </div>
 
-              {/* Existing Photos */}
               {existingPhotos.length > 0 && (
-                <div>
-                  <p className="text-xs mb-2 opacity-70" style={{ color: '#0F172A' }}>
+                <div className="mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: T.muted }}>
                     {t('common.editProperty.currentPhotos')}
                   </p>
-                  <div className="grid grid-cols-3 gap-2 mb-4">
+                  <div className="grid grid-cols-3 gap-2">
                     {existingPhotos.map((photo, index) => (
                       <div key={photo} className="relative aspect-square rounded-xl overflow-hidden">
-                        <Image
-                          src={photo}
-                          alt={`Photo ${index + 1}`}
-                          fill
-                          className="object-cover"
-                        />
+                        <Image src={photo} alt={`Photo ${index + 1}`} fill className="object-cover" />
                         <button
                           onClick={() => handleDeleteExistingPhoto(photo)}
-                          className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
-                        >
-                          ✕
-                        </button>
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform text-xs"
+                        >✕</button>
                         {index === 0 && (
-                          <div className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-xs font-bold text-white" style={{ backgroundColor: '#2563EB' }}>
+                          <div className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-[10px] font-bold text-white" style={{ backgroundColor: T.navy }}>
                             {t('photoUploader.principal')}
                           </div>
                         )}
@@ -718,28 +512,20 @@ export default function EditPropertyPage() {
                 </div>
               )}
 
-              {/* New Photos */}
               {newPhotos.length > 0 && (
                 <div>
-                  <p className="text-xs mb-2 opacity-70" style={{ color: '#0F172A' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: T.muted }}>
                     {t('common.editProperty.newPhotos')}
                   </p>
                   <div className="grid grid-cols-3 gap-2">
                     {newPhotosPreviews.map((preview, index) => (
                       <div key={index} className="relative aspect-square rounded-xl overflow-hidden">
-                        <Image
-                          src={preview}
-                          alt={`New ${index + 1}`}
-                          fill
-                          className="object-cover"
-                        />
+                        <Image src={preview} alt={`New ${index + 1}`} fill className="object-cover" />
                         <button
                           onClick={() => handleDeleteNewPhoto(index)}
-                          className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
-                        >
-                          ✕
-                        </button>
-                        <div className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-xs font-bold text-white bg-green-500">
+                          className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform text-xs"
+                        >✕</button>
+                        <div className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-[10px] font-bold text-white" style={{ backgroundColor: T.green }}>
                           {t('photoUploader.new')}
                         </div>
                       </div>
@@ -749,41 +535,31 @@ export default function EditPropertyPage() {
               )}
 
               {totalPhotos < 2 && (
-                <p className="text-xs mt-2" style={{ color: '#DC2626' }}>
+                <p className="text-xs mt-2 font-medium" style={{ color: T.red }}>
                   ⚠️ {t('common.editProperty.minPhotosRequired')}
                 </p>
               )}
-            </div>
+            </SectionCard>
 
-            {/* Videos Editor */}
-            <div className="rounded-2xl p-4 shadow-lg" style={{ backgroundColor: '#FFFFFF' }}>
-              <h3 className="font-bold mb-3" style={{ color: '#0F172A' }}>
-                🎬 Videos
-              </h3>
+            {/* Videos */}
+            <SectionCard>
+              <h3 className="font-bold text-sm mb-4" style={{ color: T.navy }}>🎬 Videos</h3>
 
               {session.user.plan === 'pro' ? (
                 <>
-                  {/* Videos existentes */}
                   {existingVideos.length > 0 && (
-                    <div className="space-y-2 mb-4">
-                      <p className="text-xs opacity-70 mb-2" style={{ color: '#0F172A' }}>
+                    <div className="space-y-3 mb-4">
+                      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: T.muted }}>
                         Videos actuales:
                       </p>
                       {existingVideos.map((url, index) => (
-                        <div key={index} className="relative rounded-xl overflow-hidden border-2" style={{ borderColor: '#E5E7EB' }}>
-                          <video
-                            src={url}
-                            className="w-full aspect-video object-cover bg-black"
-                            controls
-                            preload="metadata"
-                          />
+                        <div key={index} className="relative rounded-xl overflow-hidden" style={{ border: `1px solid ${T.border}` }}>
+                          <video src={url} className="w-full aspect-video object-cover bg-black" controls preload="metadata" />
                           <button
                             onClick={() => handleDeleteExistingVideo(index)}
                             className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg active:scale-90 transition-transform"
-                          >
-                            ✕
-                          </button>
-                          <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded text-xs font-bold text-white" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                          >✕</button>
+                          <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold text-white" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
                             Video {index + 1}
                           </div>
                         </div>
@@ -794,97 +570,72 @@ export default function EditPropertyPage() {
                   {existingVideos.length > 0 && (
                     <button
                       onClick={() => setReelModalOpen(true)}
-                      className="w-full py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform mb-4"
+                      className="w-full py-3 rounded-xl font-bold text-white active:scale-95 transition-transform mb-4 text-sm"
                       style={{ backgroundColor: '#1877F2' }}
                     >
                       🎬 {language === 'en' ? 'Publish Reel to Facebook' : 'Publicar Reel en Facebook'}
                     </button>
                   )}
 
-                  {/* Agregar nuevos videos */}
                   {Math.floor(60 - existingVideosDuration) > 0 && (
-                    <VideoUploader
-                      onVideosChange={handleNewVideosChange}
-                      maxVideos={4}
-                      maxDurationSeconds={Math.ceil(60 - existingVideosDuration)}
-                    />
+                    <VideoUploader onVideosChange={handleNewVideosChange} maxVideos={4} maxDurationSeconds={Math.ceil(60 - existingVideosDuration)} />
                   )}
 
                   {Math.floor(60 - existingVideosDuration) <= 0 && (
-                    <p className="text-xs text-center opacity-60 mt-2" style={{ color: '#0F172A' }}>
+                    <p className="text-xs text-center mt-2" style={{ color: T.muted }}>
                       {language === 'en' ? 'Maximum 60 seconds reached' : 'Has alcanzado el máximo de 60 segundos'}
                     </p>
                   )}
 
-                  {/* Progreso */}
                   {videoProgress && (
-                    <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                      <p className="text-sm font-semibold text-purple-900">🎬 {videoProgress}</p>
+                    <div className="mt-3 p-3 rounded-xl" style={{ backgroundColor: '#F5F3FF', border: '1px solid #DDD6FE' }}>
+                      <p className="text-sm font-semibold" style={{ color: '#6D28D9' }}>🎬 {videoProgress}</p>
                     </div>
                   )}
                 </>
               ) : (
-                /* Plan Free */
                 existingVideos.length > 0 ? (
-                  <div
-                    className="rounded-xl p-4 flex items-center gap-3"
-                    style={{ backgroundColor: '#EFF6FF', border: '2px solid #BFDBFE' }}
-                  >
+                  <div className="rounded-xl p-4 flex items-center gap-3" style={{ backgroundColor: T.goldPale, border: `1px solid rgba(201,168,76,0.35)` }}>
                     <span className="text-2xl">🎬</span>
                     <div>
-                      <p className="text-sm font-bold" style={{ color: '#1E40AF' }}>
-                        {language === 'en'
-                          ? `This property has ${existingVideos.length} video${existingVideos.length > 1 ? 's' : ''} associated`
-                          : `Esta propiedad tiene ${existingVideos.length} video${existingVideos.length > 1 ? 's' : ''} relacionado${existingVideos.length > 1 ? 's' : ''}`
-                        }
+                      <p className="text-sm font-bold" style={{ color: T.navy }}>
+                        {language === 'en' ? `This property has ${existingVideos.length} video${existingVideos.length > 1 ? 's' : ''} associated` : `Esta propiedad tiene ${existingVideos.length} video${existingVideos.length > 1 ? 's' : ''} relacionado${existingVideos.length > 1 ? 's' : ''}`}
                       </p>
-                      <p className="text-xs mt-1" style={{ color: '#1D4ED8' }}>
-                        {language === 'en'
-                          ? 'Upgrade to Pro to view and manage your videos.'
-                          : 'Pásate a Pro para poder ver y gestionar tus videos.'}
+                      <p className="text-xs mt-0.5" style={{ color: T.navy, opacity: 0.7 }}>
+                        {language === 'en' ? 'Upgrade to Pro to view and manage your videos.' : 'Pásate a Pro para poder ver y gestionar tus videos.'}
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div
-                    className="rounded-xl p-4 flex items-center gap-3"
-                    style={{ backgroundColor: '#FEF3C7', border: '2px solid #FDE68A' }}
-                  >
+                  <div className="rounded-xl p-4 flex items-center gap-3" style={{ backgroundColor: T.goldPale, border: `1px solid rgba(201,168,76,0.35)` }}>
                     <span className="text-2xl">🎬</span>
                     <div>
-                      <p className="text-sm font-bold" style={{ color: '#92400E' }}>
+                      <p className="text-sm font-bold" style={{ color: T.navy }}>
                         {language === 'en' ? 'Videos are a Pro feature' : 'Los videos son una función Pro'}
                       </p>
-                      <p className="text-xs mt-0.5" style={{ color: '#B45309' }}>
-                        {language === 'en'
-                          ? 'Upgrade to Pro to add videos to your properties.'
-                          : 'Pásate al plan Pro para subir videos a tu propiedad.'}
+                      <p className="text-xs mt-0.5" style={{ color: T.navy, opacity: 0.7 }}>
+                        {language === 'en' ? 'Upgrade to Pro to add videos to your properties.' : 'Pásate al plan Pro para subir videos a tu propiedad.'}
                       </p>
                     </div>
                   </div>
                 )
               )}
-            </div>
+            </SectionCard>
 
           </div>{/* fin edit-col-left */}
 
-          {/* ── COLUMNA DERECHA: Formulario completo ── */}
+          {/* ── COLUMNA DERECHA: Formulario ── */}
           <div className="edit-col-right space-y-4">
 
-            {/* Badge de idioma de la propiedad */}
-            <div
-              className="rounded-2xl p-4 shadow-lg"
-              style={{ backgroundColor: '#FFFFFF' }}
-            >
+            {/* Badge idioma */}
+            <SectionCard>
               <div className="flex items-center gap-3">
                 {property.language === 'es' ? (
-                  /* Bandera España */
                   <svg width="28" height="20" viewBox="0 0 20 14" className="rounded-sm flex-shrink-0" aria-hidden="true">
-                    <rect width="20" height="14" fill="#c60b1e"/>
-                    <rect y="3.5" width="20" height="7" fill="#ffc400"/>
+                    <rect width="20" height="14" fill="#AA151B"/>
+                    <rect y="3.5" width="20" height="7" fill="#F1BF00"/>
                   </svg>
                 ) : (
-                  /* Bandera USA */
                   <svg width="28" height="20" viewBox="0 0 20 14" className="rounded-sm flex-shrink-0" aria-hidden="true">
                     <rect width="20" height="14" fill="#B22234"/>
                     <rect y="1.08" width="20" height="1.08" fill="#FFFFFF"/>
@@ -897,52 +648,37 @@ export default function EditPropertyPage() {
                   </svg>
                 )}
                 <div>
-                  <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                    {t('common.editProperty.propertyLanguage')}:
+                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: T.muted }}>
+                    {t('common.editProperty.propertyLanguage')}
                   </p>
-                  <p className="text-lg font-bold" style={{ color: '#0F172A' }}>
+                  <p className="text-base font-bold" style={{ color: T.navy }}>
                     {property.language === 'es' ? 'Español' : 'English'}
                   </p>
                 </div>
               </div>
-            </div>
+            </SectionCard>
 
-            {/* Title */}
-            <div 
-              className="rounded-2xl p-4 shadow-lg"
-              style={{ backgroundColor: '#FFFFFF' }}
-            >
-              <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                {t('common.editProperty.propertyTitle')}
-              </label>
-              <input
+            {/* Título */}
+            <SectionCard>
+              <FieldLabel label={t('common.editProperty.propertyTitle')} />
+              <StyledInput
                 type="text"
                 value={property.title}
                 onChange={(e) => setProperty({ ...property, title: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
-                style={{ 
-                  borderColor: '#E5E7EB',
-                  backgroundColor: '#F9FAFB',
-                  color: '#0F172A'
-                }}
               />
-            </div>
+            </SectionCard>
 
-            {/* Description */}
-            <div 
-              className="rounded-2xl p-4 shadow-lg"
-              style={{ backgroundColor: '#FFFFFF' }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-bold" style={{ color: '#0F172A' }}>
+            {/* Descripción */}
+            <SectionCard>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider" style={{ color: T.muted }}>
                   {t('common.editProperty.description')}
                 </label>
                 <button
                   type="button"
                   onClick={handleInsertPhonesInDescription}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold active:scale-95 transition-transform"
-                  style={{ backgroundColor: '#DBEAFE', color: '#1D4ED8' }}
-                  title={language === 'en' ? 'Insert phone numbers' : 'Insertar teléfonos'}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold active:scale-95 transition-transform"
+                  style={{ backgroundColor: T.goldPale, color: T.navy, border: `1px solid rgba(201,168,76,0.35)` }}
                 >
                   📲 {language === 'en' ? 'Insert phones' : 'Insertar tel.'}
                 </button>
@@ -951,56 +687,28 @@ export default function EditPropertyPage() {
                 value={property.description}
                 onChange={(e) => setProperty({ ...property, description: e.target.value })}
                 rows={8}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none resize-none"
-                style={{ 
-                  borderColor: '#E5E7EB',
-                  backgroundColor: '#F9FAFB',
-                  color: '#0F172A'
-                }}
+                className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none resize-none"
+                style={{ border: `1.5px solid ${T.border}`, backgroundColor: T.cream, color: T.charcoal }}
               />
-            </div>
+            </SectionCard>
 
-            {/* Price and Details */}
-            <div 
-              className="rounded-2xl p-4 shadow-lg space-y-4"
-              style={{ backgroundColor: '#FFFFFF' }}
-            >
-              <h3 className="font-bold" style={{ color: '#0F172A' }}>
+            {/* Precio y detalles */}
+            <SectionCard>
+              <p className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: T.muted }}>
                 {t('common.editProperty.details')}
-              </h3>
-
-              <div className="grid grid-cols-2 gap-3">
+              </p>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                    {t('common.editProperty.price')} ({currencies.find(c => c.id === (selectedCurrency || property.currency_id))?.symbol || '$'})
-                  </label>
-                  <input
+                  <FieldLabel label={`${t('common.editProperty.price')} (${currencies.find(c => c.id === (selectedCurrency || property.currency_id))?.symbol || '$'})`} />
+                  <StyledInput
                     type="number"
                     value={property.price || ''}
                     onChange={(e) => setProperty({ ...property, price: Number(e.target.value) || null })}
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
-                    style={{ 
-                      borderColor: '#E5E7EB',
-                      backgroundColor: '#F9FAFB',
-                      color: '#0F172A'
-                    }}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                    {t('common.editProperty.propertyType')}
-                  </label>
-                  <select
-                    value={property.property_type}
-                    onChange={(e) => setProperty({ ...property, property_type: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none appearance-none"
-                    style={{ 
-                      borderColor: '#E5E7EB',
-                      backgroundColor: '#F9FAFB',
-                      color: '#0F172A'
-                    }}
-                  >
+                  <FieldLabel label={t('common.editProperty.propertyType')} />
+                  <StyledSelect value={property.property_type} onChange={(e) => setProperty({ ...property, property_type: e.target.value })}>
                     <option value="house">{t('common.editProperty.house')}</option>
                     <option value="condo">{t('common.editProperty.condo')}</option>
                     <option value="apartment">{t('common.editProperty.apartment')}</option>
@@ -1010,213 +718,110 @@ export default function EditPropertyPage() {
                     <option value="finca">{t('common.editProperty.finca')}</option>
                     <option value="quinta">{t('common.editProperty.quinta')}</option>
                     <option value="other">{t('common.editProperty.other')}</option>
-                  </select>
+                  </StyledSelect>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                    {t('common.editProperty.listingType')}
-                  </label>
-                  <select
-                    value={property.listing_type || 'sale'}
-                    onChange={(e) => setProperty({ ...property, listing_type: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none appearance-none"
-                    style={{ 
-                      borderColor: '#E5E7EB',
-                      backgroundColor: '#F9FAFB',
-                      color: '#0F172A'
-                    }}
-                  >
+                  <FieldLabel label={t('common.editProperty.listingType')} />
+                  <StyledSelect value={property.listing_type || 'sale'} onChange={(e) => setProperty({ ...property, listing_type: e.target.value })}>
                     <option value="sale">{t('common.editProperty.sale')}</option>
                     <option value="rent">{t('common.editProperty.rent')}</option>
-                  </select>
+                  </StyledSelect>
                 </div>
-                {/* NUEVO: Selector de Divisa */}
-                <div className="col-span-2">
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                    💰 {t('common.editProperty.currency')}
-                  </label>
-                  <select
+                <div>
+                  <FieldLabel label={`💰 ${t('common.editProperty.currency')}`} />
+                  <StyledSelect
                     value={selectedCurrency || property.currency_id || ''}
-                    onChange={(e) => {
-                      const newCurrencyId = e.target.value;
-                      setSelectedCurrency(newCurrencyId);
-                      setProperty({ ...property, currency_id: newCurrencyId });
-                    }}
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none appearance-none"
-                    style={{ 
-                      borderColor: '#E5E7EB',
-                      backgroundColor: '#F9FAFB',
-                      color: '#0F172A'
-                    }}
+                    onChange={(e) => { setSelectedCurrency(e.target.value); setProperty({ ...property, currency_id: e.target.value }); }}
                   >
                     {currencies.map(currency => (
-                      <option key={currency.id} value={currency.id}>
-                        {currency.symbol} {currency.code} - {currency.name}
-                      </option>
+                      <option key={currency.id} value={currency.id}>{currency.symbol} {currency.code} - {currency.name}</option>
                     ))}
-                  </select>
-                  <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
-                    💡 {t('common.editProperty.currencyTip')}
-                  </p>
+                  </StyledSelect>
+                  <p className="text-xs mt-1" style={{ color: T.muted }}>💡 {t('common.editProperty.currencyTip')}</p>
                 </div>
               </div>
-            </div>
+            </SectionCard>
 
-            {/* Location */}
-            <div 
-              className="rounded-2xl p-4 shadow-lg space-y-4"
-              style={{ backgroundColor: '#FFFFFF' }}
-            >
-              <h3 className="font-bold" style={{ color: '#0F172A' }}>
-                {t('common.editProperty.location')}
-              </h3>
+            {/* Ubicación */}
+            <SectionCard>
+              <p className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: T.muted }}>
+                📍 {t('common.editProperty.location')}
+              </p>
 
-              <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                  {t('common.editProperty.address')}
-                </label>
-                <input
-                  type="text"
-                  value={property.address}
-                  onChange={(e) => setProperty({ ...property, address: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
-                  style={{ 
-                    borderColor: '#E5E7EB',
-                    backgroundColor: '#F9FAFB',
-                    color: '#0F172A'
-                  }}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                    {t('common.editProperty.city')}
-                  </label>
-                  <input
-                    type="text"
-                    value={property.city}
-                    onChange={(e) => setProperty({ ...property, city: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
-                    style={{ 
-                      borderColor: '#E5E7EB',
-                      backgroundColor: '#F9FAFB',
-                      color: '#0F172A'
-                    }}
-                  />
+                  <FieldLabel label={t('common.editProperty.address')} />
+                  <StyledInput type="text" value={property.address} onChange={(e) => setProperty({ ...property, address: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <FieldLabel label={t('common.editProperty.city')} />
+                    <StyledInput type="text" value={property.city} onChange={(e) => setProperty({ ...property, city: e.target.value })} />
+                  </div>
+                  <div>
+                    <FieldLabel label={t('common.editProperty.state')} />
+                    <StyledInput type="text" value={property.state} onChange={(e) => setProperty({ ...property, state: e.target.value })} />
+                  </div>
+                  <div className="col-span-2">
+                    <FieldLabel label={t('common.editProperty.zipCode')} />
+                    <StyledInput type="text" value={property.zip_code} onChange={(e) => setProperty({ ...property, zip_code: e.target.value })} />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                    {t('common.editProperty.state')}
+                <div className="pt-4" style={{ borderTop: `1px solid ${T.border}` }}>
+                  <label className="flex items-center gap-2 cursor-pointer mb-4">
+                    <input
+                      type="checkbox"
+                      checked={property.show_map}
+                      onChange={(e) => setProperty({ ...property, show_map: e.target.checked })}
+                      className="w-4 h-4 rounded"
+                    />
+                    <span className="text-sm font-semibold" style={{ color: T.navy }}>
+                      🗺️ {t('common.editProperty.showOnMap')}
+                    </span>
                   </label>
-                  <input
-                    type="text"
-                    value={property.state}
-                    onChange={(e) => setProperty({ ...property, state: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
-                    style={{ 
-                      borderColor: '#E5E7EB',
-                      backgroundColor: '#F9FAFB',
-                      color: '#0F172A'
-                    }}
-                  />
-                </div>
 
-                <div className="col-span-2">
-                  <label className="block text-sm font-semibold mb-2" style={{ color: '#0F172A' }}>
-                    {t('common.editProperty.zipCode')}
-                  </label>
-                  <input
-                    type="text"
-                    value={property.zip_code}
-                    onChange={(e) => setProperty({ ...property, zip_code: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none"
-                    style={{ 
-                      borderColor: '#E5E7EB',
-                      backgroundColor: '#F9FAFB',
-                      color: '#0F172A'
-                    }}
-                  />
+                  <div className="mb-4">
+                    <FieldLabel label={`🌎 ${t('common.editProperty.propertyCountry')}`} />
+                    <StyledSelect value={selectedCountry} onChange={(e) => setSelectedCountry(e.target.value as CountryCode)}>
+                      {SUPPORTED_COUNTRIES.map((country) => (
+                        <option key={country.code} value={country.code}>{country.flag} {country.name}</option>
+                      ))}
+                    </StyledSelect>
+                    <p className="text-xs mt-1" style={{ color: T.muted }}>{t('common.editProperty.selectCountry')}</p>
+                  </div>
+
+                  {property.show_map && (
+                    <GoogleMapEditor
+                      address={property.address}
+                      city={property.city}
+                      state={property.state}
+                      selectedCountry={selectedCountry}
+                      initialLat={property.latitude}
+                      initialLng={property.longitude}
+                      initialPlusCode={property.plus_code}
+                      onLocationChange={(lat, lng, plusCode) => {
+                        console.log('📍 Nueva ubicación:', lat, lng, plusCode);
+                        setProperty({ ...property, latitude: lat, longitude: lng, plus_code: plusCode });
+                      }}
+                      editable={true}
+                    />
+                  )}
                 </div>
               </div>
+            </SectionCard>
 
-              {/* MAP SECTION (CON PLUS CODE) */}
-              <div className="pt-4 border-t" style={{ borderTopColor: '#E5E7EB' }}>
-                <label className="flex items-center gap-2 cursor-pointer mb-3">
-                  <input
-                    type="checkbox"
-                    checked={property.show_map}
-                    onChange={(e) => setProperty({ 
-                      ...property, 
-                      show_map: e.target.checked 
-                    })}
-                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-semibold" style={{ color: '#0F172A' }}>
-                    🗺️ {t('common.editProperty.showOnMap')}
-                  </span>
-                </label>
-
-                <div className="mb-4">
-                  <label className="block text-sm font-semibold mb-2 text-gray-700">
-                    🌎 {t('common.editProperty.propertyCountry')}
-                  </label>
-                  <select
-                    value={selectedCountry}
-                    onChange={(e) => setSelectedCountry(e.target.value as CountryCode)}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-base text-gray-900 font-semibold"
-                  >
-                    {SUPPORTED_COUNTRIES.map((country) => (
-                      <option key={country.code} value={country.code}>
-                        {country.flag} {country.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-600 mt-1">
-                    {t('common.editProperty.selectCountry')}
-                  </p>
-                </div>
-
-                {property.show_map && (
-                  <GoogleMapEditor
-                    address={property.address}
-                    city={property.city}
-                    state={property.state}
-                    selectedCountry={selectedCountry}
-                    initialLat={property.latitude}
-                    initialLng={property.longitude}
-                    initialPlusCode={property.plus_code}
-                    onLocationChange={(lat, lng, plusCode) => {
-                      console.log('📍 Nueva ubicación:', lat, lng, plusCode);
-                      setProperty({ 
-                        ...property, 
-                        latitude: lat, 
-                        longitude: lng,
-                        plus_code: plusCode
-                      });
-                    }}
-                    editable={true}
-                  />
-                )}
-              </div>
-            </div>
-
-            {/* Campos Personalizados */}
-            <div 
-              className="rounded-2xl p-4 shadow-lg space-y-4"
-              style={{ backgroundColor: '#FFFFFF' }}
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold" style={{ color: '#0F172A' }}>
+            {/* Campos personalizados */}
+            <SectionCard>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: T.muted }}>
                   🏷️ {t('common.editProperty.customFields')}
-                </h3>
+                </p>
                 {session.user.plan === 'pro' && (
                   <button
                     onClick={() => router.push('/settings/custom-fields')}
-                    className="text-xs font-semibold underline"
-                    style={{ color: '#2563EB' }}
+                    className="text-xs font-bold underline"
+                    style={{ color: T.navy }}
                   >
                     {t('common.editProperty.manageFields')}
                   </button>
@@ -1226,17 +831,14 @@ export default function EditPropertyPage() {
               {loadingCustomFields ? (
                 <div className="text-center py-4">
                   <div className="text-3xl mb-2 animate-pulse">⏳</div>
-                  <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                    {t('common.editProperty.loadingFields')}
-                  </p>
+                  <p className="text-sm" style={{ color: T.muted }}>{t('common.editProperty.loadingFields')}</p>
                 </div>
               ) : customFields.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {customFields.map((field) => (
                     <div key={field.id}>
-                      <label className="block text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: '#0F172A' }}>
-                        <span className="text-lg">{field.icon || '🏷️'}</span>
-                        {getCustomFieldName(field)}
+                      <label className="block text-xs font-bold uppercase tracking-wider mb-1.5 flex items-center gap-1.5" style={{ color: T.muted }}>
+                        <span>{field.icon || '🏷️'}</span>{getCustomFieldName(field)}
                       </label>
                       <input
                         type={field.field_type === 'number' ? 'number' : 'text'}
@@ -1244,93 +846,68 @@ export default function EditPropertyPage() {
                         onChange={(e) => handleCustomFieldChange(field.field_key, e.target.value)}
                         placeholder={field.placeholder}
                         maxLength={field.field_type === 'text' ? 200 : undefined}
-                        className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                        style={{ 
-                          borderColor: '#E5E7EB',
-                          backgroundColor: '#F9FAFB'
-                        }}
+                        className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
+                        style={{ border: `1.5px solid ${T.border}`, backgroundColor: T.cream, color: T.charcoal }}
                       />
                     </div>
                   ))}
-                  
-                  <div 
-                    className="px-3 py-2 rounded-lg text-xs"
-                    style={{ backgroundColor: '#F0F9FF', color: '#0369A1' }}
-                  >
-                    💡 <strong>Tip:</strong> Los campos se guardan automáticamente al actualizar la propiedad. 
-                    Si cambias el tipo de propiedad, los datos se mantienen y puedes volver a verlos cuando regreses a esta configuración.
+                  <div className="px-3 py-2 rounded-xl text-xs" style={{ backgroundColor: T.goldPale, color: T.navy, border: `1px solid rgba(201,168,76,0.35)` }}>
+                    💡 Los campos se guardan automáticamente al actualizar la propiedad.
                   </div>
                 </div>
               ) : (
-                <div 
-                  className="rounded-xl p-4 text-center"
-                  style={{ backgroundColor: '#FEF3C7' }}
-                >
+                <div className="rounded-xl p-5 text-center" style={{ backgroundColor: T.cream, border: `1px solid ${T.border}` }}>
                   <div className="text-3xl mb-2">📝</div>
-                  <p className="text-sm font-semibold mb-1" style={{ color: '#92400E' }}>
+                  <p className="text-sm font-semibold mb-1" style={{ color: T.navy }}>
                     {t('common.editProperty.noCustomFields')}
                   </p>
-                  <p className="text-xs opacity-70 mb-3" style={{ color: '#92400E' }}>
-                    {property?.property_type && property?.listing_type && (
-                      <>Tipo: {property.property_type} → {property.listing_type === 'sale' ? 'Venta' : 'Alquiler'}</>
-                    )}
-                  </p>
+                  {property?.property_type && property?.listing_type && (
+                    <p className="text-xs mb-3" style={{ color: T.muted }}>
+                      Tipo: {property.property_type} → {property.listing_type === 'sale' ? 'Venta' : 'Alquiler'}
+                    </p>
+                  )}
                   <button
                     onClick={() => router.push('/settings/custom-fields')}
-                    className="px-4 py-2 rounded-xl font-bold text-white active:scale-95 transition-transform"
-                    style={{ backgroundColor: '#2563EB' }}
+                    className="px-4 py-2 rounded-xl font-bold text-white text-sm active:scale-95 transition-transform"
+                    style={{ backgroundColor: T.navy }}
                   >
                     ➕ {t('common.editProperty.createFields')}
                   </button>
                 </div>
               )}
-            </div>
+            </SectionCard>
 
-            {/* Status */}
-            <div 
-              className="rounded-2xl p-4 shadow-lg"
-              style={{ backgroundColor: '#FFFFFF' }}
-            >
-              <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                {t('common.editProperty.propertyStatus')}
-              </label>
-              <select
-                value={property.status}
-                onChange={(e) => setProperty({ ...property, status: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none appearance-none"
-                style={{ 
-                  borderColor: '#E5E7EB',
-                  backgroundColor: '#F9FAFB',
-                  color: '#0F172A'
-                }}
-              >
+            {/* Estado */}
+            <SectionCard>
+              <FieldLabel label={t('common.editProperty.propertyStatus')} />
+              <StyledSelect value={property.status} onChange={(e) => setProperty({ ...property, status: e.target.value })}>
                 <option value="active">{t('common.editProperty.active')}</option>
                 <option value="pending">{t('common.editProperty.pending')}</option>
                 <option value="sold">{t('common.editProperty.sold')}</option>
                 <option value="rented">{t('common.editProperty.rented')}</option>
-              </select>
-            </div>
+              </StyledSelect>
+            </SectionCard>
 
-            {/* Action Buttons */}
+            {/* Botones acción */}
             <div className="flex gap-3">
               <button
                 onClick={() => router.back()}
-                className="flex-1 py-3 rounded-xl font-bold border-2 active:scale-95 transition-transform"
-                style={{ 
-                  borderColor: '#E5E7EB',
-                  color: '#0F172A',
-                  backgroundColor: '#FFFFFF'
-                }}
+                className="flex-1 py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform"
+                style={{ border: `1.5px solid ${T.border}`, color: T.charcoal, backgroundColor: T.white }}
               >
                 {t('common.editProperty.cancel')}
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving || totalPhotos < 2}
-                className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
-                style={{ backgroundColor: '#2563EB' }}
+                className="flex-1 py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-50"
+                style={{
+                  background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`,
+                  color: T.navy,
+                  boxShadow: '0 2px 8px rgba(201,168,76,0.3)',
+                }}
               >
-                {saving ? `${t('common.editProperty.saving')}` : `💾 ${t('common.editProperty.save')}`}
+                {saving ? t('common.editProperty.saving') : `💾 ${t('common.editProperty.save')}`}
               </button>
             </div>
 
@@ -1339,31 +916,21 @@ export default function EditPropertyPage() {
         </div>{/* fin edit-property-grid */}
       </div>{/* fin edit-property-outer */}
 
-      <PublishingModal
-        isOpen={savingModalOpen}
-        steps={savingSteps}
-        hasVideos={newVideos.length > 0}
-        language={language}
-      />
+      <PublishingModal isOpen={savingModalOpen} steps={savingSteps} hasVideos={newVideos.length > 0} language={language} />
 
-      <SocialReelPublishModal
-        isOpen={reelModalOpen}
-        onClose={() => setReelModalOpen(false)}
-        propertyId={propertyId}
-        videoUrls={existingVideos}
-        language={language}
-      />
+      <SocialReelPublishModal isOpen={reelModalOpen} onClose={() => setReelModalOpen(false)} propertyId={propertyId} videoUrls={existingVideos} language={language} />
 
       <style jsx global>{`
         .edit-property-outer {
           padding: 16px;
+          background-color: #F8F6F2;
+          min-height: 100%;
         }
         .edit-property-grid {
           display: flex;
           flex-direction: column;
           gap: 16px;
         }
-
         @media (min-width: 768px) {
           .edit-property-outer {
             padding: 28px 32px;
@@ -1388,7 +955,6 @@ export default function EditPropertyPage() {
             padding-right: 4px;
           }
         }
-
         @media (min-width: 1200px) {
           .edit-property-outer {
             padding: 32px 40px;

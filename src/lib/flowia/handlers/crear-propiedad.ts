@@ -610,14 +610,40 @@ export async function handleListo(
     });
 
     if (missingCustomFields.length > 0) {
+      // Translate placeholders if flow language differs from placeholder language
+      const placeholderMap: Record<string, string> = {};
+      if (resolvedLang === 'en') {
+        const toTranslate = missingCustomFields
+          .filter(cf => cf.placeholder)
+          .map(cf => ({ key: cf.field_key, text: cf.placeholder! }));
+
+        if (toTranslate.length > 0) {
+          try {
+            const translateCompletion = await openai.chat.completions.create({
+              model: 'gpt-4o-mini',
+              messages: [{
+                role: 'user',
+                content: 'Translate these property field hints to English. Return ONLY a JSON object with the same keys. Keep it short and natural (e.g. "Yes/No", "e.g: 2 spaces"). Input:\n'
+                  + JSON.stringify(Object.fromEntries(toTranslate.map(t => [t.key, t.text])))
+              }],
+              temperature: 0,
+              max_tokens: 200,
+            });
+            const raw = translateCompletion.choices[0].message.content || '{}';
+            const translated = JSON.parse(raw.replace(/```json|```/g, '').trim());
+            Object.assign(placeholderMap, translated);
+          } catch {
+            // Fallback: use original placeholders
+            toTranslate.forEach(t => { placeholderMap[t.key] = t.text; });
+          }
+        }
+      }
+
       const lista = missingCustomFields.map(function(cf) {
         const displayName = (resolvedLang === 'en' && cf.field_name_en) ? cf.field_name_en : cf.field_name;
-        const placeholder = cf.placeholder
-          ? (resolvedLang === 'en'
-            ? ' _(e.g: ' + cf.placeholder.replace(/^Ej:\s*/i, '').replace(/Sí\/No/gi, 'Yes/No') + ')_'
-            : ' _(ej: ' + cf.placeholder + ')_')
-          : '';
-        return (cf.icon || '🏷️') + ' *' + displayName + '*' + placeholder;
+        const ph = resolvedLang === 'en' ? (placeholderMap[cf.field_key] || cf.placeholder) : cf.placeholder;
+        const placeholderText = ph ? ' _(e.g: ' + ph + ')_' : '';
+        return (cf.icon || '🏷️') + ' *' + displayName + '*' + placeholderText;
       }).join('\n');
       await sendQueued(agentId, cleanNumber, msg.missingCustomFields(lista));
       return;

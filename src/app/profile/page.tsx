@@ -98,15 +98,28 @@ export default function ProfilePage() {
   const isPro = session.user.plan === 'pro' && session.user.expires_at;
   const initials = fullName ? fullName.charAt(0).toUpperCase() : (session.user.name?.charAt(0).toUpperCase() || '?');
 
+  // ── Botón de cerrar sesión reutilizable ──────────────────────────────────
+  const LogoutButton = () => (
+    <button
+      onClick={handleLogout}
+      className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm active:scale-95 transition-transform"
+      style={{ backgroundColor: '#DC2626', color: T.white, boxShadow: '0 2px 8px rgba(220,38,38,0.25)' }}
+    >
+      {/* Ícono de salida — puerta con flecha */}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      {t('profile.logout')}
+    </button>
+  );
+
   return (
     <AppLayout title={t('profile.title')} showTabs={true}>
-      {/*
-        mobile:   1 columna
-        tablet+:  2 columnas — izquierda avatar+plan, derecha formulario
-      */}
       <div className="px-4 pt-4 pb-24 md:pb-8 md:px-6 md:pt-6 md:grid md:grid-cols-[340px_1fr] md:gap-6 md:items-start" style={{ backgroundColor: T.cream }}>
 
-        {/* ── Título estilizado — solo mobile ── */}
+        {/* Título estilizado — solo mobile */}
         <div className="flex items-center gap-2 mb-4 md:hidden">
           <div style={{ width: '3px', height: '22px', backgroundColor: T.gold, borderRadius: '2px', flexShrink: 0 }} />
           <h1 className="text-xl font-bold tracking-tight" style={{ color: T.navy }}>
@@ -118,20 +131,11 @@ export default function ProfilePage() {
         <div className="space-y-3">
 
           {/* Avatar card */}
-          <div
-            className="rounded-2xl p-5 shadow-sm"
-            style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}
-          >
+          <div className="rounded-2xl p-5 shadow-sm" style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}>
             <div className="flex items-center gap-4">
-              {/* Foto circular */}
               <div
                 className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center font-bold text-3xl"
-                style={{
-                  backgroundColor: T.gold,
-                  color: T.navy,
-                  border: `2px solid ${T.gold}`,
-                  boxShadow: '0 2px 12px rgba(201,168,76,0.3)',
-                }}
+                style={{ backgroundColor: T.gold, color: T.navy, border: `2px solid ${T.gold}`, boxShadow: '0 2px 12px rgba(201,168,76,0.3)' }}
               >
                 {profilePhoto ? (
                   <Image src={profilePhoto} alt={fullName || session.user.name || 'Profile'} width={80} height={80} className="object-cover w-full h-full" />
@@ -139,7 +143,6 @@ export default function ProfilePage() {
                   <span>{initials}</span>
                 )}
               </div>
-              {/* Nombre y email */}
               <div className="flex-1 min-w-0">
                 <h2 className="text-lg font-bold truncate" style={{ color: T.navy }}>
                   {fullName || session.user.name}
@@ -164,10 +167,7 @@ export default function ProfilePage() {
 
           {/* Vencimiento Pro */}
           {isPro && (
-            <div
-              className="rounded-2xl p-4 shadow-sm flex items-center gap-3"
-              style={{ backgroundColor: T.goldPale, border: `1px solid rgba(201,168,76,0.35)` }}
-            >
+            <div className="rounded-2xl p-4 shadow-sm flex items-center gap-3" style={{ backgroundColor: T.goldPale, border: `1px solid rgba(201,168,76,0.35)` }}>
               <span style={{ color: T.gold, fontSize: '18px', flexShrink: 0 }}>✦</span>
               <div>
                 <p className="text-xs font-semibold mb-0.5" style={{ color: T.muted }}>{t('profile.licenseExpires')}</p>
@@ -183,10 +183,7 @@ export default function ProfilePage() {
 
           {/* Banner Free */}
           {isFree && (
-            <div
-              className="rounded-2xl p-5 shadow-sm"
-              style={{ backgroundColor: T.navy }}
-            >
+            <div className="rounded-2xl p-5 shadow-sm" style={{ backgroundColor: T.navy }}>
               <div className="flex items-start gap-3 mb-4">
                 <span className="text-2xl flex-shrink-0">🚀</span>
                 <div>
@@ -211,10 +208,7 @@ export default function ProfilePage() {
           )}
 
           {/* Plan + username stats */}
-          <div
-            className="rounded-2xl p-4 shadow-sm"
-            style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}
-          >
+          <div className="rounded-2xl p-4 shadow-sm" style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}>
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
                 <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: T.muted }}>{t('profile.yourPlan')}</p>
@@ -256,18 +250,9 @@ export default function ProfilePage() {
           </div>
 
           {/* Logout — desktop en columna izquierda */}
-          <button
-            onClick={handleLogout}
-            className="hidden md:flex w-full items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 border-2"
-            style={{ borderColor: '#DC2626', color: '#DC2626', backgroundColor: T.white }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-            🚪 {t('profile.logout')}
-          </button>
+          <div className="hidden md:block">
+            <LogoutButton />
+          </div>
 
           <div className="hidden md:block text-center pb-2 opacity-40">
             <p className="text-xs" style={{ color: T.muted }}>{t('profile.version')}</p>
@@ -276,11 +261,7 @@ export default function ProfilePage() {
 
         {/* ── COLUMNA DERECHA — formulario ── */}
         <div className="space-y-4 mt-4 md:mt-0">
-          <div
-            className="rounded-2xl p-5 shadow-sm"
-            style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}
-          >
-            {/* Título desktop */}
+          <div className="rounded-2xl p-5 shadow-sm" style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}>
             <h3 className="font-bold text-base mb-5" style={{ color: T.navy }}>{t('profile.agentInfo')}</h3>
 
             <div className="space-y-4">
@@ -393,17 +374,14 @@ export default function ProfilePage() {
               >
                 {saving ? `⏳ ${t('profile.saving')}` : `💾 ${t('profile.saveChanges')}`}
               </button>
+
+              {/* Logout — dentro del formulario, debajo del botón guardar */}
+              <div className="pt-1">
+                <LogoutButton />
+              </div>
+
             </div>
           </div>
-
-          {/* Logout — mobile al final */}
-          <button
-            onClick={handleLogout}
-            className="md:hidden w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95 border-2"
-            style={{ borderColor: '#DC2626', color: '#DC2626', backgroundColor: T.white }}
-          >
-            🚪 {t('profile.logout')}
-          </button>
 
           <div className="md:hidden text-center py-2 opacity-40">
             <p className="text-xs" style={{ color: T.muted }}>{t('profile.version')}</p>

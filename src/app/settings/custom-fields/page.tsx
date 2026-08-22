@@ -7,11 +7,29 @@ import AppLayout from '@/components/AppLayout';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useI18nStore } from '@/lib/i18n-store';
 
+const T = {
+  navy:      '#1B2D5B',
+  navyMid:   '#243770',
+  gold:      '#C9A84C',
+  goldLight: '#E8C96A',
+  goldPale:  '#F5EDD8',
+  cream:     '#F8F6F2',
+  white:     '#FFFFFF',
+  charcoal:  '#1A1A2E',
+  muted:     '#6B7280',
+  border:    '#E8E4DC',
+  green:     '#15803D',
+  greenBg:   '#F0FDF4',
+  greenBorder:'#BBF7D0',
+  red:       '#DC2626',
+  redBg:     '#FEF2F2',
+};
+
 interface CustomField {
   id: string;
   property_type: string;
   listing_type: string;
-  field_key: string;   
+  field_key: string;
   field_name: string;
   field_name_en: string | null;
   field_type: 'text' | 'number';
@@ -52,6 +70,37 @@ const AVAILABLE_ICONS = [
 
 const MAX_FIELDS_PER_COMBO = 10;
 
+// ── Subcomponentes de UI ──────────────────────────────────────────────────────
+const SectionCard = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`rounded-2xl p-5 shadow-sm ${className}`} style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}>
+    {children}
+  </div>
+);
+
+const FieldLabel = ({ label }: { label: string }) => (
+  <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: T.muted }}>
+    {label}
+  </label>
+);
+
+const StyledInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
+  <input
+    {...props}
+    className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors"
+    style={{ border: `1.5px solid ${T.border}`, backgroundColor: T.cream, color: T.charcoal }}
+  />
+);
+
+const StyledSelect = ({ children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }) => (
+  <select
+    {...props}
+    className="w-full px-4 py-3 rounded-xl text-sm font-medium focus:outline-none"
+    style={{ border: `1.5px solid ${T.border}`, backgroundColor: T.cream, color: T.charcoal }}
+  >
+    {children}
+  </select>
+);
+
 export default function CustomFieldsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -63,7 +112,6 @@ export default function CustomFieldsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form state
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingField, setEditingField] = useState<CustomField | null>(null);
   const [showCloneModal, setShowCloneModal] = useState(false);
@@ -77,24 +125,18 @@ export default function CustomFieldsPage() {
   const [selectedIcon, setSelectedIcon] = useState('🏷️');
   const [showIconPicker, setShowIconPicker] = useState(false);
 
-  // Clone modal state
   const [clonePropertyType, setClonePropertyType] = useState('house');
   const [cloneListingType, setCloneListingType] = useState('sale');
 
-  // Filter state
   const [filterPropertyType, setFilterPropertyType] = useState<string | null>(null);
   const [filterListingType, setFilterListingType] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    }
+    if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
 
   useEffect(() => {
-    if (session) {
-      loadFields();
-    }
+    if (session) loadFields();
   }, [session]);
 
   const loadFields = async () => {
@@ -112,28 +154,11 @@ export default function CustomFieldsPage() {
   };
 
   const handleAddField = async () => {
-    if (!fieldName.trim()) {
-      setError('El nombre del campo es obligatorio');
-      return;
-    }
-
-    if (fieldName.length > 30) {
-      setError('El nombre no puede tener más de 30 caracteres');
-      return;
-    }
-
-    const currentCount = fields.filter(
-      f => f.property_type === selectedPropertyType && f.listing_type === selectedListingType
-    ).length;
-
-    if (currentCount >= MAX_FIELDS_PER_COMBO) {
-      setError(`Máximo ${MAX_FIELDS_PER_COMBO} campos por combinación`);
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-
+    if (!fieldName.trim()) { setError('El nombre del campo es obligatorio'); return; }
+    if (fieldName.length > 30) { setError('El nombre no puede tener más de 30 caracteres'); return; }
+    const currentCount = fields.filter(f => f.property_type === selectedPropertyType && f.listing_type === selectedListingType).length;
+    if (currentCount >= MAX_FIELDS_PER_COMBO) { setError(`Máximo ${MAX_FIELDS_PER_COMBO} campos por combinación`); return; }
+    setSaving(true); setError(null);
     try {
       const response = await fetch('/api/custom-fields/create', {
         method: 'POST',
@@ -148,41 +173,18 @@ export default function CustomFieldsPage() {
           icon: selectedIcon,
         }),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Error al crear campo');
-      }
-
+      if (!response.ok) { const data = await response.json(); throw new Error(data.error || 'Error al crear campo'); }
       await loadFields();
-      setFieldName('');
-      setFieldNameEn('');
-      setPlaceholder('');
-      setSelectedIcon('🏷️');
-      setShowAddForm(false);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
+      setFieldName(''); setFieldNameEn(''); setPlaceholder(''); setSelectedIcon('🏷️'); setShowAddForm(false);
+    } catch (err: any) { setError(err.message); }
+    finally { setSaving(false); }
   };
 
   const handleEditField = async () => {
     if (!editingField) return;
-
-    if (!fieldName.trim()) {
-      setError('El nombre del campo es obligatorio');
-      return;
-    }
-
-    if (fieldName.length > 30) {
-      setError('El nombre no puede tener más de 30 caracteres');
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-
+    if (!fieldName.trim()) { setError('El nombre del campo es obligatorio'); return; }
+    if (fieldName.length > 30) { setError('El nombre no puede tener más de 30 caracteres'); return; }
+    setSaving(true); setError(null);
     try {
       const response = await fetch(`/api/custom-fields/update/${editingField.id}`, {
         method: 'PUT',
@@ -195,57 +197,28 @@ export default function CustomFieldsPage() {
           icon: selectedIcon,
         }),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Error al actualizar campo');
-      }
-
+      if (!response.ok) { const data = await response.json(); throw new Error(data.error || 'Error al actualizar campo'); }
       await loadFields();
-      setEditingField(null);
-      setFieldName('');
-      setFieldNameEn('');
-      setPlaceholder('');
-      setSelectedIcon('🏷️');
-      setShowAddForm(false);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
+      setEditingField(null); setFieldName(''); setFieldNameEn(''); setPlaceholder(''); setSelectedIcon('🏷️'); setShowAddForm(false);
+    } catch (err: any) { setError(err.message); }
+    finally { setSaving(false); }
   };
 
   const handleCloneField = async () => {
     if (!fieldToClone) return;
-
-    setSaving(true);
-    setError(null);
-
+    setSaving(true); setError(null);
     try {
       const response = await fetch('/api/custom-fields/clone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          field_id: fieldToClone.id,
-          target_property_type: clonePropertyType,
-          target_listing_type: cloneListingType,
-        }),
+        body: JSON.stringify({ field_id: fieldToClone.id, target_property_type: clonePropertyType, target_listing_type: cloneListingType }),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Error al clonar campo');
-      }
-
+      if (!response.ok) { const data = await response.json(); throw new Error(data.error || 'Error al clonar campo'); }
       await loadFields();
-      setShowCloneModal(false);
-      setFieldToClone(null);
+      setShowCloneModal(false); setFieldToClone(null);
       alert('✅ Campo clonado exitosamente');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
+    } catch (err: any) { setError(err.message); }
+    finally { setSaving(false); }
   };
 
   const openCloneModal = (field: CustomField) => {
@@ -258,53 +231,42 @@ export default function CustomFieldsPage() {
 
   const handleDeleteField = async (fieldId: string) => {
     if (!confirm('¿Eliminar este campo personalizado?')) return;
-
     try {
-      const response = await fetch(`/api/custom-fields/delete/${fieldId}`, {
-        method: 'DELETE',
-      });
-
+      const response = await fetch(`/api/custom-fields/delete/${fieldId}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Error al eliminar campo');
       await loadFields();
-    } catch (err: any) {
-      setError(err.message);
-    }
+    } catch (err: any) { setError(err.message); }
   };
 
-  const getFilteredFields = () => {
-    return fields.filter(f => {
-      if (filterPropertyType && f.property_type !== filterPropertyType) return false;
-      if (filterListingType && f.listing_type !== filterListingType) return false;
-      return true;
-    });
-  };
+  const getFilteredFields = () => fields.filter(f => {
+    if (filterPropertyType && f.property_type !== filterPropertyType) return false;
+    if (filterListingType && f.listing_type !== filterListingType) return false;
+    return true;
+  });
 
-  const getFieldsCount = (propertyType: string, listingType: string) => {
-    return fields.filter(
-      f => f.property_type === propertyType && f.listing_type === listingType
-    ).length;
-  };
+  const getFieldsCount = (propertyType: string, listingType: string) =>
+    fields.filter(f => f.property_type === propertyType && f.listing_type === listingType).length;
 
   const getTotalFieldsCount = () => fields.length;
 
   const getPropertyTypeLabel = (value: string) => {
     const labels: Record<string, { es: string; en: string }> = {
-      house: { es: '🏠 Casa', en: '🏠 House' },
-      condo: { es: '🏢 Condominio', en: '🏢 Condo' },
-      apartment: { es: '🏘️ Apartamento', en: '🏘️ Apartment' },
-      land: { es: '🌳 Terreno', en: '🌳 Land' },
-      commercial: { es: '🏪 Comercial', en: '🏪 Commercial' },
-      hotel: { es: '🏨 Hotel', en: '🏨 Hotel' },
-      finca: { es: '🌾 Finca', en: '🌾 Farm' },
-      ranch: { es: '🌄 Quinta', en: '🌄 Ranch' },
-      other: { es: '🏷️ Otros', en: '🏷️ Other' },
+      house:      { es: '🏠 Casa',        en: '🏠 House' },
+      condo:      { es: '🏢 Condominio',  en: '🏢 Condo' },
+      apartment:  { es: '🏘️ Apartamento', en: '🏘️ Apartment' },
+      land:       { es: '🌳 Terreno',     en: '🌳 Land' },
+      commercial: { es: '🏪 Comercial',   en: '🏪 Commercial' },
+      hotel:      { es: '🏨 Hotel',       en: '🏨 Hotel' },
+      finca:      { es: '🌾 Finca',       en: '🌾 Farm' },
+      ranch:      { es: '🌄 Quinta',      en: '🌄 Ranch' },
+      other:      { es: '🏷️ Otros',       en: '🏷️ Other' },
     };
     return labels[value][currentLanguage] || labels[value].es;
   };
 
   const getListingTypeLabel = (value: string) => {
     const labels: Record<string, { es: string; en: string }> = {
-      sale: { es: '💰 Venta', en: '💰 Sale' },
+      sale: { es: '💰 Venta',    en: '💰 Sale' },
       rent: { es: '🏠 Alquiler', en: '🏠 Rent' },
     };
     return labels[value][currentLanguage] || labels[value].es;
@@ -313,10 +275,10 @@ export default function CustomFieldsPage() {
   if (status === 'loading' || loading) {
     return (
       <AppLayout title={t('customFields.title')} showBack={true} showTabs={true}>
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-full" style={{ backgroundColor: T.cream }}>
           <div className="text-center py-12">
             <div className="text-5xl mb-4 animate-pulse">🏷️</div>
-            <div className="text-lg" style={{ color: '#0F172A' }}>{t('common.loading')}</div>
+            <div className="text-base font-medium" style={{ color: T.muted }}>{t('common.loading')}</div>
           </div>
         </div>
       </AppLayout>
@@ -326,407 +288,287 @@ export default function CustomFieldsPage() {
   if (!session) return null;
 
   const filteredFields = getFilteredFields();
+  const comboCount = getFieldsCount(selectedPropertyType, selectedListingType);
+  const comboAtLimit = comboCount >= MAX_FIELDS_PER_COMBO;
+
+  // ── Formulario compartido (add + edit inline) ─────────────────────────────
+  const FieldForm = ({ isEdit = false }: { isEdit?: boolean }) => (
+    <div className="space-y-4">
+      {error && (
+        <div className="rounded-xl p-3 text-sm font-medium" style={{ backgroundColor: T.redBg, color: T.red, border: `1px solid #FECACA` }}>
+          {error}
+        </div>
+      )}
+
+      {!isEdit && (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <FieldLabel label={t('customFields.propertyType')} />
+              <StyledSelect value={selectedPropertyType} onChange={(e) => setSelectedPropertyType(e.target.value)}>
+                {PROPERTY_TYPES.map(type => <option key={type.value} value={type.value}>{getPropertyTypeLabel(type.value)}</option>)}
+              </StyledSelect>
+            </div>
+            <div>
+              <FieldLabel label={t('customFields.listingType')} />
+              <StyledSelect value={selectedListingType} onChange={(e) => setSelectedListingType(e.target.value)}>
+                {LISTING_TYPES.map(type => <option key={type.value} value={type.value}>{getListingTypeLabel(type.value)}</option>)}
+              </StyledSelect>
+            </div>
+          </div>
+          <div
+            className="px-3 py-2 rounded-xl text-xs font-semibold"
+            style={{
+              backgroundColor: comboAtLimit ? T.redBg : T.greenBg,
+              color: comboAtLimit ? T.red : T.green,
+              border: `1px solid ${comboAtLimit ? '#FECACA' : T.greenBorder}`,
+            }}
+          >
+            <strong>{comboCount}/{MAX_FIELDS_PER_COMBO}</strong> {t('customFields.fieldsInCombo')}
+          </div>
+        </>
+      )}
+
+      {isEdit && editingField && (
+        <div className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ backgroundColor: T.goldPale, border: `1px solid rgba(201,168,76,0.35)`, color: T.navy }}>
+          📌 {t('customFields.editingFor')}: <strong>{getPropertyTypeLabel(editingField.property_type)} → {getListingTypeLabel(editingField.listing_type)}</strong>
+        </div>
+      )}
+
+      {/* Selector de ícono */}
+      <div>
+        <FieldLabel label={t('customFields.fieldIcon')} />
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowIconPicker(!showIconPicker)}
+            className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl active:scale-95 transition-transform flex-shrink-0"
+            style={{ border: `2px solid ${T.gold}`, backgroundColor: T.goldPale }}
+          >
+            {selectedIcon}
+          </button>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: T.navy }}>{t('customFields.iconSelected')}</p>
+            <p className="text-xs" style={{ color: T.muted }}>{t('customFields.clickToChange')}</p>
+          </div>
+        </div>
+        {showIconPicker && (
+          <div
+            className="mt-3 p-3 rounded-xl grid grid-cols-10 gap-1.5 max-h-48 overflow-y-auto"
+            style={{ border: `1.5px solid ${T.border}`, backgroundColor: T.cream }}
+          >
+            {AVAILABLE_ICONS.map((icon) => (
+              <button
+                key={icon}
+                type="button"
+                onClick={() => { setSelectedIcon(icon); setShowIconPicker(false); }}
+                className="w-9 h-9 rounded-lg flex items-center justify-center text-xl active:scale-90 transition-transform"
+                style={{ backgroundColor: selectedIcon === icon ? T.goldPale : T.white, border: `1.5px solid ${selectedIcon === icon ? T.gold : T.border}` }}
+              >
+                {icon}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Nombres */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <FieldLabel label={t('customFields.fieldName')} />
+          <StyledInput type="text" value={fieldName} onChange={(e) => setFieldName(e.target.value)} placeholder={t('customFields.fieldNamePlaceholder')} maxLength={30} />
+          <p className="text-xs mt-1" style={{ color: T.muted }}>⚠️ {t('customFields.maxChars')} ({fieldName.length}/30)</p>
+        </div>
+        <div>
+          <FieldLabel label={t('customFields.fieldNameEn')} />
+          <StyledInput type="text" value={fieldNameEn} onChange={(e) => setFieldNameEn(e.target.value)} placeholder={t('customFields.fieldNameEnPlaceholder')} maxLength={30} />
+          <p className="text-xs mt-1" style={{ color: T.muted }}>💡 {t('customFields.bilingualTip')}</p>
+        </div>
+      </div>
+
+      {/* Tipo + Placeholder */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <FieldLabel label={t('customFields.fieldType')} />
+          <StyledSelect value={fieldType} onChange={(e) => setFieldType(e.target.value as 'text' | 'number')}>
+            <option value="text">📝 {t('customFields.text')}</option>
+            <option value="number">🔢 {t('customFields.number')}</option>
+          </StyledSelect>
+        </div>
+        <div>
+          <FieldLabel label={t('customFields.placeholder')} />
+          <StyledInput type="text" value={placeholder} onChange={(e) => setPlaceholder(e.target.value)} placeholder={t('customFields.placeholderText')} maxLength={50} />
+        </div>
+      </div>
+
+      {/* Botones */}
+      <div className="flex gap-3 pt-1">
+        <button
+          onClick={() => {
+            setShowAddForm(false); setEditingField(null);
+            setFieldName(''); setFieldNameEn(''); setPlaceholder(''); setSelectedIcon('🏷️'); setError(null);
+          }}
+          className="flex-1 py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform"
+          style={{ border: `1.5px solid ${T.border}`, color: T.charcoal, backgroundColor: T.white }}
+        >
+          {t('common.cancel')}
+        </button>
+        <button
+          onClick={isEdit ? handleEditField : handleAddField}
+          disabled={saving || !fieldName.trim() || (!isEdit && comboAtLimit)}
+          className="flex-1 py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-50"
+          style={{
+            background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`,
+            color: T.navy,
+            boxShadow: '0 2px 8px rgba(201,168,76,0.3)',
+          }}
+        >
+          {saving ? t('customFields.saving') : isEdit ? `💾 ${t('customFields.update')}` : `✅ ${t('customFields.save')}`}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <AppLayout title={t('customFields.title')} showBack={true} showTabs={true}>
-      <div className="px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-12 md:max-w-5xl md:mx-auto space-y-4">
-        {/* Info Card + Stats: apiladas en móvil, lado a lado desde tablet */}
-        <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
-          <div 
-            className="rounded-2xl p-4 shadow-lg"
-            style={{ backgroundColor: '#EFF6FF', borderLeft: '4px solid #2563EB' }}
-          >
-            <p className="text-sm font-semibold" style={{ color: '#1E40AF' }}>
-              💡 <strong>Tip:</strong> {t('customFields.tip')}
-            </p>
-          </div>
+      <div className="px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-12 md:max-w-5xl md:mx-auto space-y-4" style={{ backgroundColor: T.cream }}>
 
-          <div 
-            className="rounded-2xl p-4 shadow-lg"
-            style={{ backgroundColor: '#FFFFFF' }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                  {t('customFields.totalFields')}
-                </p>
-                <p className="text-3xl font-bold" style={{ color: '#2563EB' }}>
-                  {getTotalFieldsCount()}
-                </p>
-              </div>
-              <div className="text-5xl">🏷️</div>
-            </div>
-          </div>
+        {/* Título mobile */}
+        <div className="flex items-center gap-2 md:hidden">
+          <div style={{ width: '3px', height: '22px', backgroundColor: T.gold, borderRadius: '2px', flexShrink: 0 }} />
+          <h1 className="text-xl font-bold tracking-tight" style={{ color: T.navy }}>{t('customFields.title')}</h1>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div 
-            className="rounded-2xl p-4 border-2"
-            style={{ 
-              backgroundColor: '#FEE2E2',
-              borderColor: '#DC2626',
-              color: '#DC2626'
-            }}
-          >
+        {/* Info + Stats */}
+        <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
+          <div className="rounded-2xl p-4 flex items-start gap-3" style={{ backgroundColor: T.goldPale, border: `1px solid rgba(201,168,76,0.35)` }}>
+            <span className="text-lg flex-shrink-0">💡</span>
+            <p className="text-sm" style={{ color: T.navy, opacity: 0.85 }}>
+              <strong>Tip:</strong> {t('customFields.tip')}
+            </p>
+          </div>
+          <SectionCard>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: T.muted }}>{t('customFields.totalFields')}</p>
+                <p className="text-3xl font-bold" style={{ color: T.navy }}>{getTotalFieldsCount()}</p>
+              </div>
+              <div className="text-4xl">🏷️</div>
+            </div>
+          </SectionCard>
+        </div>
+
+        {/* Error */}
+        {error && !showAddForm && !editingField && !showCloneModal && (
+          <div className="rounded-xl p-4 text-sm font-medium" style={{ backgroundColor: T.redBg, color: T.red, border: `1px solid #FECACA` }}>
             {error}
           </div>
         )}
 
-        {/* Add Button */}
+        {/* Botón agregar */}
         {!showAddForm && (
           <button
             onClick={() => setShowAddForm(true)}
-            className="w-full md:w-auto md:px-10 rounded-2xl p-4 shadow-lg active:scale-98 transition-transform font-bold text-white"
-            style={{ backgroundColor: '#2563EB' }}
+            className="w-full md:w-auto md:px-8 py-3.5 rounded-xl font-bold text-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
+            style={{
+              background: `linear-gradient(135deg, ${T.navy} 0%, ${T.navyMid} 100%)`,
+              color: T.white,
+              boxShadow: '0 2px 8px rgba(27,45,91,0.25)',
+            }}
           >
             ➕ {t('customFields.createNew')}
           </button>
         )}
 
-        {/* Add/Edit Form */}
+        {/* Formulario agregar */}
         {showAddForm && (
-          <div 
-            className="rounded-2xl p-5 shadow-lg space-y-4"
-            style={{ backgroundColor: '#FFFFFF' }}
-          >
-            <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>
-              {editingField ? `✏️ ${t('customFields.editField')}` : `➕ ${t('customFields.newField')}`}
+          <SectionCard>
+            <h3 className="font-bold text-base mb-4" style={{ color: T.navy }}>
+              ➕ {t('customFields.newField')}
             </h3>
-
-            {!editingField && (
-              <>
-                <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
-                  <div>
-                    <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                      {t('customFields.propertyType')}
-                    </label>
-                    <select
-                      value={selectedPropertyType}
-                      onChange={(e) => setSelectedPropertyType(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                      style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-                    >
-                      {PROPERTY_TYPES.map(type => (
-                        <option key={type.value} value={type.value}>{getPropertyTypeLabel(type.value)}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                      {t('customFields.listingType')}
-                    </label>
-                    <select
-                      value={selectedListingType}
-                      onChange={(e) => setSelectedListingType(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                      style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-                    >
-                      {LISTING_TYPES.map(type => (
-                        <option key={type.value} value={type.value}>{getListingTypeLabel(type.value)}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div 
-                  className="px-3 py-2 rounded-lg text-sm"
-                  style={{ 
-                    backgroundColor: getFieldsCount(selectedPropertyType, selectedListingType) >= MAX_FIELDS_PER_COMBO 
-                      ? '#FEE2E2' 
-                      : '#F0FDF4',
-                    color: getFieldsCount(selectedPropertyType, selectedListingType) >= MAX_FIELDS_PER_COMBO 
-                      ? '#DC2626' 
-                      : '#15803D'
-                  }}
-                >
-                  <strong>{getFieldsCount(selectedPropertyType, selectedListingType)}/{MAX_FIELDS_PER_COMBO}</strong> {t('customFields.fieldsInCombo')}
-                </div>
-              </>
-            )}
-
-            {editingField && (
-              <div 
-                className="px-3 py-2 rounded-lg text-sm"
-                style={{ backgroundColor: '#F0F9FF', color: '#0369A1' }}
-              >
-                📌 {t('customFields.editingFor')}: <strong>{getPropertyTypeLabel(editingField.property_type)} → {getListingTypeLabel(editingField.listing_type)}</strong>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                {t('customFields.fieldIcon')}
-              </label>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowIconPicker(!showIconPicker)}
-                  className="w-16 h-16 rounded-xl border-2 flex items-center justify-center text-3xl active:scale-95 transition-transform"
-                  style={{ borderColor: '#2563EB', backgroundColor: '#EFF6FF' }}
-                >
-                  {selectedIcon}
-                </button>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>
-                    {t('customFields.iconSelected')}
-                  </p>
-                  <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                    {t('customFields.clickToChange')}
-                  </p>
-                </div>
-              </div>
-
-              {showIconPicker && (
-                <div 
-                  className="mt-3 p-3 rounded-xl border-2 grid grid-cols-10 gap-2 max-h-48 overflow-y-auto"
-                  style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-                >
-                  {AVAILABLE_ICONS.map((icon) => (
-                    <button
-                      key={icon}
-                      type="button"
-                      onClick={() => {
-                        setSelectedIcon(icon);
-                        setShowIconPicker(false);
-                      }}
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center text-2xl active:scale-90 transition-transform ${
-                        selectedIcon === icon ? 'ring-2 ring-blue-500' : ''
-                      }`}
-                      style={{ 
-                        backgroundColor: selectedIcon === icon ? '#DBEAFE' : '#FFFFFF',
-                      }}
-                    >
-                      {icon}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
-              <div>
-                <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                  {t('customFields.fieldName')}
-                </label>
-                <input
-                  type="text"
-                  value={fieldName}
-                  onChange={(e) => setFieldName(e.target.value)}
-                  placeholder={t('customFields.fieldNamePlaceholder')}
-                  maxLength={30}
-                  className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                  style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-                />
-                <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
-                  ⚠️ {t('customFields.maxChars')}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                  {t('customFields.fieldNameEn')}
-                </label>
-                <input
-                  type="text"
-                  value={fieldNameEn}
-                  onChange={(e) => setFieldNameEn(e.target.value)}
-                  placeholder={t('customFields.fieldNameEnPlaceholder')}
-                  maxLength={30}
-                  className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                  style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-                />
-                <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
-                  💡 {t('customFields.bilingualTip')}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
-              <div>
-                <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                  {t('customFields.fieldType')}
-                </label>
-                <select
-                    value={fieldType}
-                    onChange={(e) => setFieldType(e.target.value as 'text' | 'number')}
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                    style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-                >
-                    <option value="text">📝 {t('customFields.text')}</option>
-                    <option value="number">🔢 {t('customFields.number')}</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                  {t('customFields.placeholder')}
-                </label>
-                <input
-                  type="text"
-                  value={placeholder}
-                  onChange={(e) => setPlaceholder(e.target.value)}
-                  placeholder={t('customFields.placeholderText')}
-                  maxLength={50}
-                  className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                  style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowAddForm(false);
-                  setEditingField(null);
-                  setFieldName('');
-                  setFieldNameEn('');
-                  setPlaceholder('');
-                  setSelectedIcon('🏷️');
-                  setError(null);
-                }}
-                className="flex-1 py-3 rounded-xl font-bold border-2 active:scale-95 transition-transform"
-                style={{ 
-                  borderColor: '#E5E7EB',
-                  color: '#0F172A',
-                  backgroundColor: '#FFFFFF'
-                }}
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={editingField ? handleEditField : handleAddField}
-                disabled={saving || !fieldName.trim()}
-                className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
-                style={{ backgroundColor: editingField ? '#2563EB' : '#10B981' }}
-              >
-                {saving ? t('customFields.saving') : (editingField ? `💾 ${t('customFields.update')}` : `✅ ${t('customFields.save')}`)}
-              </button>
-            </div>
-          </div>
+            <FieldForm isEdit={false} />
+          </SectionCard>
         )}
 
-        {/* Filters */}
-        <div 
-          className="rounded-2xl p-4 shadow-lg space-y-3"
-          style={{ backgroundColor: '#FFFFFF' }}
-        >
-          <h3 className="font-bold" style={{ color: '#0F172A' }}>
-            🔍 {t('customFields.filterFields')}
-          </h3>
-          
+        {/* Filtros */}
+        <SectionCard>
+          <h3 className="font-bold text-sm mb-3" style={{ color: T.navy }}>🔍 {t('customFields.filterFields')}</h3>
           <div className="grid grid-cols-2 gap-3">
-            <select
-              value={filterPropertyType || ''}
-              onChange={(e) => setFilterPropertyType(e.target.value || null)}
-              className="w-full px-3 py-2 rounded-xl border-2 focus:outline-none text-sm text-gray-900 font-semibold"
-              style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-            >
+            <StyledSelect value={filterPropertyType || ''} onChange={(e) => setFilterPropertyType(e.target.value || null)}>
               <option value="">{t('customFields.allTypes')}</option>
-              {PROPERTY_TYPES.map(type => (
-                <option key={type.value} value={type.value}>{getPropertyTypeLabel(type.value)}</option>
-              ))}
-            </select>
-
-            <select
-              value={filterListingType || ''}
-              onChange={(e) => setFilterListingType(e.target.value || null)}
-              className="w-full px-3 py-2 rounded-xl border-2 focus:outline-none text-sm text-gray-900 font-semibold"
-              style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-            >
+              {PROPERTY_TYPES.map(type => <option key={type.value} value={type.value}>{getPropertyTypeLabel(type.value)}</option>)}
+            </StyledSelect>
+            <StyledSelect value={filterListingType || ''} onChange={(e) => setFilterListingType(e.target.value || null)}>
               <option value="">{t('customFields.allStates')}</option>
-              {LISTING_TYPES.map(type => (
-                <option key={type.value} value={type.value}>{getListingTypeLabel(type.value)}</option>
-              ))}
-            </select>
+              {LISTING_TYPES.map(type => <option key={type.value} value={type.value}>{getListingTypeLabel(type.value)}</option>)}
+            </StyledSelect>
           </div>
-
           {(filterPropertyType || filterListingType) && (
             <button
-              onClick={() => {
-                setFilterPropertyType(null);
-                setFilterListingType(null);
-              }}
-              className="text-sm font-semibold underline"
-              style={{ color: '#2563EB' }}
+              onClick={() => { setFilterPropertyType(null); setFilterListingType(null); }}
+              className="mt-2 text-xs font-bold underline"
+              style={{ color: T.navy }}
             >
               {t('customFields.clearFilters')}
             </button>
           )}
-        </div>
+        </SectionCard>
 
-        {/* Fields List */}
+        {/* Lista de campos */}
         <div className="space-y-3">
-          <h3 className="font-bold px-2" style={{ color: '#0F172A' }}>
+          <h3 className="font-bold text-sm px-1" style={{ color: T.navy }}>
             {t('customFields.fieldsCreated')} ({filteredFields.length})
           </h3>
 
           <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3">
-          {filteredFields.length === 0 ? (
-            <div 
-              className="rounded-2xl p-8 text-center md:col-span-full"
-              style={{ backgroundColor: '#FFFFFF' }}
-            >
-              <div className="text-5xl mb-3">📝</div>
-              <p className="font-semibold" style={{ color: '#0F172A' }}>
-                {t('customFields.noFields')}
-              </p>
-              <p className="text-sm opacity-70 mt-1" style={{ color: '#0F172A' }}>
-                {t('customFields.createFirst')}
-              </p>
-            </div>
-          ) : (
-            filteredFields.map(field => {
-              const propertyTypeLabel = getPropertyTypeLabel(field.property_type);
-              const listingTypeLabel = getListingTypeLabel(field.listing_type);
-
-              return (
-                <div 
+            {filteredFields.length === 0 ? (
+              <div className="rounded-2xl p-8 text-center md:col-span-full shadow-sm" style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}>
+                <div className="text-5xl mb-3">📝</div>
+                <p className="font-bold" style={{ color: T.navy }}>{t('customFields.noFields')}</p>
+                <p className="text-sm mt-1" style={{ color: T.muted }}>{t('customFields.createFirst')}</p>
+              </div>
+            ) : (
+              filteredFields.map(field => (
+                <div
                   key={field.id}
-                  className="rounded-2xl p-4 shadow-lg"
-                  style={{ backgroundColor: '#FFFFFF' }}
+                  className="rounded-2xl p-4 shadow-sm"
+                  style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}
                 >
                   <div className="flex items-start gap-3">
-                    <div 
+                    {/* Ícono */}
+                    <div
                       className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
-                      style={{ backgroundColor: '#EFF6FF' }}
+                      style={{ backgroundColor: T.goldPale, border: `1px solid rgba(201,168,76,0.35)` }}
                     >
                       {field.icon || '🏷️'}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-lg mb-1" style={{ color: '#0F172A' }}>
+                      <h4 className="font-bold text-base mb-1.5" style={{ color: T.navy }}>
                         {currentLanguage === 'en' && field.field_name_en ? field.field_name_en : field.field_name}
                       </h4>
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        <span 
-                          className="px-2 py-1 rounded-lg text-xs font-bold"
-                          style={{ backgroundColor: '#DBEAFE', color: '#1E40AF' }}
-                        >
-                          {propertyTypeLabel}
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {/* Tipo de propiedad */}
+                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{ backgroundColor: T.goldPale, color: T.navy, border: `1px solid rgba(201,168,76,0.35)` }}>
+                          {getPropertyTypeLabel(field.property_type)}
                         </span>
-                        <span 
-                          className="px-2 py-1 rounded-lg text-xs font-bold"
-                          style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}
-                        >
-                          {listingTypeLabel}
+                        {/* Tipo de operación */}
+                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{ backgroundColor: '#FFFBEB', color: '#B45309', border: '1px solid #FDE68A' }}>
+                          {getListingTypeLabel(field.listing_type)}
                         </span>
-                        <span 
-                          className="px-2 py-1 rounded-lg text-xs font-bold"
-                          style={{ backgroundColor: '#F3E8FF', color: '#6B21A8' }}
-                        >
+                        {/* Tipo de campo */}
+                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{ backgroundColor: '#F5F3FF', color: '#6D28D9', border: '1px solid #DDD6FE' }}>
                           {field.field_type === 'text' ? `📝 ${t('customFields.text')}` : `🔢 ${t('customFields.number')}`}
                         </span>
                       </div>
                       {field.placeholder && (
-                        <p className="text-sm opacity-70" style={{ color: '#0F172A' }}>
-                          💬 {field.placeholder}
-                        </p>
+                        <p className="text-xs" style={{ color: T.muted }}>💬 {field.placeholder}</p>
                       )}
                     </div>
 
-                    <div className="flex flex-col gap-2">
+                    {/* Acciones */}
+                    <div className="flex flex-col gap-1.5">
+                      {/* Editar */}
                       <button
                         onClick={() => {
                           setEditingField(field);
@@ -739,383 +581,155 @@ export default function CustomFieldsPage() {
                           setError(null);
                         }}
                         className="p-2 rounded-xl active:scale-90 transition-transform"
-                        style={{ backgroundColor: '#DBEAFE', color: '#1E40AF' }}
+                        style={{ backgroundColor: T.goldPale, color: T.navy }}
                         title="Editar campo"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                       </button>
-                      
+                      {/* Clonar */}
                       <button
                         onClick={() => openCloneModal(field)}
                         className="p-2 rounded-xl active:scale-90 transition-transform"
-                        style={{ backgroundColor: '#F3E8FF', color: '#6B21A8' }}
+                        style={{ backgroundColor: '#F5F3FF', color: '#6D28D9' }}
                         title="Clonar campo"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
                       </button>
-
+                      {/* Eliminar */}
                       <button
                         onClick={() => handleDeleteField(field.id)}
                         className="p-2 rounded-xl active:scale-90 transition-transform"
-                        style={{ backgroundColor: '#FEE2E2', color: '#DC2626' }}
+                        style={{ backgroundColor: T.redBg, color: T.red }}
                         title="Eliminar campo"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
                     </div>
                   </div>
                 </div>
-              );
-            })
-          )}
+              ))
+            )}
           </div>
         </div>
 
-        {/* Clone Modal */}
+        {/* ── CLONE MODAL ─────────────────────────────────────────────── */}
         {showCloneModal && fieldToClone && (
           <>
-            <div 
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
-              onClick={() => {
-                setShowCloneModal(false);
-                setFieldToClone(null);
-              }}
+            <div
+              className="fixed inset-0 z-40"
+              style={{ backgroundColor: 'rgba(27,45,91,0.6)', backdropFilter: 'blur(4px)' }}
+              onClick={() => { setShowCloneModal(false); setFieldToClone(null); }}
             />
-
             <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-md mx-auto">
-              <div className="rounded-2xl p-6 shadow-2xl space-y-4"
-                style={{ backgroundColor: '#FFFFFF' }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>
-                    🔄 {t('customFields.cloneField')}
-                  </h3>
+              <div className="rounded-2xl shadow-2xl overflow-hidden" style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4" style={{ backgroundColor: T.navy, borderBottom: `1px solid rgba(255,255,255,0.08)` }}>
+                  <h3 className="font-bold text-base text-white">🔄 {t('customFields.cloneField')}</h3>
                   <button
-                    onClick={() => {
-                      setShowCloneModal(false);
-                      setFieldToClone(null);
-                    }}
-                    className="p-2 rounded-xl active:scale-90 transition-transform"
-                    style={{ backgroundColor: '#F3F4F6' }}
+                    onClick={() => { setShowCloneModal(false); setFieldToClone(null); }}
+                    className="w-8 h-8 flex items-center justify-center rounded-full active:scale-90 transition-transform"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: T.white }}
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="#0F172A" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    ✕
                   </button>
                 </div>
 
-                <div 
-                  className="p-3 rounded-xl"
-                  style={{ backgroundColor: '#F0F9FF' }}
-                >
-                  <p className="text-sm font-semibold mb-1" style={{ color: '#0369A1' }}>
-                    {t('customFields.fieldToClone')}:
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{fieldToClone.icon || '🏷️'}</span>
-                    <span className="font-bold" style={{ color: '#0F172A' }}>
-                      {fieldToClone.field_name}
-                    </span>
+                <div className="p-5 space-y-4">
+                  {/* Campo a clonar */}
+                  <div className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor: T.goldPale, border: `1px solid rgba(201,168,76,0.35)` }}>
+                    <span className="text-2xl flex-shrink-0">{fieldToClone.icon || '🏷️'}</span>
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: T.muted }}>{t('customFields.fieldToClone')}</p>
+                      <p className="font-bold text-sm" style={{ color: T.navy }}>{fieldToClone.field_name}</p>
+                      <p className="text-xs" style={{ color: T.muted }}>
+                        {t('customFields.from')}: {getPropertyTypeLabel(fieldToClone.property_type)} → {getListingTypeLabel(fieldToClone.listing_type)}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
-                    {t('customFields.from')}: {getPropertyTypeLabel(fieldToClone.property_type)} → {getListingTypeLabel(fieldToClone.listing_type)}
-                  </p>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                    {t('customFields.cloneTo')}:
-                  </label>
-                  
-                  <div className="space-y-3">
-                    <select
-                      value={clonePropertyType}
-                      onChange={(e) => setClonePropertyType(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                      style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
+                  {/* Destino */}
+                  <div>
+                    <FieldLabel label={`${t('customFields.cloneTo')}:`} />
+                    <div className="space-y-3">
+                      <StyledSelect value={clonePropertyType} onChange={(e) => setClonePropertyType(e.target.value)}>
+                        {PROPERTY_TYPES.map(type => <option key={type.value} value={type.value}>{getPropertyTypeLabel(type.value)}</option>)}
+                      </StyledSelect>
+                      <StyledSelect value={cloneListingType} onChange={(e) => setCloneListingType(e.target.value)}>
+                        {LISTING_TYPES.map(type => <option key={type.value} value={type.value}>{getListingTypeLabel(type.value)}</option>)}
+                      </StyledSelect>
+                    </div>
+                    <div
+                      className="mt-3 px-3 py-2 rounded-xl text-xs font-semibold"
+                      style={{
+                        backgroundColor: getFieldsCount(clonePropertyType, cloneListingType) >= MAX_FIELDS_PER_COMBO ? T.redBg : T.greenBg,
+                        color: getFieldsCount(clonePropertyType, cloneListingType) >= MAX_FIELDS_PER_COMBO ? T.red : T.green,
+                        border: `1px solid ${getFieldsCount(clonePropertyType, cloneListingType) >= MAX_FIELDS_PER_COMBO ? '#FECACA' : T.greenBorder}`,
+                      }}
                     >
-                      {PROPERTY_TYPES.map(type => (
-                        <option key={type.value} value={type.value}>{getPropertyTypeLabel(type.value)}</option>
-                      ))}
-                    </select>
+                      <strong>{getFieldsCount(clonePropertyType, cloneListingType)}/{MAX_FIELDS_PER_COMBO}</strong> {t('customFields.fieldsInDestination')}
+                    </div>
+                  </div>
 
-                    <select
-                      value={cloneListingType}
-                      onChange={(e) => setCloneListingType(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                      style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
+                  {/* Botones */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => { setShowCloneModal(false); setFieldToClone(null); }}
+                      className="flex-1 py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform"
+                      style={{ border: `1.5px solid ${T.border}`, color: T.charcoal, backgroundColor: T.white }}
                     >
-                      {LISTING_TYPES.map(type => (
-                        <option key={type.value} value={type.value}>{getListingTypeLabel(type.value)}</option>
-                      ))}
-                    </select>
+                      {t('common.cancel')}
+                    </button>
+                    <button
+                      onClick={handleCloneField}
+                      disabled={saving || getFieldsCount(clonePropertyType, cloneListingType) >= MAX_FIELDS_PER_COMBO}
+                      className="flex-1 py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform disabled:opacity-50"
+                      style={{ background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldLight} 100%)`, color: T.navy }}
+                    >
+                      {saving ? t('customFields.cloning') : `🔄 ${t('customFields.clone')}`}
+                    </button>
                   </div>
-
-                  <div 
-                    className="mt-3 px-3 py-2 rounded-lg text-sm"
-                    style={{ 
-                      backgroundColor: getFieldsCount(clonePropertyType, cloneListingType) >= MAX_FIELDS_PER_COMBO 
-                        ? '#FEE2E2' 
-                        : '#F0FDF4',
-                      color: getFieldsCount(clonePropertyType, cloneListingType) >= MAX_FIELDS_PER_COMBO 
-                        ? '#DC2626' 
-                        : '#15803D'
-                    }}
-                  >
-                    <strong>{getFieldsCount(clonePropertyType, cloneListingType)}/{MAX_FIELDS_PER_COMBO}</strong> {t('customFields.fieldsInDestination')}
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={() => {
-                      setShowCloneModal(false);
-                      setFieldToClone(null);
-                    }}
-                    className="flex-1 py-3 rounded-xl font-bold border-2 active:scale-95 transition-transform"
-                    style={{ 
-                      borderColor: '#E5E7EB',
-                      color: '#0F172A',
-                      backgroundColor: '#FFFFFF'
-                    }}
-                  >
-                    {t('common.cancel')}
-                  </button>
-                  <button
-                    onClick={handleCloneField}
-                    disabled={saving || getFieldsCount(clonePropertyType, cloneListingType) >= MAX_FIELDS_PER_COMBO}
-                    className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
-                    style={{ backgroundColor: '#8B5CF6' }}
-                  >
-                    {saving ? t('customFields.cloning') : `🔄 ${t('customFields.clone')}`}
-                  </button>
                 </div>
               </div>
             </div>
           </>
         )}
 
-        {/* Edit Modal */}
+        {/* ── EDIT MODAL ───────────────────────────────────────────────── */}
         {editingField && !showAddForm && (
           <>
-            <div 
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
-              onClick={() => {
-                setEditingField(null);
-                setFieldName('');
-                setPlaceholder('');
-                setSelectedIcon('🏷️');
-                setError(null);
-              }}
+            <div
+              className="fixed inset-0 z-40"
+              style={{ backgroundColor: 'rgba(27,45,91,0.6)', backdropFilter: 'blur(4px)' }}
+              onClick={() => { setEditingField(null); setFieldName(''); setPlaceholder(''); setSelectedIcon('🏷️'); setError(null); }}
             />
-
             <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-md mx-auto max-h-[90vh] overflow-y-auto">
-              <div 
-                className="rounded-2xl p-6 shadow-2xl space-y-4"
-                style={{ backgroundColor: '#FFFFFF' }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-bold text-lg" style={{ color: '#0F172A' }}>
-                    ✏️ {t('customFields.editField')}
-                  </h3>
+              <div className="rounded-2xl shadow-2xl overflow-hidden" style={{ backgroundColor: T.white, border: `1px solid ${T.border}` }}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ backgroundColor: T.navy }}>
+                  <h3 className="font-bold text-base text-white">✏️ {t('customFields.editField')}</h3>
                   <button
-                    onClick={() => {
-                      setEditingField(null);
-                      setFieldName('');
-                      setPlaceholder('');
-                      setSelectedIcon('🏷️');
-                      setError(null);
-                    }}
-                    className="p-2 rounded-xl active:scale-90 transition-transform"
-                    style={{ backgroundColor: '#F3F4F6' }}
+                    onClick={() => { setEditingField(null); setFieldName(''); setPlaceholder(''); setSelectedIcon('🏷️'); setError(null); }}
+                    className="w-8 h-8 flex items-center justify-center rounded-full active:scale-90 transition-transform"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: T.white }}
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="#0F172A" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    ✕
                   </button>
                 </div>
 
-                {error && (
-                  <div 
-                    className="rounded-xl p-3 border-2 text-sm"
-                    style={{ 
-                      backgroundColor: '#FEE2E2',
-                      borderColor: '#DC2626',
-                      color: '#DC2626'
-                    }}
-                  >
-                    {error}
-                  </div>
-                )}
-
-                <div 
-                  className="p-3 rounded-xl"
-                  style={{ backgroundColor: '#F0F9FF' }}
-                >
-                  <p className="text-sm font-semibold mb-1" style={{ color: '#0369A1' }}>
-                    {t('customFields.editingFor')}:
-                  </p>
-                  <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                    {getPropertyTypeLabel(editingField.property_type)} → {getListingTypeLabel(editingField.listing_type)}
-                  </p>
-                </div>
-
-                {/* Icono */}
-                <div>
-                  <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                    {t('customFields.fieldIcon')}
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowIconPicker(!showIconPicker)}
-                      className="w-16 h-16 rounded-xl border-2 flex items-center justify-center text-3xl active:scale-95 transition-transform"
-                      style={{ borderColor: '#2563EB', backgroundColor: '#EFF6FF' }}
-                    >
-                      {selectedIcon}
-                    </button>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold" style={{ color: '#0F172A' }}>
-                        {t('customFields.iconSelected')}
-                      </p>
-                      <p className="text-xs opacity-70" style={{ color: '#0F172A' }}>
-                        {t('customFields.clickToChange')}
-                      </p>
-                    </div>
-                  </div>
-
-                  {showIconPicker && (
-                    <div 
-                      className="mt-3 p-3 rounded-xl border-2 grid grid-cols-10 gap-2 max-h-48 overflow-y-auto"
-                      style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-                    >
-                      {AVAILABLE_ICONS.map((icon) => (
-                        <button
-                          key={icon}
-                          type="button"
-                          onClick={() => {
-                            setSelectedIcon(icon);
-                            setShowIconPicker(false);
-                          }}
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center text-2xl active:scale-90 transition-transform ${
-                            selectedIcon === icon ? 'ring-2 ring-blue-500' : ''
-                          }`}
-                          style={{ 
-                            backgroundColor: selectedIcon === icon ? '#DBEAFE' : '#FFFFFF',
-                          }}
-                        >
-                          {icon}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Nombre */}
-                <div>
-                  <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                    {t('customFields.fieldName')}
-                  </label>
-                  <input
-                    type="text"
-                    value={fieldName}
-                    onChange={(e) => setFieldName(e.target.value)}
-                    placeholder={t('customFields.fieldNamePlaceholder')}
-                    maxLength={30}
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                    style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-                  />
-                  <p className="text-xs mt-1 opacity-70" style={{ color: '#0F172A' }}>
-                    {fieldName.length}/30 {t('customFields.maxChars')}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                    {t('customFields.fieldNameEn')}
-                  </label>
-                  <input
-                    type="text"
-                    value={fieldNameEn}
-                    onChange={(e) => setFieldNameEn(e.target.value)}
-                    placeholder={t('customFields.fieldNameEnPlaceholder')}
-                    maxLength={30}
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                    style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-                  />
-                </div>
-
-                {/* Tipo */}
-                <div>
-                  <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                    {t('customFields.fieldType')}
-                  </label>
-                  <select
-                    value={fieldType}
-                    onChange={(e) => setFieldType(e.target.value as 'text' | 'number')}
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                    style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-                  >
-                    <option value="text">📝 {t('customFields.text')}</option>
-                    <option value="number">🔢 {t('customFields.number')}</option>
-                  </select>
-                </div>
-
-                {/* Placeholder */}
-                <div>
-                  <label className="block text-sm font-bold mb-2" style={{ color: '#0F172A' }}>
-                    {t('customFields.placeholder')}
-                  </label>
-                  <input
-                    type="text"
-                    value={placeholder}
-                    onChange={(e) => setPlaceholder(e.target.value)}
-                    placeholder={t('customFields.placeholderText')}
-                    maxLength={50}
-                    className="w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-gray-900 font-semibold"
-                    style={{ borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' }}
-                  />
-                </div>
-
-                {/* Botones */}
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={() => {
-                      setEditingField(null);
-                      setFieldName('');
-                      setFieldNameEn('');
-                      setPlaceholder('');
-                      setSelectedIcon('🏷️');
-                      setError(null);
-                    }}
-                    className="flex-1 py-3 rounded-xl font-bold border-2 active:scale-95 transition-transform"
-                    style={{ 
-                      borderColor: '#E5E7EB',
-                      color: '#0F172A',
-                      backgroundColor: '#FFFFFF'
-                    }}
-                  >
-                    {t('common.cancel')}
-                  </button>
-                  <button
-                    onClick={handleEditField}
-                    disabled={saving || !fieldName.trim()}
-                    className="flex-1 py-3 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-transform disabled:opacity-50"
-                    style={{ backgroundColor: '#2563EB' }}
-                  >
-                    {saving ? t('customFields.saving') : `💾 ${t('customFields.update')}`}
-                  </button>
+                <div className="p-5">
+                  <FieldForm isEdit={true} />
                 </div>
               </div>
             </div>
           </>
         )}
+
       </div>
     </AppLayout>
   );

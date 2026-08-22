@@ -23,8 +23,8 @@ const TEMPLATE_LABELS: Record<string, { es: string; en: string; emoji: string }>
   minimalist: { es: 'Ejecutiva', en: 'Executive', emoji: '🖤' },
   dynamic:    { es: 'Comercial', en: 'Commercial', emoji: '⚡' },
   organic:    { es: 'Natural',   en: 'Natural',    emoji: '🌿' },
-  beach:      { es: 'Costera',    en: 'Coastal',     emoji: '🌊' },
-  mountain:   { es: 'Alpina',     en: 'Alpine',      emoji: '🏔️' },
+  beach:      { es: 'Costera',    en: 'Coastal',    emoji: '🌊' },
+  mountain:   { es: 'Alpina',     en: 'Alpine',     emoji: '🏔️' },
 };
 
 interface MyProposalsModalProps {
@@ -124,25 +124,28 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center md:items-center md:p-4"
-      style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(2px)' }}
+      style={{ backgroundColor: 'rgba(27,45,91,0.6)', backdropFilter: 'blur(4px)' }}
     >
       <div
         className="w-full rounded-t-3xl md:rounded-2xl md:max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh] md:max-h-[90vh]"
-        style={{ backgroundColor: '#FFFFFF' }}
+        style={{ backgroundColor: '#FFFFFF', border: '1px solid #E8E4DC' }}
       >
-        {/* Handle — solo en mobile, es la afordancia visual de "desliza para cerrar" */}
+        {/* Handle mobile */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0 md:hidden">
-          <div className="w-10 h-1 rounded-full" style={{ backgroundColor: '#E5E7EB' }} />
+          <div className="w-10 h-1 rounded-full" style={{ backgroundColor: '#E8E4DC' }} />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #F3F4F6' }}>
+        <div
+          className="flex items-center justify-between px-5 py-4 flex-shrink-0"
+          style={{ borderBottom: '1px solid #E8E4DC', backgroundColor: '#1B2D5B' }}
+        >
           <div>
-            <h2 className="text-lg font-bold" style={{ color: '#0F172A' }}>
+            <h2 className="text-base font-bold text-white">
               {language === 'en' ? '🗂️ My Proposals' : '🗂️ Mis Propuestas'}
             </h2>
             {!loading && (
-              <p className="text-xs mt-0.5" style={{ color: '#6B7280' }}>
+              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
                 {proposals.length === 0
                   ? (language === 'en' ? 'No proposals yet' : 'Aún no hay propuestas')
                   : `${proposals.length} ${language === 'en'
@@ -153,15 +156,15 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full"
-            style={{ backgroundColor: '#F3F4F6', color: '#6B7280' }}
+            className="w-8 h-8 flex items-center justify-center rounded-full transition-colors active:scale-90"
+            style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: '#FFFFFF' }}
           >
             ✕
           </button>
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto flex-1 px-5 py-4">
+        <div className="overflow-y-auto flex-1 px-5 py-4" style={{ backgroundColor: '#F8F6F2' }}>
 
           {loading && (
             <div className="flex items-center justify-center py-12">
@@ -177,7 +180,7 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
           {!loading && proposals.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="text-5xl mb-4">📭</div>
-              <p className="font-semibold mb-1" style={{ color: '#0F172A' }}>
+              <p className="font-bold mb-1" style={{ color: '#1B2D5B' }}>
                 {language === 'en' ? 'No proposals yet' : 'Aún no tienes propuestas'}
               </p>
               <p className="text-sm" style={{ color: '#6B7280' }}>
@@ -199,8 +202,8 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
                 return (
                   <div
                     key={proposal.id}
-                    className="rounded-2xl overflow-hidden"
-                    style={{ border: '1.5px solid #F3F4F6', backgroundColor: '#FAFAFA' }}
+                    className="rounded-2xl overflow-hidden shadow-sm"
+                    style={{ border: '1px solid #E8E4DC', backgroundColor: '#FFFFFF' }}
                   >
                     {/* Thumbnails */}
                     {proposal.properties.length > 0 && (
@@ -214,10 +217,10 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
                             {prop.photos?.[0] ? (
                               <img src={prop.photos[0]} alt={prop.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-2xl" style={{ backgroundColor: '#F0F0EE' }}>🏠</div>
+                              <div className="w-full h-full flex items-center justify-center text-2xl" style={{ backgroundColor: '#F5EDD8' }}>🏠</div>
                             )}
                             {idx === 3 && proposal.property_count > 4 && (
-                              <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                              <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(27,45,91,0.6)' }}>
                                 <span className="text-white font-bold text-sm">+{proposal.property_count - 4}</span>
                               </div>
                             )}
@@ -230,20 +233,22 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
                     <div className="px-4 pt-3 pb-3">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-sm leading-snug line-clamp-1" style={{ color: '#0F172A' }}>
+                          <h3 className="font-bold text-sm leading-snug line-clamp-1" style={{ color: '#1B2D5B' }}>
                             {proposal.title}
                           </h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs" style={{ color: '#6B7280' }}>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <span
+                              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                              style={{ backgroundColor: '#F5EDD8', color: '#1B2D5B', border: '1px solid rgba(201,168,76,0.35)' }}
+                            >
                               {tpl.emoji} {language === 'en' ? tpl.en : tpl.es}
                             </span>
-                            <span style={{ color: '#D1D5DB' }}>·</span>
                             <span className="text-xs" style={{ color: '#6B7280' }}>
                               {proposal.property_count} {language === 'en'
                                 ? (proposal.property_count === 1 ? 'property' : 'properties')
                                 : (proposal.property_count === 1 ? 'propiedad' : 'propiedades')}
                             </span>
-                            <span style={{ color: '#D1D5DB' }}>·</span>
+                            <span style={{ color: '#E8E4DC' }}>·</span>
                             <span className="text-xs" style={{ color: '#6B7280' }}>
                               {new Date(proposal.created_at).toLocaleDateString(
                                 language === 'en' ? 'en-US' : 'es-ES',
@@ -279,9 +284,11 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
                         {/* Copiar link */}
                         <button
                           onClick={() => handleCopy(proposal)}
-                          className="flex-1 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform flex items-center justify-center gap-1.5"
+                          className="flex-1 py-2.5 rounded-xl font-bold text-sm active:scale-95 transition-transform flex items-center justify-center gap-1.5"
                           style={{
-                            backgroundColor: isCopied ? '#10B981' : '#2563EB',
+                            background: isCopied
+                              ? 'linear-gradient(135deg, #15803D 0%, #16A34A 100%)'
+                              : 'linear-gradient(135deg, #1B2D5B 0%, #243770 100%)',
                             color: '#FFFFFF',
                           }}
                         >
@@ -290,11 +297,15 @@ export default function MyProposalsModal({ isOpen, onClose }: MyProposalsModalPr
                             : (language === 'en' ? '📋 Copy link' : '📋 Copiar link')}
                         </button>
 
-                        {/* Share nativo — botón con ícono SVG */}
+                        {/* Share */}
                         <button
                           onClick={() => handleShare(proposal)}
-                          className="px-4 py-2 rounded-xl font-bold text-sm active:scale-95 transition-transform flex items-center justify-center gap-1.5"
-                          style={{ backgroundColor: '#F0FDF4', color: '#15803D', border: '1px solid #BBF7D0' }}
+                          className="px-4 py-2.5 rounded-xl font-bold text-sm active:scale-95 transition-transform flex items-center justify-center gap-1.5"
+                          style={{
+                            backgroundColor: '#F5EDD8',
+                            color: '#1B2D5B',
+                            border: '1px solid rgba(201,168,76,0.35)',
+                          }}
                           aria-label={language === 'en' ? 'Share' : 'Compartir'}
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

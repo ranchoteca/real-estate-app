@@ -375,8 +375,8 @@ export default function ProfilePage() {
                 {saving ? `⏳ ${t('profile.saving')}` : `💾 ${t('profile.saveChanges')}`}
               </button>
 
-              {/* Logout — dentro del formulario, debajo del botón guardar */}
-              <div className="pt-1">
+              {/* Logout — mobile only, dentro del formulario */}
+              <div className="pt-1 md:hidden">
                 <LogoutButton />
               </div>
 

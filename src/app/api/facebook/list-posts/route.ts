@@ -10,10 +10,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    // Obtener agente con ambos campos que necesitamos
+    // ← ÚNICO CAMBIO: postforme_account_id → facebook_account_id
     const { data: agent, error: agentError } = await supabaseAdmin
       .from('agents')
-      .select('id, postforme_account_id')
+      .select('id, facebook_account_id')
       .eq('email', session.user.email)
       .single();
 
@@ -21,18 +21,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Agente no encontrado' }, { status: 404 });
     }
 
-    if (!agent.postforme_account_id) {
+    // ← ÚNICO CAMBIO: postforme_account_id → facebook_account_id
+    if (!agent.facebook_account_id) {
       return NextResponse.json(
         { error: 'No hay página de Facebook vinculada' },
         { status: 400 }
       );
     }
 
-    console.log('📱 Obteniendo posts de cuenta Post for Me:', agent.postforme_account_id);
+    console.log('📱 Obteniendo posts de cuenta Post for Me:', agent.facebook_account_id);
 
-    // Obtener posts del feed de la cuenta
+    // ← ÚNICO CAMBIO: postforme_account_id → facebook_account_id
     const response = await fetch(
-      `https://api.postforme.dev/v1/social-account-feeds/${agent.postforme_account_id}?limit=50`,
+      `https://api.postforme.dev/v1/social-account-feeds/${agent.facebook_account_id}?limit=50`,
       {
         headers: {
           'Authorization': `Bearer ${process.env.POSTFORME_API_KEY}`,
@@ -57,7 +58,6 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Obtener qué posts ya fueron importados por este agente
     const platformPostIds = rawPosts
       .map((p: any) => p.platform_post_id)
       .filter(Boolean);
@@ -72,13 +72,9 @@ export async function GET(req: NextRequest) {
       (importedPosts || []).map(p => p.facebook_post_id)
     );
 
-    // Formatear posts para el frontend
     const posts = rawPosts.map((post: any) => {
       const mediaItems = Array.isArray(post.media) ? post.media.flat() : [];
-      const imageCount = mediaItems.length;
       const thumbnail = mediaItems[0]?.url || null;
-
-      // Detectar si los media son solo videos (no imágenes)
       const imageItems = mediaItems.filter((m: any) => {
         const url = m?.url || '';
         return !url.match(/\.(mp4|mov|avi|webm|mkv)/i);

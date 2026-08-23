@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useI18nStore } from '@/lib/i18n-store';
 
 interface Props {
   isOpen: boolean;
@@ -16,18 +17,17 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
   const [success, setSuccess] = useState(false);
   const [postUrl, setPostUrl] = useState<string | null>(null);
   const { t } = useTranslation();
+  const { language } = useI18nStore();
 
   useEffect(() => {
     if (!isOpen) return;
 
-    // Reset estados
     setProgress(0);
-    setMessage('Iniciando...');
+    setMessage(language === 'en' ? 'Starting...' : 'Iniciando...');
     setError(null);
     setSuccess(false);
     setPostUrl(null);
 
-    // Conectar con SSE
     const eventSource = new EventSource(`/api/facebook/publish?propertyId=${propertyId}`);
 
     eventSource.onmessage = (event) => {
@@ -47,7 +47,7 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
     };
 
     eventSource.onerror = () => {
-      setError('Error de conexión');
+      setError(language === 'en' ? 'Connection error' : 'Error de conexión');
       eventSource.close();
     };
 
@@ -62,10 +62,9 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
         {!error && !success && (
           <>
             <h3 className="text-xl font-bold mb-4 text-center" style={{ color: '#0F172A' }}>
-              📘 {t('settings.options.facebook.publishing')}
+              📘 {language === 'en' ? 'Publishing on Facebook...' : 'Publicando en Facebook...'}
             </h3>
 
-            {/* Barra de progreso */}
             <div className="mb-4">
               <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
                 <div
@@ -82,7 +81,6 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
               {message}
             </p>
 
-            {/* Spinner */}
             <div className="flex justify-center mt-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
             </div>
@@ -93,7 +91,7 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
           <div className="text-center">
             <div className="text-5xl mb-3">❌</div>
             <h3 className="text-xl font-bold mb-2" style={{ color: '#DC2626' }}>
-              {t('settings.options.facebook.publishError')}
+              {language === 'en' ? 'Error publishing' : 'Error al publicar'}
             </h3>
             <p className="text-sm mb-4" style={{ color: '#0F172A' }}>
               {error}
@@ -103,7 +101,7 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
               className="px-6 py-2 bg-gray-200 rounded-lg font-semibold"
               style={{ color: '#0F172A' }}
             >
-              {t('common.close')}
+              {language === 'en' ? 'Close' : 'Cerrar'}
             </button>
           </div>
         )}
@@ -112,10 +110,12 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
           <div className="text-center">
             <div className="text-5xl mb-3">✅</div>
             <h3 className="text-xl font-bold mb-2" style={{ color: '#10B981' }}>
-              {t('settings.options.facebook.publishSuccess')}
+              {language === 'en' ? 'Published successfully!' : '¡Publicado exitosamente!'}
             </h3>
             <p className="text-sm mb-4" style={{ color: '#0F172A' }}>
-              {t('settings.options.facebook.publishSuccessDesc')}
+              {language === 'en'
+                ? 'Your property is now live on your Facebook page.'
+                : 'Tu propiedad ya está publicada en tu página de Facebook.'}
             </p>
             <div className="flex gap-2 justify-center">
               {/*
@@ -135,7 +135,7 @@ export default function FacebookPublishModal({ isOpen, onClose, propertyId }: Pr
                 className="px-6 py-2 bg-gray-200 rounded-lg font-semibold"
                 style={{ color: '#0F172A' }}
               >
-                {t('common.close')}
+                {language === 'en' ? 'Close' : 'Cerrar'}
               </button>
             </div>
           </div>

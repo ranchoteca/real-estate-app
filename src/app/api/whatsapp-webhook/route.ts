@@ -104,11 +104,11 @@ export async function POST(req: NextRequest) {
     const searchNumberWithPlus = cleanNumber.startsWith('+') ? cleanNumber : `+${cleanNumber}`;
     const { data: agent, error } = await supabaseAdmin
       .from('agents')
-      .select('id, email, full_name, username, is_flowia_active, watermark_logo, watermark_position, watermark_size, watermark_image, watermark_opacity, watermark_scale, use_corner_logo, use_watermark')
+      .select('id, email, full_name, username, is_flowia_active, plan, watermark_logo, watermark_position, watermark_size, watermark_image, watermark_opacity, watermark_scale, use_corner_logo, use_watermark')
       .or(`whatsapp_number.eq.${searchNumberWithPlus},whatsapp_number.eq.${cleanNumber}`)
       .single();
 
-    if (error || !agent || !agent.is_flowia_active) {
+    if (error || !agent || !agent.is_flowia_active || agent.plan !== 'pro') {
       return NextResponse.json({ success: true, status: 'ignored_unauthorized_or_inactive' });
     }
 

@@ -17,38 +17,48 @@ export default function PublishingModal({ isOpen, steps, hasVideos, language }: 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-      <div className="w-full max-w-sm rounded-3xl shadow-2xl p-6" style={{ backgroundColor: '#FFFFFF' }}>
-        
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(27,45,91,0.7)', backdropFilter: 'blur(4px)' }}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden"
+        style={{ backgroundColor: '#FFFFFF', border: '1px solid #E8E4DC' }}
+      >
         {/* Header */}
-        <div className="text-center mb-6">
+        <div
+          className="px-6 pt-6 pb-5 text-center"
+          style={{ backgroundColor: '#1B2D5B', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+        >
           <div className="text-5xl mb-3 animate-bounce">📤</div>
-          <h2 className="text-xl font-bold mb-1" style={{ color: '#0F172A' }}>
+          <h2 className="text-lg font-bold text-white mb-3">
             {language === 'en' ? 'Publishing your property...' : 'Publicando tu propiedad...'}
           </h2>
-          <p className="text-sm font-semibold px-4 py-2 rounded-xl" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
-            ⚠️ {language === 'en' 
-              ? 'Please stay on this screen' 
-              : 'Por favor permanece en esta pantalla'
-            }
+          <p
+            className="text-xs font-semibold px-4 py-2 rounded-xl inline-block"
+            style={{ backgroundColor: 'rgba(201,168,76,0.2)', color: '#E8C96A', border: '1px solid rgba(201,168,76,0.3)' }}
+          >
+            ⚠️ {language === 'en' ? 'Please stay on this screen' : 'Por favor permanece en esta pantalla'}
           </p>
         </div>
 
         {/* Steps */}
-        <div className="space-y-3 mb-6">
+        <div className="px-6 py-5 space-y-3" style={{ backgroundColor: '#F8F6F2' }}>
           {steps.map((step) => (
             <div key={step.id} className="flex items-center gap-3">
-              {/* Icon */}
-              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
+              {/* Ícono del paso */}
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
                 style={{
-                  backgroundColor: step.status === 'completed' ? '#10B981' 
-                    : step.status === 'active' ? '#2563EB' 
-                    : step.status === 'error' ? '#DC2626'
-                    : '#E5E7EB',
-                  color: step.status === 'pending' ? '#9CA3AF' : '#FFFFFF',
+                  backgroundColor:
+                    step.status === 'completed' ? '#15803D'
+                    : step.status === 'active'    ? '#1B2D5B'
+                    : step.status === 'error'     ? '#DC2626'
+                    : '#E8E4DC',
+                  color: step.status === 'pending' ? '#6B7280' : '#FFFFFF',
                 }}
               >
-                {step.status === 'completed' ? '✓' 
+                {step.status === 'completed' ? '✓'
                   : step.status === 'active' ? (
                     <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
@@ -61,12 +71,14 @@ export default function PublishingModal({ isOpen, steps, hasVideos, language }: 
               </div>
 
               {/* Label */}
-              <span className="text-sm font-semibold"
+              <span
+                className="text-sm font-semibold"
                 style={{
-                  color: step.status === 'completed' ? '#10B981'
-                    : step.status === 'active' ? '#2563EB'
-                    : step.status === 'error' ? '#DC2626'
-                    : '#9CA3AF',
+                  color:
+                    step.status === 'completed' ? '#15803D'
+                    : step.status === 'active'    ? '#1B2D5B'
+                    : step.status === 'error'     ? '#DC2626'
+                    : '#6B7280',
                 }}
               >
                 {step.label}
@@ -77,13 +89,17 @@ export default function PublishingModal({ isOpen, steps, hasVideos, language }: 
 
         {/* Video warning */}
         {hasVideos && (
-          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#EFF6FF' }}>
-            <p className="text-xs font-semibold" style={{ color: '#1E40AF' }}>
-              🎬 {language === 'en' 
-                ? 'Videos may take up to 60 seconds to process' 
-                : 'Los videos pueden tardar hasta 60 segundos en procesarse'
-              }
-            </p>
+          <div className="px-6 pb-5" style={{ backgroundColor: '#F8F6F2' }}>
+            <div
+              className="rounded-xl p-3 text-center"
+              style={{ backgroundColor: '#F5EDD8', border: '1px solid rgba(201,168,76,0.35)' }}
+            >
+              <p className="text-xs font-semibold" style={{ color: '#1B2D5B' }}>
+                🎬 {language === 'en'
+                  ? 'Videos may take up to 60 seconds to process'
+                  : 'Los videos pueden tardar hasta 60 segundos en procesarse'}
+              </p>
+            </div>
           </div>
         )}
       </div>
